@@ -1,0 +1,148 @@
+{
+	"cities": [
+		{
+			"name": "London",
+			"latitude": 51.5074,
+			"longitude": -0.1278,
+			"boundaries": {
+				"west": -0.5103751,
+				"north": 51.6723432,
+				"east": 0.3340155,
+				"south": 51.3849401
+			},
+			"origin": {
+				"lat": 51.5074,
+				"lng": -0.1278
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Berlin",
+			"latitude": 52.520008,
+			"longitude": 13.404954,
+			"boundaries": {
+				"west": 13.0884,
+				"north": 52.6755,
+				"east": 13.7611,
+				"south": 52.3383
+			},
+			"origin": {
+				"lat": 52.520008,
+				"lng": 13.404954
+			},
+			"region": "de"
+		},
+		{
+			"name": "Amsterdam",
+			"latitude": 52.3676,
+			"longitude": 4.9041,
+			"boundaries": {
+				"west": 4.728528,
+				"north": 52.431072,
+				"east": 5.079164,
+				"south": 52.278174
+			},
+			"origin": {
+				"lat": 52.3676,
+				"lng": 4.9041
+			},
+			"region": "nl"
+		},
+		{
+			"name": "Rotterdam",
+			"latitude": 51.9225,
+			"longitude": 4.4792,
+			"boundaries": {
+				"west": 4.32996,
+				"north": 52.00229,
+				"east": 4.597792,
+				"south": 51.874048
+			},
+			"origin": {
+				"lat": 51.9225,
+				"lng": 4.4792
+			},
+			"region": "nl"
+		},
+		{
+			"name": "Barcelona",
+			"latitude": 41.3851,
+			"longitude": 2.1734,
+			"boundaries": {
+				"west": 2.069528,
+				"north": 41.468747,
+				"east": 2.228226,
+				"south": 41.317946
+			},
+			"origin": {
+				"lat": 41.3851,
+				"lng": 2.1734
+			},
+			"region": "es"
+		},
+		{
+			"name": "Ibiza",
+			"latitude": 38.9067,
+			"longitude": 1.4206,
+			"boundaries": {
+				"west": 1.398196,
+				"north": 38.929547,
+				"east": 1.453695,
+				"south": 38.888118
+			},
+			"origin": {
+				"lat": 38.9067,
+				"lng": 1.4206
+			},
+			"region": "es"
+		},
+		{
+			"name": "Madrid",
+			"latitude": 40.4168,
+			"longitude": -3.7038,
+			"boundaries": {
+				"west": -3.762655,
+				"north": 40.500138,
+				"east": -3.593512,
+				"south": 40.352193
+			},
+			"origin": {
+				"lat": 40.4168,
+				"lng": -3.7038
+			},
+			"region": "es"
+		},
+		{
+			"name": "Paris",
+			"latitude": 48.8566,
+			"longitude": 2.3522,
+			"boundaries": {
+				"west": 2.224199,
+				"north": 48.902145,
+				"east": 2.469921,
+				"south": 48.815575
+			},
+			"origin": {
+				"lat": 48.8566,
+				"lng": 2.3522
+			},
+			"region": "fr"
+		},
+		{
+			"name": "Stockholm",
+			"latitude": 59.3293,
+			"longitude": 18.0686,
+			"boundaries": {
+				"west": 17.927442,
+				"north": 59.401545,
+				"east": 18.201157,
+				"south": 59.257133
+			},
+			"origin": {
+				"lat": 59.3293,
+				"lng": 18.0686
+			},
+			"region": "se"
+		}
+	]
+}

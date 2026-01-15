@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	@font-face {
+		font-family: 'Sen';
+		src: local('Sen-Regular'), url('/fonts/Sen-Regular.ttf');
+		font-weight: regular;
+		font-display: swap;
+	}
+	@font-face {
+		font-family: 'Sen';
+		src: local('Sen-Bold'), url('/fonts/Sen-Bold.ttf');
+		font-weight: bold;
+		font-display: swap;
+	}
+	:root {
+		--color-primary: 253 95 0; /* rgb(253,95,0) */
+		--color-bg: 0 32 74; /* rgb(0,32,74)*/
+		--color-dark-bg: 2 0 36; /* rgb(2,0,36)*/
+		--color-mid-bg: 0 22 50; /* rgb(0,22,50)*/
+		--color-secondary: 0 87 146; /* rgb(0,87,146)*/
+		--color-light: 217 250 255; /* rgb(217,250,255)*/
+		--color-spotify: 30 215 96; /* rgb(30,215,96) */
+		--color-text-dark: 17 24 39; /* rgb(17, 24, 39) - almost black */
+	}
+
+	/* Base dark theme styles */
+	html {
+		background: rgb(var(--color-bg));
+		min-height: 100%;
+		color: rgb(var(--color-light));
+	}
+
+	body {
+		margin: 0;
+		padding: 0;
+		background: linear-gradient(
+				180deg,
+				rgb(var(--color-dark-bg)) 0%,
+				rgb(var(--color-mid-bg)) 45%,
+				rgb(var(--color-bg)) 100%
+			)
+			no-repeat;
+		background-size: cover;
+		color: rgb(var(--color-light));
+	}
+
+	/* Light background text color rules */
+	.bg-white,
+	[class*='bg-gray-'],
+	[class*='bg-slate-'],
+	[class*='bg-neutral-'],
+	[class*='bg-zinc-'],
+	.bg-light {
+		color: rgb(var(--color-text-dark));
+	}
+
+	/* Dark background text color rules */
+	.bg-black,
+	[class*='bg-dark-'],
+	.bg-primary,
+	.bg-secondary,
+	[class*='bg-blue-'],
+	[class*='bg-indigo-'],
+	[class*='bg-purple-'] {
+		color: rgb(var(--color-light));
+	}
+
+	/* Form elements and containers with light backgrounds */
+	.bg-white *:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
+	[class*='bg-gray-'] *:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
+	[class*='bg-slate-'] *:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
+	input:not([type='submit']),
+	select,
+	textarea,
+	label:not(.text-white) {
+		color: rgb(var(--color-text-dark));
+	}
+
+	/* Preserve specific text colors */
+	.text-white,
+	.text-primary,
+	[class*='text-'] {
+		color: inherit;
+	}
+
+	/* Form element styling */
+	input,
+	select,
+	textarea {
+		border-color: rgb(209, 213, 219);
+		background-color: white;
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		color: rgb(107, 114, 128) !important;
+	}
+
+	/* Dropdown specific styles */
+	.dropdown-content,
+	.dropdown-link {
+		color: rgb(var(--color-text-dark));
+		background-color: white;
+	}
+
+	/* Links in light backgrounds */
+	.bg-white a:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
+	[class*='bg-gray-'] a:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
+	[class*='bg-slate-'] a:not(.text-white, .text-primary, .text-inherit, [class*='text-']) {
+		color: rgb(var(--color-secondary));
+	}
+}
+
+.flex {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* ... (rest of the existing CSS) ... */
+.dropdown {
+	display: flex;
+	width: 100%;
+	position: relative;
+	z-index: 5;
+}
+
+.relative {
+	order: 3;
+	justify-content: center;
+	z-index: 1;
+}
+
+#form-submit-button {
+	position: relative;
+	margin-right: 50%;
+	margin-top: 7px;
+	order: 2;
+	width: 70px;
+	height: 58px;
+	padding: 5px;
+}
+
+.dropbtn {
+	background-color: #f8f9fa;
+	border-radius: 10px;
+	width: 300px;
+	height: 56px;
+	margin-top: 16px;
+	color: rgb(var(--color-text-dark));
+}
+
+.dropdown-content {
+	display: none;
+	min-width: 50%;
+	z-index: 10;
+	background-color: rgb(255, 255, 255);
+	border: 1px solid #030458;
+	padding: 4px;
+}
+
+.dropdown-submenu {
+	position: relative;
+}
+
+.dropdown-submenu .dropdown-content {
+	display: none !important;
+	position: absolute;
+	left: 100%;
+	top: 0;
+	width: 100%;
+	position: absolute;
+	z-index: 15;
+}
+
+.dropdown-submenu:hover .dropdown-content {
+	display: block !important;
+	z-index: 20;
+}
+
+.dropdown-content a {
+	color: rgb(var(--color-text-dark));
+	padding: 12px 16px;
+	text-decoration: none;
+	display: block;
+	z-index: 100;
+}
+
+.dropdown-content a:hover {
+	background-color: #f3f4f6;
+}
+
+.dropdown:hover .dropdown-content {
+	display: block;
+	z-index: 20;
+}
+
+.dropdown-content a:active {
+	color: rgb(var(--color-primary));
+}
+
+.selected {
+	background-color: #e0e0e0;
+}
+
+.selected:hover {
+	background-color: #d0d0d0;
+}
+
+/* submenu */
+.dropdown-link {
+	background-color: transparent;
+	border: none;
+	padding: 12px 16px;
+	text-decoration: none;
+	display: block;
+	width: 100%;
+}
+
+.dropdown-link:hover {
+	background-color: #f1f1f1;
+}
+
+.dropdown-link.active {
+	color: rgb(var(--color-primary));
+	background-color: #f3f4f6;
+}

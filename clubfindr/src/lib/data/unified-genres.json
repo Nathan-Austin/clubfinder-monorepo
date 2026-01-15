@@ -1,0 +1,1815 @@
+{
+	"categories": [
+		{
+			"name": "Electronic/Dance (EDM)",
+			"subgenres": [
+				{
+					"name": "Ambient and Atmospheric",
+					"genres": ["Ambient", "Ambient Music", "Atmospheric Electronic"],
+					"subsubgenres": [
+						{
+							"name": "Pure Ambient",
+							"genres": [
+								"Ambient",
+								"Drone",
+								"Dark Ambient",
+								"Ambient Dub",
+								"Ambient House",
+								"Space Ambient",
+								"Arctic Ambient",
+								"Organic Ambient",
+								"Fourth World",
+								"New Age Ambient",
+								"Compositional Ambient",
+								"Ritual Ambient",
+								"Warm Drone",
+								"Drone Ambient",
+								"Ambient Folk",
+								"Ambient Fusion",
+								"Ambient Guitar",
+								"Ambient Lo-fi",
+								"Ambient Pop",
+								"Ambient Post-rock",
+								"Ambient Psychill",
+								"Ambient Synth",
+								"Nordic Ambient"
+							]
+						},
+						{
+							"name": "Ambient with Rhythmic Elements",
+							"genres": [
+								"Ambient Techno",
+								"Dub Techno",
+								"Chill Out",
+								"Downtempo",
+								"Illbient",
+								"Trip Hop",
+								"Lo-Fi House",
+								"Float House",
+								"Balearic Beat",
+								"Moombahton",
+								"Downtempo Bass",
+								"Downtempo Fusion",
+								"Broken Beat",
+								"Sunset Lounge",
+								"Chill Lounge"
+							]
+						},
+						{
+							"name": "Experimental Ambient",
+							"genres": [
+								"Glitch",
+								"Electronic Ambient",
+								"Lowercase",
+								"Ethnotronica",
+								"Experimental Techno",
+								"Soundscape Composition",
+								"Electroacoustic Improvisation",
+								"Microsound",
+								"Generative Ambient",
+								"Field Recording Music",
+								"Drone Metal Fusion",
+								"Sound Art",
+								"Acousmatic",
+								"Musique Concrete",
+								"Electroacoustic",
+								"Field Recordings",
+								"Experimental Ambient",
+								"Noise",
+								"Dark Ambient",
+								"Drone"
+							]
+						}
+					]
+				},
+				{
+					"name": "House",
+					"genres": ["House", "House Music"],
+					"subsubgenres": [
+						{
+							"name": "Classic House",
+							"genres": [
+								"Chicago House",
+								"Acid House",
+								"Deep House",
+								"Garage House",
+								"NY House",
+								"French House",
+								"Classic House",
+								"Soulful House",
+								"Funky House",
+								"Disco House",
+								"Filter House"
+							]
+						},
+						{
+							"name": "Modern House",
+							"genres": [
+								"Progressive House",
+								"Electro House",
+								"Future House",
+								"Big Room House",
+								"Bass House",
+								"Tech House",
+								"G-House",
+								"Slap House",
+								"Brazilian Bass",
+								"Fidget House",
+								"Melbourne Bounce",
+								"Bounce",
+								"Complextro"
+							]
+						},
+						{
+							"name": "Cultural House",
+							"genres": [
+								"Afro House",
+								"South African House",
+								"Tribal House",
+								"Latin House",
+								"Brazilian House",
+								"UK Garage",
+								"Amapiano",
+								"Gqom",
+								"Kuduro",
+								"Kwaito",
+								"Batida",
+								"Tribal Tech House"
+							]
+						},
+						{
+							"name": "Deep/Tech House",
+							"genres": [
+								"Deep House",
+								"Tech House",
+								"Minimal Deep House",
+								"Dub House",
+								"Microhouse",
+								"Romanian Minimal",
+								"Organic House",
+								"Deep Disco House",
+								"Deep Groove House",
+								"Deep Tech House"
+							]
+						}
+					]
+				},
+				{
+					"name": "Techno",
+					"genres": ["Techno", "Techno Music"],
+					"subsubgenres": [
+						{
+							"name": "Minimal and Techno",
+							"genres": [
+								"Minimal Techno",
+								"Techno",
+								"Detroit Techno",
+								"Schranz",
+								"Melodic Techno",
+								"German Techno",
+								"Acid Techno",
+								"Ghettotech",
+								"Techno-Dnb",
+								"Berlin Minimal Techno",
+								"Dark Minimal Techno",
+								"Minimal Dub",
+								"Microhouse",
+								"Minimal",
+								"Tech House"
+							]
+						},
+						{
+							"name": "Dark and Industrial Techno",
+							"genres": [
+								"Dark Techno",
+								"Industrial Techno",
+								"Hard Techno",
+								"Raw Techno",
+								"Peak Time Techno",
+								"Business Techno",
+								"Hypnotic Techno",
+								"Destroy Techno",
+								"Somatik Techno",
+								"Hardgroove",
+								"Hard Industrial Techno"
+							]
+						},
+						{
+							"name": "Regional Techno Styles",
+							"genres": [
+								"French Techno",
+								"Berlin Techno",
+								"Detroit Techno",
+								"Birmingham Techno",
+								"Swedish Techno",
+								"Italian Techno",
+								"Belgian Techno",
+								"Dutch Techno",
+								"Spanish Techno",
+								"Polish Techno",
+								"Australian Techno"
+							]
+						}
+					]
+				},
+				{
+					"name": "Trance",
+					"genres": ["Trance", "Trance Music"],
+					"subsubgenres": [
+						{
+							"name": "Trance Variants",
+							"genres": [
+								"Uplifting Trance",
+								"Psytrance",
+								"Goa Trance",
+								"Progressive Trance",
+								"Tech Trance",
+								"Hard Trance",
+								"Vocal Trance",
+								"Forest Psytrance",
+								"Dark Psytrance",
+								"Full-On Psytrance",
+								"Hi-Tech Psytrance",
+								"Progressive Psytrance",
+								"Psychedelic Trance",
+								"Acid Trance",
+								"Classic Trance",
+								"Dream Trance",
+								"Orchestral Uplifting"
+							]
+						}
+					]
+				},
+				{
+					"name": "Drum & Bass",
+					"genres": ["Drum & Bass", "DnB", "Drum and Bass", "Jungle/Drum'n'bass"],
+					"subsubgenres": [
+						{
+							"name": "Drum & Bass Styles",
+							"genres": [
+								"Liquid DnB",
+								"Neurofunk",
+								"Jump Up",
+								"Darkstep",
+								"Techstep",
+								"Atmospheric DnB",
+								"Jungle",
+								"Crossbreed",
+								"Deep Drum & Bass",
+								"Minimal Drum & Bass",
+								"Rolling Drum & Bass",
+								"Sambass",
+								"Intelligent Drum & Bass",
+								"Dancefloor DnB",
+								"Jazzy DnB",
+								"Darkcore",
+								"Hardstep",
+								"Drumfunk",
+								"Drumstep",
+								"Liquid Funk",
+								"Oldschool Jungle",
+								"Darkside Jungle",
+								"Ragga Jungle",
+								"Raggacore",
+								"Sambass",
+								"Techstep"
+							]
+						}
+					]
+				},
+				{
+					"name": "Dubstep",
+					"genres": ["Dubstep", "Brostep"],
+					"subsubgenres": [
+						{
+							"name": "Dubstep and Bass",
+							"genres": [
+								"Dubstep",
+								"Future Garage",
+								"Post-Dubstep",
+								"Brostep",
+								"Bass Music",
+								"Grime",
+								"Future Bass",
+								"Riddim",
+								"Tearout",
+								"Deep Dubstep",
+								"Wonky Dubstep",
+								"Substep",
+								"Cinematic Dubstep",
+								"Filthstep",
+								"Chillstep",
+								"Regstep"
+							]
+						}
+					]
+				},
+				{
+					"name": "Bass Music",
+					"genres": ["Bass Music", "Bass"],
+					"subsubgenres": [
+						{
+							"name": "Wave Music",
+							"genres": [
+								"Wave",
+								"Hardwave",
+								"Wavemob",
+								"Cloud Trap",
+								"Synthwave",
+								"Vaporwave",
+								"Darkwave",
+								"Sovietwave",
+								"Spacewave",
+								"Comfy Synth",
+								"Dariacore",
+								"Drift"
+							]
+						},
+						{
+							"name": "Future Bass and Beats",
+							"genres": [
+								"Future Bass",
+								"Kawaii Bass",
+								"Space Bass",
+								"Melodic Bass",
+								"Purple Sound",
+								"Beat Scene",
+								"Kawaii Future Bass",
+								"Chill Bass",
+								"Bass Music",
+								"Bass Trip",
+								"Bass House",
+								"Bass Trap"
+							]
+						},
+						{
+							"name": "Experimental Bass",
+							"genres": [
+								"Halftime",
+								"Leftfield Bass",
+								"Deconstructed Club",
+								"Weightless",
+								"UK Bass",
+								"Abstract Bass",
+								"Experimental Bass",
+								"Night Bass",
+								"Deep Bass",
+								"Psybass",
+								"Global Bass",
+								"Miami Bass"
+							]
+						}
+					]
+				},
+				{
+					"name": "Hard Dance",
+					"genres": ["Hard Dance", "Hardcore", "Hardstyle"],
+					"subsubgenres": [
+						{
+							"name": "Hard Dance Styles",
+							"genres": [
+								"Hardstyle",
+								"Jumpstyle",
+								"Hardcore",
+								"Gabber",
+								"Happy Hardcore",
+								"Hard House",
+								"Hard Dance",
+								"Raw Hardstyle",
+								"Euphoric Hardstyle",
+								"Frenchcore",
+								"Terrorcore",
+								"Uptempo Hardcore",
+								"Acidcore",
+								"Gabba",
+								"Bouncy House",
+								"Bouncy Techno",
+								"Breakcore",
+								"Digital Hardcore",
+								"Doomcore",
+								"Dubstyle",
+								"Happycore",
+								"Makina",
+								"Speedcore",
+								"UK Hardcore"
+							]
+						}
+					]
+				},
+				{
+					"name": "Modern Club Styles",
+					"genres": ["Club Music", "Club", "Club Dance"],
+					"subsubgenres": [
+						{
+							"name": "Hyperpop and PC Music",
+							"genres": [
+								"Hyperpop",
+								"Bubblegum Bass",
+								"PC Music",
+								"Deconstructed Pop",
+								"Glitch Pop",
+								"Digital Pop",
+								"Digicore",
+								"Glitchcore",
+								"Proto-hyperpop",
+								"Hyperpop Brasileiro",
+								"Hyperpop En Español"
+							]
+						},
+						{
+							"name": "Footwork/Juke",
+							"genres": [
+								"Footwork",
+								"Juke",
+								"Chicago Footwork",
+								"Jersey Club",
+								"Baltimore Club",
+								"Speed Garage",
+								"UK Bass",
+								"Night Bass",
+								"Bassline House",
+								"4x4 Garage",
+								"UK Funky"
+							]
+						},
+						{
+							"name": "UK Garage",
+							"genres": [
+								"UK Garage",
+								"2-Step",
+								"4×4",
+								"Bassline",
+								"Grime",
+								"Speed Garage",
+								"Future Garage",
+								"Garage"
+							]
+						}
+					]
+				},
+				{
+					"name": "IDM and Experimental",
+					"genres": ["IDM", "Experimental Electronic", "IDM/Experimental", "Electronica"],
+					"subsubgenres": [
+						{
+							"name": "IDM and Experimental Rhythmic Music",
+							"genres": [
+								"IDM",
+								"Experimental Techno",
+								"Glitch Hop",
+								"Drumfunk",
+								"Electronica",
+								"Indietronica",
+								"Laptronica",
+								"Skweee",
+								"Sound Art",
+								"Synthcore",
+								"Abstract Beats",
+								"Abstract IDM",
+								"Intelligent Dance Music",
+								"Braindance",
+								"Drill and Bass",
+								"Berlin School",
+								"Chillwave",
+								"Electronic Art Music",
+								"Electronic Dance Music",
+								"Folktronica",
+								"Freestyle Music",
+								"Glitch"
+							]
+						}
+					]
+				},
+				{
+					"name": "Downtempo",
+					"genres": ["Downtempo", "Chill Out", "Trip Hop"],
+					"subsubgenres": [
+						{
+							"name": "Downtempo Styles",
+							"genres": [
+								"Downtempo",
+								"Acid Jazz",
+								"Balearic Beat",
+								"Chill Out",
+								"Dub Music",
+								"Dubtronica",
+								"Ethnic Electronica",
+								"Moombahton",
+								"Nu Jazz",
+								"Trip Hop",
+								"Liquid Dub"
+							]
+						}
+					]
+				},
+				{
+					"name": "Vaporwave",
+					"genres": ["Vaporwave", "Synthwave"],
+					"subsubgenres": [
+						{
+							"name": "Vaporwave Styles",
+							"genres": [
+								"Vaporwave",
+								"Hyponagogic",
+								"Vektroid",
+								"Mallsoft",
+								"Vaportrap",
+								"Vaporhop",
+								"Protovapor",
+								"Synthwave",
+								"Retrowave",
+								"Outrun",
+								"Chillwave"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Alternative Rock and Punk",
+			"subgenres": [
+				{
+					"name": "Punk and Hardcore",
+					"genres": ["Punk", "Punk Rock", "Hardcore Punk"],
+					"subsubgenres": [
+						{
+							"name": "Traditional Punk",
+							"genres": [
+								"Punk",
+								"Britpunk",
+								"Hardcore Punk",
+								"Crust Punk",
+								"Street Punk",
+								"Anarcho-punk",
+								"UK82",
+								"Oi",
+								"Raw Punk",
+								"D-beat",
+								"Political Punk"
+							]
+						},
+						{
+							"name": "Emo and Post-Hardcore",
+							"genres": [
+								"Emotional Hardcore (Emo / Emocore)",
+								"Post-Hardcore",
+								"Screamo",
+								"Midwest Emo",
+								"Skramz",
+								"Emotive Hardcore",
+								"Emo Revival",
+								"5th Wave Emo",
+								"DIY Emo",
+								"Emo Punk"
+							]
+						},
+						{
+							"name": "Folk and Fusion Punk",
+							"genres": [
+								"Folk Punk",
+								"Cowpunk",
+								"Crossover Thrash",
+								"Celtic Punk",
+								"Gypsy Punk",
+								"Acoustic Punk",
+								"Anti-folk",
+								"Punk Blues",
+								"Punk Folk"
+							]
+						}
+					]
+				},
+				{
+					"name": "Alternative Rock",
+					"genres": ["Alternative Rock", "Alternative"],
+					"subsubgenres": [
+						{
+							"name": "Indie and Lo-Fi Rock",
+							"genres": [
+								"Indie Rock",
+								"Lo-fi",
+								"College Rock",
+								"Shoegaze",
+								"Dream Pop",
+								"Bedroom Pop",
+								"Indie Folk",
+								"Indie Pop",
+								"C86",
+								"Jangle Pop"
+							]
+						},
+						{
+							"name": "Grunge and Post-Grunge",
+							"genres": [
+								"Grunge",
+								"Post-Grunge",
+								"Alternative Metal",
+								"Grunge Pop",
+								"Grunge Revival",
+								"Underground Grunge",
+								"Seattle Sound"
+							]
+						},
+						{
+							"name": "Post-Rock and Math Rock",
+							"genres": [
+								"Post-Rock",
+								"Math Rock",
+								"Instrumental Rock",
+								"Experimental Rock",
+								"Art Rock",
+								"Progressive Rock",
+								"Space Rock",
+								"Krautrock",
+								"Post-metal"
+							]
+						},
+						{
+							"name": "Noise Rock and No Wave",
+							"genres": [
+								"Noise Rock",
+								"No Wave",
+								"Industrial Rock",
+								"Noise Pop",
+								"Experimental Rock",
+								"Art Punk",
+								"Avant-rock",
+								"Japanese Noise Rock"
+							]
+						},
+						{
+							"name": "Space Rock and Psychedelic",
+							"genres": [
+								"Space Rock",
+								"Neo-Psychedelia",
+								"Psychedelic Rock",
+								"Cosmic Rock",
+								"Progressive Rock",
+								"Psych Folk",
+								"Psychedelic Pop",
+								"Space Electronic"
+							]
+						},
+						{
+							"name": "Garage Rock Revival",
+							"genres": [
+								"Garage Rock",
+								"Garage Punk",
+								"Blues Rock",
+								"Proto-Punk",
+								"Surf Rock",
+								"Garage Revival",
+								"Garage Psych",
+								"Lo-fi Garage"
+							]
+						}
+					]
+				},
+				{
+					"name": "Gothic and Dark Rock",
+					"genres": ["Gothic Rock", "Goth", "Dark Rock"],
+					"subsubgenres": [
+						{
+							"name": "Gothic Rock",
+							"genres": [
+								"Goth / Gothic Rock",
+								"Deathrock",
+								"Gothic Metal",
+								"Dark Wave",
+								"Ethereal Wave",
+								"Coldwave",
+								"Darkwave"
+							]
+						},
+						{
+							"name": "New Wave and Post-Punk",
+							"genres": [
+								"New Wave",
+								"Post-Punk",
+								"Dark Post-punk",
+								"Cold Wave",
+								"Minimal Wave",
+								"Synth Punk",
+								"Art Punk"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Industrial",
+			"subgenres": [
+				{
+					"name": "Traditional Industrial",
+					"genres": ["Industrial", "Industrial Music", "Power Electronics"],
+					"subsubgenres": [
+						{
+							"name": "Traditional Industrial",
+							"genres": [
+								"Industrial",
+								"Noise",
+								"Power Electronics",
+								"Death Industrial",
+								"Harsh Noise",
+								"Experimental Industrial"
+							]
+						}
+					]
+				},
+				{
+					"name": "Industrial Rock and Metal",
+					"genres": ["Industrial Rock", "Industrial Metal"],
+					"subsubgenres": [
+						{
+							"name": "Industrial Rock and Metal",
+							"genres": [
+								"Industrial Rock",
+								"Industrial Metal",
+								"Neue Deutsche Härte",
+								"Cyber Metal",
+								"Industrial Hardcore"
+							]
+						}
+					]
+				},
+				{
+					"name": "Electronic Body Music (EBM)",
+					"genres": ["EBM", "Electronic Body Music"],
+					"subsubgenres": [
+						{
+							"name": "Classic EBM",
+							"genres": [
+								"Electronic Body Music",
+								"Old School EBM",
+								"Belgian EBM",
+								"German EBM",
+								"Dark Electro"
+							]
+						},
+						{
+							"name": "Modern EBM/Industrial",
+							"genres": [
+								"Future Pop",
+								"Harsh EBM",
+								"Industrial Dance",
+								"Electro-Industrial",
+								"Aggrotech",
+								"Dark Electro"
+							]
+						}
+					]
+				},
+				{
+					"name": "Dark Electronic",
+					"genres": ["Dark Electronic", "Witch House"],
+					"subsubgenres": [
+						{
+							"name": "Cyber Industrial",
+							"genres": [
+								"Cybergoth",
+								"Digital Hardcore",
+								"Cyberpunk",
+								"Industrial Techno",
+								"Dark Electronic"
+							]
+						},
+						{
+							"name": "Industrial Dance",
+							"genres": [
+								"Industrial Dance",
+								"Rhythmic Industrial",
+								"Industrial Techno",
+								"Power Noise",
+								"Rhythmic Noise"
+							]
+						},
+						{
+							"name": "Aggrotech and Dark Electro",
+							"genres": ["Aggrotech", "Dark Electro", "Hellectro", "Harsh EBM", "Terror EBM"]
+						},
+						{
+							"name": "Witch House and Related",
+							"genres": ["Witch House", "Darkwave", "Dark Ambient", "Grave Wave", "Occult Wave"]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Hip-Hop/Rap",
+			"subgenres": [
+				{
+					"name": "East Coast, West Coast, and Midwest",
+					"genres": ["East Coast", "West Coast Rap", "Midwest Hip Hop"],
+					"subsubgenres": [
+						{
+							"name": "Regional Hip-Hop",
+							"genres": [
+								"East Coast",
+								"Brick City Club",
+								"Hardcore Hip Hop",
+								"Mafioso Rap",
+								"New Jersey Hip Hop",
+								"Freestyle Rap",
+								"G-Funk",
+								"Gangsta Rap",
+								"Golden Age",
+								"West Coast Rap",
+								"Midwest Hip Hop",
+								"Chicago Hip Hop",
+								"Detroit Hip Hop",
+								"Horrorcore",
+								"St. Louis Hip Hop",
+								"Twin Cities Hip Hop",
+								"Boom Bap",
+								"Underground Hip Hop"
+							]
+						}
+					]
+				},
+				{
+					"name": "Modern Trap and Drill",
+					"genres": ["Trap", "Drill", "UK Drill"],
+					"subsubgenres": [
+						{
+							"name": "Trap and Drill Styles",
+							"genres": [
+								"Trap",
+								"Drill",
+								"UK Drill",
+								"Brooklyn Drill",
+								"Chicago Drill",
+								"Plugg",
+								"Rage Rap",
+								"Melodic Trap",
+								"Trap Metal",
+								"Phonk",
+								"Drift Phonk",
+								"Night Drive Phonk"
+							]
+						}
+					]
+				},
+				{
+					"name": "Cloud Rap and SoundCloud Rap",
+					"genres": ["Cloud Rap", "SoundCloud Rap", "Emo Rap"],
+					"subsubgenres": [
+						{
+							"name": "Internet Hip Hop",
+							"genres": [
+								"Cloud Rap",
+								"SoundCloud Rap",
+								"Emo Rap",
+								"Mumble Rap",
+								"Internet Hip Hop",
+								"Lo-fi Hip Hop",
+								"Sad Rap",
+								"Alternative Trap"
+							]
+						}
+					]
+				},
+				{
+					"name": "Abstract/Experimental Hip-Hop",
+					"genres": ["Abstract Hip Hop", "Experimental Hip Hop", "Alternative Hip Hop"],
+					"subsubgenres": [
+						{
+							"name": "Experimental Hip-Hop",
+							"genres": [
+								"Abstract Hip Hop",
+								"Experimental Hip Hop",
+								"Glitch Hop",
+								"Industrial Hip Hop",
+								"Avant-Garde Hip Hop",
+								"Left-Field Hip Hop",
+								"Wonky",
+								"Alternative Hip Hop"
+							]
+						}
+					]
+				},
+				{
+					"name": "Pop Rap and Melodic Rap",
+					"genres": ["Pop Rap", "Melodic Rap", "Rap&B"],
+					"subsubgenres": [
+						{
+							"name": "Commercial Hip-Hop",
+							"genres": [
+								"Pop Rap",
+								"Melodic Rap",
+								"Rap&B",
+								"Hip Pop",
+								"Commercial Hip Hop",
+								"Trap Pop",
+								"Rap Pop",
+								"Melodic Trap"
+							]
+						}
+					]
+				},
+				{
+					"name": "Alternative and Conscious",
+					"genres": ["Alternative Rap", "Conscious Hip Hop", "Jazz Rap"],
+					"subsubgenres": [
+						{
+							"name": "Conscious Hip-Hop",
+							"genres": [
+								"Alternative Rap",
+								"Conscious Hip Hop",
+								"Jazz Rap",
+								"Lyrical Hip Hop",
+								"Underground Rap",
+								"Political Hip Hop",
+								"Backpack Rap"
+							]
+						}
+					]
+				},
+				{
+					"name": "Latin and Regional Variants",
+					"genres": ["Latin Rap", "Country-Rap", "World Hip Hop"],
+					"subsubgenres": [
+						{
+							"name": "Global Hip-Hop",
+							"genres": [
+								"Latin Rap",
+								"Cumbia Rap",
+								"Motswako",
+								"Merenrap",
+								"Low Bap",
+								"Country-Rap",
+								"Chap Hop",
+								"Regional Hip Hop",
+								"World Hip Hop"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Blues",
+			"subgenres": [
+				{
+					"name": "Pre-War Blues",
+					"genres": ["Delta Blues", "Country Blues", "Ragtime Blues"],
+					"subsubgenres": [
+						{
+							"name": "Traditional Blues",
+							"genres": [
+								"Delta Blues",
+								"Country Blues",
+								"Piedmont Blues",
+								"Classic Female Blues",
+								"Ragtime Blues",
+								"Early Blues",
+								"Traditional Blues"
+							]
+						}
+					]
+				},
+				{
+					"name": "Post-War Blues",
+					"genres": ["Chicago Blues", "Electric Blues", "Texas Blues"],
+					"subsubgenres": [
+						{
+							"name": "Electric Blues",
+							"genres": [
+								"Chicago Blues",
+								"Electric Blues",
+								"Jump Blues",
+								"Texas Blues",
+								"West Coast Blues",
+								"Modern Blues",
+								"Urban Blues"
+							]
+						}
+					]
+				},
+				{
+					"name": "Contemporary Blues",
+					"genres": ["Modern Blues", "Blues Rock", "Soul Blues"],
+					"subsubgenres": [
+						{
+							"name": "Modern Blues",
+							"genres": [
+								"Modern Blues",
+								"Blues Rock",
+								"Soul Blues",
+								"Contemporary Blues",
+								"Electric Blues Revival",
+								"Blues Revival",
+								"Modern Electric Blues"
+							]
+						}
+					]
+				},
+				{
+					"name": "Regional and Specialty Blues",
+					"genres": ["African Blues", "British Blues", "Piano Blues"],
+					"subsubgenres": [
+						{
+							"name": "Specialty Blues",
+							"genres": [
+								"African Blues",
+								"British Blues",
+								"Canadian Blues",
+								"Harmonica Blues",
+								"Piano Blues",
+								"Zydeco",
+								"Louisiana Blues",
+								"Memphis Blues"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Country",
+			"subgenres": [
+				{
+					"name": "Traditional and Classic Country",
+					"genres": ["Classic Country", "Honky Tonk", "Traditional Country"],
+					"subsubgenres": [
+						{
+							"name": "Traditional Country",
+							"genres": [
+								"Classic Country",
+								"Honky Tonk",
+								"Cowboy / Western",
+								"Western Swing",
+								"Traditional Country",
+								"Nashville Sound",
+								"Bakersfield Sound"
+							]
+						}
+					]
+				},
+				{
+					"name": "Progressive Country",
+					"genres": ["Progressive Country", "Country Rock", "Outlaw Country"],
+					"subsubgenres": [
+						{
+							"name": "Alternative Country",
+							"genres": [
+								"Progressive Country",
+								"Country Rock",
+								"Outlaw Country",
+								"Alternative Country",
+								"Americana",
+								"Red Dirt",
+								"Texas Country"
+							]
+						}
+					]
+				},
+				{
+					"name": "Modern Commercial Country",
+					"genres": ["Bro-Country", "Pop Country", "Contemporary Country"],
+					"subsubgenres": [
+						{
+							"name": "Modern Country",
+							"genres": [
+								"Bro-Country",
+								"Pop Country",
+								"Contemporary Country",
+								"Stadium Country",
+								"Country Pop",
+								"Modern Country",
+								"Country Road"
+							]
+						}
+					]
+				},
+				{
+					"name": "Country Trap/Hick Hop",
+					"genres": ["Country Rap", "Hick Hop", "Country Trap"],
+					"subsubgenres": [
+						{
+							"name": "Country Fusion",
+							"genres": [
+								"Country Rap",
+								"Hick Hop",
+								"Country Trap",
+								"Rural Rap",
+								"Southern Rap Country",
+								"Country Hip Hop"
+							]
+						}
+					]
+				},
+				{
+					"name": "Alt-Country and Insurgent Country",
+					"genres": ["Alt-Country", "Insurgent Country", "Gothic Country"],
+					"subsubgenres": [
+						{
+							"name": "Alternative Country",
+							"genres": [
+								"Alt-Country",
+								"Insurgent Country",
+								"Gothic Country",
+								"Country Punk",
+								"Cowpunk",
+								"Alternative Country Rock"
+							]
+						}
+					]
+				},
+				{
+					"name": "Bluegrass and Related",
+					"genres": ["Bluegrass", "Progressive Bluegrass", "Newgrass"],
+					"subsubgenres": [
+						{
+							"name": "Bluegrass Styles",
+							"genres": [
+								"Bluegrass",
+								"Progressive Bluegrass",
+								"Newgrass",
+								"Bluegrass Gospel",
+								"Mountain Music",
+								"Old-Time",
+								"Traditional Bluegrass"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Indie Pop",
+			"subgenres": [
+				{
+					"name": "Dream Pop and Bedroom Pop",
+					"genres": ["Dream Pop", "Bedroom Pop", "Lo-fi Pop"],
+					"subsubgenres": [
+						{
+							"name": "Dreamy Indie Pop",
+							"genres": [
+								"Dream Pop",
+								"Bedroom Pop",
+								"Shoegaze Pop",
+								"Ethereal Pop",
+								"DIY Pop",
+								"Lo-fi Pop",
+								"Indie Dream Pop"
+							]
+						}
+					]
+				},
+				{
+					"name": "Indie Folk Pop",
+					"genres": ["Folk Pop", "Chamber Pop", "Indie Folk"],
+					"subsubgenres": [
+						{
+							"name": "Folk-Influenced Pop",
+							"genres": [
+								"Folk Pop",
+								"Chamber Pop",
+								"Baroque Pop",
+								"Indie Folk",
+								"Freak Folk",
+								"Contemporary Folk",
+								"Modern Folk"
+							]
+						}
+					]
+				},
+				{
+					"name": "Synth-Based Indie Pop",
+					"genres": ["Synthpop", "Electropop", "Indie Electronic"],
+					"subsubgenres": [
+						{
+							"name": "Electronic Indie",
+							"genres": [
+								"Synthpop",
+								"Electropop",
+								"Chillwave",
+								"Indie Electronic",
+								"Art Pop",
+								"Electronic Pop",
+								"Indie Electro"
+							]
+						}
+					]
+				},
+				{
+					"name": "Lo-Fi Indie Pop",
+					"genres": ["Lo-Fi Pop", "Noise Pop", "DIY Pop"],
+					"subsubgenres": [
+						{
+							"name": "Low Fidelity Pop",
+							"genres": [
+								"Lo-Fi Pop",
+								"Noise Pop",
+								"Indie Rock Pop",
+								"DIY Pop",
+								"Garage Pop",
+								"Bedroom Rock",
+								"Indie Lo-fi"
+							]
+						}
+					]
+				},
+				{
+					"name": "Chamber Pop",
+					"genres": ["Chamber Pop", "Orchestral Pop", "Baroque Pop"],
+					"subsubgenres": [
+						{
+							"name": "Orchestrated Pop",
+							"genres": [
+								"Chamber Pop",
+								"Orchestral Pop",
+								"Baroque Pop",
+								"Art Pop",
+								"Sophisticated Pop",
+								"Indie Orchestra",
+								"Indie Classical"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Electronic Folk Fusion",
+			"subgenres": [
+				{
+					"name": "Traditional-Electronic Fusion",
+					"genres": ["Folktronica", "Neo-Folk", "Electronic Folk"],
+					"subsubgenres": [
+						{
+							"name": "Folk Electronic",
+							"genres": [
+								"Folktronica",
+								"Neo-Folk",
+								"Electronic Folk",
+								"Digital Folk",
+								"Folk Ambient",
+								"Modern Folk",
+								"Progressive Folk"
+							]
+						}
+					]
+				},
+				{
+					"name": "World Music Fusion",
+					"genres": ["Global Bass", "Ethnic Electronic", "World Fusion"],
+					"subsubgenres": [
+						{
+							"name": "Global Electronic",
+							"genres": [
+								"Global Bass",
+								"Ethnic Electronic",
+								"World Fusion",
+								"Digital World Music",
+								"Tribal Electronic",
+								"Global Fusion",
+								"World Beat"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Neo-Psychedelia",
+			"subgenres": [
+				{
+					"name": "Modern Psychedelic",
+					"genres": ["Neo-Psychedelic Rock", "Psychedelic Pop", "Space Rock"],
+					"subsubgenres": [
+						{
+							"name": "New Psychedelia",
+							"genres": [
+								"Neo-Psychedelic Rock",
+								"Psychedelic Pop",
+								"Space Rock",
+								"Dream Pop",
+								"Psych Folk",
+								"Modern Psych",
+								"Psychedelic Folk"
+							]
+						}
+					]
+				},
+				{
+					"name": "Electronic Psychedelia",
+					"genres": ["Psytrance", "Psychedelic Electronic", "Space Electronic"],
+					"subsubgenres": [
+						{
+							"name": "Electronic Psych",
+							"genres": [
+								"Psytrance",
+								"Psychedelic Electronic",
+								"Space Electronic",
+								"Psychedelic Ambient",
+								"Digital Psychedelia",
+								"Psybient",
+								"Psychill"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Modern Fusion",
+			"subgenres": [
+				{
+					"name": "Jazz-Electronic Fusion",
+					"genres": ["Nu Jazz", "Future Jazz", "Electronic Jazz"],
+					"subsubgenres": [
+						{
+							"name": "Electronic Jazz",
+							"genres": [
+								"Nu Jazz",
+								"Future Jazz",
+								"Electronic Jazz",
+								"Jazz House",
+								"Broken Beat",
+								"Jazztronica",
+								"Jazz Fusion"
+							]
+						}
+					]
+				},
+				{
+					"name": "World-Electronic Fusion",
+					"genres": ["Global Bass", "Tropical Bass", "Asian Underground"],
+					"subsubgenres": [
+						{
+							"name": "Global Fusion",
+							"genres": [
+								"Global Bass",
+								"Tropical Bass",
+								"Asian Underground",
+								"Afro-Electronic",
+								"Latin Electronic",
+								"World Beat",
+								"Global Beats"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Experimental/Avant-Garde",
+			"subgenres": [
+				{
+					"name": "Sound Art",
+					"genres": ["Sound Art", "Musique Concrète", "Electroacoustic"],
+					"subsubgenres": [
+						{
+							"name": "Experimental Sound",
+							"genres": [
+								"Sound Art",
+								"Musique Concrète",
+								"Electroacoustic",
+								"Noise Music",
+								"Field Recordings",
+								"Sound Collage",
+								"Experimental Sound"
+							]
+						}
+					]
+				},
+				{
+					"name": "Contemporary Experimental",
+					"genres": ["Avant-Garde", "Free Improvisation", "Experimental Electronic"],
+					"subsubgenres": [
+						{
+							"name": "Modern Experimental",
+							"genres": [
+								"Avant-Garde",
+								"Free Improvisation",
+								"Experimental Electronic",
+								"Modern Classical",
+								"Art Music",
+								"Contemporary Composition",
+								"New Music"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Reggae and Roots",
+			"subgenres": [
+				{
+					"name": "Roots Reggae",
+					"genres": ["Roots Reggae", "Conscious Reggae", "Rastafarian Roots"],
+					"subsubgenres": [
+						{
+							"name": "Roots Reggae Foundations",
+							"genres": [
+								"Classic Roots Reggae",
+								"Conscious Reggae",
+								"Rastafarian Roots",
+								"Political Roots",
+								"Spiritual Roots",
+								"Traditional Jamaican Roots",
+								"Roots Revival",
+								"Cultural Roots",
+								"Roots Harmony",
+								"Organic Roots",
+								"Pure Roots",
+								"Deep Roots",
+								"Roots Rockers",
+								"Roots Reggae Dub",
+								"Nyabinghi Roots",
+								"African Roots Reggae"
+							]
+						}
+					]
+				},
+				{
+					"name": "Dancehall and Modern Reggae",
+					"genres": ["Dancehall", "Ragga", "Reggae Fusion"],
+					"subsubgenres": [
+						{
+							"name": "Rhythmic Transformations",
+							"genres": [
+								"Dancehall",
+								"Ragga",
+								"Dub",
+								"Lovers Rock",
+								"UK Reggae",
+								"Roots Dub",
+								"Digital Dub",
+								"Dub Poetry",
+								"Acid jazz",
+								"NZ reggae",
+								"Experimental Dub",
+								"Ambient Dub",
+								"Psychedelic Dub",
+								"Roots Dancehall",
+								"Modern Dancehall"
+							]
+						},
+						{
+							"name": "Reggae Fusion and Modern Variations",
+							"genres": [
+								"Reggae Fusion",
+								"Reggaeton",
+								"Reggae Rock",
+								"Reggae Pop",
+								"Reggae Soul",
+								"Reggae Jazz",
+								"Reggae Hip Hop",
+								"Electronic Reggae",
+								"Digital Reggae",
+								"Afrobeat Reggae",
+								"Global Fusion Reggae",
+								"Urban Reggae",
+								"Crossover Reggae",
+								"Reggae Punk",
+								"Reggae Blues"
+							]
+						}
+					]
+				},
+				{
+					"name": "Ska and Early Jamaican",
+					"genres": ["Ska", "Rocksteady", "Early Reggae"],
+					"subsubgenres": [
+						{
+							"name": "Caribbean Roots Music",
+							"genres": [
+								"Ska",
+								"Rocksteady",
+								"Jamaican Folk",
+								"Caribbean Folk",
+								"Calypso",
+								"Mento",
+								"Trinidadian Roots",
+								"Barbadian Folk",
+								"Cuban Son",
+								"Haitian Roots",
+								"Caribbean Jazz Roots"
+							]
+						}
+					]
+				},
+				{
+					"name": "Regional Reggae",
+					"genres": ["African Reggae", "Polynesian Reggae", "Latin Reggae"],
+					"subsubgenres": [
+						{
+							"name": "Cultural and Regional Reggae",
+							"genres": [
+								"Jamaican Reggae",
+								"Caribbean Reggae",
+								"African Reggae",
+								"Polynesian Reggae",
+								"Latin Reggae",
+								"European Reggae",
+								"Reggae Diaspora",
+								"International Roots",
+								"Global Reggae Fusion"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Roots Music",
+			"subgenres": [
+				{
+					"name": "American Roots",
+					"genres": ["Americana", "Traditional Folk", "Old-Time"],
+					"subsubgenres": [
+						{
+							"name": "Folk and Traditional Roots",
+							"genres": [
+								"Americana",
+								"Traditional Folk",
+								"Bluegrass",
+								"Country Folk",
+								"Delta Blues",
+								"Appalachian Folk",
+								"Celtic Folk",
+								"Maritime Folk",
+								"Indigenous Folk",
+								"Work Songs",
+								"Sea Shanties",
+								"Field Hollers",
+								"Prison Songs",
+								"Cowboy Folk",
+								"Old-Time Music",
+								"Traditional Country",
+								"Gospel Roots"
+							]
+						}
+					]
+				},
+				{
+					"name": "World Roots",
+					"genres": ["Celtic Roots", "African Roots", "Indigenous Folk"],
+					"subsubgenres": [
+						{
+							"name": "Cross-Cultural Explorations",
+							"genres": [
+								"World Roots Fusion",
+								"Ethno-Roots",
+								"Global Indigenous Music",
+								"Intercultural Folk",
+								"Transnational Roots",
+								"Diaspora Music",
+								"Cultural Hybridization",
+								"Roots Without Borders"
+							]
+						}
+					]
+				},
+				{
+					"name": "Experimental Roots",
+					"genres": ["Experimental Folk", "Avant-Folk", "Progressive Roots"],
+					"subsubgenres": [
+						{
+							"name": "Avant-Garde Roots",
+							"genres": [
+								"Experimental Folk",
+								"Avant-Folk",
+								"Noise Folk",
+								"Psychedelic Folk",
+								"Progressive Roots",
+								"Experimental Reggae",
+								"Avant-Reggae",
+								"Roots Deconstruction",
+								"Conceptual Roots",
+								"Minimalist Roots"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Rock Music",
+			"subgenres": [
+				{
+					"name": "Classic Rock",
+					"genres": ["Classic Rock", "Hard Rock", "Arena Rock"],
+					"subsubgenres": [
+						{
+							"name": "Classic Rock",
+							"genres": [
+								"Hard Rock",
+								"Arena Rock",
+								"Album-Oriented Rock",
+								"Southern Rock",
+								"Blues Rock",
+								"Psychedelic Rock",
+								"Progressive Rock",
+								"Glam Rock",
+								"Soft Rock",
+								"Heartland Rock",
+								"Stadium Rock",
+								"Boogie Rock",
+								"Guitar Rock",
+								"Pomp Rock",
+								"Rock Opera",
+								"Jam Rock"
+							]
+						}
+					]
+				},
+				{
+					"name": "Early Rock and Roll",
+					"genres": ["Rock and Roll", "Rockabilly", "Surf Rock"],
+					"subsubgenres": [
+						{
+							"name": "Early Rock and Roll",
+							"genres": [
+								"1950s Rock and Roll",
+								"Rockabilly",
+								"Surf Rock",
+								"British Invasion",
+								"Garage Rock",
+								"Beat Music",
+								"Instrumental Rock",
+								"Doo-Wop Rock",
+								"Rock and Roll Revival",
+								"Merseybeat",
+								"Teen Idol Rock",
+								"Brill Building Sound",
+								"Early Guitar Rock",
+								"American Rock and Roll",
+								"Rock Ballads",
+								"Proto-Rock"
+							]
+						}
+					]
+				},
+				{
+					"name": "Heavy Metal",
+					"genres": ["Heavy Metal", "Thrash Metal", "Death Metal"],
+					"subsubgenres": [
+						{
+							"name": "Heavy Metal",
+							"genres": [
+								"Traditional Heavy Metal",
+								"NWOBHM",
+								"Power Metal",
+								"Thrash Metal",
+								"Death Metal",
+								"Black Metal",
+								"Doom Metal",
+								"Groove Metal",
+								"Symphonic Metal",
+								"Folk Metal",
+								"Gothic Metal",
+								"Industrial Metal",
+								"Progressive Metal",
+								"Melodic Death Metal",
+								"Technical Metal",
+								"Speed Metal"
+							]
+						}
+					]
+				},
+				{
+					"name": "Modern Hard Rock",
+					"genres": ["Alternative Metal", "Nu Metal", "Metalcore"],
+					"subsubgenres": [
+						{
+							"name": "Modern Hard and Heavy",
+							"genres": [
+								"Alternative Metal",
+								"Nu Metal",
+								"Rap Metal",
+								"Metalcore",
+								"Deathcore",
+								"Djent",
+								"Post-Hardcore",
+								"Screamo",
+								"Emo",
+								"Funk Metal",
+								"Mathcore",
+								"New Wave of American Heavy Metal",
+								"Crossover Thrash",
+								"Grindcore",
+								"Sludge Metal",
+								"Stoner Metal"
+							]
+						}
+					]
+				},
+				{
+					"name": "Progressive and Art Rock",
+					"genres": ["Progressive Rock", "Art Rock", "Math Rock"],
+					"subsubgenres": [
+						{
+							"name": "Art and Progressive",
+							"genres": [
+								"Progressive Rock",
+								"Art Rock",
+								"Symphonic Rock",
+								"Space Rock",
+								"Krautrock",
+								"Math Rock",
+								"Canterbury Scene",
+								"Experimental Rock",
+								"Neo-Progressive Rock",
+								"Rock in Opposition",
+								"Avant-Rock",
+								"Zeuhl",
+								"Technical Rock",
+								"Crossover Prog",
+								"Post-Progressive",
+								"Eclectic Prog"
+							]
+						}
+					]
+				},
+				{
+					"name": "Indie and Alternative Rock",
+					"genres": ["Indie Rock", "Alternative Rock", "College Rock"],
+					"subsubgenres": [
+						{
+							"name": "Alternative Rock",
+							"genres": [
+								"College Rock",
+								"Indie Rock",
+								"Grunge",
+								"Britpop",
+								"Shoegaze",
+								"Dream Pop",
+								"Noise Rock",
+								"Lo-Fi Rock",
+								"Math Rock",
+								"Sadcore",
+								"C86",
+								"Twee Pop",
+								"Madchester",
+								"Neo-Psychedelia",
+								"Paisley Underground",
+								"Alternative Pop Rock"
+							]
+						}
+					]
+				},
+				{
+					"name": "Post-Rock and Experimental",
+					"genres": ["Post-Rock", "Post-Metal", "Experimental Rock"],
+					"subsubgenres": [
+						{
+							"name": "Experimental and Post-Rock",
+							"genres": [
+								"Post-Rock",
+								"Post-Metal",
+								"Drone Rock",
+								"Ambient Rock",
+								"Atmospheric Rock",
+								"Blackgaze",
+								"Noise Pop",
+								"Art Punk",
+								"Experimental Rock",
+								"Avant-Garde Rock",
+								"Chamber Rock",
+								"Neo-Classical Rock",
+								"Electronic Rock",
+								"Cinematic Rock",
+								"Instrumental Rock",
+								"Free Rock"
+							]
+						}
+					]
+				},
+				{
+					"name": "Contemporary Rock",
+					"genres": ["Modern Rock", "Pop Rock", "Folk Rock"],
+					"subsubgenres": [
+						{
+							"name": "Contemporary Rock",
+							"genres": [
+								"Post-Britpop",
+								"Modern Rock",
+								"Garage Rock Revival",
+								"Post-Grunge",
+								"Pop Rock",
+								"Adult Alternative",
+								"Folk Rock",
+								"Americana Rock",
+								"Roots Rock",
+								"Blues Rock Revival",
+								"Southern Rock Revival",
+								"Desert Rock",
+								"Festival Rock",
+								"Indie Folk Rock",
+								"Chamber Pop Rock",
+								"Piano Rock"
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

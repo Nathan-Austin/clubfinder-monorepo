@@ -1,0 +1,403 @@
+<script lang="ts">
+	import acceptConsent from '../../+layout.svelte';
+	import declineConsent from '../../+layout.svelte';
+	import openCustomModal from '../../+layout.svelte';
+</script>
+
+<svelte:head>
+	<title>Cookie Policy - Clubfindr</title>
+	<meta
+		name="description"
+		content="Explore the Cookie Policy for Clubfindr, explaining how we use cookies and similar technologies to enhance your experience on our platform for finding clubs and bars based on your favorite music styles."
+	/>
+	<meta
+		name="keywords"
+		content="Clubfindr, cookie policy, cookies, tracking, user experience, nightlife, clubs, bars, music recommendations"
+	/>
+	<meta name="author" content="Clubfindr Team" />
+	<meta property="og:title" content="Cookie Policy - Clubfindr" />
+	<meta
+		property="og:description"
+		content="Understand how Clubfindr uses cookies to improve your experience. Learn about the types of cookies we use and how they help you find nightlife spots that suit your music preferences."
+	/>
+	<meta property="og:image" content="/clubfindr.png" />
+	<meta property="og:url" content="https://www.clubfindr.com/policies/cookie-policy" />
+	<meta name="twitter:card" content="summary_large_image" />
+</svelte:head>
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Cookie Policy of www.clubfindr.com</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			line-height: 1.6;
+			color: white;
+		}
+		h1,
+		h2,
+		h3 {
+			color: white;
+		}
+		h1 {
+			font-size: 2em;
+		}
+		h2 {
+			font-size: 1.75em;
+			margin-top: 30px;
+		}
+		h3 {
+			font-size: 1.5em;
+			margin-top: 25px;
+		}
+		p {
+			margin-bottom: 15px;
+		}
+		ul {
+			margin-bottom: 15px;
+			list-style-type: disc;
+			margin-left: 20px;
+		}
+		a {
+			color: #1a73e8;
+			text-decoration: none;
+		}
+		a:hover {
+			text-decoration: underline;
+		}
+		hr {
+			border: none;
+			border-top: 1px solid #ccc;
+			margin: 40px 0;
+		}
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 20px;
+		}
+		table,
+		th,
+		td {
+			border: 1px solid #ddd;
+		}
+		th,
+		td {
+			padding: 8px;
+			text-align: left;
+		}
+		th {
+			background-color: #f2f2f2;
+		}
+		.consent-buttons {
+			margin-top: 20px;
+		}
+		.consent-buttons button {
+			padding: 10px 15px;
+			margin-right: 10px;
+		}
+	</style>
+</head>
+<body>
+	<h1>Cookie Policy of www.clubfindr.com</h1>
+
+	<p>
+		This Cookie Policy explains how <strong>Clubfindr</strong> ("we", "us", or "our") uses cookies
+		and similar technologies to recognize you when you visit our website at
+		<a href="https://www.clubfindr.com">www.clubfindr.com</a> ("Website") and our application ("Application").
+		It explains what these technologies are and why we use them, as well as your rights to control their
+		use.
+	</p>
+
+	<hr />
+
+	<h2>Owner and Data Controller</h2>
+	<p>
+		<strong>Clubfindr</strong><br />
+		Owned and operated by Nathan Austin<br />
+		Südostallee 124<br />
+		12487 Berlin, Germany
+	</p>
+	<p>Contact email: <a href="mailto:admin@clubfindr.com">admin@clubfindr.com</a></p>
+
+	<hr />
+
+	<h2>What are Cookies and Similar Technologies?</h2>
+	<p>
+		Cookies are small data files that are placed on your computer or mobile device when you visit a
+		website. Cookies are widely used by website owners to make their websites work, or to work more
+		efficiently, as well as to provide reporting information.
+	</p>
+	<p>
+		We also use other technologies, such as pixels, scripts, and tags (collectively referred to as
+		"Trackers"), which perform similar functions as cookies.
+	</p>
+
+	<hr />
+
+	<h2>Why We Use Cookies</h2>
+	<p>We use first-party and third-party cookies for several reasons:</p>
+	<ul>
+		<li>
+			<strong>Necessary Cookies</strong>: To enable the basic functionality of our Application.
+		</li>
+		<li>
+			<strong>Performance and Analytics Cookies</strong>: To analyze how our Application is
+			accessed, used, or performing to provide you with a better user experience and to maintain,
+			operate, and continually improve the Application.
+		</li>
+		<li>
+			<strong>Functionality Cookies</strong>: To remember choices you make and provide enhanced,
+			more personalized features.
+		</li>
+	</ul>
+
+	<hr />
+
+	<h2>Cookies We Use</h2>
+	<p>Below is a detailed list of the cookies we use on our Application:</p>
+
+	<table>
+		<tr>
+			<th>Cookie Name</th>
+			<th>Provider</th>
+			<th>Purpose</th>
+			<th>Expiration</th>
+			<th>Type</th>
+		</tr>
+		<tr>
+			<td>cf_session</td>
+			<td>First-party</td>
+			<td>Session management and authentication</td>
+			<td>Session</td>
+			<td>Necessary</td>
+		</tr>
+		<tr>
+			<td>cf_preferences</td>
+			<td>First-party</td>
+			<td>Stores user preferences</td>
+			<td>1 year</td>
+			<td>Functional</td>
+		</tr>
+		<tr>
+			<td>_ga</td>
+			<td>Google Analytics</td>
+			<td>Used to distinguish users</td>
+			<td>2 years</td>
+			<td>Analytics</td>
+		</tr>
+		<tr>
+			<td>_ga_<em>container-id</em></td>
+			<td>Google Analytics</td>
+			<td>Used to persist session state</td>
+			<td>2 years</td>
+			<td>Analytics</td>
+		</tr>
+	</table>
+
+	<p>Please note that the names of cookies, pixels, and other technologies may change over time.</p>
+
+	<hr />
+
+	<h2>Third-Party Cookies and Trackers</h2>
+	<p>In addition to our own cookies, we use third-party services to enhance your experience:</p>
+
+	<h3>Google Analytics 4</h3>
+	<p>
+		We use Google Analytics 4, a web analytics service provided by Google Ireland Limited
+		("Google"). Google Analytics uses cookies to help us analyze how users interact with our
+		Application. The information generated by the cookie about your use of the Application will be
+		transmitted to and stored by Google on servers within the EU. IP addresses are anonymized before
+		being stored.
+	</p>
+	<p><strong>Personal Data Processed</strong>: Usage Data, Cookies.</p>
+	<p>
+		<strong>Place of Processing</strong>: Ireland –
+		<a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> –
+		<a href="https://tools.google.com/dlpage/gaoptout" target="_blank">Opt Out</a>.
+	</p>
+
+	<hr />
+
+	<h2>Legal Basis for Using Cookies</h2>
+	<p>
+		For EU residents, our legal basis for processing personal data through cookies and other
+		tracking technologies is your consent, except for cookies that are strictly necessary to provide
+		you with services.
+	</p>
+
+	<hr />
+
+	<h2>Your Consent and Managing Cookies</h2>
+	<p>
+		When you first visit our Application, you will be presented with a cookie banner requesting your
+		consent to use cookies. You can manage your cookie preferences by:
+	</p>
+	<ul>
+		<li><strong>Cookie Consent Banner</strong>: Accepting or rejecting cookies when prompted.</li>
+		<li>
+			<strong>Browser Settings</strong>: Adjusting your browser settings to control cookies.
+		</li>
+		<li><strong>Opt-Out Links</strong>: Using opt-out links provided in this policy.</li>
+	</ul>
+
+	<div class="consent-buttons">
+		<button on:click={acceptConsent}>Accept All Cookies</button>
+		<button on:click={declineConsent}>Reject Non-Essential Cookies</button>
+		<button on:click={openCustomModal}>Customize Preferences</button>
+	</div>
+
+	<script>
+		// Placeholder functions for demonstration
+		function acceptCookies() {
+			alert('All cookies accepted.');
+		}
+		function rejectCookies() {
+			alert('Non-essential cookies rejected.');
+		}
+		function openPreferences() {
+			alert('Opening cookie preferences.');
+		}
+	</script>
+
+	<hr />
+
+	<h2>How to Control or Delete Cookies</h2>
+	<p>
+		You can control and delete cookies through your browser settings. The following links provide
+		information on how to adjust the cookie settings on popular browsers:
+	</p>
+	<ul>
+		<li>
+			<a href="https://support.google.com/chrome/answer/95647" target="_blank">Google Chrome</a>
+		</li>
+		<li>
+			<a
+				href="https://support.mozilla.org/en-US/kb/enable-and-disable-cookies-website-preferences"
+				target="_blank">Mozilla Firefox</a
+			>
+		</li>
+		<li>
+			<a
+				href="https://support.apple.com/guide/safari/manage-cookies-and-website-data-sfri11471/mac"
+				target="_blank">Apple Safari</a
+			>
+		</li>
+		<li>
+			<a
+				href="https://support.microsoft.com/en-us/topic/delete-and-manage-cookies-168dab11-0753-043d-7c16-ede5947fc64d"
+				target="_blank">Microsoft Edge</a
+			>
+		</li>
+	</ul>
+	<p>
+		For other browsers, please consult the documentation provided by your browser's manufacturer.
+	</p>
+
+	<hr />
+
+	<h2>Consequences of Disabling Cookies</h2>
+	<p>
+		Please note that disabling or deleting cookies may affect the functionality of our Application.
+		Some features may become unavailable or may not work as intended.
+	</p>
+
+	<hr />
+
+	<h2>Data Transfers and International Data Transfers</h2>
+	<p>
+		All data processing and storage occur within Germany and the European Union. We do not transfer
+		your personal data collected via cookies outside these regions.
+	</p>
+
+	<hr />
+
+	<h2>Security Measures</h2>
+	<p>
+		We implement appropriate technical and organizational measures to protect the personal data
+		collected through cookies against unauthorized access, alteration, disclosure, or destruction.
+	</p>
+
+	<hr />
+
+	<h2>Your Rights Under GDPR</h2>
+	<p>You have the right to:</p>
+	<ul>
+		<li><strong>Access</strong> the personal data we hold about you.</li>
+		<li><strong>Rectify</strong> inaccurate or incomplete data.</li>
+		<li><strong>Erase</strong> your personal data (right to be forgotten).</li>
+		<li><strong>Restrict</strong> the processing of your data.</li>
+		<li><strong>Object</strong> to the processing of your data.</li>
+		<li><strong>Data Portability</strong> of your personal data.</li>
+		<li><strong>Withdraw Consent</strong> at any time.</li>
+		<li><strong>Lodge a Complaint</strong> with a supervisory authority.</li>
+	</ul>
+	<p>
+		To exercise these rights, please contact us at
+		<a href="mailto:admin@clubfindr.com">admin@clubfindr.com</a>.
+	</p>
+
+	<hr />
+
+	<h2>Changes to This Cookie Policy</h2>
+	<p>
+		We may update this Cookie Policy from time to time to reflect changes in our practices or for
+		other operational, legal, or regulatory reasons. We will notify you of any significant changes
+		by updating the "Latest Update" date at the end of this policy.
+	</p>
+
+	<hr />
+
+	<h2>Contact Us</h2>
+	<p>
+		If you have any questions or concerns about our use of cookies and other tracking technologies,
+		please contact us:
+	</p>
+	<p>
+		Email: <a href="mailto:admin@clubfindr.com">admin@clubfindr.com</a><br />
+		Address:<br />
+		Clubfindr<br />
+		Südostallee 124<br />
+		12487 Berlin, Germany
+	</p>
+
+	<hr />
+
+	<h2>Definitions and Legal References</h2>
+
+	<h3>Personal Data</h3>
+	<p>
+		Any information that directly, indirectly, or in connection with other information allows for
+		the identification of a natural person.
+	</p>
+
+	<h3>Usage Data</h3>
+	<p>
+		Information collected automatically through this Application (or third-party services), which
+		can include IP addresses, browser type, operating system, referring URLs, and other technical
+		information.
+	</p>
+
+	<h3>Cookies</h3>
+	<p>Small files stored on your device (computer or mobile device).</p>
+
+	<h3>Data Controller</h3>
+	<p>
+		The natural or legal person who determines the purposes and means of processing personal data.
+	</p>
+
+	<h3>This Application</h3>
+	<p>
+		The means by which your personal data is collected and processed (e.g., our website and
+		Application).
+	</p>
+
+	<h3>Service</h3>
+	<p>
+		The service provided by this Application as described in the relative terms and on this
+		site/application.
+	</p>
+
+	<hr />
+
+	<p><strong>Latest Update:</strong> Sep 16 2024</p>
+</body>

@@ -1,0 +1,10 @@
+London - 13 - uk
+Berlin - 34 - de
+Amsterdam - 29 - nl
+Rotterdam - 174 - nl
+Barcelona - 20 - es
+Ibiza - 25 - es
+Madrid - 41 - es
+Paris - 44 - fr
+Stockholm - 396 - se
+

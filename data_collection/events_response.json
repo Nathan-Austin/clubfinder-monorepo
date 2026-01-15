@@ -1,0 +1,1870 @@
+[
+    {
+        "id": "11974777",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1974777",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T06:00:00.000",
+            "cost": "",
+            "title": "Origins x Corsica Studios Free Party",
+            "genres": [
+                {
+                    "name": "Techno",
+                    "slug": "techno"
+                },
+                {
+                    "name": "House",
+                    "slug": "house"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 483,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1934306",
+                    "filename": "https://images.ra.co/b71c21728bff95c9dff23b25d224901dd6335f80.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1934307",
+                    "filename": "https://images.ra.co/461ad902bee62c41433990c810b8a88d903268b7.png",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "2587",
+                "name": "Corsica Studios",
+                "address": "5 Farrell Court; Elephant & Castle; London SE17 1LB; United Kingdom",
+                "contentUrl": "/clubs/2587",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": []
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11931487",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1931487",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T22:30:00.000",
+            "endTime": "2024-09-21T03:00:00.000",
+            "cost": "\u00a35-\u00a325",
+            "title": "Osunlade & Dublon",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 424,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1913535",
+                    "filename": "https://images.ra.co/a99595421bea44f0aeb8d65c31aed992ca0415cb.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "1502",
+                "name": "The Jazz Cafe",
+                "address": "5 Parkway; Camden Town; London NW1 7PG; United Kingdom",
+                "contentUrl": "/clubs/1502",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "4029",
+                    "countryId": 13,
+                    "name": "Osunlade",
+                    "firstName": "Osunlade",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/osunlade",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11940858",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1940858",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T06:00:00.000",
+            "cost": "",
+            "title": "Origins x Wisdom Teeth 10 Years: DJ Python x Facta x K-Lone, Ehua, Leif, Maya Q, Piezo & Yushh",
+            "genres": [
+                {
+                    "name": "Techno",
+                    "slug": "techno"
+                },
+                {
+                    "name": "House",
+                    "slug": "house"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 339,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1928204",
+                    "filename": "https://images.ra.co/e6386a2619d2392f6aeaf6774ef4f0a77be9711f.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1928205",
+                    "filename": "https://images.ra.co/4fb267d0b8a6d218028d83ed18e08d266b2b4ab7.jpg",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "156290",
+                "name": "Venue MOT",
+                "address": "Orion Business Centre, Surrey Canal Rd SE14 5RT",
+                "contentUrl": "/clubs/156290",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "64705",
+                    "countryId": 2,
+                    "name": "DJ Python",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/5021249-DJ-Python",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "46741",
+                    "countryId": 3,
+                    "name": "Facta",
+                    "firstName": "Oscar",
+                    "lastName": "Henson",
+                    "aliases": "Reverend Slippy ",
+                    "facebook": "https://www.facebook.com/factamusic",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/facta_music",
+                    "soundcloud": "https://www.soundcloud.com/facta",
+                    "discogs": "https://www.discogs.com/artist/3500898-Facta",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "73793",
+                    "countryId": 3,
+                    "name": "K-LONE (UK)",
+                    "firstName": "Joe",
+                    "lastName": "Gladwell",
+                    "aliases": "K-LONE",
+                    "facebook": "https://www.facebook.com/kloneuk",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/KLONEuk",
+                    "soundcloud": "https://www.soundcloud.com/k-lone93",
+                    "discogs": "https://www.discogs.com/artist/3921008-K-Lone",
+                    "bandcamp": "https://wychmusic.bandcamp.com",
+                    "website": "http://wisdomteethuk.com/",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "90132",
+                    "countryId": 20,
+                    "name": "Ehua",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/ehuamusic",
+                    "instagram": "https://www.instagram.com/ehuamusic",
+                    "twitter": "https://www.twitter.com/ehuamusic",
+                    "soundcloud": "https://www.soundcloud.com/ehuamusic",
+                    "discogs": null,
+                    "bandcamp": "https://ehua.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "5434",
+                    "countryId": 3,
+                    "name": "Leif",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/leifsounds",
+                    "instagram": "https://www.instagram.com/leifsounds",
+                    "twitter": "https://www.twitter.com/leifsounds",
+                    "soundcloud": "https://www.soundcloud.com/leifsounds",
+                    "discogs": "https://www.discogs.com/artist/Leif",
+                    "bandcamp": "https://leifsounds.bandcamp.com",
+                    "website": "http://leifsounds.com",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "127709",
+                    "countryId": 2,
+                    "name": "Maya Q",
+                    "firstName": "maya",
+                    "lastName": "q",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/maya_q__",
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "46774",
+                    "countryId": 20,
+                    "name": "Piezo",
+                    "firstName": "Luca",
+                    "lastName": "Mucci",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/piezopz",
+                    "instagram": "https://www.instagram.com/piezopz",
+                    "twitter": "https://www.twitter.com/_piezo",
+                    "soundcloud": "https://www.soundcloud.com/piezopz",
+                    "discogs": "https://www.discogs.com/artist/3498934-Piezo-2",
+                    "bandcamp": "https://piezopz.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "85218",
+                    "countryId": 3,
+                    "name": "Yushh",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/yushhmusic",
+                    "instagram": "https://www.instagram.com/yushh____",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/yushh",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11961159",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1961159",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T22:00:00.000",
+            "endTime": "2024-09-21T05:00:00.000",
+            "cost": "",
+            "title": "KOKO Electronic: Apollonia ",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 343,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1939163",
+                    "filename": "https://images.ra.co/7ca096ece7c74ff04cea38256fdcc6b0cd0e6776.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "2038",
+                "name": "KOKO",
+                "address": "1a Camden High Street; Camden Town; London NW1 7JE; United Kingdom",
+                "contentUrl": "/clubs/2038",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "38550",
+                    "countryId": 15,
+                    "name": "Apollonia",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "Dan Ghenacia, Dyed Soundorom, Shonky",
+                    "facebook": "https://www.facebook.com/ApolloniaMusic",
+                    "instagram": "https://www.instagram.com/apolloniamusic",
+                    "twitter": "https://www.twitter.com/ApolloniaMusic",
+                    "soundcloud": "https://www.soundcloud.com/apolloniamusic",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "685",
+                    "countryId": 15,
+                    "name": "Dan Ghenacia",
+                    "firstName": "Dan",
+                    "lastName": "Ghenacia",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "1584",
+                    "countryId": 15,
+                    "name": "Shonky",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/shonky",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "2289",
+                    "countryId": 15,
+                    "name": "Dyed Soundorom",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/pages/Dyed-Soundorom/135253919848591",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/dyedsoundorom",
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/Dyed+Soundorom",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "110030",
+                    "countryId": 0,
+                    "name": "Marlie",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/marliedj",
+                    "instagram": "https://www.instagram.com/marlie__dj",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/marlie-8",
+                    "discogs": null,
+                    "bandcamp": "https://marlie23.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11978069",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1978069",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T10:00:00.000",
+            "cost": "5-25",
+            "title": "Neighbourhood x Rupture",
+            "genres": [
+                {
+                    "name": "Drum & Bass",
+                    "slug": "drumandbass"
+                },
+                {
+                    "name": "Techno",
+                    "slug": "techno"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 311,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1963760",
+                    "filename": "https://images.ra.co/5a21d4ae9f146c849bf1ff48a852ec45af47b4c8.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "155399",
+                "name": "FOLD",
+                "address": "Gillian House, Stephenson St, London E16 4SA, UK",
+                "contentUrl": "/clubs/155399",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "71366",
+                    "countryId": 3,
+                    "name": "DJ Storm",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/djstormdnb",
+                    "soundcloud": "https://www.soundcloud.com/djstormdnb",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": "http://www.metalheadz.co.uk/artists/storm",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "80898",
+                    "countryId": 3,
+                    "name": "Double O",
+                    "firstName": "David",
+                    "lastName": "Henry",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "65178",
+                    "countryId": 3,
+                    "name": "Forest Drive West",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/ForestDriveWest",
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/forest-drive-west",
+                    "discogs": "https://www.discogs.com/artist/5049380-Forest-Drive-West",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "2057",
+                    "countryId": 3,
+                    "name": "James Ruskin",
+                    "firstName": "James",
+                    "lastName": "Ruskin",
+                    "aliases": "O/V/R (with Regis)",
+                    "facebook": "https://www.facebook.com/BlueprintRecordsLdn",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/James_Ruskin",
+                    "soundcloud": "https://www.soundcloud.com/jamesruskin-blueprint",
+                    "discogs": "https://www.discogs.com/artist/James+Ruskin",
+                    "bandcamp": "https://blueprintrecords.bandcamp.com",
+                    "website": "http://www.blueprintrecords.net",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "54977",
+                    "countryId": 3,
+                    "name": "Mantra",
+                    "firstName": "Indi",
+                    "lastName": "Rupture",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/irupture",
+                    "instagram": "https://www.instagram.com/dj.mantra",
+                    "twitter": "https://www.twitter.com/mantra_dj",
+                    "soundcloud": "https://www.soundcloud.com/mantra",
+                    "discogs": "https://www.discogs.com/artist/4722751-Mantra-44",
+                    "bandcamp": null,
+                    "website": "http://www.rupturelondon.com",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "101929",
+                    "countryId": 33,
+                    "name": "Regal86",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/regal86regal86",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/bregal86",
+                    "discogs": "https://www.discogs.com/artist/6642726-Regal86",
+                    "bandcamp": "https://regal86.bandcamp.com",
+                    "website": "http://regal86.com",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "31058",
+                    "countryId": 3,
+                    "name": "Tasha",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/Tasha.LDN",
+                    "instagram": "https://www.instagram.com/tasha_neighbourhood",
+                    "twitter": "https://www.twitter.com/dj_tasha",
+                    "soundcloud": "https://www.soundcloud.com/dj_tasha",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": "http://theneighbourhood.net",
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11942434",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1942434",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T21:30:00.000",
+            "endTime": "2024-09-21T04:00:00.000",
+            "cost": "\u00a35-\u00a325",
+            "title": "Gerd Janson & Jennifer Loveless - 4 Fridays at Phonox (20th Sept)",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 291,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1950940",
+                    "filename": "https://images.ra.co/57e2c011ad9e0a971d150bc0f204a7a38cb82b3b.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1950941",
+                    "filename": "https://images.ra.co/881118f77b30463db39aa69ce29ea74c81dfb6cd.jpg",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "106730",
+                "name": "Phonox",
+                "address": "418 Brixton Road Brixton London SW9 7AY",
+                "contentUrl": "/clubs/106730",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "3760",
+                    "countryId": 12,
+                    "name": "Gerd Janson",
+                    "firstName": "Gerd",
+                    "lastName": "Janson",
+                    "aliases": "Tuff City Kids, \tPink Alert, Talamanca System",
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/gerdjansonofficial",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/runningback",
+                    "discogs": "https://www.discogs.com/artist/Gerd+Janson",
+                    "bandcamp": "https://runningbackrecords.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "51119",
+                    "countryId": 1,
+                    "name": "Jennifer Loveless",
+                    "firstName": "Jennifer",
+                    "lastName": "Loveless",
+                    "aliases": "JLO",
+                    "facebook": "https://www.facebook.com/jenniferlovelessjennifer",
+                    "instagram": "https://www.instagram.com/jenniferrloveless",
+                    "twitter": "https://www.twitter.com/whichjenn",
+                    "soundcloud": "https://www.soundcloud.com/jenniferloveless",
+                    "discogs": "https://www.discogs.com/artist/Jennifer+Loveless",
+                    "bandcamp": "https://jenniferloveless.bandcamp.com",
+                    "website": "http://jenniferloveless.com",
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11961834",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1961834",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T19:00:00.000",
+            "endTime": "2024-09-21T03:00:00.000",
+            "cost": "",
+            "title": "Percolate x Club Tales: Jacques Greene B2B Nosaj Thing",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 253,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1916592",
+                    "filename": "https://images.ra.co/b47d849a4ba2243e3a292b6b39cde80d527d54af.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": {
+                "id": "34344",
+                "blurb": "Five hours of tunes from friends and frequent collaborators Jacques Greene and Nosaj Thing.",
+                "__typename": "EventPick"
+            },
+            "venue": {
+                "id": "155586",
+                "name": "Night Tales",
+                "address": "14 Bohemia Pl, London E8 1DU, United Kingdom",
+                "contentUrl": "/clubs/155586",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "9094",
+                    "countryId": 2,
+                    "name": "Nosaj Thing",
+                    "firstName": "Jason",
+                    "lastName": "Chung",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/Nosaj+Thing",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "21519",
+                    "countryId": 7,
+                    "name": "Jacques Greene",
+                    "firstName": "Jacques",
+                    "lastName": "Greene",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/jacques-greene",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/jacquesgreene",
+                    "soundcloud": "https://www.soundcloud.com/jacquesgreene",
+                    "discogs": "https://www.discogs.com/artist/Jacques+Greene",
+                    "bandcamp": null,
+                    "website": "http://www.vase-forever.com",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "134403",
+                    "countryId": 3,
+                    "name": "Alexandria",
+                    "firstName": "Alexandria",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/alexaandriia_",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/8hS1oZA7R9qNCYVWA",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "106813",
+                    "countryId": 28,
+                    "name": "Phill de Janeiro",
+                    "firstName": "Filipe",
+                    "lastName": "Brandao",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "123257",
+                    "countryId": 3,
+                    "name": "Benji King",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "100986",
+                    "countryId": 3,
+                    "name": "RoomToo",
+                    "firstName": "Callum",
+                    "lastName": "Jones",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/roomtoo",
+                    "discogs": null,
+                    "bandcamp": "https://roomtoo.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11953441",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1953441",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T21:00:00.000",
+            "endTime": "2024-09-21T04:00:00.000",
+            "cost": "20",
+            "title": "Blanche presents Bora Uzer (Live), Shkoon (Live Club Set) and Stavroz (Live)",
+            "genres": [
+                {
+                    "name": "House",
+                    "slug": "house"
+                },
+                {
+                    "name": "Deep House",
+                    "slug": "deephouse"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 235,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1940254",
+                    "filename": "https://images.ra.co/b2ca980e41aa90f42a43d427dc069312288a8b97.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1913821",
+                    "filename": "https://images.ra.co/b9ba7eb3dfe9c19948cda1618a3412f44350b670.png",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "198052",
+                "name": "HERE",
+                "address": "Denmark Street, London WC2H",
+                "contentUrl": "/clubs/198052",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "115863",
+                    "countryId": 35,
+                    "name": "Bora Uzer",
+                    "firstName": "Bora",
+                    "lastName": "Uzer",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/borauzerofficial",
+                    "instagram": "https://www.instagram.com/borauzer",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/borauzer",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "72071",
+                    "countryId": 12,
+                    "name": "Shkoon",
+                    "firstName": "Thorben, Ameen",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/shkoonmusic",
+                    "instagram": "https://www.instagram.com/_shkoon",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/shkoon-music",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": "http://www.shkoon-music.com",
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "35549",
+                    "countryId": 29,
+                    "name": "Stavroz",
+                    "firstName": "Gert, Ijsbrand",
+                    "lastName": "Beazar, De Wilde",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/pages/Stavroz-music/150075858343647",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/StavrozMusic",
+                    "soundcloud": "https://www.soundcloud.com/stavroz",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11942804",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1942804",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T06:00:00.000",
+            "cost": "7-20",
+            "title": "Northern Impact & Out of Control with Christian Craken ",
+            "genres": [
+                {
+                    "name": "Techno",
+                    "slug": "techno"
+                },
+                {
+                    "name": "Tech House",
+                    "slug": "techhouse"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 127,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1954643",
+                    "filename": "https://images.ra.co/8bfa6ed346301d41a08e8b0667cd7234f4fa8e1b.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1954644",
+                    "filename": "https://images.ra.co/da21a9720109f65dca2fa394bc491bc75c2a6fcf.jpg",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "141756",
+                "name": "E1",
+                "address": "110 Pennington Street, Wapping, London E1W 2BB",
+                "contentUrl": "/clubs/141756",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "140850",
+                    "countryId": 3,
+                    "name": "Vass Nikoloff (2)",
+                    "firstName": "Vasil",
+                    "lastName": "Nikolov",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/vassnikoloff",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/vassnikoloff",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11986588",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1986588",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T20:00:00.000",
+            "endTime": "2024-09-21T03:00:00.000",
+            "cost": "",
+            "title": "HUNTER: BERLIN BACKLASH",
+            "genres": [
+                {
+                    "name": "Techno",
+                    "slug": "techno"
+                },
+                {
+                    "name": "Industrial",
+                    "slug": "industrial"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 107,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1950417",
+                    "filename": "https://images.ra.co/259026918e0c5d0fc2a830cf875110214ad14c16.png",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "937",
+                "name": "Electrowerkz",
+                "address": "7 Torrens Street; Islington; London EC1V 1NQ; United Kingdom",
+                "contentUrl": "/clubs/937",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "148527",
+                    "countryId": 3,
+                    "name": "S_STEELE",
+                    "firstName": "SCOTT",
+                    "lastName": "JORDAN",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/s_steele_ldn",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/scott-william-jordan",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "54377",
+                    "countryId": 0,
+                    "name": "Tafkanik",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/tafkanik",
+                    "instagram": "https://www.instagram.com/Tafkanik",
+                    "twitter": "https://www.twitter.com/Tafkanik",
+                    "soundcloud": "https://www.soundcloud.com/tafkanik",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": "http://tafkanik.com",
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11982419",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1982419",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T06:00:00.000",
+            "cost": "",
+            "title": "fabric: Thakzin, Vanco, Via Seri, Sef Kombo",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 77,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1944816",
+                    "filename": "https://images.ra.co/ae5c2a0ba1c131954128fdd9b766e6d4f12d7321.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "237",
+                "name": "fabric",
+                "address": "77a Charterhouse St; Clerkenwell; London EC1M 6HJ; United Kingdom",
+                "contentUrl": "/clubs/237",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "126759",
+                    "countryId": 52,
+                    "name": "Thakzin",
+                    "firstName": "Thabang",
+                    "lastName": "Mathebula",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/thakzin01/",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/djthakzin-1",
+                    "discogs": null,
+                    "bandcamp": "https://sondela-recordings.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "80710",
+                    "countryId": 52,
+                    "name": "Vanco",
+                    "firstName": "Blessing",
+                    "lastName": "Mawoyo",
+                    "aliases": "Vanco ",
+                    "facebook": "https://www.facebook.com/vancomuzik",
+                    "instagram": "https://www.instagram.com/vanco_sa",
+                    "twitter": "https://www.twitter.com/vanco_sa",
+                    "soundcloud": "https://www.soundcloud.com/vanco_sa",
+                    "discogs": "https://www.discogs.com/artist/vanco",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "140935",
+                    "countryId": 3,
+                    "name": "Via Seri",
+                    "firstName": "Sylvia",
+                    "lastName": "Edionseri",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "16685",
+                    "countryId": 3,
+                    "name": "Sef Kombo",
+                    "firstName": "Sef",
+                    "lastName": "Kombo",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/djsefkombo",
+                    "instagram": "https://www.instagram.com/sefkombo",
+                    "twitter": "https://www.twitter.com/sefkombo",
+                    "soundcloud": "https://www.soundcloud.com/sefkombo",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": "http://www.sefkombo.com",
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11947228",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1947228",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T21:00:00.000",
+            "endTime": "2024-09-21T03:00:00.000",
+            "cost": "14",
+            "title": "Congo Natty",
+            "genres": [
+                {
+                    "name": "Drum & Bass",
+                    "slug": "drumandbass"
+                },
+                {
+                    "name": "Jungle",
+                    "slug": "jungle"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 56,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [],
+            "pick": null,
+            "venue": {
+                "id": "13637",
+                "name": "Hootananny",
+                "address": "93 Effra Rd; Brixton; London SW2 1DF; United Kingdom",
+                "contentUrl": "/clubs/13637",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "44311",
+                    "countryId": 3,
+                    "name": "Congo Natty",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/congonattyrebel",
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "79394",
+                    "countryId": 3,
+                    "name": "Aries",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/pg/ariesdubs",
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/aries-uk",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11986283",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1986283",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T03:30:00.000",
+            "cost": "",
+            "title": "Frisco presents The Den: Frisco, Ruff Sqwad, Sir Spyro, LZEE, INFAMOUSIZAK, JayaHadADream",
+            "genres": [
+                {
+                    "name": "Grime",
+                    "slug": "grime"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 50,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [],
+            "pick": null,
+            "venue": {
+                "id": "4567",
+                "name": "Village Underground",
+                "address": "54 Holywell Lane; Shoreditch; London EC2A 3PQ; United Kingdom",
+                "contentUrl": "/clubs/4567",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "55090",
+                    "countryId": 3,
+                    "name": "Sir Spyro",
+                    "firstName": "Karl",
+                    "lastName": "Joseph",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "39058",
+                    "countryId": 3,
+                    "name": "Ruff Sqwad",
+                    "firstName": "Tinchy Stryder Slix, Dirty Danger, Rapid, DJ Sir",
+                    "lastName": "Spyro",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/Ruff+Sqwad",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11870581",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1870581",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T22:00:00.000",
+            "endTime": "2024-09-21T04:00:00.000",
+            "cost": "",
+            "title": "ABBA v Fleetwood Mac Disco Party",
+            "genres": [
+                {
+                    "name": "Disco",
+                    "slug": "disco"
+                },
+                {
+                    "name": "Pop",
+                    "slug": "pop"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 56,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1955130",
+                    "filename": "https://images.ra.co/51ba8f17aa3f9a0810e397c4bdca4c7cb332a57f.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1955131",
+                    "filename": "https://images.ra.co/c6217f20c6627820e3824bec9718d17920f91735.jpg",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "1557",
+                "name": "Brixton Jamm",
+                "address": "261 Brixton Road; Brixton; London SW9 6LH; United Kingdom",
+                "contentUrl": "/clubs/1557",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": []
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11953102",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1953102",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T06:00:00.000",
+            "cost": "0",
+            "title": "Egg LDN Pres: Summer Session - House, Tech House & Techno (Closing Party)",
+            "genres": [
+                {
+                    "name": "House",
+                    "slug": "house"
+                },
+                {
+                    "name": "Tech House",
+                    "slug": "techhouse"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 49,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1904714",
+                    "filename": "https://images.ra.co/c18366b9cef6219c5d6c9a925541cfb7484dd5b5.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "874",
+                "name": "Egg London",
+                "address": "5-13 Vale Royal, London, N7 9AP N7 9AX - London",
+                "contentUrl": "/clubs/874",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": []
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11985314",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1985314",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T04:00:00.000",
+            "cost": "5-14",
+            "title": "PercyMingle presents - Fonzo & Capo Lee, XANDER, Marleigh, Citizen",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 53,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1960876",
+                    "filename": "https://images.ra.co/659a64a647590c906cf6077a6d06fa11881c7b2d.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "191975",
+                "name": "The Carpet Shop",
+                "address": "Arch 164, 115 Rye Lane, London SE15 4ST, United Kingdom",
+                "contentUrl": "/clubs/191975",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "127887",
+                    "countryId": 3,
+                    "name": "Fonzo (UK)",
+                    "firstName": "Alfie",
+                    "lastName": "Fairchild",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/fon.zo",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/fonzox",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "79345",
+                    "countryId": 3,
+                    "name": "Capo Lee",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/CapoLeeUpdates",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/capolee100",
+                    "soundcloud": "https://www.soundcloud.com/capolee",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "26476",
+                    "countryId": 3,
+                    "name": "XANDER",
+                    "firstName": "Xander",
+                    "lastName": "K",
+                    "aliases": "mrxndr",
+                    "facebook": null,
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/xanderkloud",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "108203",
+                    "countryId": 3,
+                    "name": "CITIZEN",
+                    "firstName": "Louis",
+                    "lastName": "Lawrence",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/_localcitizen",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/citizenofthestate",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11986778",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1986778",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T20:30:00.000",
+            "endTime": "2024-09-21T03:00:00.000",
+            "cost": "",
+            "title": "Floozy - \ud835\udd6c\ud835\udd97\ud835\udd99\ud835\udd98 \u2363 \ud835\udd7f\ud835\udd8a\ud835\udd88\ud835\udd8d\ud835\udd93\ud835\udd94 \u2363 \ud835\udd72\ud835\udd97\ud835\udd94\ud835\udd94\ud835\udd9b\ud835\udd8a",
+            "genres": [
+                {
+                    "name": "Techno",
+                    "slug": "techno"
+                },
+                {
+                    "name": "Ambient",
+                    "slug": "ambient"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 49,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1952258",
+                    "filename": "https://images.ra.co/3445b616dc63bffd37101993fbe6bf4d97d4b9fb.png",
+                    "alt": "@himboy._ @varanassii @ninapixina @ossou_erratic",
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1952259",
+                    "filename": "https://images.ra.co/3e07b830653163f1d7364d977f5822fbf2c79eb1.png",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "156800",
+                "name": "Love Shack LDN",
+                "address": "Arch 298-299 Cambridge Heath Road London, United Kingdom E2 9HA",
+                "contentUrl": "/clubs/156800",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "130036",
+                    "countryId": 3,
+                    "name": "Himboy",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/himboy._",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/h1mboy",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "139396",
+                    "countryId": 3,
+                    "name": "Ossou Erratic",
+                    "firstName": "Sam",
+                    "lastName": "Jordan",
+                    "aliases": "",
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/ossou_erratic",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/ossou-erratic",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11981125",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1981125",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T23:00:00.000",
+            "endTime": "2024-09-21T05:00:00.000",
+            "cost": "20",
+            "title": "Boboxa invites Ajuma & Good Block",
+            "genres": [
+                {
+                    "name": "House",
+                    "slug": "house"
+                },
+                {
+                    "name": "Disco",
+                    "slug": "disco"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 42,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1942929",
+                    "filename": "https://images.ra.co/495324d553d7e3157ece70112fcd8fe30b868dcb.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1942930",
+                    "filename": "https://images.ra.co/8df722afee9b8058e0d786f89b7e6a97f00b7359.jpg",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "95767",
+                "name": "The Pickle Factory",
+                "address": "13-14 The Oval, London E2 9DU",
+                "contentUrl": "/clubs/95767",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "107688",
+                    "countryId": 6,
+                    "name": "Ajuma",
+                    "firstName": "Eva",
+                    "lastName": "Maasen",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/ajuma____",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/ajumaa",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "59918",
+                    "countryId": 3,
+                    "name": "Good Block",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/goodblock",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/good-block",
+                    "discogs": "https://www.discogs.com/artist/6969607-Good-Block",
+                    "bandcamp": "https://goodblock.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "115377",
+                    "countryId": 3,
+                    "name": "Boboxa",
+                    "firstName": "bobo",
+                    "lastName": "xav",
+                    "aliases": null,
+                    "facebook": null,
+                    "instagram": "https://www.instagram.com/boboxa_london",
+                    "twitter": null,
+                    "soundcloud": "https://www.soundcloud.com/boboxamusic",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11958493",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1958493",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T17:00:00.000",
+            "endTime": "2024-09-21T02:30:00.000",
+            "cost": "",
+            "title": "NT's Loft: Brighter Days Residency - Week 3",
+            "genres": [],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 41,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1941143",
+                    "filename": "https://images.ra.co/6d8398b330d835c58692d6d8be285e4b6ff3f5d8.jpg",
+                    "alt": null,
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                },
+                {
+                    "id": "1917926",
+                    "filename": "https://images.ra.co/c7b6b7103bc3997cf2db2980a86f4c17c2775b94.jpg",
+                    "alt": null,
+                    "type": "FLYERBACK",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "115524",
+                "name": "Night Tales Loft",
+                "address": "207, 1 Westgate St, Hackney, London E8 3RL",
+                "contentUrl": "/clubs/115524",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "66682",
+                    "countryId": 3,
+                    "name": "Hagan",
+                    "firstName": "Brendan",
+                    "lastName": "O",
+                    "aliases": null,
+                    "facebook": "https://www.facebook.com/haganuk",
+                    "instagram": "https://www.instagram.com/haganuk",
+                    "twitter": "https://www.twitter.com/haganuk",
+                    "soundcloud": "https://www.soundcloud.com/haganuk",
+                    "discogs": null,
+                    "bandcamp": "https://hagan.bandcamp.com",
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    },
+    {
+        "id": "11964214",
+        "listingDate": "2024-09-20T00:00:00.000",
+        "event": {
+            "id": "1964214",
+            "date": "2024-09-20T00:00:00.000",
+            "startTime": "2024-09-20T21:00:00.000",
+            "endTime": "2024-09-21T04:00:00.000",
+            "cost": "10+",
+            "title": "Diversion Audio",
+            "genres": [
+                {
+                    "name": "Drum & Bass",
+                    "slug": "drumandbass"
+                },
+                {
+                    "name": "Jungle",
+                    "slug": "jungle"
+                }
+            ],
+            "flyerFront": null,
+            "isTicketed": true,
+            "attending": 37,
+            "queueItEnabled": false,
+            "newEventForm": true,
+            "images": [
+                {
+                    "id": "1928310",
+                    "filename": "https://images.ra.co/03d74d5d5690355c6323d5288571e3916505dd26.png",
+                    "alt": "Diversion Audio",
+                    "type": "FLYERFRONT",
+                    "crop": null,
+                    "__typename": "EventImage"
+                }
+            ],
+            "pick": null,
+            "venue": {
+                "id": "30015",
+                "name": "Basing House",
+                "address": "25 Kingsland Road; Shoreditch; London E2 8AA; United Kingdom",
+                "contentUrl": "/clubs/30015",
+                "live": true,
+                "__typename": "Venue"
+            },
+            "__typename": "Event",
+            "artists": [
+                {
+                    "id": "60875",
+                    "countryId": 3,
+                    "name": "Bladerunner",
+                    "firstName": "Devan",
+                    "lastName": "Gray",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/Bladerunnerdnb",
+                    "instagram": null,
+                    "twitter": null,
+                    "soundcloud": null,
+                    "discogs": "https://www.discogs.com/artist/98308-Bladerunner",
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                },
+                {
+                    "id": "62688",
+                    "countryId": 3,
+                    "name": "Visionobi",
+                    "firstName": "",
+                    "lastName": "",
+                    "aliases": "",
+                    "facebook": "https://www.facebook.com/Visionobi",
+                    "instagram": null,
+                    "twitter": "https://www.twitter.com/visionobi",
+                    "soundcloud": "https://www.soundcloud.com/visionobi",
+                    "discogs": null,
+                    "bandcamp": null,
+                    "website": null,
+                    "__typename": "Artist"
+                }
+            ]
+        },
+        "__typename": "EventListing"
+    }
+]

@@ -1,0 +1,16 @@
+{
+  "operationName": "GET_EVENT_LISTINGS",
+  "variables": {
+    "filters": {
+      "areas": { "eq": "__AREAS__" },
+      "listingDate": {
+        "gte": "__LISTING_DATE_GTE__",
+        "lte": "__LISTING_DATE_LTE__"
+      }
+    },
+    "filterOptions": { "genre": true },
+    "pageSize": 20,
+    "page": 1
+  },
+  "query": "query GET_EVENT_LISTINGS($filters: FilterInputDtoInput, $filterOptions: FilterOptionsInputDtoInput, $page: Int, $pageSize: Int) {eventListings(filters: $filters, filterOptions: $filterOptions, pageSize: $pageSize, page: $page) {data {id listingDate event {...eventListingsFields artists {id countryId name firstName lastName aliases facebook instagram twitter soundcloud discogs bandcamp website __typename} __typename} __typename} totalResults __typename}}fragment eventListingsFields on Event {id date startTime endTime cost title genres { name slug } flyerFront isTicketed attending queueItEnabled newEventForm images {id filename alt type crop __typename} pick {id blurb __typename} venue {id name address contentUrl live location { latitude longitude }__typename} __typename}"
+}

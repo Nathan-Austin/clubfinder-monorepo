@@ -1,0 +1,42 @@
+# Node.js dependencies
+node_modules/
+
+# Environment variables
+*.env
+*.ini
+# Logs
+logs/
+*.log
+
+# OS-specific files
+.DS_Store
+
+# Temporary files
+tmp/
+*.tmp
+
+# Compiled code (e.g., TypeScript or CoffeeScript)
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+
+# Ignore specific files
+config/*.local.js
+
+# Python pickle files
+*.pkl
+
+# Specific JSON and cache files
+api_call_count.json
+*.cache
+
+# Individual logs and cache files
+*failed_artists.pkl
+*soundcloud_api.log
+*soundcloud_fallback.log
+test.py
+# Python cache
+__pycache__/

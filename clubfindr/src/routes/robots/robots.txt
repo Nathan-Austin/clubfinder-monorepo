@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /private/
+Allow: /
+
+# Sitemap
+Sitemap: https://clubfindr.com/sitemap.xml

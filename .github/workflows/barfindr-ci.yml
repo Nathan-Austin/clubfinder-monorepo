@@ -1,0 +1,83 @@
+name: Barfindr CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'barfindr/**'
+      - '.github/workflows/barfindr-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'barfindr/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: barfindr
+
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+        cache-dependency-path: barfindr/requirements.txt
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+
+    - name: Run linting
+      run: |
+        pip install flake8 black isort
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check src/
+        isort --check-only src/
+
+    - name: Run tests
+      run: pytest -v --cov=src --cov-report=xml
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/0
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: barfindr/coverage.xml
+        flags: barfindr
