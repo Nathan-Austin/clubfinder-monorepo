@@ -1,0 +1,32 @@
+sudo systemctl daemon-reload
+sudo systemctl restart spotify-service.service
+systemctl status spotify-service.service
+tail -f /var/log/spotify-service/spotify.log
+
+
+
+
+
+# Activate the virtual environment
+source /home/nathan/spotify_service_env/bin/activate
+
+# After activation, your prompt should change to show (spotify_service_env)
+# Now you can run Python and pip commands directly
+python --version
+pip list  # Show installed packages
+
+
+
+
+# When you're finished, deactivate the environment
+deactivate
+
+# Run Python from the environment
+/home/nathan/spotify_service_env/bin/python your_script.py
+
+# Install packages using the environment's pip
+/home/nathan/spotify_service_env/bin/pip install package-name
+
+
+sudo nano /etc/systemd/system/spotify-service.service
+

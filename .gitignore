@@ -1,0 +1,188 @@
+# ===========================
+# Clubfinder Monorepo .gitignore
+# ===========================
+
+# Git Backups (local only)
+.git-backups/
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.cache
+
+# IDE & Editor
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# ===========================
+# clubfindr (SvelteKit)
+# ===========================
+clubfindr/node_modules/
+clubfindr/.svelte-kit/
+clubfindr/build/
+clubfindr/dist/
+clubfindr/.env
+clubfindr/.env.*
+clubfindr/!.env.example
+clubfindr/package-lock.json
+clubfindr/pnpm-lock.yaml
+clubfindr/yarn.lock
+
+# Test results
+clubfindr/test-results/
+clubfindr/playwright-report/
+clubfindr/.playwright/
+clubfindr/coverage/
+
+# ===========================
+# barfindr (Python FastAPI)
+# ===========================
+barfindr/__pycache__/
+barfindr/*.py[cod]
+barfindr/*$py.class
+barfindr/.pytest_cache/
+barfindr/.coverage
+barfindr/htmlcov/
+barfindr/.env
+barfindr/.env.*
+barfindr/!.env.example
+
+# Celery
+barfindr/celerybeat-schedule*
+barfindr/celerybeat.pid
+
+# Virtual environments
+barfindr/venv/
+barfindr/env/
+barfindr/.venv/
+
+# Alembic
+barfindr/alembic.ini.local
+
+# Logs
+barfindr/logs/*.log
+barfindr/*.log
+
+# ===========================
+# data_collection (Python)
+# ===========================
+data_collection/__pycache__/
+data_collection/*.py[cod]
+data_collection/*$py.class
+data_collection/.env
+data_collection/.env.*
+data_collection/!.env.example
+data_collection/venv/
+data_collection/env/
+data_collection/.venv/
+
+# Data collection specific
+data_collection/*.log
+data_collection/logs/*.log
+data_collection/*.pkl
+data_collection/.cache
+
+# API call tracking
+api_call_log.pkl
+
+# Lock files
+/tmp/clubfinder_running.lock
+
+# ===========================
+# spotify_service (Python)
+# ===========================
+spotify_service/__pycache__/
+spotify_service/*.py[cod]
+spotify_service/*$py.class
+spotify_service/venv/
+spotify_service/env/
+spotify_service/.venv/
+
+# Service specific
+spotify_service/config.json
+spotify_service/service.pid
+spotify_service/*.log
+spotify_service/logs/*.log
+spotify_service/screenshots/*.png
+spotify_service/screenshots/*.jpg
+spotify_service/pending_queue/*.json
+spotify_service/.env
+spotify_service/.env.*
+
+# ===========================
+# app_clubfindr (Expo/React Native)
+# ===========================
+app_clubfindr/node_modules/
+app_clubfindr/.expo/
+app_clubfindr/.expo-shared/
+app_clubfindr/dist/
+app_clubfindr/npm-debug.*
+app_clubfindr/yarn-error.log
+app_clubfindr/.env
+app_clubfindr/.env.*
+app_clubfindr/!.env.example
+
+# Expo
+app_clubfindr/web-build/
+app_clubfindr/.cache/
+
+# iOS
+app_clubfindr/ios/Pods/
+app_clubfindr/ios/build/
+app_clubfindr/*.xcworkspace
+app_clubfindr/*.xcuserstate
+
+# Android
+app_clubfindr/android/build/
+app_clubfindr/android/.gradle/
+app_clubfindr/android/app/build/
+app_clubfindr/android/captures/
+app_clubfindr/android/local.properties
+app_clubfindr/android/.cxx/
+app_clubfindr/*.apk
+app_clubfindr/*.aab
+
+# ===========================
+# Database & Credentials
+# ===========================
+*.pem
+*.key
+*.crt
+config.json
+credentials.json
+database.ini
+*.sql.backup
+
+# ===========================
+# General Development
+# ===========================
+*.log
+*.pid
+.DS_Store
+tmp/
+temp/
+*.tmp
+.cache/
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip

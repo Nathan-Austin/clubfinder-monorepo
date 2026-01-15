@@ -1,0 +1,532 @@
+{
+	"all_cities": [
+		{
+			"name": "London",
+			"latitude": 51.5074,
+			"longitude": -0.1278,
+			"boundaries": {
+				"west": -0.5103751,
+				"north": 51.6723432,
+				"east": 0.3340155,
+				"south": 51.3849401
+			},
+			"origin": {
+				"lat": 51.5074,
+				"lng": -0.1278
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Birmingham",
+			"latitude": 52.4862,
+			"longitude": -1.8904,
+			"boundaries": {
+				"west": -2.0113879,
+				"north": 52.5604332,
+				"east": -1.7460831,
+				"south": 52.3873821
+			},
+			"origin": {
+				"lat": 52.4862,
+				"lng": -1.8904
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Nottingham",
+			"latitude": 52.9548,
+			"longitude": -1.1581,
+			"boundaries": {
+				"west": -1.2032767,
+				"north": 52.9934231,
+				"east": -1.1016622,
+				"south": 52.9262409
+			},
+			"origin": {
+				"lat": 52.9548,
+				"lng": -1.1581
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Manchester",
+			"latitude": 53.4808,
+			"longitude": -2.2426,
+			"boundaries": {
+				"west": -2.3278143,
+				"north": 53.509555,
+				"east": -2.1524169,
+				"south": 53.4239967
+			},
+			"origin": {
+				"lat": 53.4808,
+				"lng": -2.2426
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Newcastle",
+			"latitude": 54.9784,
+			"longitude": -1.6174,
+			"boundaries": {
+				"west": -1.6760141,
+				"north": 55.0201872,
+				"east": -1.5293979,
+				"south": 54.8988983
+			},
+			"origin": {
+				"lat": 54.9784,
+				"lng": -1.6174
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Leeds",
+			"latitude": 53.8008,
+			"longitude": -1.5491,
+			"boundaries": {
+				"west": -1.6101411,
+				"north": 53.8534927,
+				"east": -1.4489395,
+				"south": 53.7558431
+			},
+			"origin": {
+				"lat": 53.8008,
+				"lng": -1.5491
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Sheffield",
+			"latitude": 53.3811,
+			"longitude": -1.4701,
+			"boundaries": {
+				"west": -1.5645434,
+				"north": 53.429011,
+				"east": -1.4043175,
+				"south": 53.3357465
+			},
+			"origin": {
+				"lat": 53.3811,
+				"lng": -1.4701
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Brighton",
+			"latitude": 50.8225,
+			"longitude": -0.1372,
+			"boundaries": {
+				"west": -0.2002186,
+				"north": 50.8670448,
+				"east": -0.0939797,
+				"south": 50.8006281
+			},
+			"origin": {
+				"lat": 50.8225,
+				"lng": -0.1372
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Bristol",
+			"latitude": 51.4545,
+			"longitude": -2.5879,
+			"boundaries": {
+				"west": -2.6586171,
+				"north": 51.5046543,
+				"east": -2.5170624,
+				"south": 51.4204818
+			},
+			"origin": {
+				"lat": 51.4545,
+				"lng": -2.5879
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Cardiff",
+			"latitude": 51.4816,
+			"longitude": -3.1791,
+			"boundaries": {
+				"west": -3.2364147,
+				"north": 51.5459284,
+				"east": -3.1011135,
+				"south": 51.4160131
+			},
+			"origin": {
+				"lat": 51.4816,
+				"lng": -3.1791
+			},
+			"region": "gb"
+		},
+		{
+			"name": "Berlin",
+			"latitude": 52.520008,
+			"longitude": 13.404954,
+			"boundaries": {
+				"west": 13.0884,
+				"north": 52.6755,
+				"east": 13.7611,
+				"south": 52.3383
+			},
+			"origin": {
+				"lat": 52.520008,
+				"lng": 13.404954
+			},
+			"region": "de"
+		},
+		{
+			"name": "Frankfurt",
+			"latitude": 50.1109,
+			"longitude": 8.6821,
+			"boundaries": {
+				"west": 8.524445,
+				"north": 50.220748,
+				"east": 8.800208,
+				"south": 50.016929
+			},
+			"origin": {
+				"lat": 50.1109,
+				"lng": 8.6821
+			},
+			"region": "de"
+		},
+		{
+			"name": "Cologne",
+			"latitude": 50.9375,
+			"longitude": 6.9603,
+			"boundaries": {
+				"west": 6.827309,
+				"north": 51.084984,
+				"east": 7.162031,
+				"south": 50.830287
+			},
+			"origin": {
+				"lat": 50.9375,
+				"lng": 6.9603
+			},
+			"region": "de"
+		},
+		{
+			"name": "Dortmund",
+			"latitude": 51.5136,
+			"longitude": 7.4653,
+			"boundaries": {
+				"west": 7.37268,
+				"north": 51.57085,
+				"east": 7.623986,
+				"south": 51.452461
+			},
+			"origin": {
+				"lat": 51.5136,
+				"lng": 7.4653
+			},
+			"region": "de"
+		},
+		{
+			"name": "Düsseldorf",
+			"latitude": 51.2277,
+			"longitude": 6.7735,
+			"boundaries": {
+				"west": 6.684542,
+				"north": 51.30786,
+				"east": 6.872183,
+				"south": 51.16177
+			},
+			"origin": {
+				"lat": 51.2277,
+				"lng": 6.7735
+			},
+			"region": "de"
+		},
+		{
+			"name": "Leipzig",
+			"latitude": 51.3397,
+			"longitude": 12.3731,
+			"boundaries": {
+				"west": 12.23559,
+				"north": 51.423848,
+				"east": 12.506161,
+				"south": 51.267353
+			},
+			"origin": {
+				"lat": 51.3397,
+				"lng": 12.3731
+			},
+			"region": "de"
+		},
+		{
+			"name": "Dresden",
+			"latitude": 51.0504,
+			"longitude": 13.7373,
+			"boundaries": {
+				"west": 13.60434,
+				"north": 51.13092,
+				"east": 13.91553,
+				"south": 51.00298
+			},
+			"origin": {
+				"lat": 51.0504,
+				"lng": 13.7373
+			},
+			"region": "de"
+		},
+		{
+			"name": "Amsterdam",
+			"latitude": 52.3676,
+			"longitude": 4.9041,
+			"boundaries": {
+				"west": 4.728528,
+				"north": 52.431072,
+				"east": 5.079164,
+				"south": 52.278174
+			},
+			"origin": {
+				"lat": 52.3676,
+				"lng": 4.9041
+			},
+			"region": "nl"
+		},
+		{
+			"name": "Rotterdam",
+			"latitude": 51.9225,
+			"longitude": 4.4792,
+			"boundaries": {
+				"west": 4.32996,
+				"north": 52.00229,
+				"east": 4.597792,
+				"south": 51.874048
+			},
+			"origin": {
+				"lat": 51.9225,
+				"lng": 4.4792
+			},
+			"region": "nl"
+		},
+		{
+			"name": "Barcelona",
+			"latitude": 41.3851,
+			"longitude": 2.1734,
+			"boundaries": {
+				"west": 2.069528,
+				"north": 41.468747,
+				"east": 2.228226,
+				"south": 41.317946
+			},
+			"origin": {
+				"lat": 41.3851,
+				"lng": 2.1734
+			},
+			"region": "es"
+		},
+		{
+			"name": "Ibiza",
+			"latitude": 38.9067,
+			"longitude": 1.4206,
+			"boundaries": {
+				"west": 1.398196,
+				"north": 38.929547,
+				"east": 1.453695,
+				"south": 38.888118
+			},
+			"origin": {
+				"lat": 38.9067,
+				"lng": 1.4206
+			},
+			"region": "es"
+		},
+		{
+			"name": "Madrid",
+			"latitude": 40.4168,
+			"longitude": -3.7038,
+			"boundaries": {
+				"west": -3.762655,
+				"north": 40.500138,
+				"east": -3.593512,
+				"south": 40.352193
+			},
+			"origin": {
+				"lat": 40.4168,
+				"lng": -3.7038
+			},
+			"region": "es"
+		},
+		{
+			"name": "Paris",
+			"latitude": 48.8566,
+			"longitude": 2.3522,
+			"boundaries": {
+				"west": 2.224199,
+				"north": 48.902145,
+				"east": 2.469921,
+				"south": 48.815575
+			},
+			"origin": {
+				"lat": 48.8566,
+				"lng": 2.3522
+			},
+			"region": "fr"
+		},
+		{
+			"name": "Rome",
+			"latitude": 41.9028,
+			"longitude": 12.4964,
+			"boundaries": {
+				"west": 12.358695,
+				"north": 42.018452,
+				"east": 12.620596,
+				"south": 41.767671
+			},
+			"origin": {
+				"lat": 41.9028,
+				"lng": 12.4964
+			},
+			"region": "it"
+		},
+		{
+			"name": "Auckland",
+			"latitude": -36.8485,
+			"longitude": 174.7633,
+			"boundaries": {
+				"west": 174.735999,
+				"north": -36.821099,
+				"east": 174.775899,
+				"south": -36.889899
+			},
+			"origin": {
+				"lat": -36.8485,
+				"lng": 174.7633
+			},
+			"region": "nz"
+		},
+		{
+			"name": "Wellington",
+			"latitude": -41.2865,
+			"longitude": 174.7762,
+			"boundaries": {
+				"west": 174.734333,
+				"north": -41.252125,
+				"east": 174.797928,
+				"south": -41.317075
+			},
+			"origin": {
+				"lat": -41.2865,
+				"lng": 174.7762
+			},
+			"region": "nz"
+		},
+		{
+			"name": "Christchurch",
+			"latitude": -43.5321,
+			"longitude": 172.6362,
+			"boundaries": {
+				"west": 172.573296,
+				"north": -43.498502,
+				"east": 172.700547,
+				"south": -43.564011
+			},
+			"origin": {
+				"lat": -43.5321,
+				"lng": 172.6362
+			},
+			"region": "nz"
+		},
+		{
+			"name": "Stockholm",
+			"latitude": 59.3293,
+			"longitude": 18.0686,
+			"boundaries": {
+				"west": 17.927442,
+				"north": 59.401545,
+				"east": 18.201157,
+				"south": 59.257133
+			},
+			"origin": {
+				"lat": 59.3293,
+				"lng": 18.0686
+			},
+			"region": "se"
+		},
+		{
+			"name": "Istanbul",
+			"latitude": 41.0082,
+			"longitude": 28.9784,
+			"boundaries": {
+				"west": 28.597767,
+				"north": 41.209828,
+				"east": 29.427108,
+				"south": 40.802049
+			},
+			"origin": {
+				"lat": 41.0082,
+				"lng": 28.9784
+			},
+			"region": "tr"
+		},
+		{
+			"name": "Ankara",
+			"latitude": 39.9334,
+			"longitude": 32.8597,
+			"boundaries": {
+				"west": 32.563685,
+				"north": 40.030617,
+				"east": 33.006209,
+				"south": 39.792886
+			},
+			"origin": {
+				"lat": 39.9334,
+				"lng": 32.8597
+			},
+			"region": "tr"
+		},
+		{
+			"name": "Izmir",
+			"latitude": 38.4237,
+			"longitude": 27.1428,
+			"boundaries": {
+				"west": 26.936112,
+				"north": 38.514334,
+				"east": 27.313309,
+				"south": 38.307502
+			},
+			"origin": {
+				"lat": 38.4237,
+				"lng": 27.1428
+			},
+			"region": "tr"
+		},
+		{
+			"name": "Dubai",
+			"latitude": 25.276987,
+			"longitude": 55.296249,
+			"boundaries": {
+				"west": 55.01628,
+				"north": 25.298139,
+				"east": 55.556325,
+				"south": 25.012991
+			},
+			"origin": {
+				"lat": 25.276987,
+				"lng": 55.296249
+			},
+			"region": "ae"
+		},
+		{
+			"name": "Brussels",
+			"latitude": 50.8503,
+			"longitude": 4.3517,
+			"boundaries": {
+				"west": 4.288788,
+				"north": 50.90268,
+				"east": 4.421167,
+				"south": 50.800098
+			},
+			"origin": {
+				"lat": 50.8503,
+				"lng": 4.3517
+			},
+			"region": "be"
+		}
+	]
+}

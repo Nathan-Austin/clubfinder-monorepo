@@ -1,0 +1,16 @@
+cat > /clubfinder/barfindr/systemd/barfindr-celery-worker.service << 'EOF'
+[Unit]
+Description=BarFindr Celery Worker
+After=network.target postgresql.service redis.service
+
+[Service]
+User=nathan
+WorkingDirectory=/home/nathan/clubfinder/barfindr
+Environment="PYTHONPATH=/home/nathan/clubfinder/barfindr/src"
+EnvironmentFile=/home/nathan/clubfinder/barfindr/.env
+ExecStart=/usr/bin/celery -A src.barfindr.celery:app worker --loglevel=info
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF

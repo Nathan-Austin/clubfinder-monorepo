@@ -1,0 +1,76 @@
+name: Main CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      clubfindr: ${{ steps.filter.outputs.clubfindr }}
+      barfindr: ${{ steps.filter.outputs.barfindr }}
+      data_collection: ${{ steps.filter.outputs.data_collection }}
+      spotify_service: ${{ steps.filter.outputs.spotify_service }}
+      app_clubfindr: ${{ steps.filter.outputs.app_clubfindr }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            clubfindr:
+              - 'clubfindr/**'
+            barfindr:
+              - 'barfindr/**'
+            data_collection:
+              - 'data_collection/**'
+            spotify_service:
+              - 'spotify_service/**'
+            app_clubfindr:
+              - 'app_clubfindr/**'
+
+  clubfindr:
+    needs: changes
+    if: ${{ needs.changes.outputs.clubfindr == 'true' }}
+    uses: ./.github/workflows/clubfindr-ci.yml
+
+  barfindr:
+    needs: changes
+    if: ${{ needs.changes.outputs.barfindr == 'true' }}
+    uses: ./.github/workflows/barfindr-ci.yml
+
+  data-collection:
+    needs: changes
+    if: ${{ needs.changes.outputs.data_collection == 'true' }}
+    uses: ./.github/workflows/data-collection-ci.yml
+
+  spotify-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.spotify_service == 'true' }}
+    uses: ./.github/workflows/spotify-service-ci.yml
+
+  app-clubfindr:
+    needs: changes
+    if: ${{ needs.changes.outputs.app_clubfindr == 'true' }}
+    uses: ./.github/workflows/app-clubfindr-ci.yml
+
+  all-checks-passed:
+    runs-on: ubuntu-latest
+    needs: [changes, clubfindr, barfindr, data-collection, spotify-service, app-clubfindr]
+    if: always()
+    steps:
+      - name: Check if all jobs passed
+        run: |
+          echo "All CI checks completed"
+          if [ "${{ needs.clubfindr.result }}" == "failure" ] || \
+             [ "${{ needs.barfindr.result }}" == "failure" ] || \
+             [ "${{ needs.data-collection.result }}" == "failure" ] || \
+             [ "${{ needs.spotify-service.result }}" == "failure" ] || \
+             [ "${{ needs.app-clubfindr.result }}" == "failure" ]; then
+            echo "One or more checks failed"
+            exit 1
+          fi
+          echo "All checks passed successfully!"

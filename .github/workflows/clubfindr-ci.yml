@@ -1,0 +1,76 @@
+name: Clubfindr CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'clubfindr/**'
+      - '.github/workflows/clubfindr-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'clubfindr/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: clubfindr
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'pnpm'
+        cache-dependency-path: clubfindr/pnpm-lock.yaml
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Run linter
+      run: pnpm lint
+
+    - name: Run type check
+      run: pnpm check
+
+    - name: Build
+      run: pnpm build
+      env:
+        # Add any required build env vars here
+        VITE_PG_HOST: ${{ secrets.VITE_PG_HOST }}
+        VITE_PG_PORT: ${{ secrets.VITE_PG_PORT }}
+        VITE_PG_DB: ${{ secrets.VITE_PG_DB }}
+        VITE_PG_USERNAME: ${{ secrets.VITE_PG_USERNAME }}
+        VITE_PG_PASSWORD: ${{ secrets.VITE_PG_PASSWORD }}
+
+    - name: Run unit tests
+      run: pnpm test:unit
+
+    - name: Install Playwright Browsers
+      run: pnpm exec playwright install --with-deps
+
+    - name: Run E2E tests
+      run: pnpm test
+      continue-on-error: true
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-report-${{ matrix.node-version }}
+        path: clubfindr/playwright-report/
+        retention-days: 30

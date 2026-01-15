@@ -1,0 +1,779 @@
+United Kingdom
+London
+Midlands
+Birmingham
+Nottingham
+North
+Liverpool
+Manchester
+Newcastle
+Leeds
+Sheffield
+Northern Ireland
+Belfast
+Scotland
+Glasgow
+Edinburgh
+Aberdeen
+Dundee
+South + East
+Brighton
+West + Wales
+Bristol
+Cardiff
+United States of America
+Alabama
+Alaska
+Arizona
+Arkansas
+California
+Los Angeles
+San Francisco/Oakland
+San Diego
+Sacramento
+San Jose
+Colorado
+Denver
+Connecticut
+Delaware
+Florida
+Miami
+Jacksonville
+Orlando
+Tampa Bay
+Georgia
+Atlanta
+Hawaii
+Idaho
+Illinois
+Chicago
+Indiana
+Iowa
+Kansas
+Kentucky
+Louisiana
+Maine
+Maryland
+Baltimore
+Massachusetts
+Boston
+Michigan
+Detroit
+Minnesota
+Mississippi
+Missouri
+Montana
+Nebraska
+Nevada
+Las Vegas
+New Hampshire
+New Jersey
+New Mexico
+New York
+Buffalo/Rochester
+North Carolina
+North Dakota
+Ohio
+Cleveland
+Columbus
+Oklahoma
+Oregon
+Portland
+Pennsylvania
+Philadelphia
+Pittsburgh
+Rhode Island
+South Carolina
+South Dakota
+Tennessee
+Texas
+Houston
+Dallas/Fort Worth
+San Antonio
+Austin
+El Paso
+Utah
+Vermont
+Virginia
+Richmond
+Washington DC
+Washington State
+Seattle
+West Virginia
+Wisconsin
+Wyoming
+Germany
+Baden-Württemberg
+Stuttgart
+Mannheim
+Heidelberg
+Karlsruhe
+Freiburg
+Bavaria
+Munich
+Nürnberg
+Augsburg
+Regensburg
+Berlin
+Brandenburg
+Bremen
+Hamburg
+Hesse
+Frankfurt
+Darmstadt
+Kassel
+Lower Saxony
+Hannover
+Mecklenburg-Vorpommern
+North Rhine-Westphalia
+Cologne
+Dortmund / Essen
+Düsseldorf
+Bielefeld
+Münster
+Bochum
+Rhineland-Palatinate
+Saarland
+Saxony
+Leipzig
+Dresden
+Chemnitz
+Saxony-Anhalt
+Schleswig-Holstein
+Thuringia
+Jena
+Erfurt
+Netherlands
+Amsterdam
+Eindhoven
+Other regions
+Rotterdam
+The Hague
+Utrecht
+Spain
+Barcelona
+Canary Islands
+East
+Ibiza
+Madrid
+North
+South
+France
+Central
+East
+French Riviera
+North
+Paris
+South East
+Lyon
+Marseille
+Montpellier
+South West
+French West Indies
+West
+Nantes
+Italy
+Central
+Rome
+Florence
+North
+Milan
+Turin
+Venice
+Bologna
+Sicily
+South
+Naples
+Canada
+Atlantic Provinces
+Calgary
+Edmonton
+Montreal
+Ottawa
+Prairies
+Quebec
+Toronto
+Vancouver
+Windsor
+Afghanistan
+Albania
+Algeria
+Andorra
+All
+Andorra la Vella
+Angola
+Antigua and Barbuda
+Argentina
+All
+Buenos Aires
+Armenia
+Australia
+Australian Capital Territory
+Canberra
+New South Wales
+Sydney
+Northern Territory
+Darwin
+Queensland
+Brisbane
+South Australia
+Adelaide
+Tasmania
+Hobart
+Victoria
+Melbourne
+Western Australia
+Perth
+Austria
+All
+Vienna
+Azerbaijan
+Bahamas
+Bahrain
+Bangladesh
+Barbados
+Belarus
+Belgium
+All
+Antwerp
+Brussels
+Ghent
+Belize
+Benin
+Bermuda
+Bhutan
+Bolivia
+Bosnia and Herzegovina
+Botswana
+Brazil
+All
+Sao Paulo
+Rio de Janeiro
+British Virgin Islands
+Brunei
+Bulgaria
+All
+Sofia
+Burkina Faso
+Burundi
+Cambodia
+Cameroon
+Canada
+Atlantic Provinces
+Calgary
+Edmonton
+Montreal
+Ottawa
+Prairies
+Quebec
+Toronto
+Vancouver
+Windsor
+Cape Verde
+Cayman Islands
+Central African Republic
+Chad
+Chile
+All
+Santiago
+China
+Beijing
+Changsha
+Chengdu
+Chongqing
+Guangzhou
+Hangzhou
+Hong Kong
+Jinan
+Kunming
+Macau
+Nanjing
+Qingdao
+Quanzhou
+Shanghai
+Shenyang
+Shenzhen
+Suzhou
+Tianjin
+Wuhan
+Xi'an
+Xiamen
+Colombia
+All
+Bogotá
+Medellin
+Cali
+Pereira
+Comoros
+Costa Rica
+Croatia
+All
+Zagreb
+Cuba
+Curacao
+Cyprus
+Czech Republic
+All
+Prague
+Democratic Republic of the Congo
+Denmark
+All
+Copenhagen
+Aarhus
+Odense
+Djibouti
+Dominica
+Dominican Republic
+East Timor
+Ecuador
+Egypt
+El Salvador
+Equatorial Guinea
+Eritrea
+Estonia
+All
+Tallinn
+Eswatini
+Ethiopia
+Federated States of Micronesia
+Fiji
+Finland
+All
+Helsinki
+France
+Central
+East
+French Riviera
+North
+Paris
+South East
+Lyon
+Marseille
+Montpellier
+South West
+French West Indies
+West
+Nantes
+Gabon
+Gambia
+Georgia
+All
+Tbilisi
+Batumi
+Germany
+Baden-Württemberg
+Stuttgart
+Mannheim
+Heidelberg
+Karlsruhe
+Freiburg
+Bavaria
+Munich
+Nürnberg
+Augsburg
+Regensburg
+Berlin
+Brandenburg
+Bremen
+Hamburg
+Hesse
+Frankfurt
+Darmstadt
+Kassel
+Lower Saxony
+Hannover
+Mecklenburg-Vorpommern
+North Rhine-Westphalia
+Cologne
+Dortmund / Essen
+Düsseldorf
+Bielefeld
+Münster
+Bochum
+Rhineland-Palatinate
+Saarland
+Saxony
+Leipzig
+Dresden
+Chemnitz
+Saxony-Anhalt
+Schleswig-Holstein
+Thuringia
+Jena
+Erfurt
+Ghana
+Gibraltar
+Greece
+All
+Athens
+Grenada
+Guam
+Guatemala
+Guinea
+Guinea-Bissau
+Guyana
+Haiti
+Honduras
+Hungary
+All
+Budapest
+Iceland
+India
+Bangalore
+Chennai
+Delhi
+Goa
+Hyderabad
+Kolkata
+Mumbai
+Other regions
+Pune
+Indonesia
+All
+Bali
+Jakarta
+Iran
+Iraq
+Ireland
+All
+Dublin
+Cork
+Limerick
+Galway
+Israel
+All
+Tel Aviv
+Italy
+Central
+Rome
+Florence
+North
+Milan
+Turin
+Venice
+Bologna
+Sicily
+South
+Naples
+Ivory Coast
+Jamaica
+Japan
+Chubu
+Chugoku
+Hokkaido
+Kansai
+Kanto
+Kyushu
+Okinawa
+Shikoku
+Tohoku
+Tokyo
+Jordan
+Kazakhstan
+Kenya
+Kiribati
+Kosovo
+Kuwait
+Kyrgyzstan
+Laos
+Latvia
+All
+Riga
+Lebanon
+All
+Beirut
+Lesotho
+Liberia
+Libya
+Liechtenstein
+Lithuania
+All
+Vilnius
+Luxembourg
+Macedonia
+Madagascar
+Malawi
+Malaysia
+Kuala Lumpur
+Maldives
+Mali
+Malta
+Marshall Islands
+Mauritania
+Mauritius
+Mexico
+All
+Monterrey
+Mexico City
+Guadalajara
+Tulum
+Tijuana
+Puerto Escondido
+Puerto Vallarta
+Puebla
+Moldova
+Monaco
+Mongolia
+Montenegro
+Morocco
+Mozambique
+Myanmar
+Namibia
+Nauru
+Nepal
+Netherlands
+Amsterdam
+Eindhoven
+Other regions
+Rotterdam
+The Hague
+Utrecht
+New Zealand
+All
+Auckland
+Wellington
+Christchurch
+Nicaragua
+Niger
+Nigeria
+All
+Lagos
+North Macedonia
+Norway
+All
+Oslo
+Bergen
+Oman
+Pakistan
+Palau
+Palestine
+Panama
+Papua New Guinea
+Paraguay
+Peru
+Philippines
+All
+Manila
+Poland
+All
+Warsaw
+Krakow
+Portugal
+Algarve
+Lisbon
+Other regions
+Porto
+Puerto Rico
+Qatar
+Republic of the Congo
+Romania
+All
+Bucharest
+Cluj-Napoca
+Iasi
+Timisoara
+Russia
+Krasnodar
+Moscow
+Rest of Russia
+Saint Petersburg
+Rwanda
+Saint Kitts and Nevis
+Saint Lucia
+Saint Martin
+Samoa
+San Marino
+Sao Tome and Principe
+Saudi Arabia
+Senegal
+Serbia
+All
+Belgrade
+Seychelles
+Sierra Leone
+Singapore
+Slovakia
+All
+Bratislava
+Slovenia
+All
+Ljubljana
+Solomon Islands
+Somalia
+South Africa
+Cape Town
+Durban
+Johannesburg
+Other regions
+Pretoria
+South Korea
+All
+Seoul
+South Sudan
+Spain
+Barcelona
+Canary Islands
+East
+Ibiza
+Madrid
+North
+South
+Sri Lanka
+Streamland
+Sudan
+Suriname
+Sweden
+All
+Stockholm
+Gothenburg
+Malmo
+Switzerland
+All
+Zurich
+Basel
+Geneva
+Lausanne
+Bern
+Syria
+Taiwan
+All
+Taipei
+Tajikistan
+Tanzania
+Thailand
+All
+Bangkok
+Togo
+Tonga
+Trinidad and Tobago
+Tunisia
+Turkey
+All
+Istanbul
+Ankara
+Izmir
+Turkmenistan
+Tuvalu
+Uganda
+Ukraine
+All
+Kyiv
+United Arab Emirates
+Abu Dhabi
+Dubai
+United Kingdom
+London
+Midlands
+Birmingham
+Nottingham
+North
+Liverpool
+Manchester
+Newcastle
+Leeds
+Sheffield
+Northern Ireland
+Belfast
+Scotland
+Glasgow
+Edinburgh
+Aberdeen
+Dundee
+South + East
+Brighton
+West + Wales
+Bristol
+Cardiff
+United States of America
+Alabama
+Alaska
+Arizona
+Arkansas
+California
+Los Angeles
+San Francisco/Oakland
+San Diego
+Sacramento
+San Jose
+Colorado
+Denver
+Connecticut
+Delaware
+Florida
+Miami
+Jacksonville
+Orlando
+Tampa Bay
+Georgia
+Atlanta
+Hawaii
+Idaho
+Illinois
+Chicago
+Indiana
+Iowa
+Kansas
+Kentucky
+Louisiana
+Maine
+Maryland
+Baltimore
+Massachusetts
+Boston
+Michigan
+Detroit
+Minnesota
+Mississippi
+Missouri
+Montana
+Nebraska
+Nevada
+Las Vegas
+New Hampshire
+New Jersey
+New Mexico
+New York
+Buffalo/Rochester
+North Carolina
+North Dakota
+Ohio
+Cleveland
+Columbus
+Oklahoma
+Oregon
+Portland
+Pennsylvania
+Philadelphia
+Pittsburgh
+Rhode Island
+South Carolina
+South Dakota
+Tennessee
+Texas
+Houston
+Dallas/Fort Worth
+San Antonio
+Austin
+El Paso
+Utah
+Vermont
+Virginia
+Richmond
+Washington DC
+Washington State
+Seattle
+West Virginia
+Wisconsin
+Wyoming
+Uruguay
+All
+Montevideo
+Uzbekistan
+Vanuatu
+Venezuela
+Vietnam
+All
+Ho Chi Minh City
+Hanoi
+Zambia
+Zimbabwe
