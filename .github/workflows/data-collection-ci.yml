@@ -1,6 +1,7 @@
 name: Data Collection CI
 
 on:
+  workflow_call:
   push:
     branches: [ main, develop ]
     paths:

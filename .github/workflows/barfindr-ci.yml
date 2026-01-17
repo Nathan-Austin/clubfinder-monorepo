@@ -1,6 +1,7 @@
 name: Barfindr CI
 
 on:
+  workflow_call:
   push:
     branches: [ main, develop ]
     paths:
