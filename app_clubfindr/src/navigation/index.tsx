@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image, Text, ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 // Import screens
 import HomeScreen from '../screens/HomeScreen';
@@ -36,7 +35,7 @@ export type MainTabParamList = {
   Profile: undefined;
   Discover: { venueType?: 'bar' | 'club'; refresh?: boolean };
   Search: undefined;
-  Tilki: undefined;
+  Tilki: { venueType?: 'bar' | 'club'; refreshKey?: number };
   BarManager: undefined;
 };
 export type RootStackParamList = {
@@ -63,27 +62,6 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 // Main Tab Navigator (bottom tabs inside the app)
 const MainTabNavigator = () => {
-  const [showTilki, setShowTilki] = useState(false);
-
-  // Check if we should show Tilki tab based on stored venues or genres
-  useEffect(() => {
-    const checkTilkiData = async () => {
-      const hasGenres = await AsyncStorage.getItem('selected-genres');
-      const hasBars = await AsyncStorage.getItem('matching-bars');
-      const hasClubs = await AsyncStorage.getItem('matching-clubs');
-
-      if (hasGenres || hasBars || hasClubs) {
-        setShowTilki(true);
-      }
-    };
-
-    checkTilkiData();
-
-    // Also check periodically
-    const interval = setInterval(checkTilkiData, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -119,7 +97,7 @@ const MainTabNavigator = () => {
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Nearby Venues' }} />
       <Tab.Screen name="Discover" component={DiscoveryScreen} options={{ title: 'Find Your Vibe' }} />
       <Tab.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
-      {showTilki && <Tab.Screen name="Tilki" component={TilkiScreen} options={{ title: 'Tilki' }} />}
+      <Tab.Screen name="Tilki" component={TilkiScreen} options={{ title: 'Tilki' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'My Profile' }} />
     </Tab.Navigator>
   );

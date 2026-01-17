@@ -10,9 +10,11 @@ import {
     RefreshControl,
     Alert
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainTabParamList, RootStackParamList } from '../navigation';
+
+type TilkiScreenRouteProp = RouteProp<MainTabParamList, 'Tilki'>;
 import { useAuth } from '../contexts/AuthContext';
 import * as discoveryService from '../services/discoveryService';
 import SafeVenueCard from '../components/SafeVenueCard';
@@ -67,6 +69,7 @@ const TilkiScreen = () => {
 
     // Navigation and auth
     const navigation = useNavigation<TilkiScreenNavigationProp>();
+    const route = useRoute<TilkiScreenRouteProp>();
     const { isSpotifyConnected } = useAuth();
 
     // Ref to track if component is mounted
@@ -78,6 +81,17 @@ const TilkiScreen = () => {
             isMounted.current = false;
         };
     }, []);
+
+    // Set venue type from navigation params and trigger refresh
+    useEffect(() => {
+        if (route.params?.venueType) {
+            setVenueType(route.params.venueType);
+        }
+        // Force refresh when refreshKey changes (new selection from DiscoveryScreen)
+        if (route.params?.refreshKey) {
+            setRefreshKey(prev => prev + 1);
+        }
+    }, [route.params?.venueType, route.params?.refreshKey]);
 
     // Load venues when component mounts
     useEffect(() => {

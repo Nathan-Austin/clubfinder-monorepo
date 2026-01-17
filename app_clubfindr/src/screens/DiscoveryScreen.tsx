@@ -93,8 +93,12 @@ const DiscoveryScreen = () => {
                 selected: false,
                 type: 'track' as const
             }));
-            setRecentTracks(formattedTracks);
-            console.log(`Retrieved ${formattedTracks.length} recent tracks`);
+            // Deduplicate tracks by ID (same track can appear multiple times in recently played)
+            const uniqueTracks = formattedTracks.filter((track, index, self) =>
+                index === self.findIndex(t => t.id === track.id)
+            );
+            setRecentTracks(uniqueTracks);
+            console.log(`Retrieved ${uniqueTracks.length} unique recent tracks`);
 
             // Fetch user's playlists
             console.log("Fetching user playlists...");
@@ -301,8 +305,8 @@ const DiscoveryScreen = () => {
                     // Store the unique matching venues for Tilki screen
                     await AsyncStorage.setItem(`matching-${venueType}s`, JSON.stringify(uniqueVenues));
 
-                    // Navigate to the Tilki tab to show matches
-                    navigation.navigate('Tilki');
+                    // Navigate to the Tilki tab to show matches (with refreshKey to force reload)
+                    navigation.navigate('Tilki', { venueType, refreshKey: Date.now() });
 
                     // Optional - display a confirmation message
                     Alert.alert(
@@ -314,7 +318,7 @@ const DiscoveryScreen = () => {
                     console.log(`No matching ${venueType}s found or invalid response`);
 
                     // Navigate to Tilki anyway, it will show empty state
-                    navigation.navigate('Tilki');
+                    navigation.navigate('Tilki', { venueType, refreshKey: Date.now() });
                 }
             } catch (error) {
                 console.error(`Error fetching matching ${venueType}s:`, error);
