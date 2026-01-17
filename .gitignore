@@ -29,9 +29,6 @@ clubfindr/dist/
 clubfindr/.env
 clubfindr/.env.*
 clubfindr/!.env.example
-clubfindr/package-lock.json
-clubfindr/pnpm-lock.yaml
-clubfindr/yarn.lock
 
 # Test results
 clubfindr/test-results/
