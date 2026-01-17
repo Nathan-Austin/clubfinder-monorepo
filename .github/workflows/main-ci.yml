@@ -16,8 +16,8 @@ jobs:
       spotify_service: ${{ steps.filter.outputs.spotify_service }}
       app_clubfindr: ${{ steps.filter.outputs.app_clubfindr }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
