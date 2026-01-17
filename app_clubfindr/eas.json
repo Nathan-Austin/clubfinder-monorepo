@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "release": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EAS_BUILD_RUNNER": "eas-build-worker-ubuntu-22.04-medium"
+      },
+      "cache": {
+        "key": "pnpm-v1"
+      }
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EAS_BUILD_RUNNER": "eas-build-worker-ubuntu-22.04-medium"
+      },
+      "cache": {
+        "key": "pnpm-v1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+

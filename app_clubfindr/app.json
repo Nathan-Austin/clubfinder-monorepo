@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Tilki",
+    "slug": "clubfindr-mobile-new",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/tilki-fox-logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "assetBundlePatterns": [
+      "assets/*",
+      "src/assets/*"
+    ],
+    "splash": {
+      "image": "./assets/tilki-fox-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.clubfindr.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ClubFindr needs your location to find venues near you",
+        "NSLocationAlwaysUsageDescription": "ClubFindr needs your location to find venues near you",
+        "NSBluetoothAlwaysUsageDescription": "ClubFindr needs Bluetooth access for Spotify integration",
+        "NSBluetoothPeripheralUsageDescription": "ClubFindr needs Bluetooth access for Spotify integration",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/tilki-fox-logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ],
+      "package": "com.clubfindr.mobile",
+      "jsEngine": "hermes"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "server",
+      "bundler": "metro"
+    },
+    "scheme": "clubfindr",
+    "extra": {
+      "eas": {
+        "projectId": "c2ee6148-aa4f-497d-8f53-9edb33a15fbc"
+      }
+    },
+    "owner": "adminclubfindr",
+    "plugins": [
+      "expo-router",
+      "expo-web-browser"
+    ]
+  }
+}
