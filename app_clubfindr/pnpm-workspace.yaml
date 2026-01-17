@@ -1,0 +1,2 @@
+overrides:
+  '@sentry/browser@<7.119.1': '>=7.119.1'
