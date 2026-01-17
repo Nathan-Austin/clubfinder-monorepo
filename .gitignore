@@ -118,8 +118,7 @@ app_clubfindr/node_modules/
 app_clubfindr/.expo/
 app_clubfindr/.expo-shared/
 app_clubfindr/dist/
-app_clubfindr/npm-debug.*
-app_clubfindr/yarn-error.log
+app_clubfindr/build/
 app_clubfindr/.env
 app_clubfindr/.env.*
 app_clubfindr/!.env.example
@@ -127,22 +126,42 @@ app_clubfindr/!.env.example
 # Expo
 app_clubfindr/web-build/
 app_clubfindr/.cache/
+app_clubfindr/expo-env.d.ts
+
+# Metro bundler
+app_clubfindr/.metro-health-check*
+
+# Native build artifacts
+app_clubfindr/*.orig.*
+app_clubfindr/*.jks
+app_clubfindr/*.p8
+app_clubfindr/*.p12
+app_clubfindr/*.mobileprovision
+
+# TypeScript
+app_clubfindr/*.tsbuildinfo
+
+# Debug logs
+app_clubfindr/npm-debug.*
+app_clubfindr/yarn-debug.*
+app_clubfindr/yarn-error.*
+app_clubfindr/pnpm-debug.*
+
+# Package manager
+app_clubfindr/pnpm-lock.yaml
+app_clubfindr/.yarn/
+app_clubfindr/.yarnrc.yml
 
 # iOS
-app_clubfindr/ios/Pods/
-app_clubfindr/ios/build/
+app_clubfindr/ios/
 app_clubfindr/*.xcworkspace
 app_clubfindr/*.xcuserstate
 
 # Android
-app_clubfindr/android/build/
-app_clubfindr/android/.gradle/
-app_clubfindr/android/app/build/
-app_clubfindr/android/captures/
-app_clubfindr/android/local.properties
-app_clubfindr/android/.cxx/
+app_clubfindr/android/
 app_clubfindr/*.apk
 app_clubfindr/*.aab
+app_clubfindr/build-*.apk
 
 # ===========================
 # Database & Credentials

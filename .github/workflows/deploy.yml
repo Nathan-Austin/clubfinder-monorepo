@@ -1,0 +1,83 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'clubfindr/**'
+      - 'barfindr/**'
+      - 'data_collection/**'
+      - 'spotify_service/**'
+      # Explicitly exclude app_clubfindr - it only goes to GitHub, not server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed components
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            clubfindr:
+              - 'clubfindr/**'
+            barfindr:
+              - 'barfindr/**'
+            data_collection:
+              - 'data_collection/**'
+            spotify_service:
+              - 'spotify_service/**'
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /home/nathan/clubfinder
+
+            echo "=== Pulling latest changes ==="
+            git pull origin main
+
+            # Install/build for changed components
+            if [ "${{ steps.changes.outputs.clubfindr }}" == "true" ]; then
+              echo "=== Building clubfindr ==="
+              cd /home/nathan/clubfinder/clubfindr
+              pnpm install --frozen-lockfile
+              pnpm build
+              cd /home/nathan/clubfinder
+            fi
+
+            if [ "${{ steps.changes.outputs.barfindr }}" == "true" ]; then
+              echo "=== Installing barfindr dependencies ==="
+              cd /home/nathan/clubfinder/barfindr
+              pip install -r requirements.txt
+              cd /home/nathan/clubfinder
+            fi
+
+            if [ "${{ steps.changes.outputs.data_collection }}" == "true" ]; then
+              echo "=== Installing data_collection dependencies ==="
+              cd /home/nathan/clubfinder/data_collection
+              pip install -r requirements.txt
+              cd /home/nathan/clubfinder
+            fi
+
+            if [ "${{ steps.changes.outputs.spotify_service }}" == "true" ]; then
+              echo "=== Installing spotify_service dependencies ==="
+              cd /home/nathan/clubfinder/spotify_service
+              pip install -r requirements.txt
+              cd /home/nathan/clubfinder
+            fi
+
+            echo "=== Restarting PM2 processes ==="
+            pm2 restart all
+
+            echo "=== Deployment complete ==="
