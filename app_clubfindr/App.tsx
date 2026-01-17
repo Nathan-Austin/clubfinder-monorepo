@@ -6,12 +6,11 @@ import { Alert, LogBox } from 'react-native';
 import RootNavigator from './src/navigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
-import * as Sentry from 'sentry-expo';
+import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 import NetworkStatus from './src/components/NetworkStatus';
 import networkUtils from './src/utils/networkUtils';
 import { PaperProvider } from 'react-native-paper';
-import * as tslib from 'tslib';
 // Ignore specific warnings
 LogBox.ignoreLogs([
   'ViewPropTypes will be removed',
@@ -20,13 +19,11 @@ LogBox.ignoreLogs([
 ]);
 
 // Initialize Sentry for error reporting (optional)
-if (!__DEV__) {
-  Sentry.init({
-    dsn: '', // Add your Sentry DSN
-    enableInExpoDevelopment: false,
-    debug: false,
-  });
-}
+Sentry.init({
+  dsn: '', // Add your Sentry DSN
+  enabled: !__DEV__,
+  debug: false,
+});
 
 // Initialize network monitoring
 networkUtils.initNetworkMonitoring();
@@ -52,7 +49,7 @@ export default function App() {
         console.error('Uncaught error:', error);
       } else {
         // Report to Sentry in production
-        Sentry.Native.captureException(error);
+        Sentry.captureException(error);
       }
     };
 
@@ -69,7 +66,6 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <PaperProvider>
-          {console.log('App.tsx ts helper keys', Object.keys(tslib).slice(0, 5))}
           <StatusBar style="light" />
           <RootNavigator />
           <NetworkStatus showOfflineOnly={true} />

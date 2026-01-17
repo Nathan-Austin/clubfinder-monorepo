@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/tilki-fox-logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "assetBundlePatterns": [
       "assets/*",
       "src/assets/*"

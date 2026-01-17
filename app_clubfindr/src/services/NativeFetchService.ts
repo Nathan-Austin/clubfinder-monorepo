@@ -4,13 +4,6 @@ import NetworkCache from '../utils/NetworkCache';
 
 const API_URL = 'https://www.clubfindr.com';
 
-// Log network operations
-const logNetworkOperation = async (operation: string, details: any) => {
-    console.log(`NATIVE FETCH ${operation.toUpperCase()} ============================`);
-    console.log(JSON.stringify(details, null, 2));
-    console.log(`Time: ${new Date().toISOString()}`);
-};
-
 // Performance monitoring
 interface NetworkTiming {
     [key: string]: number;
@@ -75,12 +68,8 @@ const nativeFetch = {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // Log request
-            //await logNetworkOperation('request', {
-            //    url,
-            //    method: 'GET',
-            //    headers
-            //});
+            // Log request (minimal)
+            console.log(`[NativeFetch] GET ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -110,24 +99,9 @@ const nativeFetch = {
                 throw error;
             }
 
-            // Log response with timing
-            await logNetworkOperation('response', {
-                url,
-                status: response.status,
-                timing: performance.getTiming(),
-                data: JSON.stringify(result).substring(0, 200) + '...'
-            });
-
             return result as T;
         } catch (error: any) {
-            await logNetworkOperation('error', {
-                error: error.response || {
-                    status: 500,
-                    statusText: error.message,
-                    data: { message: error.message }
-                },
-                timing: performance.getTiming()
-            });
+            console.error(`[NativeFetch] GET ${endpoint} failed:`, error.message);
             throw error;
         }
     },
@@ -154,13 +128,8 @@ const nativeFetch = {
             // Prepare request body
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
-            // Log request
-            await logNetworkOperation('request', {
-                url,
-                method: 'POST',
-                headers,
-                data: body ? body.substring(0, 200) + '...' : 'No data'
-            });
+            // Log request (minimal)
+            console.log(`[NativeFetch] POST ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -182,12 +151,6 @@ const nativeFetch = {
             // Get response content type
             const contentType = response.headers.get('content-type');
 
-            // Log response headers for debugging
-            await logNetworkOperation('response headers', {
-                contentType,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-
             // Get response text first
             const responseText = await response.text();
 
@@ -196,22 +159,9 @@ const nativeFetch = {
             try {
                 if (contentType?.includes('application/json') ||
                     (responseText.trim().startsWith('{') || responseText.trim().startsWith('['))) {
-                    console.log('NATIVE FETCH RAW RESPONSE ============================');
-                    console.log('Raw response text:', responseText);
                     result = JSON.parse(responseText);
-                    console.log('NATIVE FETCH PARSED RESPONSE ============================');
-                    console.log('Parsed response:', result);
-                    if (result.user) {
-                        console.log('User object:', result.user);
-                        console.log('Onboarding status:', result.user.onboarding_complete);
-                        console.log('onboardingComplete:', result.user.onboardingComplete);
-                    }
                 } else {
-                    // Log non-JSON response for debugging
-                    await logNetworkOperation('non-json response', {
-                        contentType,
-                        responsePreview: responseText.substring(0, 200)
-                    });
+                    console.error('[NativeFetch] Non-JSON response received');
                     throw new Error('Response is not JSON');
                 }
             } catch (parseError) {
@@ -239,24 +189,9 @@ const nativeFetch = {
                 throw error;
             }
 
-            // Log response with timing
-            await logNetworkOperation('response', {
-                url,
-                status: response.status,
-                timing: performance.getTiming(),
-                data: JSON.stringify(result).substring(0, 200) + '...'
-            });
-
             return result as T;
         } catch (error: any) {
-            await logNetworkOperation('error', {
-                error: error.response || {
-                    status: 500,
-                    statusText: error.message,
-                    data: { message: error.message }
-                },
-                timing: performance.getTiming()
-            });
+            console.error(`[NativeFetch] POST ${endpoint} failed:`, error.message);
             throw error;
         }
     },
@@ -283,13 +218,8 @@ const nativeFetch = {
             // Prepare request body
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
-            // Log request
-            await logNetworkOperation('request', {
-                url,
-                method: 'PUT',
-                headers,
-                data: body ? body.substring(0, 200) + '...' : 'No data'
-            });
+            // Log request (minimal)
+            console.log(`[NativeFetch] PUT ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -320,24 +250,9 @@ const nativeFetch = {
                 throw error;
             }
 
-            // Log response with timing
-            await logNetworkOperation('response', {
-                url,
-                status: response.status,
-                timing: performance.getTiming(),
-                data: JSON.stringify(result).substring(0, 200) + '...'
-            });
-
             return result as T;
         } catch (error: any) {
-            await logNetworkOperation('error', {
-                error: error.response || {
-                    status: 500,
-                    statusText: error.message,
-                    data: { message: error.message }
-                },
-                timing: performance.getTiming()
-            });
+            console.error(`[NativeFetch] PUT ${endpoint} failed:`, error.message);
             throw error;
         }
     },
@@ -367,13 +282,8 @@ const nativeFetch = {
             // Prepare request body
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
-            // Log request
-            await logNetworkOperation('request', {
-                url,
-                method: 'DELETE',
-                headers,
-                data: body ? body.substring(0, 200) + '...' : 'No data'
-            });
+            // Log request (minimal)
+            console.log(`[NativeFetch] DELETE ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -404,24 +314,9 @@ const nativeFetch = {
                 throw error;
             }
 
-            // Log response with timing
-            await logNetworkOperation('response', {
-                url,
-                status: response.status,
-                timing: performance.getTiming(),
-                data: JSON.stringify(result).substring(0, 200) + '...'
-            });
-
             return result as T;
         } catch (error: any) {
-            await logNetworkOperation('error', {
-                error: error.response || {
-                    status: 500,
-                    statusText: error.message,
-                    data: { message: error.message }
-                },
-                timing: performance.getTiming()
-            });
+            console.error(`[NativeFetch] DELETE ${endpoint} failed:`, error.message);
             throw error;
         }
     }
