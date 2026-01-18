@@ -252,8 +252,6 @@
 		}
 	}
 
-	
-
 	// Function for the user home page Spotify button click handler
 	async function handleSpotifyButtonClick(event) {
 		// Always prevent default

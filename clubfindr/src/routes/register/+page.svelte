@@ -1,6 +1,6 @@
 <!-- routes/register/+page.svelte -->
 <!-- This file is the registration page for a new bar in the ClubFindr system. -->
-<!-- It includes the registration form, reCAPTCHA verification, and integration with the Spotify service. -->		
+<!-- It includes the registration form, reCAPTCHA verification, and integration with the Spotify service. -->
 
 <script lang="ts">
 	import { onMount } from 'svelte';
@@ -262,7 +262,7 @@
 						'user-read-recently-played',
 						'user-top-read',
 						'user-library-read',
-						'user-read-email',
+						'user-read-email'
 					].join(' ');
 					const redirectUri = encodeURIComponent('https://www.clubfindr.com/register/login');
 					const authorizationUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${encodeURIComponent(

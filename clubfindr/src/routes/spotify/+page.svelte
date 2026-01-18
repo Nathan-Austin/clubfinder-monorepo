@@ -399,7 +399,9 @@
 			<span class="separator">or</span>
 			<button type="button" class="action-button primary" on:click={onLetUsGo}> Find Clubs </button>
 			<span class="separator">or</span>
-			<button type="button" class="action-button primary" on:click={onLetsGoBars}> Find Bars </button>
+			<button type="button" class="action-button primary" on:click={onLetsGoBars}>
+				Find Bars
+			</button>
 		</div>
 	{/if}
 </div>
