@@ -77,7 +77,27 @@ jobs:
               cd /home/nathan/clubfinder
             fi
 
-            echo "=== Restarting PM2 processes ==="
-            pm2 restart all
+            echo "=== Restarting services ==="
+
+            # Restart clubfindr (PM2) only if it changed
+            if [ "${{ steps.changes.outputs.clubfindr }}" == "true" ]; then
+              echo "Restarting clubfindr via PM2..."
+              pm2 restart clubfindr || pm2 start /home/nathan/clubfinder/clubfindr/ecosystem.config.cjs
+              pm2 save
+            fi
+
+            # Restart barfindr services (systemd) only if it changed
+            if [ "${{ steps.changes.outputs.barfindr }}" == "true" ]; then
+              echo "Restarting barfindr services..."
+              sudo systemctl restart barfindr.service
+              sudo systemctl restart barfindr-celery-worker.service
+              sudo systemctl restart barfindr-celery-beat.service
+            fi
+
+            # Restart spotify_service (systemd) only if it changed
+            if [ "${{ steps.changes.outputs.spotify_service }}" == "true" ]; then
+              echo "Restarting spotify_service..."
+              sudo systemctl restart spotify-service.service
+            fi
 
             echo "=== Deployment complete ==="
