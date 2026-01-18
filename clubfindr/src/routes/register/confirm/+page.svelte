@@ -1,6 +1,6 @@
 <!-- routes/register/confirm/+page.svelte -->
 <!-- This file is the confirmation page for a new bar in the ClubFindr system. -->
-<!-- It includes the confirmation form, reCAPTCHA verification, and integration with the Spotify service. -->	
+<!-- It includes the confirmation form, reCAPTCHA verification, and integration with the Spotify service. -->
 
 <script lang="ts">
 	import { onMount } from 'svelte';

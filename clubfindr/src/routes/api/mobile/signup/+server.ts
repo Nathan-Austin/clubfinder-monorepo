@@ -102,7 +102,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 
 		// Send verification email
-		await sendVerificationEmail(email, confirmationCode); 
+		await sendVerificationEmail(email, confirmationCode);
 
 		// If Spotify was selected, handle integration asynchronously
 		if (musicService === 'spotify') {

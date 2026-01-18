@@ -107,7 +107,7 @@
 	function getSimilarityPercentage(similarity: number): string {
 		return Math.round(similarity * 100) + '%';
 	}
-	
+
 	// Format date for display
 	function formatDate(dateString: string): string {
 		const date = new Date(dateString);
@@ -147,71 +147,75 @@
 			return `${hour - 12}:${minutes} PM`;
 		}
 	}
-	
+
 	// Function to combine and deduplicate genres from bar profile and events
 	function getCombinedGenres(result: SimilarityResult): string[] {
 		// Start with current genres from the bar's profile
 		let allGenres = new Set(result.current_genres || []);
-		
+
 		// Add genres from rolling profile (these are keys of the object)
 		if (result.rolling_genre_profile) {
-			Object.keys(result.rolling_genre_profile).forEach(genre => {
+			Object.keys(result.rolling_genre_profile).forEach((genre) => {
 				allGenres.add(genre);
 			});
 		}
-		
+
 		// Add genres from events if available
 		if (result.events && result.events.length > 0) {
-			result.events.forEach(event => {
+			result.events.forEach((event) => {
 				if (event.special_genres && Array.isArray(event.special_genres)) {
-					event.special_genres.forEach(genre => {
+					event.special_genres.forEach((genre) => {
 						allGenres.add(genre);
 					});
 				}
 			});
 		}
-		
+
 		return Array.from(allGenres);
 	}
-	
+
 	// Function to get matching genres with highlighting
-	function getHighlightedGenres(result: SimilarityResult): {genre: string, isMatching: boolean}[] {
+	function getHighlightedGenres(
+		result: SimilarityResult
+	): { genre: string; isMatching: boolean }[] {
 		const allGenres = getCombinedGenres(result);
 		const matchingGenresSet = new Set(result.matchingGenres || []);
-		
-		return allGenres.map(genre => ({
-			genre,
-			isMatching: matchingGenresSet.has(genre)
-		})).sort((a, b) => {
-			// Sort matching genres first
-			if (a.isMatching && !b.isMatching) return -1;
-			if (!a.isMatching && b.isMatching) return 1;
-			// Then alphabetically
-			return a.genre.localeCompare(b.genre);
-		});
+
+		return allGenres
+			.map((genre) => ({
+				genre,
+				isMatching: matchingGenresSet.has(genre)
+			}))
+			.sort((a, b) => {
+				// Sort matching genres first
+				if (a.isMatching && !b.isMatching) return -1;
+				if (!a.isMatching && b.isMatching) return 1;
+				// Then alphabetically
+				return a.genre.localeCompare(b.genre);
+			});
 	}
-	
+
 	// Function to check if a bar has events today
 	function hasEventsToday(result: SimilarityResult): boolean {
 		if (!result.events || result.events.length === 0) return false;
-		
-		return result.events.some(event => formatDate(event.event_date) === 'Today');
+
+		return result.events.some((event) => formatDate(event.event_date) === 'Today');
 	}
-	
+
 	// Function to get event badge text
 	function getEventBadgeText(result: SimilarityResult): string {
 		if (!result.events || result.events.length === 0) return '';
-		
-		const todayEvents = result.events.filter(event => formatDate(event.event_date) === 'Today');
-		
+
+		const todayEvents = result.events.filter((event) => formatDate(event.event_date) === 'Today');
+
 		if (todayEvents.length > 0) {
 			return `${todayEvents.length} Event${todayEvents.length > 1 ? 's' : ''} Today`;
 		} else {
 			// Sort events by date and return the earliest upcoming one
-			const sortedEvents = [...result.events].sort((a, b) => 
-				new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+			const sortedEvents = [...result.events].sort(
+				(a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
 			);
-			
+
 			return `Next Event: ${formatDate(sortedEvents[0].event_date)}`;
 		}
 	}
@@ -290,13 +294,13 @@
 							{getSimilarityPercentage(result.similarity)} Match
 						</div>
 					{/if}
-					
+
 					{#if result.events && result.events.length > 0}
 						<div class="event-badge">
 							{getEventBadgeText(result)}
 						</div>
 					{/if}
-					
+
 					<div class="flyer-container">
 						<!-- Placeholder for bar image if available -->
 						<img src="/images/static_bar.jpg" alt="Bar placeholder" />
@@ -374,12 +378,16 @@
 								<div class="value">
 									{#if interestedBars[result.bar_id]}
 										<span class="interest-icon green-tick">✓</span>
-										<button class="red-cross" on:click={() => resetInterest(result.bar_id)}>✕</button>
+										<button class="red-cross" on:click={() => resetInterest(result.bar_id)}
+											>✕</button
+										>
 									{:else}
 										<button class="green-tick" on:click={() => markAsInterested(result.bar_id)}
 											>✓</button
 										>
-										<button class="red-cross" on:click={() => resetInterest(result.bar_id)}>✕</button>
+										<button class="red-cross" on:click={() => resetInterest(result.bar_id)}
+											>✕</button
+										>
 									{/if}
 								</div>
 							</div>
@@ -400,10 +408,7 @@
 									{/each}
 								</div>
 								{#if getHighlightedGenres(result).length > 5}
-									<button 
-										on:click={() => toggleShowMore(result.bar_id)} 
-										class="show-more-button"
-									>
+									<button on:click={() => toggleShowMore(result.bar_id)} class="show-more-button">
 										{showMoreMap[result.bar_id] ? 'Show Less' : 'Show More'}
 									</button>
 								{/if}
@@ -614,7 +619,7 @@
 		background-color: #1db954;
 		color: white;
 	}
-	
+
 	.match-indicator {
 		margin-left: 4px;
 		font-size: 0.7rem;
@@ -709,7 +714,7 @@
 		font-size: 1rem;
 		margin-left: 8px;
 	}
-	
+
 	/* Event styles */
 	.event-badge {
 		position: absolute;
@@ -724,7 +729,7 @@
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 		z-index: 2;
 	}
-	
+
 	.events-container {
 		margin-top: 1rem;
 	}
@@ -756,7 +761,7 @@
 		font-weight: 600;
 		color: #1c1c1c;
 	}
-	
+
 	.event-description {
 		font-size: 0.9rem;
 		color: #444;
@@ -810,11 +815,11 @@
 	.more-events:hover {
 		text-decoration: underline;
 	}
-	
+
 	.time-icon {
 		margin-right: 0.3rem;
 	}
-	
+
 	/* Media query for smaller screens */
 	@media screen and (max-width: 768px) {
 		.poster-container {
@@ -832,13 +837,13 @@
 		.label {
 			min-width: 70px;
 		}
-		
+
 		.event-badge {
 			top: 0.5rem;
 			right: 0.5rem;
 			font-size: 0.8rem;
 		}
-		
+
 		.similarity-badge {
 			top: 0.5rem;
 			left: 0.5rem;

@@ -140,7 +140,11 @@
 			Find Clubs
 		</button>
 		<span class="separator">or</span>
-		<button class="submit-button-bars" on:click={handleSubmitBars} disabled={selectedGenres.size === 0}>
+		<button
+			class="submit-button-bars"
+			on:click={handleSubmitBars}
+			disabled={selectedGenres.size === 0}
+		>
 			Find Bars
 		</button>
 	</div>

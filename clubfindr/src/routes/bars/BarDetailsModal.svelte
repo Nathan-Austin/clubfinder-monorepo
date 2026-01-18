@@ -81,7 +81,10 @@
 			</div>
 
 			<div class="form-group">
-				<label for="description">Description - add some details about your bar, such as general vibe, musical tastes, and any other relevant information.</label>
+				<label for="description"
+					>Description - add some details about your bar, such as general vibe, musical tastes, and
+					any other relevant information.</label
+				>
 				<textarea id="description" bind:value={barDetails.description} rows="4" />
 			</div>
 

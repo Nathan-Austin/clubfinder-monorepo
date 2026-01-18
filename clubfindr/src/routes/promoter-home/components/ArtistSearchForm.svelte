@@ -5,7 +5,7 @@
 	import TrackSearch from './TrackSearch.svelte';
 	import { slide } from 'svelte/transition';
 	import pkg from 'lodash';
-	import type { Performer} from '$lib/$types';
+	import type { Performer } from '$lib/$types';
 	const { debounce } = pkg;
 
 	export let handleArtistComplete: (index: number, artistData: Performer) => void;

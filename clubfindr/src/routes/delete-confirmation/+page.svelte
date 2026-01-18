@@ -13,15 +13,15 @@
 		// Try to recover state from localStorage if page was refreshed
 		const savedEmail = localStorage.getItem('deleteUserEmail');
 		const savedCodeSent = localStorage.getItem('deleteUserCodeSent');
-		
+
 		if (savedEmail) {
 			email = savedEmail;
 		}
-		
+
 		if (savedCodeSent === 'true') {
 			isCodeSent = true;
 		}
-		
+
 		// Show a notification if we restored state
 		if (savedEmail || savedCodeSent) {
 			errorMessage = 'Your previous session was restored. You can continue where you left off.';
@@ -48,15 +48,18 @@
 					'Content-Type': 'application/json'
 				}
 			});
-			
+
 			if (response.ok) {
 				isCodeSent = true;
 				// Save the code sent state
 				localStorage.setItem('deleteUserCodeSent', 'true');
-				alert('Confirmation code sent to your email. If you navigate away to check your email, you can return to this page to continue.');
+				alert(
+					'Confirmation code sent to your email. If you navigate away to check your email, you can return to this page to continue.'
+				);
 			} else {
 				const data = await response.json();
-				errorMessage = data.error || 'Failed to send the confirmation code. Please check your email.';
+				errorMessage =
+					data.error || 'Failed to send the confirmation code. Please check your email.';
 			}
 		} catch (error) {
 			errorMessage = 'Something went wrong. Please try again later.';
@@ -80,7 +83,7 @@
 					'Content-Type': 'application/json'
 				}
 			});
-			
+
 			if (response.ok) {
 				isVerified = true;
 				// Clear localStorage on successful deletion
@@ -112,17 +115,17 @@
 
 <div class="delete-account-container">
 	<h2 class="delete-data-title">Delete Your Data from Clubfindr</h2>
-	<div class="divider"></div>
-	
+	<div class="divider" />
+
 	<div class="info-section">
 		<p>We're sad to see you go. Please enter your email address below.</p>
 		<p>
-			We will send you a confirmation code to your email. Please then enter the code in the window, and
-			it's done.
+			We will send you a confirmation code to your email. Please then enter the code in the window,
+			and it's done.
 		</p>
 		<p>
-			Clubfindr will remove all personal data such as your name, email address, any Spotify tokens, or
-			access data used for logging you in, and anything else that links to you personally.
+			Clubfindr will remove all personal data such as your name, email address, any Spotify tokens,
+			or access data used for logging you in, and anything else that links to you personally.
 		</p>
 		<p>
 			Clubfindr reserves the right to keep data we have collected such as genres or venue
@@ -137,7 +140,13 @@
 				<form on:submit|preventDefault={sendConfirmationCode} class="email-form">
 					<div class="form-group">
 						<label for="email">Confirm your email:</label>
-						<input type="email" id="email" bind:value={email} placeholder="Enter your email" required />
+						<input
+							type="email"
+							id="email"
+							bind:value={email}
+							placeholder="Enter your email"
+							required
+						/>
 					</div>
 
 					<!-- Email validation -->
@@ -145,7 +154,10 @@
 						<p class="validation-error">Please enter a valid email address.</p>
 					{/if}
 
-					<button type="submit" disabled={!!(isLoading || !email || (email && !email.includes('@')))}>
+					<button
+						type="submit"
+						disabled={!!(isLoading || !email || (email && !email.includes('@')))}
+					>
 						{isLoading ? 'Sending...' : 'Send Confirmation Code'}
 					</button>
 				</form>
@@ -163,7 +175,11 @@
 						/>
 					</div>
 					<div class="button-group">
-						<button type="submit" disabled={!!(isLoading || !confirmationCode)} class="verify-button">
+						<button
+							type="submit"
+							disabled={!!(isLoading || !confirmationCode)}
+							class="verify-button"
+						>
 							{isLoading ? 'Verifying...' : 'Verify and Delete'}
 						</button>
 						<button type="button" on:click={resetForm} class="reset-button" disabled={false}>
@@ -172,7 +188,11 @@
 					</div>
 					<p class="email-info">Confirmation code was sent to: <strong>{email}</strong></p>
 					<p class="resend-info">
-						Didn't receive the code? <button on:click={sendConfirmationCode} class="resend-button" disabled={!!isLoading}>
+						Didn't receive the code? <button
+							on:click={sendConfirmationCode}
+							class="resend-button"
+							disabled={!!isLoading}
+						>
 							Resend Code
 						</button>
 					</p>
@@ -343,7 +363,7 @@
 		.button-group {
 			flex-direction: column;
 		}
-		
+
 		.delete-data-title {
 			font-size: 1.5em;
 		}
