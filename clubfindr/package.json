@@ -12,7 +12,7 @@
 		"test:unit": "vitest",
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write .",
-		"start": "vite preview --port 3000",
+		"start": "node build/index.js",
 		"build-scripts": "tsc -p scripts/tsconfig.json",
 		"genre-maintenance": "pnpm build-scripts && node dist-scripts/scripts/genre-maintenance.js"
 	},
