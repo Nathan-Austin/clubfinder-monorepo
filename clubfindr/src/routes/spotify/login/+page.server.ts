@@ -1,6 +1,11 @@
 // src/routes/spotify/login/+page.server.ts
-import { VITE_SPOTIFY_REDIRECT_USER_URI, VITE_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/private';
-import { error, redirect } from '@sveltejs/kit';
+import {
+	VITE_SPOTIFY_REDIRECT_USER_URI,
+	VITE_SPOTIFY_REDIRECT_BAR_URI,
+	VITE_SPOTIFY_CLIENT_ID,
+	VITE_SPOTIFY_CLIENT_SECRET
+} from '$env/static/private';
+import { error, redirect, isHttpError, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '$lib/db';
@@ -48,6 +53,12 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	} catch (err) {
 		console.error('Failed to parse state data:', err);
 		throw redirect(302, `/?error=${encodeURIComponent('Invalid state data format')}`);
+	}
+
+	// Ensure city has a default value to prevent errors
+	if (!stateData.city) {
+		console.warn('No city in state data, using default value');
+		stateData.city = 'unknown';
 	}
 
 	// Improved source detection - check for a source flag in the state data
@@ -179,6 +190,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 							clientId = defaultAppResult.rows[0].client_id;
 							clientSecret = defaultAppResult.rows[0].client_secret;
 							console.log('Using default Spotify app');
+						} else if (VITE_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+							console.log('No default app in database, falling back to environment variables');
+							clientId = VITE_SPOTIFY_CLIENT_ID;
+							clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
 						} else {
 							throw error(500, 'No Spotify app credentials found');
 						}
@@ -195,6 +210,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 						clientId = defaultAppResult.rows[0].client_id;
 						clientSecret = defaultAppResult.rows[0].client_secret;
 						console.log('Using default Spotify app');
+					} else if (VITE_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+						console.log('No default app in database, falling back to environment variables');
+						clientId = VITE_SPOTIFY_CLIENT_ID;
+						clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
 					} else {
 						throw error(500, 'No Spotify app credentials found');
 					}
@@ -210,6 +229,11 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				if (defaultAppResult.rows.length > 0) {
 					clientId = defaultAppResult.rows[0].client_id;
 					clientSecret = defaultAppResult.rows[0].client_secret;
+				} else if (VITE_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+					// Fallback to environment variables if no default app in database
+					console.log('No default app in database, falling back to environment variables');
+					clientId = VITE_SPOTIFY_CLIENT_ID;
+					clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
 				} else {
 					throw error(500, 'No Spotify app credentials found');
 				}
@@ -529,14 +553,36 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		}
 	} catch (err: unknown) {
 		console.error('An error occurred during Spotify authentication process:', err);
-		await query('ROLLBACK');
 
-		// If it's already a redirect, just rethrow it
-		if (err && typeof err === 'object' && 'status' in err && err.status === 302) {
+		// Try to rollback, but don't fail if rollback fails
+		try {
+			await query('ROLLBACK');
+		} catch (rollbackErr) {
+			console.error('Failed to rollback transaction:', rollbackErr);
+		}
+
+		// If it's a redirect, just rethrow it
+		if (isRedirect(err)) {
 			throw err;
 		}
 
-		// Otherwise, redirect to error page
-		throw redirect(302, `/?error=${encodeURIComponent('Spotify authentication failed')}`);
+		// If it's an HTTP error from SvelteKit, extract the message and redirect with it
+		if (isHttpError(err)) {
+			const errorMessage = err.body?.message || 'Spotify authentication failed';
+			console.error('HTTP error details:', err.status, errorMessage);
+			throw redirect(302, `/?error=${encodeURIComponent(errorMessage)}`);
+		}
+
+		// Log additional error details for debugging
+		if (err instanceof Error) {
+			console.error('Error name:', err.name);
+			console.error('Error message:', err.message);
+			console.error('Error stack:', err.stack);
+		}
+
+		// Otherwise, redirect to error page with more specific message if available
+		const errorMessage =
+			err instanceof Error ? `Spotify authentication failed: ${err.message}` : 'Spotify authentication failed';
+		throw redirect(302, `/?error=${encodeURIComponent(errorMessage)}`);
 	}
 };
