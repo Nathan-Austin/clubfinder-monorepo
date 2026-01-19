@@ -9,7 +9,7 @@ let isReauthInProgress = false;
  * @param error The error that occurred
  * @returns true if handled, false otherwise
  */
-export async function handleSpotifyApiError(error: any): Promise<boolean> {
+export async function handleSpotifyApiError(error: Error & { message?: string }): Promise<boolean> {
 	// Avoid multiple reauth attempts
 	if (isReauthInProgress) {
 		return false;
@@ -73,7 +73,10 @@ export async function handleSpotifyApiError(error: any): Promise<boolean> {
  * @param options Fetch options
  * @returns API response data or null on error
  */
-export async function callSpotifyApi(endpoint: string, options: RequestInit = {}): Promise<any> {
+export async function callSpotifyApi(
+	endpoint: string,
+	options: RequestInit = {}
+): Promise<unknown> {
 	try {
 		// Base URL
 		const baseUrl = 'https://api.spotify.com/v1';
@@ -107,7 +110,7 @@ export async function callSpotifyApi(endpoint: string, options: RequestInit = {}
 		return await response.json();
 	} catch (err) {
 		// Handle auth errors
-		const handled = await handleSpotifyApiError(err);
+		const handled = await handleSpotifyApiError(err as Error & { message?: string });
 
 		if (!handled) {
 			// If not handled as auth error, rethrow

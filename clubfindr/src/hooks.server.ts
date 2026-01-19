@@ -192,7 +192,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 // Background function to update last_accessed
-async function updateLastAccessed(sessionId) {
+async function updateLastAccessed(sessionId: string) {
 	await query('UPDATE clubfindr.user_sessions SET last_accessed = $1 WHERE session_id = $2', [
 		new Date().toISOString(),
 		sessionId
@@ -200,7 +200,7 @@ async function updateLastAccessed(sessionId) {
 }
 
 // Check if user has exceeded rate limit
-function checkRateLimit(ip) {
+function checkRateLimit(ip: string) {
 	const now = Date.now();
 
 	if (!RATE_LIMIT.has(ip)) {

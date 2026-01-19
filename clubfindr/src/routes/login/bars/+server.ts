@@ -46,10 +46,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		let isBarManager = false;
 		let userId = null;
 		let normalizedCityName = null;
-		let redirectUrl = null;
 
 		// Check user table credentials
-		if (userResult?.rowCount > 0) {
+		if ((userResult?.rowCount ?? 0) > 0) {
 			const userData = userResult.rows[0];
 			const storedUserPassword = userData.password_hash;
 			const isUserPasswordCorrect = await comparePassword(password, storedUserPassword);
@@ -92,7 +91,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Check bar manager credentials
-		if (barManagerResult?.rowCount > 0) {
+		if ((barManagerResult?.rowCount ?? 0) > 0) {
 			const barData = barManagerResult.rows[0];
 			const storedBarPassword = barData.password_hash;
 			const isBarPasswordCorrect = await comparePassword(password, storedBarPassword);
@@ -185,7 +184,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 							[spotifyAppName]
 						);
 
-						if (appResult?.rowCount > 0) {
+						if ((appResult?.rowCount ?? 0) > 0) {
 							clientId = appResult.rows[0].client_id;
 							console.log(`Found client ID for app ${spotifyAppName}`);
 						} else {
@@ -199,7 +198,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 							['default']
 						);
 
-						if (defaultAppResult?.rowCount > 0) {
+						if ((defaultAppResult?.rowCount ?? 0) > 0) {
 							clientId = defaultAppResult.rows[0].client_id;
 							spotifyAppName = 'default';
 							console.log('Using default Spotify app');
@@ -266,9 +265,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 									refreshToken: spotify_refresh_token
 								});
 
-								if (newTokenData.success) {
-									spotify_access_token = newTokenData.access_token;
-									const encryptedNewAccessToken = encryptToken(spotify_access_token);
+								if (newTokenData.success && newTokenData.access_token) {
+									const newAccessToken = newTokenData.access_token;
+									spotify_access_token = newAccessToken;
+									const encryptedNewAccessToken = encryptToken(newAccessToken);
 									await query(
 										`UPDATE clubfindr.bars 
 										SET spotify_access_token = $1, updated_at = $2
@@ -435,14 +435,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					console.log(`Adding ${allCookies.length} cookies to response headers`);
 
 					for (const cookie of allCookies) {
-						// Use the serialize method if available, otherwise construct manually
-						if (typeof cookie.serialize === 'function') {
-							headers.append('Set-Cookie', cookie.serialize());
-						} else {
-							// Basic cookie serialization
-							const cookieValue = `${cookie.name}=${cookie.value}; Path=${cookie.path || '/'}`;
-							headers.append('Set-Cookie', cookieValue);
-						}
+						// Basic cookie serialization
+						const cookieValue = `${cookie.name}=${cookie.value}; Path=/`;
+						headers.append('Set-Cookie', cookieValue);
 						console.log(`Added cookie to response: ${cookie.name}`);
 					}
 
@@ -502,7 +497,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			[email, 'manager']
 		);
 
-		if (regularUserCheck?.rowCount > 0) {
+		if ((regularUserCheck?.rowCount ?? 0) > 0) {
 			// This is a regular user trying to use the partner login
 			console.log('=== Regular user using partner login, redirecting to user login ===');
 			return new Response(

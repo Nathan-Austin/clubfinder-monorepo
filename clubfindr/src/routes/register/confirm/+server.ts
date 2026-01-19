@@ -8,7 +8,6 @@
 import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
-import { normalizeCityName } from '$lib/spotifyUtils';
 import { encryptToken } from '$lib/encryptionUtils';
 import { cookieManager } from '$lib/cookieManager';
 

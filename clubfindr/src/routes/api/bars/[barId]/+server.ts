@@ -3,13 +3,12 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { validateBarUpdate } from '$lib/validators/barValidators';
-import { cookieManager } from '$lib/cookieManager';
 /**
  * GET handler to fetch bar details
  */
 export const GET: RequestHandler = async ({ params, cookies }) => {
 	try {
-		const barId = params.id;
+		const barId = params.barId;
 		console.log('GET request for bar ID:', barId);
 
 		if (!barId) {
@@ -88,7 +87,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
  */
 export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 	try {
-		const barId = params.id;
+		const barId = params.barId;
 		console.log('PATCH request for bar ID:', barId);
 
 		if (!barId) {
@@ -143,7 +142,7 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 		const updateFields = ['name', 'address', 'city', 'phone', 'general_email', 'description'];
 
 		// Create a filtered object with only valid fields
-		const updateData = {};
+		const updateData: Record<string, unknown> = {};
 		updateFields.forEach((field) => {
 			if (data[field] !== undefined) {
 				updateData[field] = data[field];
@@ -155,7 +154,7 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 
 		// Build the SQL query dynamically
 		const fields = Object.keys(updateData);
-		const values = Object.values(updateData);
+		const values = Object.values(updateData) as (string | number | boolean | null)[];
 
 		if (fields.length === 0) {
 			return json(
@@ -216,12 +215,12 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 				updated_at: result.rows[0].updated_at
 			}
 		});
-	} catch (error) {
+	} catch (error: unknown) {
 		console.error('Error updating bar details:', error);
 		return json(
 			{
 				message: 'Failed to update bar details',
-				error: error.message
+				error: error instanceof Error ? error.message : 'Unknown error'
 			},
 			{ status: 500 }
 		);

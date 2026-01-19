@@ -6,7 +6,7 @@ import { query } from '$lib/db';
 const stateMap = new Map();
 
 // Store state in database for persistence
-export async function storeState(key, value) {
+export async function storeState(key: string, value: string) {
 	try {
 		// Ensure table exists
 		try {
@@ -46,14 +46,14 @@ export async function storeState(key, value) {
 }
 
 // Original functions your code might be using (sync version)
-export function setState(key, value) {
+export function setState(key: string, value: string) {
 	stateMap.set(key, value);
 	// Also store in database for persistence
 	storeState(key, value).catch((err) => console.error('Error persisting state:', err));
 	return true;
 }
 
-export function getState(key) {
+export function getState(key: string) {
 	// First try memory
 	if (stateMap.has(key)) {
 		return stateMap.get(key);
@@ -65,7 +65,7 @@ export function getState(key) {
 }
 
 // Async version that checks database
-export async function getStateAsync(key) {
+export async function getStateAsync(key: string) {
 	try {
 		// First check memory
 		if (stateMap.has(key)) {
@@ -93,7 +93,7 @@ export async function getStateAsync(key) {
 }
 
 // Clean up state
-export async function removeState(key) {
+export async function removeState(key: string) {
 	try {
 		// Remove from memory
 		stateMap.delete(key);

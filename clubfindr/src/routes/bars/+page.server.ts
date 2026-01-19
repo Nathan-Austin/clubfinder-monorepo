@@ -3,7 +3,6 @@
 
 import type { PageServerLoad } from '../$types';
 import type { Track, RecentlyPlayedTrack } from '$lib/$types';
-import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
 import { query } from '$lib/db';
 import { decryptToken, encryptToken } from '$lib/encryptionUtils';
@@ -24,7 +23,10 @@ const artistsEndpoint = (ids: string[]) =>
  * @param cookies The cookies object from the request context
  * @returns The new access token or null if refresh failed
  */
-async function refreshAccessToken(refreshToken: string, cookies: any): Promise<string | null> {
+async function refreshAccessToken(
+	refreshToken: string,
+	cookies: import('@sveltejs/kit').Cookies
+): Promise<string | null> {
 	try {
 		// Get the bar's email from cookies
 		const barEmail = cookies.get('bar_email');
@@ -139,7 +141,7 @@ async function refreshAccessToken(refreshToken: string, cookies: any): Promise<s
 						maxAge: 0 // Expire immediately
 					});
 				}
-			} catch (e) {
+			} catch {
 				console.error('Could not read error details');
 			}
 
@@ -153,7 +155,15 @@ async function refreshAccessToken(refreshToken: string, cookies: any): Promise<s
 	}
 }
 
-async function withAccessToken({ cookies, endpoint, retry = true }) {
+async function withAccessToken({
+	cookies,
+	endpoint,
+	retry = true
+}: {
+	cookies: import('@sveltejs/kit').Cookies;
+	endpoint: string;
+	retry?: boolean;
+}) {
 	let accessToken = cookieManager.get(cookies, 'spotifyAccessToken');
 	const refreshToken = cookieManager.get(cookies, 'spotifyRefreshToken');
 
@@ -223,7 +233,7 @@ async function withAccessToken({ cookies, endpoint, retry = true }) {
 }
 
 // Update to your export const load: PageServerLoad function
-export const load: PageServerLoad = async ({ cookies, url, request }) => {
+export const load: PageServerLoad = async ({ cookies, url }) => {
 	try {
 		// Check if the access and refresh tokens are available
 		const accessToken = cookieManager.get(cookies, 'spotifyAccessToken');
@@ -237,7 +247,6 @@ export const load: PageServerLoad = async ({ cookies, url, request }) => {
 			throw redirect(302, '/login/bars');
 		}
 
-		const city = normalizeCityName(cookies.get('bar_city') || '');
 		const barName = cookies.get('barsName');
 
 		if (!accessToken || !refreshToken) {
@@ -409,7 +418,7 @@ export const load: PageServerLoad = async ({ cookies, url, request }) => {
 									.filter((track: Track) => track !== undefined);
 							}
 						}
-					} catch (error) {
+					} catch {
 						console.log(
 							`Falling back to empty nextTracks as both queue and playlist methods failed`
 						);
@@ -473,9 +482,13 @@ export const load: PageServerLoad = async ({ cookies, url, request }) => {
 				commonGenres,
 				barId: cookies.get('barId')
 			};
-		} catch (apiError) {
+		} catch (apiError: unknown) {
 			// If it's a 401/403 error, we need to reauth
-			if (apiError.status === 401 || apiError.status === 403) {
+			const apiErrorStatus =
+				apiError && typeof apiError === 'object' && 'status' in apiError
+					? (apiError as { status: number }).status
+					: undefined;
+			if (apiErrorStatus === 401 || apiErrorStatus === 403) {
 				const returnUrl = url.pathname + url.search;
 				throw redirect(302, `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`);
 			}
@@ -488,16 +501,16 @@ export const load: PageServerLoad = async ({ cookies, url, request }) => {
 				barName
 			};
 		}
-	} catch (err) {
+	} catch (err: unknown) {
 		// If it's a redirect, just pass it through
-		if (err.status === 302) {
+		if (err && typeof err === 'object' && 'status' in err && err.status === 302) {
 			throw err;
 		}
 
 		console.error('Error in GET handler', err);
 		return {
 			message: 'An unexpected error occurred',
-			error: err.message
+			error: err instanceof Error ? err.message : 'Unknown error'
 		};
 	}
 };

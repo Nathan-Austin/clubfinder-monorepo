@@ -38,6 +38,7 @@ const findGenreClusters = (genres: string[]): ClusterResult[] => {
 
 	// Helper function to match a genre in subclusters
 	const matchGenreInSubClusters = (
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		subClusters: any[],
 		genre: string,
 		clusterName: string
@@ -92,6 +93,7 @@ const findGenreClusters = (genres: string[]): ClusterResult[] => {
 
 		let found = false;
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		genreClusters.clusters.forEach((cluster: any) => {
 			if (matchGenreInSubClusters(cluster.sub_clusters, normalizedGenre, cluster.name)) {
 				found = true;
@@ -174,7 +176,7 @@ const convertPriceToNumeric = (priceStr: string | null): number => {
  * Get club events that match user's music preferences
  * Endpoint: POST /api/mobile/events/matching
  */
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const { city, date, genres } = await request.json();
 

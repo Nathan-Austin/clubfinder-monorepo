@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { query } from '$lib/db';
 import { VITE_SPOTIFY_REDIRECT_USER_URI, VITE_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/private';
 import { cookieManager } from '$lib/cookieManager';
-import { storeState, getStateAsync } from '$lib/tempStore';
+import { storeState } from '$lib/tempStore';
 
 export const GET = async ({ url, cookies }) => {
 	console.log('=== Starting Spotify reauth process ===');
@@ -40,7 +40,7 @@ export const GET = async ({ url, cookies }) => {
 
 		// Get client ID from cookies first (for bar managers)
 		let clientId = cookies.get('spotifyClientId');
-		let redirectUri = isBarReauth
+		const redirectUri = isBarReauth
 			? VITE_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
 			: VITE_SPOTIFY_REDIRECT_USER_URI;
 
@@ -138,8 +138,8 @@ export const GET = async ({ url, cookies }) => {
 
 		// Redirect to Spotify auth page
 		throw redirect(302, authUrl.toString());
-	} catch (err) {
-		if (err.status === 302) {
+	} catch (err: unknown) {
+		if (err && typeof err === 'object' && 'status' in err && err.status === 302) {
 			throw err; // Re-throw redirect
 		}
 
@@ -147,7 +147,7 @@ export const GET = async ({ url, cookies }) => {
 		return json(
 			{
 				success: false,
-				error: err.message || 'Failed to prepare Spotify authorization'
+				error: err instanceof Error ? err.message : 'Failed to prepare Spotify authorization'
 			},
 			{ status: 500 }
 		);
@@ -185,7 +185,7 @@ export const POST = async ({ request, cookies }) => {
 
 		// Get client ID from cookies first (for bar managers)
 		let clientId = cookies.get('spotifyClientId');
-		let redirectUri = isBarReauth
+		const redirectUri = isBarReauth
 			? VITE_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
 			: VITE_SPOTIFY_REDIRECT_USER_URI;
 
@@ -277,12 +277,12 @@ export const POST = async ({ request, cookies }) => {
 			success: true,
 			authUrl: authUrl.toString()
 		});
-	} catch (err) {
+	} catch (err: unknown) {
 		console.error('Error preparing reauthorization:', err);
 		return json(
 			{
 				success: false,
-				error: err.message || 'Failed to prepare Spotify authorization'
+				error: err instanceof Error ? err.message : 'Failed to prepare Spotify authorization'
 			},
 			{ status: 500 }
 		);

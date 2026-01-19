@@ -86,6 +86,7 @@
 		searchResults = [];
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function handleTrackSelect(
 		trackIndex: number,
 		track: { id: string; name: string; artists: string[]; genres: string[] }
@@ -107,6 +108,7 @@
 		handleArtistComplete(index, { ...formData });
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function handleTrackDelete(trackIndex: number) {
 		formData.top_tracks[trackIndex] = { id: '', name: '', display: '' };
 		handleArtistComplete(index, formData);

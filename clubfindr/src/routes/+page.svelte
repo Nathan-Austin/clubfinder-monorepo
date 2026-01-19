@@ -8,7 +8,6 @@
 	import { goto } from '$app/navigation';
 	import { writable } from 'svelte/store';
 	import { getDistance } from 'geolib';
-	import { cookieManager } from '$lib/cookieManager';
 
 	const redirectUri = encodeURIComponent(
 		import.meta.env.VITE_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'

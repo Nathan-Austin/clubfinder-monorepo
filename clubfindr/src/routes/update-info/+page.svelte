@@ -53,7 +53,7 @@
 	<form
 		method="POST"
 		use:enhance={() => {
-			return ({ result, update }) => {
+			return ({ result }) => {
 				if (result.type === 'success') {
 					successMessage = 'Profile updated successfully';
 					setTimeout(() => {

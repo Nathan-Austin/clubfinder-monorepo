@@ -3,7 +3,6 @@ import { query } from '$lib/db';
 import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from '@sveltejs/kit';
-import { normalizeCityName } from '$lib/spotifyUtils';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {

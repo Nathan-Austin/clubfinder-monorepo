@@ -4,8 +4,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '$lib/db';
-import { getState } from '$lib/tempStore';
-import { getStateAsync, removeState } from '$lib/tempStore';
+import { getStateAsync } from '$lib/tempStore';
 import { cookieManager } from '$lib/cookieManager';
 import { encryptToken } from '$lib/encryptionUtils';
 
@@ -34,7 +33,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		throw redirect(302, `/?error=${encodeURIComponent('Invalid state returned from OAuth')}`);
 	}
 
-	let rawStateData = await getStateAsync(stateKey);
+	const rawStateData = await getStateAsync(stateKey);
 	console.log('Raw state data for key', stateKey, ':', rawStateData || 'not found');
 
 	if (!rawStateData || typeof rawStateData !== 'string') {
@@ -528,12 +527,12 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			console.log('Redirecting to /spotify');
 			throw redirect(302, `/spotify`);
 		}
-	} catch (err) {
+	} catch (err: unknown) {
 		console.error('An error occurred during Spotify authentication process:', err);
 		await query('ROLLBACK');
 
 		// If it's already a redirect, just rethrow it
-		if (err.status === 302) {
+		if (err && typeof err === 'object' && 'status' in err && err.status === 302) {
 			throw err;
 		}
 
