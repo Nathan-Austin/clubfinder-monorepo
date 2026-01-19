@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 module.exports = {
 	apps: [
 		{
@@ -8,7 +11,8 @@ module.exports = {
 			exec_mode: 'fork',
 			env: {
 				NODE_ENV: 'production',
-				PORT: 3000
+				PORT: 3000,
+				...process.env
 			},
 			// Logging
 			error_file: '/home/nathan/.pm2/logs/clubfindr-error.log',
