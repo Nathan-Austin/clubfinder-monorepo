@@ -1,10 +1,6 @@
 // src/routes/spotify/login/+page.server.ts
-import {
-	VITE_SPOTIFY_REDIRECT_USER_URI,
-	VITE_SPOTIFY_REDIRECT_BAR_URI,
-	VITE_SPOTIFY_CLIENT_ID,
-	VITE_SPOTIFY_CLIENT_SECRET
-} from '$env/static/private';
+import { VITE_SPOTIFY_REDIRECT_USER_URI, VITE_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { error, redirect, isHttpError, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { v4 as uuidv4 } from 'uuid';
@@ -190,10 +186,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 							clientId = defaultAppResult.rows[0].client_id;
 							clientSecret = defaultAppResult.rows[0].client_secret;
 							console.log('Using default Spotify app');
-						} else if (VITE_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+						} else if (env.VITE_SPOTIFY_CLIENT_ID && env.VITE_SPOTIFY_CLIENT_SECRET) {
 							console.log('No default app in database, falling back to environment variables');
-							clientId = VITE_SPOTIFY_CLIENT_ID;
-							clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
+							clientId = env.VITE_SPOTIFY_CLIENT_ID;
+							clientSecret = env.VITE_SPOTIFY_CLIENT_SECRET;
 						} else {
 							throw error(500, 'No Spotify app credentials found');
 						}
@@ -210,10 +206,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 						clientId = defaultAppResult.rows[0].client_id;
 						clientSecret = defaultAppResult.rows[0].client_secret;
 						console.log('Using default Spotify app');
-					} else if (VITE_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+					} else if (env.VITE_SPOTIFY_CLIENT_ID && env.VITE_SPOTIFY_CLIENT_SECRET) {
 						console.log('No default app in database, falling back to environment variables');
-						clientId = VITE_SPOTIFY_CLIENT_ID;
-						clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
+						clientId = env.VITE_SPOTIFY_CLIENT_ID;
+						clientSecret = env.VITE_SPOTIFY_CLIENT_SECRET;
 					} else {
 						throw error(500, 'No Spotify app credentials found');
 					}
@@ -229,11 +225,11 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				if (defaultAppResult.rows.length > 0) {
 					clientId = defaultAppResult.rows[0].client_id;
 					clientSecret = defaultAppResult.rows[0].client_secret;
-				} else if (VITE_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+				} else if (env.VITE_SPOTIFY_CLIENT_ID && env.VITE_SPOTIFY_CLIENT_SECRET) {
 					// Fallback to environment variables if no default app in database
 					console.log('No default app in database, falling back to environment variables');
-					clientId = VITE_SPOTIFY_CLIENT_ID;
-					clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
+					clientId = env.VITE_SPOTIFY_CLIENT_ID;
+					clientSecret = env.VITE_SPOTIFY_CLIENT_SECRET;
 				} else {
 					throw error(500, 'No Spotify app credentials found');
 				}
