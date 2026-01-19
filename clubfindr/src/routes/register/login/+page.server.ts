@@ -1,7 +1,7 @@
 import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 import { VITE_SPOTIFY_CLIENT_SECRET } from '$env/static/private';
 import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from '../$types';
+import type { PageServerLoad } from './$types';
 import { v4 as uuidv4 } from 'uuid';
 import { createSession } from '$lib/session';
 

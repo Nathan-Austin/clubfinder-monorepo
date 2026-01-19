@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { Cookies } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
@@ -240,9 +240,9 @@ export const withAccessToken = async ({
 		const errorText = await endpointResponse.text();
 		console.error(`Error on Spotify API call: ${endpointResponse.status} - ${errorText}`);
 		throw error(403, 'Unauthorized Spotify API call');
-	} catch (apiErr) {
+	} catch (apiErr: unknown) {
 		// If it's already a redirect, just rethrow it
-		if (apiErr.status === 302) {
+		if (apiErr && typeof apiErr === 'object' && 'status' in apiErr && apiErr.status === 302) {
 			throw apiErr;
 		}
 

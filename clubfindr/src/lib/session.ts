@@ -3,6 +3,11 @@
 import { pool } from '$lib/db';
 import type { CreateSessionParams } from '$lib/$types';
 
+interface SpotifyUserData {
+	accessToken: string;
+	refreshToken: string;
+}
+
 export async function createSession({
 	sessionId,
 	spotifyUserData

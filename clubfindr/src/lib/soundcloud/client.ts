@@ -59,7 +59,7 @@ export class SoundCloudClient {
 			});
 
 			console.log('Response status:', response.status);
-			console.log('Response headers:', Object.fromEntries(response.headers));
+			console.log('Response content-type:', response.headers.get('content-type'));
 
 			const responseBody = await response.text();
 			console.log('Response body:', responseBody);
@@ -67,7 +67,7 @@ export class SoundCloudClient {
 			if (!response.ok) {
 				// Add more detailed error logging
 				console.error('Request failed with status:', response.status);
-				console.error('Response headers:', Object.fromEntries(response.headers));
+				console.error('Response content-type:', response.headers.get('content-type'));
 				console.error('Response body:', responseBody);
 				throw new Error(`HTTP error! status: ${response.status}, body: ${responseBody}`);
 			}

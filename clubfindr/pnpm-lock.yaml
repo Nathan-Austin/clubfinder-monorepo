@@ -53,6 +53,9 @@ importers:
       express-session:
         specifier: ^1.18.0
         version: 1.18.0
+      geolib:
+        specifier: ^3.3.4
+        version: 3.3.4
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
@@ -1555,6 +1558,9 @@ packages:
 
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
+
+  geolib@3.3.4:
+    resolution: {integrity: sha512-EicrlLLL3S42gE9/wde+11uiaYAaeSVDwCUIv2uMIoRBfNJCn8EsSI+6nS3r4TCKDO6+RQNM9ayLq2at+oZQWQ==}
 
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
@@ -4249,6 +4255,8 @@ snapshots:
     optional: true
 
   function-bind@1.1.2: {}
+
+  geolib@3.3.4: {}
 
   get-caller-file@2.0.5: {}
 

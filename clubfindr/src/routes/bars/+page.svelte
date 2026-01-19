@@ -190,7 +190,7 @@
 					try {
 						const errorData = await response.json();
 						console.error('Error response:', errorData);
-					} catch (e) {
+					} catch {
 						console.error('Could not parse error response');
 					}
 				}

@@ -1,5 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
+import { cookieManager } from '$lib/cookieManager';
 
 export const GET: RequestHandler = async ({ cookies, locals, url }) => {
 	try {

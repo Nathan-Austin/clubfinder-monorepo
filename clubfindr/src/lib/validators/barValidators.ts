@@ -29,48 +29,55 @@ export function isValidEmail(email: string): boolean {
  * @param data The bar update data
  * @returns An array of validation errors, empty if valid
  */
-export function validateBarUpdate(data: any): string[] {
+export function validateBarUpdate(data: Record<string, unknown>): string[] {
 	const errors: string[] = [];
 
+	const name = typeof data.name === 'string' ? data.name : '';
+	const address = typeof data.address === 'string' ? data.address : '';
+	const city = typeof data.city === 'string' ? data.city : '';
+	const phone = typeof data.phone === 'string' ? data.phone : '';
+	const general_email = typeof data.general_email === 'string' ? data.general_email : '';
+	const description = typeof data.description === 'string' ? data.description : '';
+
 	// Check required fields
-	if (!data.name || data.name.trim() === '') {
+	if (!name || name.trim() === '') {
 		errors.push('Bar name is required');
 	}
 
-	if (!data.address || data.address.trim() === '') {
+	if (!address || address.trim() === '') {
 		errors.push('Address is required');
 	}
 
-	if (!data.city || data.city.trim() === '') {
+	if (!city || city.trim() === '') {
 		errors.push('City is required');
 	}
 
-	if (!data.phone) {
+	if (!phone) {
 		errors.push('Telephone number is required');
-	} else if (!isValidTelephone(data.phone)) {
+	} else if (!isValidTelephone(phone)) {
 		errors.push('Please enter a valid telephone number');
 	}
 
-	if (!data.general_email) {
+	if (!general_email) {
 		errors.push('Email address is required');
-	} else if (!isValidEmail(data.general_email)) {
+	} else if (!isValidEmail(general_email)) {
 		errors.push('Please enter a valid email address');
 	}
 
 	// Check field lengths
-	if (data.name && data.name.length > 100) {
+	if (name && name.length > 100) {
 		errors.push('Bar name must be 100 characters or less');
 	}
 
-	if (data.address && data.address.length > 255) {
+	if (address && address.length > 255) {
 		errors.push('Address must be 255 characters or less');
 	}
 
-	if (data.city && data.city.length > 100) {
+	if (city && city.length > 100) {
 		errors.push('City must be 100 characters or less');
 	}
 
-	if (data.description && data.description.length > 1000) {
+	if (description && description.length > 1000) {
 		errors.push('Description must be 1000 characters or less');
 	}
 

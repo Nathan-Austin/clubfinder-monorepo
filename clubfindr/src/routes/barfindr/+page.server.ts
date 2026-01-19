@@ -20,7 +20,8 @@ type BarData = {
 	website: string | null;
 };
 
-type SimilarityResult = BarData & {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _SimilarityResult = BarData & {
 	similarity: number;
 	matchingGenres: string[];
 	events?: EventDetails[];
@@ -462,9 +463,14 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		// Process events and their genres
 		if (eventsResult.rows.length > 0) {
 			// Group events by bar_id
-			const eventsByBar = {};
+			interface EventRecord {
+				bar_id: string;
+				special_genres: string[];
+				[key: string]: unknown;
+			}
+			const eventsByBar: Record<string, EventRecord[]> = {};
 
-			eventsResult.rows.forEach((event) => {
+			eventsResult.rows.forEach((event: EventRecord) => {
 				const barId = event.bar_id;
 				if (!eventsByBar[barId]) {
 					eventsByBar[barId] = [];
@@ -485,8 +491,8 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 					bar.events = events;
 
 					// Extract all event genres
-					const allEventGenres = [];
-					events.forEach((event) => {
+					const allEventGenres: string[] = [];
+					events.forEach((event: EventRecord) => {
 						if (event.special_genres && event.special_genres.length > 0) {
 							allEventGenres.push(...event.special_genres);
 						}
@@ -501,7 +507,7 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 						// Also add event genres to current_genres for display purposes
 						const uniqueGenres = new Set(bar.current_genres);
-						allEventGenres.forEach((genre) => uniqueGenres.add(genre));
+						allEventGenres.forEach((genre: string) => uniqueGenres.add(genre));
 						bar.current_genres = Array.from(uniqueGenres);
 					}
 				}

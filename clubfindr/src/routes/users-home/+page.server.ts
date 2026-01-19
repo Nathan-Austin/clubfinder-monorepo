@@ -8,7 +8,8 @@ interface Preference {
 	search_count: number;
 }
 
-interface Event {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _Event {
 	event_id: number;
 	club_name: string;
 	event_name: string;
@@ -17,12 +18,14 @@ interface Event {
 	likedRecommendation?: string;
 }
 
-interface ConnectedServices {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _ConnectedServices {
 	spotify: boolean;
 	soundcloud: boolean;
 }
 
-interface UserData {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _UserData {
 	name: string | null;
 	preferences: string | Preference[] | null;
 	interested_events: string | number[] | null;

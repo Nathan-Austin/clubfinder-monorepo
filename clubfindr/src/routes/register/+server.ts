@@ -10,7 +10,6 @@ import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import type { RequestHandler } from '@sveltejs/kit';
 import { hashPassword } from '$lib/passwordUtils';
-import { SPOTIFY_SERVICE_URL } from '$env/static/private';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
 
 // Get the form data
@@ -200,7 +199,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					'Spotify Integration Exception for Bar',
 					`Spotify integration exception for bar ${businessName} (ID: ${barId}).\n
       				Spotify Email: ${spotifyEmail}\n
-      				Error: ${spotifyError.message || String(spotifyError)}`
+      				Error: ${spotifyError instanceof Error ? spotifyError.message : String(spotifyError)}`
 				);
 			}
 		}

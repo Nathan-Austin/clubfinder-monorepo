@@ -76,7 +76,7 @@ export function generateJWT(payload: {
  * @param token JWT token to verify
  * @returns Decoded token payload or null if invalid
  */
-export function verifyJWT(token: string): any | null {
+export function verifyJWT(token: string): string | jwt.JwtPayload | null {
 	try {
 		return jwt.verify(token, JWT_SECRET);
 	} catch (error) {

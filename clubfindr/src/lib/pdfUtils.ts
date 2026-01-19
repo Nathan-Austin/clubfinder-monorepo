@@ -116,7 +116,6 @@ export async function generateMultipleQRCodePDF(
 	// Track current position in grid
 	let currentRow = 0;
 	let currentCol = 0;
-	let currentPage = 1;
 
 	// Generate QR codes for each bar
 	for (let i = 0; i < qrData.length; i++) {
@@ -125,7 +124,7 @@ export async function generateMultipleQRCodePDF(
 		// Create a new page if we've filled the current one
 		if (i > 0 && i % (rows * columns) === 0) {
 			doc.addPage();
-			currentPage++;
+			// currentPage tracking removed - using index-based pagination
 			currentRow = 0;
 			currentCol = 0;
 

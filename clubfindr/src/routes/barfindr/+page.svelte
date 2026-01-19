@@ -196,6 +196,7 @@
 	}
 
 	// Function to check if a bar has events today
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	function hasEventsToday(result: SimilarityResult): boolean {
 		if (!result.events || result.events.length === 0) return false;
 

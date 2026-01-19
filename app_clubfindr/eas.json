@@ -22,7 +22,8 @@
       },
       "env": {
         "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
-        "EAS_BUILD_RUNNER": "eas-build-worker-ubuntu-22.04-medium"
+        "EAS_BUILD_RUNNER": "eas-build-worker-ubuntu-22.04-medium",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "cache": {
         "key": "pnpm-v1"

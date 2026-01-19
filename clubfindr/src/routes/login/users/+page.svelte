@@ -180,6 +180,7 @@
 			return;
 		}
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(FB as any).login(
 			(response: FacebookLoginResponse) => {
 				if (response.status === 'connected' && response.authResponse) {

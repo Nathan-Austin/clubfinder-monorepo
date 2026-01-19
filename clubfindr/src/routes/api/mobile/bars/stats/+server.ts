@@ -160,6 +160,7 @@ async function getPreviousPeriodVisitors(barId: string, period: string): Promise
 }
 
 // Helper function to get matched users count
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getMatchedUsersCount(barId: string): Promise<number> {
 	try {
 		const result = await query(
@@ -177,6 +178,7 @@ async function getMatchedUsersCount(barId: string): Promise<number> {
 }
 
 // Helper function to get top genres
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getTopGenres(
 	barId: string,
 	period: string,
