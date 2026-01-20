@@ -113,7 +113,8 @@
 		// Setup the genre chart if we have data
 		if (commonGenres?.length) {
 			const canvasElement = document.getElementById('genreChart');
-			const ctx = canvasElement instanceof HTMLCanvasElement ? canvasElement.getContext('2d') : null;
+			const ctx =
+				canvasElement instanceof HTMLCanvasElement ? canvasElement.getContext('2d') : null;
 			if (ctx) {
 				genreChart = new Chart(ctx, {
 					type: 'bar',
@@ -469,7 +470,7 @@
 			<ul>
 				{#each recentlyPlayedTracks.slice(0, 5) as track}
 					<li>
-							<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
+						<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
 						<div>
 							<p>{track.name} by {track.artists.map((a) => a.name).join(', ')}</p>
 						</div>

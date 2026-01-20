@@ -67,8 +67,7 @@
 	let playlists: PlaylistItem[] = playlistData.map((playlist) => ({
 		id: playlist.id,
 		name: playlist.name,
-		image:
-			playlist.images?.find((image) => image.width === 300)?.url || playlist.images?.[0]?.url,
+		image: playlist.images?.find((image) => image.width === 300)?.url || playlist.images?.[0]?.url,
 		selected: false,
 		artists: playlist.artistIds,
 		description: playlist.description,

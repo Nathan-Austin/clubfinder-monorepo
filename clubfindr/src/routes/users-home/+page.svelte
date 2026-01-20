@@ -407,55 +407,55 @@
 				// Fetch cities data
 				await fetchCities();
 
-			// Initialize Google Maps Geocoding API
-			const loader = new Loader({
-				apiKey: import.meta.env.VITE_MAPS_API_KEY,
-				version: 'weekly',
-				libraries: ['places']
-			});
-
-			loader
-				.importLibrary('geocoding')
-				.then(async (library) => {
-					geocoder = new library.Geocoder();
-
-					try {
-						await updateLocation(); // Try to get user's location
-
-						if (location) {
-							// Extract city from the address
-							if (address) {
-								const city = await extractCity(address);
-								if (city) {
-									city1.set(city);
-									console.log(`City from extractCity: ${city}`);
-								} else {
-									console.log('No city extracted');
-								}
-							} else {
-								console.log('Address is not available yet');
-							}
-
-							// Find the closest city based on geolocation
-							await findClosestCity(location.coords);
-						} else {
-							console.log('User location is not available');
-						}
-					} catch (locationError) {
-						console.log(
-							'Location retrieval failed, setting userDeniedLocation to true:',
-							locationError
-						);
-						userDeniedLocation = true;
-					}
-				})
-				.catch((e) => {
-					console.warn(
-						"Couldn't load geocoding from Google Maps, setting userDeniedLocation to true"
-					);
-					console.error(e);
-					userDeniedLocation = true; // Trigger dropdown if geocoding fails
+				// Initialize Google Maps Geocoding API
+				const loader = new Loader({
+					apiKey: import.meta.env.VITE_MAPS_API_KEY,
+					version: 'weekly',
+					libraries: ['places']
 				});
+
+				loader
+					.importLibrary('geocoding')
+					.then(async (library) => {
+						geocoder = new library.Geocoder();
+
+						try {
+							await updateLocation(); // Try to get user's location
+
+							if (location) {
+								// Extract city from the address
+								if (address) {
+									const city = await extractCity(address);
+									if (city) {
+										city1.set(city);
+										console.log(`City from extractCity: ${city}`);
+									} else {
+										console.log('No city extracted');
+									}
+								} else {
+									console.log('Address is not available yet');
+								}
+
+								// Find the closest city based on geolocation
+								await findClosestCity(location.coords);
+							} else {
+								console.log('User location is not available');
+							}
+						} catch (locationError) {
+							console.log(
+								'Location retrieval failed, setting userDeniedLocation to true:',
+								locationError
+							);
+							userDeniedLocation = true;
+						}
+					})
+					.catch((e) => {
+						console.warn(
+							"Couldn't load geocoding from Google Maps, setting userDeniedLocation to true"
+						);
+						console.error(e);
+						userDeniedLocation = true; // Trigger dropdown if geocoding fails
+					});
 			} catch (error) {
 				console.error('Error in onMount, setting userDeniedLocation to true:', error);
 				userDeniedLocation = true; // Fallback if any other error occurs

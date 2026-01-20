@@ -165,8 +165,8 @@
 				</div>
 			{/if}
 
-				<div class="form-group">
-					<div class="form-label">Music Genres for this Event</div>
+			<div class="form-group">
+				<div class="form-label">Music Genres for this Event</div>
 				<div class="genres-grid">
 					{#each availableGenres as genre}
 						<label class="genre-tag">

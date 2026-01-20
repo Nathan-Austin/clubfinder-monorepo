@@ -615,7 +615,12 @@
 					UserSelectedGenres = [...UserSelectedGenres, selectedSubgenre];
 				}
 			}
-		} else if (level === 'specificGenres' && selectedSubSubgenre && selectedCategory && selectedSubgenre) {
+		} else if (
+			level === 'specificGenres' &&
+			selectedSubSubgenre &&
+			selectedCategory &&
+			selectedSubgenre
+		) {
 			// Get all specific genres for this subsubgenre group
 			const subgenreData = genres[selectedCategory].subgenres.find(
 				(sub) => sub.name === selectedSubgenre
@@ -1082,23 +1087,51 @@
 	<aside class="hidden lg:block sidebar-left">
 		<div class="feature-card">
 			<div class="feature-icon">
-				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M9 18V5l12-2v13"/>
-					<circle cx="6" cy="18" r="3"/>
-					<circle cx="18" cy="16" r="3"/>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="32"
+					height="32"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M9 18V5l12-2v13" />
+					<circle cx="6" cy="18" r="3" />
+					<circle cx="18" cy="16" r="3" />
 				</svg>
 			</div>
 			<h3 class="feature-title">Connect Your Music</h3>
-			<p class="feature-description">Link your Spotify or SoundCloud account to get personalized venue recommendations based on your listening history.</p>
+			<p class="feature-description">
+				Link your Spotify or SoundCloud account to get personalized venue recommendations based on
+				your listening history.
+			</p>
 		</div>
 		<div class="feature-card">
 			<div class="feature-icon">
-				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="32"
+					height="32"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<polygon
+						points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+					/>
 				</svg>
 			</div>
 			<h3 class="feature-title">Discover by Genre</h3>
-			<p class="feature-description">Browse through hundreds of music genres and subgenres to find clubs that match your exact taste.</p>
+			<p class="feature-description">
+				Browse through hundreds of music genres and subgenres to find clubs that match your exact
+				taste.
+			</p>
 		</div>
 	</aside>
 
@@ -1106,426 +1139,435 @@
 	<div class="main-content">
 		<div>
 			<h1
-		class="text-4xl md:text-8xl font-bold my-1 md:my-2 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
-	>
-		CLUBFINDR
-	</h1>
-	<img
-		src="/images/landingpage_CP.png"
-		alt="Clubfindr"
-		class="mx-auto my-4 max-w-xs md:max-w-md"
-	/>
-	<p class="text-l md:text-3xl">Your style of music every time</p>
-	{#if isUserLoggedIn}
-		<p class="text-l md:text-3xl">
-			Choose what day then login to find the bar or club playing what you love
-		</p>
-		<div>
-			<DatePicker bind:value={formattedDate} on:change={handleDateChange} />
-		</div>
-		<p>
-			{new Intl.DateTimeFormat('en-GB', {
-				year: 'numeric',
-				month: '2-digit',
-				day: '2-digit'
-			}).format(formattedDate)}
-		</p>
-	{:else}
-		Sign in to find the best bars and clubs playing your favorite music
-	{/if}
-</div>
-{#if userDeniedLocation}
-	<p>Please select your city:</p>
-	<select
-		id="city-select"
-		class:isInvalid={isCitySelectionInvalid}
-		on:change={handleCitySelection}
-		style="color: black;"
-	>
-		<option value="" selected disabled>Select a city</option>
-		{#each cities as city}
-			<option value={city.name} style="color: black;">{city.name}</option>
-		{/each}
-	</select>
-	{#if isCitySelectionInvalid}
-		<p class="text-red-500 flash">You must select a city before proceeding.</p>
-	{/if}
-{/if}
-
-<div class="my-6 md:my-14">
-	<!-- Conditionally show login button or music service buttons -->
-	{#if isUserLoggedIn}
-		<!-- Spotify login button -->
-		<div class="center-button">
-			<a
-				href={loggedIn
-					? '/spotify'
-					: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`}
-				on:click={handleSpotifyButtonClick}
-				role="button"
-				class="custom-spotify-button"
-				aria-label="Login with Spotify"
+				class="text-4xl md:text-8xl font-bold my-1 md:my-2 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
 			>
-				<span>Connect with</span>
-				<img
-					src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
-					alt="Spotify Logo"
-					class="spotify-logo"
-				/>
-			</a>
-		</div>
-
-		<!-- SoundCloud button -->
-		<div class="center-button mt-4">
-			<a href="/api/soundcloud/auth">
-				<button class="soundcloud-button" aria-label="Login with SoundCloud" />
-			</a>
-		</div>
-	{:else}
-		<!-- Login/Signup button -->
-		<div class="center-button mt">
-			<button on:click={handleLoginButtonClick} class="login-button" aria-label="Login or Sign Up">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="22"
-					height="22"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					class="login-icon"
-				>
-					<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-					<polyline points="10 17 15 12 10 7" />
-					<line x1="15" y1="12" x2="3" y2="12" />
-				</svg>
-				<span class="login-text">Login / Sign Up</span>
-			</button>
-		</div>
-	{/if}
-</div>
-<!-- Divider between 'login' and 'guest' options -->
-<div class="relative flex items-center">
-	<div class="flex-grow border-t border-light rounded" />
-	<span class="flex-shrink mx-2">or continue as a guest</span>
-	<div class="flex-grow border-t border-light rounded" />
-</div>
-
-<!-- Main search section -->
-<div class="my-8 md:my-16">
-	<div class="text-center mb-2">
-		<p class="text-l md:text-xl">Find a club that's playing music like</p>
-	</div>
-	<div class="flex justify-center items-center">
-		<!-- Search input -->
-		<div class="relative justify-center items-center">
-			<input
-				type="search"
-				bind:value={searchQuery}
-				class="h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow focus:outline-none"
-				placeholder="Artist or song..."
+				CLUBFINDR
+			</h1>
+			<img
+				src="/images/landingpage_CP.png"
+				alt="Clubfindr"
+				class="mx-auto my-4 max-w-xs md:max-w-md"
 			/>
-			<!-- Search button -->
-			<div class="absolute top-2 right-2">
-				<a
-					href="/search"
-					class="flex justify-center items-center h-10 w-20 text-white rounded-lg bg-secondary hover:opacity-90"
-					on:click={(e) => handleSubmit(e)}
-				>
-					Search
-				</a>
-			</div>
+			<p class="text-l md:text-3xl">Your style of music every time</p>
+			{#if isUserLoggedIn}
+				<p class="text-l md:text-3xl">
+					Choose what day then login to find the bar or club playing what you love
+				</p>
+				<div>
+					<DatePicker bind:value={formattedDate} on:change={handleDateChange} />
+				</div>
+				<p>
+					{new Intl.DateTimeFormat('en-GB', {
+						year: 'numeric',
+						month: '2-digit',
+						day: '2-digit'
+					}).format(formattedDate)}
+				</p>
+			{:else}
+				Sign in to find the best bars and clubs playing your favorite music
+			{/if}
 		</div>
-	</div>
-	<div class="genre-selection-container flex justify-center items-center mt-4">
-		<div class="custom-genre-dropdown relative">
-			<!-- Input field triggering the dropdown -->
-			<input
-				type="text"
-				class="custom-genre-input h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow focus:outline-none"
-				placeholder="Select Genre..."
-				readonly
-				on:click={() => toggleDropdown()}
-			/>
-			{#if showDropdown}
-				<div class="dropdown-menu">
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
-					<!-- svelte-ignore a11y-no-static-element-interactions -->
-					<div class="dropdown-menu-close" on:click={() => toggleDropdown()}>✖</div>
-					<!-- Buttons at the top of the dropdown -->
-					<div class="p-2 text-black flex justify-between">
-						<div class="clear-selection-container">
-							<button class="clear-selection-button" on:click={() => clearSelection()}>
-								Clear Selection
-							</button>
-						</div>
-						<div class="submit-selection-container">
-							<button
-								class="submit-selection-button"
-								on:click={(event) => handleGenresSearch(event)}
-							>
-								Find A club
-							</button>
-						</div>
-						<div class="submit-selection-container">
-							<button
-								class="submit-selection-button"
-								on:click={(event) => handleGenresSearchbar(event)}
-							>
-								Find A Bar
-							</button>
-						</div>
-					</div>
-					<!-- Genre search input -->
-					<div class="p-2">
-						<input
-							type="text"
-							bind:value={genreSearchQuery}
-							class="w-full p-2 border text-black border-gray-300 rounded-lg"
-							placeholder="Search genres..."
+		{#if userDeniedLocation}
+			<p>Please select your city:</p>
+			<select
+				id="city-select"
+				class:isInvalid={isCitySelectionInvalid}
+				on:change={handleCitySelection}
+				style="color: black;"
+			>
+				<option value="" selected disabled>Select a city</option>
+				{#each cities as city}
+					<option value={city.name} style="color: black;">{city.name}</option>
+				{/each}
+			</select>
+			{#if isCitySelectionInvalid}
+				<p class="text-red-500 flash">You must select a city before proceeding.</p>
+			{/if}
+		{/if}
+
+		<div class="my-6 md:my-14">
+			<!-- Conditionally show login button or music service buttons -->
+			{#if isUserLoggedIn}
+				<!-- Spotify login button -->
+				<div class="center-button">
+					<a
+						href={loggedIn
+							? '/spotify'
+							: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`}
+						on:click={handleSpotifyButtonClick}
+						role="button"
+						class="custom-spotify-button"
+						aria-label="Login with Spotify"
+					>
+						<span>Connect with</span>
+						<img
+							src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
+							alt="Spotify Logo"
+							class="spotify-logo"
 						/>
-					</div>
+					</a>
+				</div>
 
-					<!-- Search results section when a search is active -->
-					{#if genreSearchQuery && genreSearchQuery.length >= 2}
-						<div class="search-results">
-							<h3 class="search-heading">Search Results</h3>
-
-							<ul class="dropdown-list">
-								<!-- Category matches -->
-								{#each Object.keys(genres).filter((category) => category
-										.toLowerCase()
-										.includes(genreSearchQuery.toLowerCase())) as category}
-									<li class="clickable-area">
-										<button
-											class="{UserSelectedGenres.includes(category)
-												? 'selected'
-												: ''} full-clickable search-result category-result"
-											on:click={() => handleCategoryClick(category)}
-										>
-											<span class="result-type">Category:</span>
-											{category}
-										</button>
-									</li>
-								{/each}
-
-								<!-- Subgenre matches -->
-								{#each Object.keys(genres) as category}
-									{#each genres[category].subgenres.filter((subgenre) => {
-										const name = typeof subgenre === 'object' ? subgenre.name : subgenre;
-										return name.toLowerCase().includes(genreSearchQuery.toLowerCase());
-									}) as subgenre}
-										<li class="clickable-area">
-											<button
-												class="{UserSelectedGenres.includes(
-													typeof subgenre === 'object' ? subgenre.name : subgenre
-												)
-													? 'selected'
-													: ''} full-clickable search-result subgenre-result"
-												on:click={() => {
-													selectedCategory = category;
-													handleSubgenreClick(subgenre);
-												}}
-											>
-												<span class="result-type">Subgenre:</span>
-												{typeof subgenre === 'object' ? subgenre.name : subgenre}
-												<span class="result-path">in {category}</span>
-											</button>
-										</li>
-									{/each}
-								{/each}
-
-								<!-- Subsubgenre matches -->
-								{#each Object.keys(genres) as category}
-									{#each genres[category].subgenres as subgenre}
-										{#if typeof subgenre === 'object' && subgenre.subsubgenres}
-											{#each subgenre.subsubgenres.filter((subsub) => {
-												const name = typeof subsub === 'object' ? subsub.name : subsub;
-												return name.toLowerCase().includes(genreSearchQuery.toLowerCase());
-											}) as subsubgenre}
-												<li class="clickable-area">
-													<button
-														class="{UserSelectedGenres.includes(
-															typeof subsubgenre === 'object' ? subsubgenre.name : subsubgenre
-														)
-															? 'selected'
-															: ''} full-clickable search-result subsubgenre-result"
-														on:click={() => {
-															selectedCategory = category;
-															selectedSubgenre = subgenre.name;
-															handleSubSubgenreClick(subsubgenre);
-														}}
-													>
-														<span class="result-type">Genre:</span>
-														{typeof subsubgenre === 'object' ? subsubgenre.name : subsubgenre}
-														<span class="result-path">in {category} → {subgenre.name}</span>
-													</button>
-												</li>
-											{/each}
-										{/if}
-									{/each}
-								{/each}
-							</ul>
-
-							<div class="search-footer">
-								<button on:click={() => (genreSearchQuery = '')} class="clear-search-button">
-									Clear Search
-								</button>
-							</div>
-						</div>
-					{:else}
-						<!-- Regular navigation when not searching -->
-						{#if selectedCategory === null}
-							<!-- Category selection view -->
-							<ul class="dropdown-list">
-								{#each Object.keys(genres) as category}
-									<li class="clickable-area">
-										<button
-											class="{UserSelectedGenres.includes(category)
-												? 'selected'
-												: ''} full-clickable"
-											on:click={() => handleCategoryClick(category)}
-										>
-											{category}
-										</button>
-									</li>
-								{/each}
-							</ul>
-						{:else if selectedSubgenre === null}
-							<!-- Subgenre selection view -->
-							<ul class="dropdown-list">
-								<li>
-									<button
-										class="back-button full-clickable"
-										on:click={() => handleBack('category')}
-									>
-										← Back to Categories
-									</button>
-								</li>
-								<li class="select-all-area">
-									<button class="select-all-button" on:click={() => handleSelectAll('subgenres')}>
-										Select All
-									</button>
-								</li>
-
-								{#each genres[selectedCategory].subgenres as subgenre}
-									<li class="clickable-area">
-										<button
-											class="{UserSelectedGenres.includes(subgenre.name)
-												? 'selected'
-												: ''} full-clickable"
-											on:click={() => handleSubgenreClick(subgenre)}
-										>
-											{subgenre.name}
-											{subgenre.subsubgenres && subgenre.subsubgenres.length > 0 ? ' ➔' : ''}
-										</button>
-									</li>
-								{/each}
-							</ul>
-						{:else if selectedSubSubgenre === null}
-							<!-- Subsubgenre GROUPS selection view -->
-							<ul class="dropdown-list">
-								<li>
-									<button
-										class="back-button full-clickable"
-										on:click={() => handleBack('subgenre')}
-									>
-										← Back to {selectedCategory}
-									</button>
-								</li>
-								<li class="select-all-area">
-									<button
-										class="select-all-button"
-										on:click={() => handleSelectAll('subsubgenres')}
-									>
-										Select All
-									</button>
-								</li>
-
-								{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
-									{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
-										{#each genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres || [] as subsubgenreGroup}
-											<li class="clickable-area">
-												<button
-													class="{UserSelectedGenres.includes(subsubgenreGroup.name)
-														? 'selected'
-														: ''} full-clickable"
-													on:click={() => handleSubSubgenreGroupClick(subsubgenreGroup)}
-												>
-													{subsubgenreGroup.name}
-													{subsubgenreGroup.genres && subsubgenreGroup.genres.length > 0
-														? ' ➔'
-														: ''}
-												</button>
-											</li>
-										{/each}
-									{:else}
-										<li class="info-message">No subgenre groups found for {selectedSubgenre}</li>
-									{/if}
-								{:else}
-									<li class="info-message">Subgenre {selectedSubgenre} not found</li>
-								{/if}
-							</ul>
-						{:else}
-							<!-- Specific Genres selection view -->
-							<ul class="dropdown-list">
-								<li>
-									<button
-										class="back-button full-clickable"
-										on:click={() => handleBack('subsubgenre')}
-									>
-										← Back to {selectedSubgenre}
-									</button>
-								</li>
-								<li class="select-all-area">
-									<button
-										class="select-all-button"
-										on:click={() => handleSelectAll('specificGenres')}
-									>
-										Select All
-									</button>
-								</li>
-
-								{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
-									{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
-										{#if genres[selectedCategory].subgenres
-											.find((s) => s.name === selectedSubgenre)
-											?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)}
-											{#each genres[selectedCategory].subgenres
-												.find((s) => s.name === selectedSubgenre)
-												?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)?.genres || [] as specificGenre}
-												<li class="clickable-area">
-													<button
-														class="{UserSelectedGenres.includes(specificGenre)
-															? 'selected'
-															: ''} full-clickable"
-														on:click={() => handleSpecificGenreClick(specificGenre)}
-													>
-														{specificGenre}
-													</button>
-												</li>
-											{/each}
-										{:else}
-											<li class="info-message">
-												Subsubgenre group {selectedSubSubgenre} not found
-											</li>
-										{/if}
-									{:else}
-										<li class="info-message">No subsubgenre groups found</li>
-									{/if}
-								{:else}
-									<li class="info-message">Subgenre {selectedSubgenre} not found</li>
-								{/if}
-							</ul>
-						{/if}
-					{/if}
+				<!-- SoundCloud button -->
+				<div class="center-button mt-4">
+					<a href="/api/soundcloud/auth">
+						<button class="soundcloud-button" aria-label="Login with SoundCloud" />
+					</a>
+				</div>
+			{:else}
+				<!-- Login/Signup button -->
+				<div class="center-button mt">
+					<button
+						on:click={handleLoginButtonClick}
+						class="login-button"
+						aria-label="Login or Sign Up"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="22"
+							height="22"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							class="login-icon"
+						>
+							<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+							<polyline points="10 17 15 12 10 7" />
+							<line x1="15" y1="12" x2="3" y2="12" />
+						</svg>
+						<span class="login-text">Login / Sign Up</span>
+					</button>
 				</div>
 			{/if}
 		</div>
-	</div>
-</div>
+		<!-- Divider between 'login' and 'guest' options -->
+		<div class="relative flex items-center">
+			<div class="flex-grow border-t border-light rounded" />
+			<span class="flex-shrink mx-2">or continue as a guest</span>
+			<div class="flex-grow border-t border-light rounded" />
+		</div>
+
+		<!-- Main search section -->
+		<div class="my-8 md:my-16">
+			<div class="text-center mb-2">
+				<p class="text-l md:text-xl">Find a club that's playing music like</p>
+			</div>
+			<div class="flex justify-center items-center">
+				<!-- Search input -->
+				<div class="relative justify-center items-center">
+					<input
+						type="search"
+						bind:value={searchQuery}
+						class="h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow focus:outline-none"
+						placeholder="Artist or song..."
+					/>
+					<!-- Search button -->
+					<div class="absolute top-2 right-2">
+						<a
+							href="/search"
+							class="flex justify-center items-center h-10 w-20 text-white rounded-lg bg-secondary hover:opacity-90"
+							on:click={(e) => handleSubmit(e)}
+						>
+							Search
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="genre-selection-container flex justify-center items-center mt-4">
+				<div class="custom-genre-dropdown relative">
+					<!-- Input field triggering the dropdown -->
+					<input
+						type="text"
+						class="custom-genre-input h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow focus:outline-none"
+						placeholder="Select Genre..."
+						readonly
+						on:click={() => toggleDropdown()}
+					/>
+					{#if showDropdown}
+						<div class="dropdown-menu">
+							<!-- svelte-ignore a11y-click-events-have-key-events -->
+							<!-- svelte-ignore a11y-no-static-element-interactions -->
+							<div class="dropdown-menu-close" on:click={() => toggleDropdown()}>✖</div>
+							<!-- Buttons at the top of the dropdown -->
+							<div class="p-2 text-black flex justify-between">
+								<div class="clear-selection-container">
+									<button class="clear-selection-button" on:click={() => clearSelection()}>
+										Clear Selection
+									</button>
+								</div>
+								<div class="submit-selection-container">
+									<button
+										class="submit-selection-button"
+										on:click={(event) => handleGenresSearch(event)}
+									>
+										Find A club
+									</button>
+								</div>
+								<div class="submit-selection-container">
+									<button
+										class="submit-selection-button"
+										on:click={(event) => handleGenresSearchbar(event)}
+									>
+										Find A Bar
+									</button>
+								</div>
+							</div>
+							<!-- Genre search input -->
+							<div class="p-2">
+								<input
+									type="text"
+									bind:value={genreSearchQuery}
+									class="w-full p-2 border text-black border-gray-300 rounded-lg"
+									placeholder="Search genres..."
+								/>
+							</div>
+
+							<!-- Search results section when a search is active -->
+							{#if genreSearchQuery && genreSearchQuery.length >= 2}
+								<div class="search-results">
+									<h3 class="search-heading">Search Results</h3>
+
+									<ul class="dropdown-list">
+										<!-- Category matches -->
+										{#each Object.keys(genres).filter((category) => category
+												.toLowerCase()
+												.includes(genreSearchQuery.toLowerCase())) as category}
+											<li class="clickable-area">
+												<button
+													class="{UserSelectedGenres.includes(category)
+														? 'selected'
+														: ''} full-clickable search-result category-result"
+													on:click={() => handleCategoryClick(category)}
+												>
+													<span class="result-type">Category:</span>
+													{category}
+												</button>
+											</li>
+										{/each}
+
+										<!-- Subgenre matches -->
+										{#each Object.keys(genres) as category}
+											{#each genres[category].subgenres.filter((subgenre) => {
+												const name = typeof subgenre === 'object' ? subgenre.name : subgenre;
+												return name.toLowerCase().includes(genreSearchQuery.toLowerCase());
+											}) as subgenre}
+												<li class="clickable-area">
+													<button
+														class="{UserSelectedGenres.includes(
+															typeof subgenre === 'object' ? subgenre.name : subgenre
+														)
+															? 'selected'
+															: ''} full-clickable search-result subgenre-result"
+														on:click={() => {
+															selectedCategory = category;
+															handleSubgenreClick(subgenre);
+														}}
+													>
+														<span class="result-type">Subgenre:</span>
+														{typeof subgenre === 'object' ? subgenre.name : subgenre}
+														<span class="result-path">in {category}</span>
+													</button>
+												</li>
+											{/each}
+										{/each}
+
+										<!-- Subsubgenre matches -->
+										{#each Object.keys(genres) as category}
+											{#each genres[category].subgenres as subgenre}
+												{#if typeof subgenre === 'object' && subgenre.subsubgenres}
+													{#each subgenre.subsubgenres.filter((subsub) => {
+														const name = typeof subsub === 'object' ? subsub.name : subsub;
+														return name.toLowerCase().includes(genreSearchQuery.toLowerCase());
+													}) as subsubgenre}
+														<li class="clickable-area">
+															<button
+																class="{UserSelectedGenres.includes(
+																	typeof subsubgenre === 'object' ? subsubgenre.name : subsubgenre
+																)
+																	? 'selected'
+																	: ''} full-clickable search-result subsubgenre-result"
+																on:click={() => {
+																	selectedCategory = category;
+																	selectedSubgenre = subgenre.name;
+																	handleSubSubgenreClick(subsubgenre);
+																}}
+															>
+																<span class="result-type">Genre:</span>
+																{typeof subsubgenre === 'object' ? subsubgenre.name : subsubgenre}
+																<span class="result-path">in {category} → {subgenre.name}</span>
+															</button>
+														</li>
+													{/each}
+												{/if}
+											{/each}
+										{/each}
+									</ul>
+
+									<div class="search-footer">
+										<button on:click={() => (genreSearchQuery = '')} class="clear-search-button">
+											Clear Search
+										</button>
+									</div>
+								</div>
+							{:else}
+								<!-- Regular navigation when not searching -->
+								{#if selectedCategory === null}
+									<!-- Category selection view -->
+									<ul class="dropdown-list">
+										{#each Object.keys(genres) as category}
+											<li class="clickable-area">
+												<button
+													class="{UserSelectedGenres.includes(category)
+														? 'selected'
+														: ''} full-clickable"
+													on:click={() => handleCategoryClick(category)}
+												>
+													{category}
+												</button>
+											</li>
+										{/each}
+									</ul>
+								{:else if selectedSubgenre === null}
+									<!-- Subgenre selection view -->
+									<ul class="dropdown-list">
+										<li>
+											<button
+												class="back-button full-clickable"
+												on:click={() => handleBack('category')}
+											>
+												← Back to Categories
+											</button>
+										</li>
+										<li class="select-all-area">
+											<button
+												class="select-all-button"
+												on:click={() => handleSelectAll('subgenres')}
+											>
+												Select All
+											</button>
+										</li>
+
+										{#each genres[selectedCategory].subgenres as subgenre}
+											<li class="clickable-area">
+												<button
+													class="{UserSelectedGenres.includes(subgenre.name)
+														? 'selected'
+														: ''} full-clickable"
+													on:click={() => handleSubgenreClick(subgenre)}
+												>
+													{subgenre.name}
+													{subgenre.subsubgenres && subgenre.subsubgenres.length > 0 ? ' ➔' : ''}
+												</button>
+											</li>
+										{/each}
+									</ul>
+								{:else if selectedSubSubgenre === null}
+									<!-- Subsubgenre GROUPS selection view -->
+									<ul class="dropdown-list">
+										<li>
+											<button
+												class="back-button full-clickable"
+												on:click={() => handleBack('subgenre')}
+											>
+												← Back to {selectedCategory}
+											</button>
+										</li>
+										<li class="select-all-area">
+											<button
+												class="select-all-button"
+												on:click={() => handleSelectAll('subsubgenres')}
+											>
+												Select All
+											</button>
+										</li>
+
+										{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
+											{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
+												{#each genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres || [] as subsubgenreGroup}
+													<li class="clickable-area">
+														<button
+															class="{UserSelectedGenres.includes(subsubgenreGroup.name)
+																? 'selected'
+																: ''} full-clickable"
+															on:click={() => handleSubSubgenreGroupClick(subsubgenreGroup)}
+														>
+															{subsubgenreGroup.name}
+															{subsubgenreGroup.genres && subsubgenreGroup.genres.length > 0
+																? ' ➔'
+																: ''}
+														</button>
+													</li>
+												{/each}
+											{:else}
+												<li class="info-message">
+													No subgenre groups found for {selectedSubgenre}
+												</li>
+											{/if}
+										{:else}
+											<li class="info-message">Subgenre {selectedSubgenre} not found</li>
+										{/if}
+									</ul>
+								{:else}
+									<!-- Specific Genres selection view -->
+									<ul class="dropdown-list">
+										<li>
+											<button
+												class="back-button full-clickable"
+												on:click={() => handleBack('subsubgenre')}
+											>
+												← Back to {selectedSubgenre}
+											</button>
+										</li>
+										<li class="select-all-area">
+											<button
+												class="select-all-button"
+												on:click={() => handleSelectAll('specificGenres')}
+											>
+												Select All
+											</button>
+										</li>
+
+										{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
+											{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
+												{#if genres[selectedCategory].subgenres
+													.find((s) => s.name === selectedSubgenre)
+													?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)}
+													{#each genres[selectedCategory].subgenres
+														.find((s) => s.name === selectedSubgenre)
+														?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)?.genres || [] as specificGenre}
+														<li class="clickable-area">
+															<button
+																class="{UserSelectedGenres.includes(specificGenre)
+																	? 'selected'
+																	: ''} full-clickable"
+																on:click={() => handleSpecificGenreClick(specificGenre)}
+															>
+																{specificGenre}
+															</button>
+														</li>
+													{/each}
+												{:else}
+													<li class="info-message">
+														Subsubgenre group {selectedSubSubgenre} not found
+													</li>
+												{/if}
+											{:else}
+												<li class="info-message">No subsubgenre groups found</li>
+											{/if}
+										{:else}
+											<li class="info-message">Subgenre {selectedSubgenre} not found</li>
+										{/if}
+									</ul>
+								{/if}
+							{/if}
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
 	</div>
 	<!-- End center content -->
 
@@ -1533,28 +1575,53 @@
 	<aside class="hidden lg:block sidebar-right">
 		<div class="feature-card">
 			<div class="feature-icon">
-				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-					<circle cx="12" cy="10" r="3"/>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="32"
+					height="32"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+					<circle cx="12" cy="10" r="3" />
 				</svg>
 			</div>
 			<h3 class="feature-title">Find Venues Near You</h3>
-			<p class="feature-description">Discover clubs and bars in your city or explore nightlife in cities you're visiting.</p>
+			<p class="feature-description">
+				Discover clubs and bars in your city or explore nightlife in cities you're visiting.
+			</p>
 		</div>
 		<div class="feature-card">
 			<div class="feature-icon">
-				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-					<line x1="16" y1="2" x2="16" y2="6"/>
-					<line x1="8" y1="2" x2="8" y2="6"/>
-					<line x1="3" y1="10" x2="21" y2="10"/>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="32"
+					height="32"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+					<line x1="16" y1="2" x2="16" y2="6" />
+					<line x1="8" y1="2" x2="8" y2="6" />
+					<line x1="3" y1="10" x2="21" y2="10" />
 				</svg>
 			</div>
 			<h3 class="feature-title">Browse by Date</h3>
-			<p class="feature-description">Plan your night out by checking which venues have events on your chosen date.</p>
+			<p class="feature-description">
+				Plan your night out by checking which venues have events on your chosen date.
+			</p>
 		</div>
 	</aside>
 </div>
+
 <!-- End landing layout -->
 
 <style>
