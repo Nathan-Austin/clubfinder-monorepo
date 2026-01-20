@@ -1,5 +1,4 @@
-const dotenv = require('dotenv');
-dotenv.config();
+require('dotenv').config({ path: '/home/nathan/clubfinder/clubfindr/.env' });
 
 module.exports = {
 	apps: [
