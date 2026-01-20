@@ -1,17 +1,14 @@
 export type SimilarityResult = {
-	bar_name: string;
-	current_track_name: string | null;
-	current_track_artist?: string | null;
-	current_genres: string[];
-	bar_address: string;
-	bar_id: string;
-	rolling_genre_profile: string[];
+	club_name: string;
+	popularity: number;
+	price: number;
+	genres: string[];
 	similarity: number;
+	event_image: string;
+	event_name: string;
+	club_address: string;
+	event_id: number;
 	matchingGenres: string[];
-	description?: string;
-	opening_hours?: string;
-	closing_hours?: string;
-	timestamp: Date;
 };
 export type BarData = {
 	bar_name: string;
@@ -41,10 +38,7 @@ export type Playlist = {
 	};
 	description?: string; // Optional description field for the playlist
 	followers?: number; // Optional followers count for the playlist
-	spotifyLink: {
-		external_urls: string;
-		spotify: string;
-	}; // Spotify link for the playlist
+	external_urls: { spotify: string }; // Spotify API returns external_urls.spotify
 };
 
 export type Locals = {
@@ -62,20 +56,7 @@ export type Locals = {
 		name?: string;
 		email: string;
 		role?: string;
-		height: number;
-		width: number;
-	}[];
-	name: string;
-	tracks: {
-		href: string;
-		total: number;
 	};
-	description?: string; // Optional description field for the playlist
-	followers?: number; // Optional followers count for the playlist
-	spotifyLink: {
-		external_urls: string;
-		spotify: string;
-	}; // Spotify link for the playlist
 };
 
 export type PlaylistWithArtists = Playlist & {
@@ -101,12 +82,8 @@ export type Artist = {
 		width: number;
 	}[];
 	name: string;
-	spotifyLink: {
-		external_urls: string;
-		spotify: string;
-	}; // New field for the Spotify link
+	external_urls: { spotify: string }; // Spotify API returns external_urls.spotify
 	selected?: boolean;
-	external_urls?: string;
 };
 
 export type RecentlyPlayedTrack = {
@@ -166,7 +143,7 @@ export type DbDataRow = {
 export type Track = {
 	id: string;
 	name: string;
-	artists: Artist[]; // Assuming Artist type also contains spotifyLink
+	artists: Artist[];
 	album: {
 		id: string;
 		name: string;
@@ -175,13 +152,12 @@ export type Track = {
 			height: number;
 			width: number;
 		}[];
-		spotifyLink: string; // Spotify link for the album
+		external_urls: { spotify: string }; // Spotify link for the album
 	};
 	selected?: boolean;
 	preview_url?: string; // Optional preview URL for the track
 	uri: string; // Spotify URI for internal usage in Spotify apps
-	spotifyLink: string;
-	external_urls: string;
+	external_urls: { spotify: string };
 };
 
 // Represents an item in the Spotify playback queue

@@ -69,10 +69,7 @@ function mapToArtist(data: SpotifySearchResponse): Artist[] {
 				width: image.width
 			})) || [],
 		name: item.name,
-		spotifyLink: {
-			external_urls: item.external_urls?.spotify || '',
-			spotify: item.external_urls?.spotify || ''
-		}
+		external_urls: { spotify: item.external_urls?.spotify || '' }
 	}));
 }
 
@@ -89,10 +86,7 @@ function mapToTrack(data: SpotifySearchResponse): Track[] {
 			item.artists?.map((artist) => ({
 				id: artist.id || '',
 				name: artist.name || '',
-				spotifyLink: {
-					external_urls: artist.external_urls?.spotify || '',
-					spotify: artist.external_urls?.spotify || ''
-				}
+				external_urls: { spotify: artist.external_urls?.spotify || '' }
 			})) || [],
 		album: {
 			id: item.album?.id || '',
@@ -103,12 +97,11 @@ function mapToTrack(data: SpotifySearchResponse): Track[] {
 					height: image.height || 0,
 					width: image.width || 0
 				})) || [],
-			spotifyLink: item.album?.external_urls?.spotify || ''
+			external_urls: { spotify: item.album?.external_urls?.spotify || '' }
 		},
 		preview_url: item.preview_url,
 		uri: item.uri,
-		spotifyLink: item.external_urls?.spotify || '',
-		external_urls: item.external_urls?.spotify || ''
+		external_urls: { spotify: item.external_urls?.spotify || '' }
 	}));
 }
 

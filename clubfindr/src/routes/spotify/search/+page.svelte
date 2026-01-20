@@ -4,11 +4,11 @@
 	import { goto } from '$app/navigation';
 	import type { Artist_search, Track } from '$lib/$types';
 
-	export let data: { props: { artists: Artist_search[]; tracks: Track[] } };
+	export let data: { props: { artists: Artist_search[]; tracks: Track[]; message?: string } };
 
 	// Default view mode is 'artists'
 	let viewMode: 'artists' | 'tracks' = 'artists';
-	let message = data.message;
+	let message = data.props.message;
 	let newSearchQuery = '';
 
 	function handleNewSearch() {
@@ -19,13 +19,13 @@
 
 	// Mapping track and artist data for display
 	let tracks =
-		data.props.tracks?.map(({ album, artists, id, name, spotifyLink }) => ({
-			name,
-			id,
-			image: album?.images?.[0]?.url, // Taking the first available image
-			artist: artists?.[0] || {}, // Fallback to empty object if artist is not available
+		data.props.tracks?.map((track) => ({
+			name: track.name,
+			id: track.id,
+			image: track.album?.images?.[0]?.url, // Taking the first available image
+			artist: track.artists?.[0] || {}, // Fallback to empty object if artist is not available
 			selected: false,
-			spotifyLink
+			spotifyLink: track.external_urls?.spotify || ''
 		})) || [];
 
 	let artists =

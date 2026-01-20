@@ -1,7 +1,15 @@
 <script lang="ts">
-	import acceptConsent from '../../+layout.svelte';
-	import declineConsent from '../../+layout.svelte';
-	import openCustomModal from '../../+layout.svelte';
+	function acceptConsent(): void {
+		alert('All cookies accepted.');
+	}
+
+	function declineConsent(): void {
+		alert('Non-essential cookies rejected.');
+	}
+
+	function openCustomModal(): void {
+		alert('Opening cookie preferences.');
+	}
 </script>
 
 <svelte:head>

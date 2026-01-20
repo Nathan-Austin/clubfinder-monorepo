@@ -95,7 +95,8 @@
 
 	function toggleSubGenre(subgenre: SubGenre | string) {
 		const genreName = typeof subgenre === 'string' ? subgenre : subgenre.name;
-		const hasSubSubgenres = typeof subgenre === 'object' && subgenre.subsubgenres?.length > 0;
+		const hasSubSubgenres =
+			typeof subgenre === 'object' && (subgenre.subsubgenres?.length ?? 0) > 0;
 
 		if (!hasSubSubgenres) {
 			toggleGenre(genreName);
@@ -209,7 +210,7 @@
 														on:click={() => toggleSubGenre(subgenre)}
 													>
 														<span>{subgenre.name}</span>
-														{#if subgenre.subsubgenres?.length > 0}
+														{#if (subgenre.subsubgenres?.length ?? 0) > 0}
 															<div
 																class="transform transition-transform duration-200"
 																class:rotate-90={expandedSubGenres.has(subgenre.name)}

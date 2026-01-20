@@ -4,6 +4,7 @@
 
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { RecentlyPlayedTrack } from '$lib/$types';
 	import { onMount, afterUpdate } from 'svelte';
 	import Chart from 'chart.js/auto';
 	import { goto } from '$app/navigation';
@@ -14,20 +15,20 @@
 
 	let currentlyPlaying = data.currentlyPlaying || null;
 	let nextTracks = data.nextTracks || [];
-	let recentlyPlayedTracks = data.recentlyPlayedTracks || [];
+	let recentlyPlayedTracks: RecentlyPlayedTrack[] = data.recentlyPlayedTracks || [];
 	let topArtists = data.topArtists || [];
 	let topPlaylists = data.playlists || [];
 	let commonGenres = data.commonGenres || [];
 	let barName = data.barName || null;
-	let loggedOut: boolean = data.loggedOut;
+	let loggedOut: boolean = data.loggedOut ?? false;
 	let showModal = false;
 	let showBarDetailsModal = false;
-	let genreChart;
+	let genreChart: Chart | undefined;
 	let hasDualRole = false;
-	let error = data.error;
+	let error: string | null = data.error ?? null;
 
 	// Check if we can access the barId directly from data
-	let barId = data.barId;
+	let barId: string = data.barId ?? '';
 
 	// Initial bar details state
 	let barDetails = {
@@ -44,7 +45,7 @@
 	let barDetailsLoading = false;
 	let barDetailsError = '';
 	let barDetailsSuccess = '';
-	let barDetailsValidationErrors = [];
+	let barDetailsValidationErrors: string[] = [];
 
 	let showDebugInfo = false;
 	let manualBarId = '';
@@ -63,7 +64,7 @@
 	}
 
 	// Function to handle Spotify API errors
-	async function handleSpotifyApiError(error) {
+	async function handleSpotifyApiError(error: { status?: number; message?: string }) {
 		console.error('Spotify API error:', error);
 
 		// Check if this is an authentication error
@@ -81,11 +82,11 @@
 		return false; // Not handled
 	}
 
-	function getCookie(name) {
+	function getCookie(name: string) {
 		const value = `; ${document.cookie}`;
 		const parts = value.split(`; ${name}=`);
 		if (parts.length === 2) {
-			const cookieValue = parts.pop().split(';').shift();
+			const cookieValue = parts.pop()?.split(';').shift();
 			console.log(`Retrieved cookie ${name}:`, cookieValue);
 			return cookieValue;
 		}
@@ -111,7 +112,8 @@
 
 		// Setup the genre chart if we have data
 		if (commonGenres?.length) {
-			const ctx = document.getElementById('genreChart')?.getContext('2d');
+			const canvasElement = document.getElementById('genreChart');
+			const ctx = canvasElement instanceof HTMLCanvasElement ? canvasElement.getContext('2d') : null;
 			if (ctx) {
 				genreChart = new Chart(ctx, {
 					type: 'bar',
@@ -223,7 +225,7 @@
 		barDetailsValidationErrors = [];
 	}
 
-	async function handleBarDetailsSubmit(event) {
+	async function handleBarDetailsSubmit(event: CustomEvent) {
 		const updatedDetails = event.detail;
 		barDetailsLoading = true;
 		barDetailsError = '';
@@ -310,9 +312,9 @@
 					barDetailsValidationErrors = responseData.errors;
 				}
 			}
-		} catch (error) {
+		} catch (error: unknown) {
 			console.error('Error updating bar details:', error);
-			barDetailsError = error.message || 'An unexpected error occurred';
+			barDetailsError = error instanceof Error ? error.message : 'An unexpected error occurred';
 		} finally {
 			barDetailsLoading = false;
 		}
@@ -467,7 +469,7 @@
 			<ul>
 				{#each recentlyPlayedTracks.slice(0, 5) as track}
 					<li>
-						<img src={track.album?.images[0]?.url} alt="Album cover for {track.name}" />
+							<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
 						<div>
 							<p>{track.name} by {track.artists.map((a) => a.name).join(', ')}</p>
 						</div>

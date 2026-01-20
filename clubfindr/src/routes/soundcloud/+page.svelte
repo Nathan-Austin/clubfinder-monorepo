@@ -9,6 +9,9 @@
 			avatar_url: string | null;
 			playCount: number;
 			artistId: number;
+			selected?: boolean;
+			tags?: string[];
+			genre?: string[] | null;
 		}[];
 		topPlaylists: spPlaylist[];
 		recentTracks: spActivity[];
@@ -20,6 +23,7 @@
 	};
 
 	let view: 'playlists' | 'artists' | 'tracks' = 'playlists';
+	const viewOptions = ['playlists', 'artists', 'tracks'] as const;
 	const setView = (newView: typeof view) => {
 		view = newView;
 	};
@@ -134,7 +138,7 @@
 		{/if}
 
 		<div class="toggle-buttons flex gap-2 lg:hidden mb-4">
-			{#each ['playlists', 'artists', 'tracks'] as viewOption}
+			{#each viewOptions as viewOption}
 				<button
 					on:click={() => setView(viewOption)}
 					class="px-4 py-2 rounded {view === viewOption
@@ -260,10 +264,11 @@
 					{#each data.recentTracks as activity}
 						{#if activity.origin}
 							<div
-								class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
+							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
                         {activity.origin.selected ? 'ring-4 ring-green-500' : ''}"
-								on:click={() => onSelect(activity.origin.id, 'track')}
-								on:keydown={(e) => e.key === 'Enter' && onSelect(activity.origin.id, 'track')}
+							on:click={() => activity.origin && onSelect(activity.origin.id, 'track')}
+							on:keydown={(e) =>
+								e.key === 'Enter' && activity.origin && onSelect(activity.origin.id, 'track')}
 								role="button"
 								tabindex="0"
 							>
@@ -341,10 +346,6 @@
 	@screen lg {
 		.container {
 			@apply grid-cols-3 gap-8;
-		}
-
-		.section {
-			@apply block;
 		}
 	}
 
