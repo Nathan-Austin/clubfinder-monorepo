@@ -138,20 +138,20 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	const topPreferences = preferences.slice(0, 30);
 
 	// Fetch interested events based on interested_events field
-		let interestedEvents = [];
-		if (user.interested_events) {
-			// Assuming interested_events is stored as a JSONB array in the database
-			let eventIds: (string | number)[] = [];
+	let interestedEvents = [];
+	if (user.interested_events) {
+		// Assuming interested_events is stored as a JSONB array in the database
+		let eventIds: (string | number)[] = [];
 
 		if (typeof user.interested_events === 'string') {
-				try {
-					const parsed = JSON.parse(user.interested_events);
-					if (Array.isArray(parsed)) {
-						eventIds = parsed;
-					}
-				} catch (error) {
-					console.error('Error parsing interested_events:', error);
+			try {
+				const parsed = JSON.parse(user.interested_events);
+				if (Array.isArray(parsed)) {
+					eventIds = parsed;
 				}
+			} catch (error) {
+				console.error('Error parsing interested_events:', error);
+			}
 		} else if (Array.isArray(user.interested_events)) {
 			eventIds = user.interested_events;
 		}

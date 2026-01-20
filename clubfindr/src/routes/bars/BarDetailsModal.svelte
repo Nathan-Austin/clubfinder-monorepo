@@ -29,9 +29,7 @@
 		// Get the barId from the hidden field
 		const form = document.getElementById('bar-details-form');
 		const barIdField = form ? form.querySelector('#barId') : null;
-		const barId = barIdField
-			? (barIdField as HTMLInputElement).value
-			: barDetails.id || '';
+		const barId = barIdField ? (barIdField as HTMLInputElement).value : barDetails.id || '';
 
 		// Include the barId in the submission
 		dispatch('submit', {

@@ -7,6 +7,12 @@ import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
 type Genre = string;
 
+type ClusterEntry = {
+	genre: string;
+	cluster: string;
+	subCluster: string;
+};
+
 type Data = {
 	club_name: string;
 	popularity: number;
@@ -35,6 +41,28 @@ process.on('SIGINT', async () => {
 	process.exit();
 });
 
+export function makeClusterId(cluster: string, subCluster: string): string {
+	return JSON.stringify([cluster, subCluster]);
+}
+
+export function jaccardSimilarity<T>(setA: Set<T>, setB: Set<T>): number {
+	if (setA.size === 0 && setB.size === 0) {
+		return 0;
+	}
+
+	const [smallSet, largeSet] = setA.size <= setB.size ? [setA, setB] : [setB, setA];
+	let intersectionSize = 0;
+
+	for (const value of smallSet) {
+		if (largeSet.has(value)) {
+			intersectionSize += 1;
+		}
+	}
+
+	const unionSize = setA.size + setB.size - intersectionSize;
+	return unionSize === 0 ? 0 : intersectionSize / unionSize;
+}
+
 function normalizeGenre(genre: string): string {
 	return genre
 		.toLowerCase()
@@ -58,8 +86,8 @@ function shouldIgnoreGenre(genre: string): boolean {
 	return ignoredGenres.some((ignored) => genre.toLowerCase().includes(ignored.toLowerCase()));
 }
 
-function findClusters(genres: string[]): { genre: string; cluster: string; subCluster: string }[] {
-	const clusters: { genre: string; cluster: string; subCluster: string }[] = [];
+function findClusters(genres: string[]): ClusterEntry[] {
+	const clusters: ClusterEntry[] = [];
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const matchGenreInSubClusters = (subClusters: any[], genre: string, clusterName: string) => {
@@ -133,28 +161,28 @@ function findClusters(genres: string[]): { genre: string; cluster: string; subCl
 }
 
 function calculateClusterSimilarity(
-	userClusters: { genre: string; cluster: string; subCluster: string }[],
-	clubClusters: { genre: string; cluster: string; subCluster: string }[]
+	userClusters: ClusterEntry[],
+	clubClusters: ClusterEntry[]
 ): { similarity: number; matchingGenres: string[] } {
-	const userClusterNames = userClusters.map((c) => c.cluster + c.subCluster);
-	const clubClusterNames = clubClusters.map((c) => c.cluster + c.subCluster);
+	const userClusterNames = new Set(userClusters.map((c) => makeClusterId(c.cluster, c.subCluster)));
+	const clubClusterNames = new Set(clubClusters.map((c) => makeClusterId(c.cluster, c.subCluster)));
 
-	const intersection = userClusterNames.filter((value) => clubClusterNames.includes(value));
-	const union = new Set([...userClusterNames, ...clubClusterNames]);
-
-	// Prevent division by zero
-	if (union.size === 0) {
+	if (userClusterNames.size === 0 && clubClusterNames.size === 0) {
 		console.warn('Union size is zero, returning similarity as 0 to avoid NaN.');
-		return { similarity: 0, matchingGenres: [] };
 	}
 
-	const similarityScore = intersection.length / union.size;
+	const similarityScore = jaccardSimilarity(userClusterNames, clubClusterNames);
 
 	// Find the matching genres based on the clusters
+	const matchingClusterIds = new Set<string>();
+	for (const clusterId of userClusterNames) {
+		if (clubClusterNames.has(clusterId)) {
+			matchingClusterIds.add(clusterId);
+		}
+	}
+
 	const matchingGenres = userClusters
-		.filter((uc) =>
-			clubClusters.some((cc) => uc.cluster + uc.subCluster === cc.cluster + cc.subCluster)
-		)
+		.filter((uc) => matchingClusterIds.has(makeClusterId(uc.cluster, uc.subCluster)))
 		.map((uc) => uc.genre);
 
 	return { similarity: similarityScore, matchingGenres };

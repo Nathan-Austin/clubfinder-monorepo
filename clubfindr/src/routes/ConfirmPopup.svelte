@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 
-let confirmationCode = '';
+	let confirmationCode = '';
 	let errorMessage = '';
 	let successMessage = '';
 	let loading = false;

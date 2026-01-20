@@ -264,11 +264,11 @@
 					{#each data.recentTracks as activity}
 						{#if activity.origin}
 							<div
-							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
+								class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
                         {activity.origin.selected ? 'ring-4 ring-green-500' : ''}"
-							on:click={() => activity.origin && onSelect(activity.origin.id, 'track')}
-							on:keydown={(e) =>
-								e.key === 'Enter' && activity.origin && onSelect(activity.origin.id, 'track')}
+								on:click={() => activity.origin && onSelect(activity.origin.id, 'track')}
+								on:keydown={(e) =>
+									e.key === 'Enter' && activity.origin && onSelect(activity.origin.id, 'track')}
 								role="button"
 								tabindex="0"
 							>

@@ -9,7 +9,7 @@
 	const { debounce } = pkg;
 
 	export let handleArtistComplete: (index: number, artistData: Performer) => void;
-export let initialData: Performer | null = null;
+	export let initialData: Performer | null = null;
 	export let index: number;
 	export let expanded = false;
 
@@ -415,12 +415,12 @@ export let initialData: Performer | null = null;
 				<GenreSelector bind:selectedGenres={formData.genres} />
 			</div>
 
-				<div>
-					<div class="block text-gray-700 text-sm font-bold mb-2">
-						Top Tracks the performer loves to play
-					</div>
-					<TrackSearch selectedTracks={formData.top_tracks} onTracksChange={handleTracksChange} />
+			<div>
+				<div class="block text-gray-700 text-sm font-bold mb-2">
+					Top Tracks the performer loves to play
 				</div>
+				<TrackSearch selectedTracks={formData.top_tracks} onTracksChange={handleTracksChange} />
+			</div>
 		</div>
 	{/if}
 </div>

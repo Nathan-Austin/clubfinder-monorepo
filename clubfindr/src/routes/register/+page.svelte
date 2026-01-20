@@ -146,8 +146,9 @@
 				sessionToken: token
 			};
 
-			const response: google.maps.places.AutocompleteResponse =
-				await service.getPlacePredictions(request);
+			const response: google.maps.places.AutocompleteResponse = await service.getPlacePredictions(
+				request
+			);
 			if (response.predictions) {
 				predictions = response.predictions.map((prediction) => prediction.description);
 			}
@@ -312,8 +313,8 @@
 	}
 
 	async function submitForm() {
-			const recaptchaElement = document.querySelector('[name="g-recaptcha-response"]');
-			const recaptchaResponse = (recaptchaElement as HTMLTextAreaElement | null)?.value ?? '';
+		const recaptchaElement = document.querySelector('[name="g-recaptcha-response"]');
+		const recaptchaResponse = (recaptchaElement as HTMLTextAreaElement | null)?.value ?? '';
 
 		const res = await fetch('/api/verify-captcha', {
 			method: 'POST',
