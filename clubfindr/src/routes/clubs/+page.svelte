@@ -6,7 +6,7 @@
 	const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
 	const newdate = data.props.date;
 	const address: string | undefined = data.props.address;
-	const isLoggedIn: boolean = data.props.isLoggedIn;
+	const isLoggedIn: boolean = data.props.isLoggedIn ?? false;
 	let showMore = false;
 	let options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
 	let formattedDate = new Intl.DateTimeFormat('en-US', options).format(

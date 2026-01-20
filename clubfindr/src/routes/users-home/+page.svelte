@@ -62,7 +62,25 @@
 	let geocoder: google.maps.Geocoder;
 	let city1 = writable('');
 	let closestCity = '';
-	let cities = [];
+
+	interface City {
+		name: string;
+		latitude: number;
+		longitude: number;
+		boundaries?: {
+			west: number;
+			north: number;
+			east: number;
+			south: number;
+		};
+		origin?: {
+			lat: number;
+			lng: number;
+		};
+		region?: string;
+	}
+
+	let cities: City[] = [];
 	let userDeniedLocation = false;
 	let location: Position | null = null;
 	let address = '';
@@ -154,7 +172,7 @@
 
 		let minDistance = Infinity;
 
-		data.cities.forEach((city) => {
+		data.cities.forEach((city: City) => {
 			const distance = getDistance(
 				{ latitude: userCoords.latitude, longitude: userCoords.longitude },
 				{ latitude: city.latitude, longitude: city.longitude }
@@ -173,8 +191,9 @@
 		}
 	}
 
-	function handleCitySelection(event) {
-		const selectedCity = event.target.value;
+	function handleCitySelection(event: Event) {
+		const target = event.target as HTMLSelectElement;
+		const selectedCity = target.value;
 		if (selectedCity) {
 			city1.set(selectedCity);
 			isCitySelectionInvalid = false;
@@ -253,7 +272,7 @@
 	}
 
 	// Function for the user home page Spotify button click handler
-	async function handleSpotifyButtonClick(event) {
+	async function handleSpotifyButtonClick(event: MouseEvent) {
 		// Always prevent default
 		event.preventDefault();
 
@@ -350,7 +369,8 @@
 		} catch (error) {
 			console.error('Error in Spotify connection:', error);
 			// Show error to user
-			alert('Failed to connect to Spotify: ' + error.message);
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			alert('Failed to connect to Spotify: ' + errorMessage);
 		}
 	}
 	// Function to toggle dropdown visibility
@@ -377,14 +397,15 @@
 		}
 	};
 
-	onMount(async () => {
-		// Load the Spotify client ID
-		await loadClientId();
+	onMount(() => {
+		// Load the Spotify client ID (async call)
+		loadClientId();
 
 		// Initialize Google Maps Geocoding API and fetch cities
-		try {
-			// Fetch cities data
-			await fetchCities();
+		(async () => {
+			try {
+				// Fetch cities data
+				await fetchCities();
 
 			// Initialize Google Maps Geocoding API
 			const loader = new Loader({
@@ -435,10 +456,11 @@
 					console.error(e);
 					userDeniedLocation = true; // Trigger dropdown if geocoding fails
 				});
-		} catch (error) {
-			console.error('Error in onMount, setting userDeniedLocation to true:', error);
-			userDeniedLocation = true; // Fallback if any other error occurs
-		}
+			} catch (error) {
+				console.error('Error in onMount, setting userDeniedLocation to true:', error);
+				userDeniedLocation = true; // Fallback if any other error occurs
+			}
+		})(); // Close async IIFE
 
 		if (preferences.length > 0) {
 			const canvas = document.getElementById('myChart') as HTMLCanvasElement;
@@ -644,12 +666,11 @@
 						Connect your Spotify account to find clubs that match your music taste.
 					{/if}
 				</p>
-				<!-- Use a real URL for href to avoid a11y warnings -->
+				<!-- Use button element for better accessibility -->
 
-				<a
-					href="#"
+				<button
+					type="button"
 					on:click={handleSpotifyButtonClick}
-					role="button"
 					class="connect-button spotify-button"
 					aria-label="Login with Spotify"
 				>
@@ -659,7 +680,7 @@
 						alt="Spotify Logo"
 						class="spotify-logo"
 					/>
-				</a>
+				</button>
 			</div>
 		</div>
 

@@ -8,10 +8,40 @@
 	import { goto } from '$app/navigation';
 	import { writable } from 'svelte/store';
 	import { getDistance } from 'geolib';
+	import type { City } from '$lib/types/city';
 
 	const redirectUri = encodeURIComponent(
 		import.meta.env.VITE_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
 	);
+
+	// Define genre data structure interfaces
+	interface SpecificGenreGroup {
+		name: string;
+		genres: string[];
+	}
+
+	interface SubgenreData {
+		name: string;
+		genres: string[];
+		subsubgenres?: SpecificGenreGroup[];
+	}
+
+	interface GenreCategory {
+		subgenres: SubgenreData[];
+	}
+
+	interface GenresStructure {
+		[category: string]: GenreCategory;
+	}
+
+	interface UnifiedCategory {
+		name: string;
+		subgenres: SubgenreData[];
+	}
+
+	interface UnifiedGenres {
+		categories: UnifiedCategory[];
+	}
 
 	// Declare the Google Maps API
 	let geocoder: google.maps.Geocoder;
@@ -19,12 +49,12 @@
 	// Initialize variables
 	let city1 = writable('');
 	let closestCity = '';
-	let cities = [];
+	let cities: City[] = [];
 	let userDeniedLocation = false;
 	let location: Position | null = null;
 	let address = '';
 	let isCitySelectionInvalid = false;
-	let unifiedGenres = null; // Define this variable
+	let unifiedGenres: UnifiedGenres | null = null;
 	let genresLoaded = false;
 	let locationLoaded = false;
 	///////////////////// SPOTIFY LOGIN //////////////////////
@@ -36,7 +66,7 @@
 	// Check if user is logged in via cookie
 	let isUserLoggedIn = false;
 
-	function getCookie(name) {
+	function getCookie(name: string): string | null {
 		const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
 		return match ? decodeURIComponent(match[2]) : null;
 	}
@@ -136,10 +166,10 @@
 
 		let minDistance = Infinity;
 
-		data.cities.forEach((city) => {
+		data.cities.forEach((city: City) => {
 			const distance = getDistance(
 				{ latitude: userCoords.latitude, longitude: userCoords.longitude },
-				{ latitude: city.latitude, longitude: city.longitude }
+				{ latitude: city.origin.lat, longitude: city.origin.lng }
 			);
 
 			if (distance < minDistance) {
@@ -206,7 +236,7 @@
 				'/unified-genres.json'
 			];
 
-			let unifiedGenresResponse = null;
+			let unifiedGenresResponse: Response | null = null;
 
 			// Try each path until we find the file
 			for (const path of possiblePaths) {
@@ -219,7 +249,8 @@
 						break;
 					}
 				} catch (e) {
-					console.log(`Failed to fetch from ${path}: ${e.message}`);
+					const error = e as Error;
+					console.log(`Failed to fetch from ${path}: ${error.message}`);
 				}
 			}
 
@@ -239,6 +270,9 @@
 
 			// Process the unified genres
 			unifiedGenres = await unifiedGenresResponse.json();
+			if (!unifiedGenres) {
+				throw new Error('Failed to parse unified genres');
+			}
 			console.log(
 				'Unified genres loaded successfully:',
 				unifiedGenres.categories.length,
@@ -251,7 +285,7 @@
 				genres[category.name] = {
 					subgenres: category.subgenres.map((subgenre) => {
 						// Create basic subgenre object
-						const subgenreObj = {
+						const subgenreObj: SubgenreData = {
 							name: subgenre.name,
 							genres: subgenre.genres || []
 						};
@@ -292,8 +326,9 @@
 
 			genresLoaded = true;
 		} catch (error) {
-			console.error('Error loading genres:', error);
-			console.error('Error stack:', error.stack);
+			const err = error as Error;
+			console.error('Error loading genres:', err);
+			console.error('Error stack:', err.stack);
 			genres = {};
 			genresLoaded = false;
 		}
@@ -396,8 +431,9 @@
 		return null;
 	}
 
-	function handleCitySelection(event) {
-		const selectedCity = event.target.value;
+	function handleCitySelection(event: Event) {
+		const target = event.target as HTMLSelectElement;
+		const selectedCity = target.value;
 		if (selectedCity) {
 			city1.set(selectedCity);
 			isCitySelectionInvalid = false;
@@ -414,7 +450,7 @@
 	let UserSelectedGenres: string[] = [];
 	let selectedGenres: string;
 	let genreSearchQuery = '';
-	let genres: Record<string, string[]> = {};
+	let genres: GenresStructure = {};
 
 	// Computed property to update selected genres string
 	$: {
@@ -437,15 +473,17 @@
 	}
 
 	// Update the UI selection handlers to work with the unified structure
-	function handleCategoryClick(category) {
+	function handleCategoryClick(category: string) {
 		selectedCategory = category;
 		selectedSubgenre = null;
 		selectedSubSubgenre = null;
 		updateHighlighting();
 	}
 
-	function handleSubgenreClick(subgenre) {
+	function handleSubgenreClick(subgenre: SubgenreData | string) {
 		const subgenreName = typeof subgenre === 'object' ? subgenre.name : subgenre;
+
+		if (!selectedCategory) return;
 
 		// Find the subgenre data
 		const subgenreData = genres[selectedCategory].subgenres.find(
@@ -474,14 +512,20 @@
 		updateHighlighting();
 	}
 
-	function handleSubSubgenreGroupClick(subsubgenreGroup) {
+	function handleSubSubgenreGroupClick(subsubgenreGroup: SpecificGenreGroup | string) {
 		const groupName =
 			typeof subsubgenreGroup === 'object' ? subsubgenreGroup.name : subsubgenreGroup;
 
+		if (!selectedCategory || !selectedSubgenre) return;
+
 		// Find the group data
-		const groupData = genres[selectedCategory].subgenres
-			.find((sub) => sub.name === selectedSubgenre)
-			.subsubgenres.find((group) => group.name === groupName);
+		const subgenreData = genres[selectedCategory].subgenres.find(
+			(sub) => sub.name === selectedSubgenre
+		);
+
+		if (!subgenreData || !subgenreData.subsubgenres) return;
+
+		const groupData = subgenreData.subsubgenres.find((group) => group.name === groupName);
 
 		// If the group has specific genres, navigate to them
 		if (groupData && groupData.genres && groupData.genres.length > 0) {
@@ -501,7 +545,7 @@
 		updateHighlighting();
 	}
 
-	function handleSubSubgenreClick(subSubgenre) {
+	function handleSubSubgenreClick(subSubgenre: SpecificGenreGroup | string) {
 		const subSubgenreName = typeof subSubgenre === 'object' ? subSubgenre.name : subSubgenre;
 		const isSelected = UserSelectedGenres.includes(subSubgenreName);
 
@@ -515,7 +559,7 @@
 
 		updateHighlighting();
 	}
-	function handleSpecificGenreClick(specificGenre) {
+	function handleSpecificGenreClick(specificGenre: string) {
 		const isSelected = UserSelectedGenres.includes(specificGenre);
 
 		if (isSelected) {
@@ -526,7 +570,7 @@
 
 		updateHighlighting();
 	}
-	function handleSelectAll(level) {
+	function handleSelectAll(level: string) {
 		if (level === 'subgenres' && selectedCategory) {
 			// Get all subgenres for this category
 			const subgenres = genres[selectedCategory].subgenres.map((sub) => sub.name);
@@ -546,7 +590,7 @@
 					UserSelectedGenres = [...UserSelectedGenres, selectedCategory];
 				}
 			}
-		} else if (level === 'subsubgenres' && selectedSubgenre) {
+		} else if (level === 'subsubgenres' && selectedSubgenre && selectedCategory) {
 			// Get all subsubgenre groups for this subgenre
 			const subgenreData = genres[selectedCategory].subgenres.find(
 				(sub) => sub.name === selectedSubgenre
@@ -571,11 +615,17 @@
 					UserSelectedGenres = [...UserSelectedGenres, selectedSubgenre];
 				}
 			}
-		} else if (level === 'specificGenres' && selectedSubSubgenre) {
+		} else if (level === 'specificGenres' && selectedSubSubgenre && selectedCategory && selectedSubgenre) {
 			// Get all specific genres for this subsubgenre group
-			const groupData = genres[selectedCategory].subgenres
-				.find((sub) => sub.name === selectedSubgenre)
-				.subsubgenres.find((group) => group.name === selectedSubSubgenre);
+			const subgenreData = genres[selectedCategory].subgenres.find(
+				(sub) => sub.name === selectedSubgenre
+			);
+
+			if (!subgenreData || !subgenreData.subsubgenres) return;
+
+			const groupData = subgenreData.subsubgenres.find(
+				(group) => group.name === selectedSubSubgenre
+			);
 
 			if (!groupData || !groupData.genres) return;
 
@@ -601,7 +651,7 @@
 		updateHighlighting();
 	}
 
-	function handleBack(level) {
+	function handleBack(level: string) {
 		if (level === 'category') {
 			selectedCategory = null;
 			selectedSubgenre = null;
@@ -619,11 +669,14 @@
 	function updateHighlighting() {
 		// Update the category buttons
 		document.querySelectorAll('.clickable-area button').forEach((button) => {
-			const genreName = button.textContent.trim().split(' ➔')[0];
-			if (UserSelectedGenres.includes(genreName)) {
-				button.classList.add('selected');
-			} else {
-				button.classList.remove('selected');
+			const textContent = button.textContent;
+			if (textContent) {
+				const genreName = textContent.trim().split(' ➔')[0];
+				if (UserSelectedGenres.includes(genreName)) {
+					button.classList.add('selected');
+				} else {
+					button.classList.remove('selected');
+				}
 			}
 		});
 
@@ -646,10 +699,11 @@
 				typeof subgenre === 'string' ? subgenre : subgenre.name
 			);
 			return subgenres.every((subgenre: string) => UserSelectedGenres.includes(subgenre));
-		} else if (level === 'subgenres' && selectedSubgenre) {
-			const subsubgenres =
-				genres[selectedCategory].subgenres.find((s: Subgenre) => s.name === selectedSubgenre)
-					?.subsubgenres || [];
+		} else if (level === 'subgenres' && selectedSubgenre && selectedCategory) {
+			const subgenreData = genres[selectedCategory].subgenres.find(
+				(s: Subgenre) => s.name === selectedSubgenre
+			);
+			const subsubgenres = subgenreData?.subsubgenres || [];
 			return subsubgenres.every((subsub: Subsubgenre) => UserSelectedGenres.includes(subsub.name));
 		}
 		return false;
@@ -691,8 +745,10 @@
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
-			citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
-			citySelect.classList.add('flash'); // Add flashing effect to the select box
+			if (citySelect) {
+				citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
+				citySelect.classList.add('flash'); // Add flashing effect to the select box
+			}
 			console.log('City not selected. Please select a city.');
 			return; // Prevent form submission
 		} else {
@@ -762,8 +818,10 @@
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
-			citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
-			citySelect.classList.add('flash'); // Add flashing effect to the select box
+			if (citySelect) {
+				citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
+				citySelect.classList.add('flash'); // Add flashing effect to the select box
+			}
 			console.log('City not selected. Please select a city.');
 			return; // Prevent form submission
 		} else {
@@ -830,8 +888,10 @@
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
-			citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
-			citySelect.classList.add('flash'); // Add flashing effect to the select box
+			if (citySelect) {
+				citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
+				citySelect.classList.add('flash'); // Add flashing effect to the select box
+			}
 			console.log('City not selected. Please select a city.');
 			return; // Prevent form submission
 		} else {
@@ -907,8 +967,10 @@
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
-			citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
-			citySelect.classList.add('flash'); // Add flashing effect to the select box
+			if (citySelect) {
+				citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
+				citySelect.classList.add('flash'); // Add flashing effect to the select box
+			}
 			console.log('City not selected. Please select a city.');
 			return; // Prevent form submission
 		} else {
@@ -1383,8 +1445,8 @@
 								</li>
 
 								{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
-									{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre).subsubgenres}
-										{#each genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre).subsubgenres as subsubgenreGroup}
+									{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
+										{#each genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres || [] as subsubgenreGroup}
 											<li class="clickable-area">
 												<button
 													class="{UserSelectedGenres.includes(subsubgenreGroup.name)
@@ -1427,13 +1489,13 @@
 								</li>
 
 								{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
-									{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre).subsubgenres}
+									{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
 										{#if genres[selectedCategory].subgenres
 											.find((s) => s.name === selectedSubgenre)
-											.subsubgenres.find((g) => g.name === selectedSubSubgenre)}
+											?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)}
 											{#each genres[selectedCategory].subgenres
 												.find((s) => s.name === selectedSubgenre)
-												.subsubgenres.find((g) => g.name === selectedSubSubgenre).genres as specificGenre}
+												?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)?.genres || [] as specificGenre}
 												<li class="clickable-area">
 													<button
 														class="{UserSelectedGenres.includes(specificGenre)

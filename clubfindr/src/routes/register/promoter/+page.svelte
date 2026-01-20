@@ -105,7 +105,8 @@
 	}
 
 	async function submitForm() {
-		const recaptchaResponse = document.querySelector('[name="g-recaptcha-response"]')?.value;
+		const recaptchaElement = document.querySelector('[name="g-recaptcha-response"]');
+		const recaptchaResponse = (recaptchaElement as HTMLTextAreaElement | null)?.value ?? '';
 
 		// Send reCAPTCHA token to your server
 		const res = await fetch('/api/verify-captcha', {

@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
+	import type { Artist, PlaylistWithArtists, RecentlyPlayedTrack } from '$lib/$types';
 	export let data: PageData;
 
 	import ConfirmPopup from '../ConfirmPopup.svelte';
@@ -21,41 +22,69 @@
 	// State to manage mobile view selection
 	let selectedView: 'playlists' | 'artists' | 'tracks' = 'playlists';
 
+	type RecentlyPlayedTrackWithLink = RecentlyPlayedTrack & { spotifyLink?: string };
+	type TrackItem = {
+		id: string;
+		name: string;
+		image?: string;
+		artist?: { id: string; name: string };
+		selected: boolean;
+		spotifyUrl?: string;
+	};
+	type PlaylistItem = {
+		id: string;
+		name: string;
+		image?: string;
+		selected: boolean;
+		artists: string[];
+		description?: string;
+		followers?: number;
+		spotifyUrl?: string;
+	};
+	type ArtistItem = {
+		id: string;
+		name: string;
+		image?: string;
+		selected: boolean;
+		genres?: string[];
+		spotifyUrl?: string;
+	};
+
 	// Initialize data arrays
-	let tracks =
-		data.recentlyPlayedTracks?.map(({ album, artists, id, name, spotifyLink }) => ({
-			name,
-			id,
-			image: album?.images?.find((i) => i.width === 300)?.url || album?.images?.[0]?.url,
-			artist: artists?.[0] ? artists[0] : undefined,
-			selected: false,
-			spotifyLink
-		})) || [];
+	const recentTracks = (data.recentlyPlayedTracks ?? []) as RecentlyPlayedTrackWithLink[];
+	let tracks: TrackItem[] = recentTracks.map((track) => ({
+		name: track.name,
+		id: track.id,
+		image:
+			track.album?.images?.find((image) => image.width === 300)?.url ||
+			track.album?.images?.[0]?.url,
+		artist: track.artists?.[0] ? track.artists[0] : undefined,
+		selected: false,
+		spotifyUrl: track.spotifyLink
+	}));
 
-	let playlists =
-		data.playlists?.map(
-			({ id, name, images, artistIds, description, followers, spotifyLink, external_urls }) => ({
-				id,
-				name,
-				image: images?.find((i) => i.width === 300)?.url || images?.[0]?.url,
-				selected: false,
-				artists: artistIds,
-				description,
-				followers,
-				spotifyLink,
-				external_urls
-			})
-		) || [];
+	const playlistData = (data.playlists ?? []) as PlaylistWithArtists[];
+	let playlists: PlaylistItem[] = playlistData.map((playlist) => ({
+		id: playlist.id,
+		name: playlist.name,
+		image:
+			playlist.images?.find((image) => image.width === 300)?.url || playlist.images?.[0]?.url,
+		selected: false,
+		artists: playlist.artistIds,
+		description: playlist.description,
+		followers: playlist.followers,
+		spotifyUrl: playlist.external_urls?.spotify
+	}));
 
-	let artists =
-		data.topArtists?.map(({ id, name, images, genres, spotifyLink }) => ({
-			id,
-			name,
-			image: images?.find((i) => i.width === 300)?.url || images?.[0]?.url,
-			selected: false,
-			genres,
-			spotifyLink
-		})) || [];
+	const artistData = (data.topArtists ?? []) as Artist[];
+	let artists: ArtistItem[] = artistData.map((artist) => ({
+		id: artist.id,
+		name: artist.name,
+		image: artist.images?.find((image) => image.width === 300)?.url || artist.images?.[0]?.url,
+		selected: false,
+		genres: artist.genres,
+		spotifyUrl: artist.external_urls?.spotify
+	}));
 
 	// Compute selected count and IDs
 	$: selectedCount =
@@ -198,7 +227,7 @@
 		applyBorderRadius(imageElement);
 	}
 	// Function to handle closing the popup via keyboard events
-	function handleKeyDown(event) {
+	function handleKeyDown(event: KeyboardEvent) {
 		// Close the popup if "Enter" or "Escape" keys are pressed
 		if (event.key === 'Enter' || event.key === 'Escape') {
 			closePopup();
@@ -298,7 +327,7 @@
 				aria-label="Close popup"
 			>
 				<div class="popup">
-					<ConfirmPopup {email} on:close={closePopup} />
+					<ConfirmPopup on:close={closePopup} />
 				</div>
 			</div>
 		{/if}
@@ -329,7 +358,7 @@
 							<img src={playlist.image} alt={playlist.name} on:load={onImageLoad} />
 							<div class="overlay">
 								<span>{playlist.name}</span><br />
-								<a href={playlist.spotifyLink.spotify} style="color: #1db954;" target="_blank"
+								<a href={playlist.spotifyUrl} style="color: #1db954;" target="_blank"
 									>Listen on Spotify</a
 								>
 							</div>
@@ -352,7 +381,7 @@
 							<img src={artist.image} alt={artist.name} on:load={onImageLoad} />
 							<div class="overlay">
 								<span>{artist.name}</span><br />
-								<a href={artist.spotifyLink.spotify} style="color: #1db954;" target="_blank"
+								<a href={artist.spotifyUrl} style="color: #1db954;" target="_blank"
 									>Listen on Spotify</a
 								>
 							</div>
@@ -379,7 +408,7 @@
 								{#if track.artist}
 									<span class="artist-name">{track.artist.name}</span><br />
 								{/if}
-								<a href={track.spotifyLink} style="color: #1db954;" target="_blank"
+								<a href={track.spotifyUrl} style="color: #1db954;" target="_blank"
 									>Listen on Spotify</a
 								>
 							</div>

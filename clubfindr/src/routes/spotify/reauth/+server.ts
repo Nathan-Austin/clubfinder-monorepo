@@ -1,5 +1,5 @@
 // src/routes/spotify/reauth/+server.ts
-import { json, redirect } from '@sveltejs/kit';
+import { json, redirect, error } from '@sveltejs/kit';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '$lib/db';
 import { VITE_SPOTIFY_REDIRECT_USER_URI, VITE_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/private';
@@ -114,6 +114,10 @@ export const GET = async ({ url, cookies }) => {
 		} else {
 			// Scopes for regular users
 			scope = 'user-read-private user-read-email user-top-read user-read-recently-played';
+		}
+
+		if (!clientId) {
+			throw error(500, 'No Spotify client ID available');
 		}
 
 		const authUrl = new URL('https://accounts.spotify.com/authorize');
@@ -253,6 +257,10 @@ export const POST = async ({ request, cookies }) => {
 		} else {
 			// Scopes for regular users
 			scope = 'user-read-private user-read-email user-top-read user-read-recently-played';
+		}
+
+		if (!clientId) {
+			throw error(500, 'No Spotify client ID available');
 		}
 
 		const authUrl = new URL('https://accounts.spotify.com/authorize');

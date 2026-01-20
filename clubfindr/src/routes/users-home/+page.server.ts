@@ -132,23 +132,26 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	}
 
 	// Sort the preferences by search_count in descending order
-	preferences.sort((a, b) => b.search_count - a.search_count);
+	preferences.sort((a: Preference, b: Preference) => b.search_count - a.search_count);
 
 	// Take the top 30 preferences
 	const topPreferences = preferences.slice(0, 30);
 
 	// Fetch interested events based on interested_events field
-	let interestedEvents = [];
-	if (user.interested_events) {
-		// Assuming interested_events is stored as a JSONB array in the database
-		let eventIds = [];
+		let interestedEvents = [];
+		if (user.interested_events) {
+			// Assuming interested_events is stored as a JSONB array in the database
+			let eventIds: (string | number)[] = [];
 
 		if (typeof user.interested_events === 'string') {
-			try {
-				eventIds = JSON.parse(user.interested_events);
-			} catch (error) {
-				console.error('Error parsing interested_events:', error);
-			}
+				try {
+					const parsed = JSON.parse(user.interested_events);
+					if (Array.isArray(parsed)) {
+						eventIds = parsed;
+					}
+				} catch (error) {
+					console.error('Error parsing interested_events:', error);
+				}
 		} else if (Array.isArray(user.interested_events)) {
 			eventIds = user.interested_events;
 		}

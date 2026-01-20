@@ -1,18 +1,12 @@
 <script lang="ts">
 	import { Search, Loader, Music, X } from 'lucide-svelte';
+	import type { PerformerTrack } from '$lib/$types';
 	import pkg from 'lodash';
 	const { debounce } = pkg;
 
-	export let selectedTracks: Array<{
-		id: string;
-		name: string;
-		artists: string[];
-		display: string;
-	}> = [];
+	export let selectedTracks: PerformerTrack[] = [];
 	const MAX_TRACKS = 5;
-	export let onTracksChange: (
-		tracks: Array<{ id: string; name: string; artists: string[]; display: string }>
-	) => void;
+	export let onTracksChange: (tracks: PerformerTrack[]) => void;
 
 	interface SpotifyArtist {
 		name: string;

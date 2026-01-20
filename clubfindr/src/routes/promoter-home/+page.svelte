@@ -1,18 +1,18 @@
 <!-- promoter-home/+page.svelte -->
 <script lang="ts">
 	import type { PageData } from './$types';
-	export let data: PageData;
-	import type { Timeout } from 'node:timers';
 	import GenreSelector from './components/GenreSelector.svelte';
 	import ArtistSearchForm from './components/ArtistSearchForm.svelte';
-	import type { Performer } from '$lib/$types';
+	import type { Performer, PerformerTrack } from '$lib/$types';
 
 	import { Search } from 'lucide-svelte';
+	export let data: PageData;
+
 	// State management
 	let isAddingEvent = false;
 	let isLoading = false;
-	let error = null;
-	let performers = [];
+	let error: string | null = null;
+	let performers: Performer[] = [];
 	let expandedPerformerIndex: number | null = null;
 	let selectedVenueId: string = '';
 
@@ -26,15 +26,18 @@
 		city: '',
 		isNew: true
 	};
-	interface Venue {
-		id: string | null;
+	interface VenueBase {
 		name: string;
 		address: string;
 		city: string;
+	}
+
+	interface Venue extends VenueBase {
+		id: string | null;
 		isExisting: boolean;
 	}
 
-	interface VenueInput {
+	interface VenueInput extends VenueBase {
 		name: string;
 		address: string;
 		city: string;
@@ -59,19 +62,6 @@
 		city: '',
 		venue_id: ''
 	};
-	interface Venue {
-		id: string;
-		name: string;
-		address: string;
-		city: string;
-	}
-
-	interface VenueInput {
-		name: string;
-		address: string;
-		city: string;
-		isNew?: boolean;
-	}
 	// Watch for venue selection and update form
 	$: selectedVenue = venues.find((v) => v.id === selectedVenueId);
 	$: if (selectedVenue) {
@@ -128,7 +118,7 @@
 	}
 
 	function addPerformer() {
-		const newPerformer = {
+		const newPerformer: Performer = {
 			artist_name: '',
 			spotify_uri: '',
 			soundcloud_link: '',
@@ -140,7 +130,7 @@
 			email: '',
 			website: '',
 			primary_city: '',
-			top_tracks: ['', '', '', '', '']
+			top_tracks: []
 		};
 		performers = [...performers, newPerformer];
 		expandedPerformerIndex = performers.length - 1; // expand the new form
@@ -210,8 +200,8 @@
 			currentEvents = [createdEvent, ...currentEvents];
 			isAddingEvent = false;
 			resetForm();
-		} catch (err) {
-			error = err.message || 'Failed to create event';
+		} catch (err: unknown) {
+			error = err instanceof Error ? err.message : 'Failed to create event';
 		} finally {
 			isLoading = false;
 		}
@@ -242,8 +232,12 @@
 	}
 
 	// Function to handle venue selection or creation
-	function handleVenueSelection(venue: Venue) {
-		if (venue.isExisting && venue.id) {
+	function isExistingVenue(venue: Venue | VenueInput): venue is Venue {
+		return 'isExisting' in venue;
+	}
+
+	function handleVenueSelection(venue: Venue | VenueInput) {
+		if (isExistingVenue(venue) && venue.isExisting && venue.id) {
 			// Existing venue from bars table
 			selectedVenueId = venue.id;
 			newEvent.club_name = venue.name;
@@ -260,7 +254,7 @@
 		venueSuggestions = [];
 		showVenueForm = false;
 	}
-	let debounceTimer: Timeout;
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	$: if (venueSearchTerm) {
 		searchVenues(venueSearchTerm);

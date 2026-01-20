@@ -5,11 +5,11 @@
 	import TrackSearch from './TrackSearch.svelte';
 	import { slide } from 'svelte/transition';
 	import pkg from 'lodash';
-	import type { Performer } from '$lib/$types';
+	import type { Performer, PerformerTrack } from '$lib/$types';
 	const { debounce } = pkg;
 
 	export let handleArtistComplete: (index: number, artistData: Performer) => void;
-	export let initialData = null;
+export let initialData: Performer | null = null;
 	export let index: number;
 	export let expanded = false;
 
@@ -100,9 +100,7 @@
 		};
 		handleArtistComplete(index, formData);
 	}
-	function handleTracksChange(
-		tracks: Array<{ id: string; name: string; artists: string[]; display: string }>
-	) {
+	function handleTracksChange(tracks: PerformerTrack[]) {
 		formData.top_tracks = tracks;
 		// Just update the form data without collapsing
 		handleArtistComplete(index, { ...formData });
@@ -413,16 +411,16 @@
 
 			<div>
 				<!-- svelte-ignore a11y-label-has-associated-control -->
-				<label class="block text-gray-700 text-sm font-bold mb-2"> Performer Genres </label>
+				<div class="block text-gray-700 text-sm font-bold mb-2">Performer Genres</div>
 				<GenreSelector bind:selectedGenres={formData.genres} />
 			</div>
 
-			<div>
-				<label class="block text-gray-700 text-sm font-bold mb-2"
-					>Top Tracks the performer loves to play</label
-				>
-				<TrackSearch selectedTracks={formData.top_tracks} onTracksChange={handleTracksChange} />
-			</div>
+				<div>
+					<div class="block text-gray-700 text-sm font-bold mb-2">
+						Top Tracks the performer loves to play
+					</div>
+					<TrackSearch selectedTracks={formData.top_tracks} onTracksChange={handleTracksChange} />
+				</div>
 		</div>
 	{/if}
 </div>

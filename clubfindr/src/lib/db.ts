@@ -14,7 +14,7 @@ export const pool = new Pool({
 
 export async function query(
 	text: string,
-	params?: (string | number | boolean | null)[]
+	params?: (string | number | boolean | null | (string | number)[])[]
 ): Promise<pkg.QueryResult> {
 	const client = await pool.connect();
 	try {

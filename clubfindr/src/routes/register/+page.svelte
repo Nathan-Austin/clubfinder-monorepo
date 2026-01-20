@@ -7,14 +7,14 @@
 	import { validatePassword } from '$lib/passwordUtils';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { Loader } from '@googlemaps/js-api-loader';
-	import type { CitiesData } from '$lib/types/city';
+	import type { CitiesData, City } from '$lib/types/city';
 
 	const siteKey = import.meta.env.VITE_reCAPTCHA_SITE_KEY;
 	let isVerified = false;
 	let cityError = '';
 	let citiesData: CitiesData = { cities: [] };
 	let selectedCityName = '';
-	let selectedCityDetails = null;
+	let selectedCityDetails: City | null = null;
 	let businessName = '';
 	let contactPerson = '';
 	let email = '';
@@ -107,7 +107,7 @@
 	});
 
 	// Function to get city details from cities.json
-	function getCityDetails(cityName) {
+	function getCityDetails(cityName: string): City | null {
 		return (
 			citiesData.cities.find((city) => city.name.toLowerCase() === cityName.toLowerCase()) || null
 		);
@@ -120,9 +120,9 @@
 		}
 
 		try {
-			const { places } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
-			const service = new places.AutocompleteService();
-			const token = new places.AutocompleteSessionToken();
+			await google.maps.importLibrary('places');
+			const service = new google.maps.places.AutocompleteService();
+			const token = new google.maps.places.AutocompleteSessionToken();
 
 			const request = {
 				input: businessName,
@@ -146,7 +146,8 @@
 				sessionToken: token
 			};
 
-			const response = await service.getPlacePredictions(request);
+			const response: google.maps.places.AutocompleteResponse =
+				await service.getPlacePredictions(request);
 			if (response.predictions) {
 				predictions = response.predictions.map((prediction) => prediction.description);
 			}
@@ -156,7 +157,7 @@
 		}
 	}
 
-	async function selectPlace(prediction) {
+	async function selectPlace(prediction: string) {
 		try {
 			const service = new google.maps.places.PlacesService(document.createElement('div'));
 
@@ -167,17 +168,20 @@
 			service.findPlaceFromQuery(request, async (results, status) => {
 				if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
 					const placeId = results[0].place_id;
+					if (!placeId) {
+						return;
+					}
 
-					const detailsRequest = {
-						placeId: placeId,
+					const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+						placeId,
 						fields: ['name', 'address_components', 'formatted_address']
 					};
 					service.getDetails(detailsRequest, (place, status) => {
 						if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-							businessName = place.name;
+							businessName = place.name ?? '';
 							validateBusinessName(businessName);
 
-							const addressComponents = place.address_components;
+							const addressComponents = place.address_components ?? [];
 							const streetNumber =
 								addressComponents.find((component) => component.types.includes('street_number'))
 									?.long_name || '';
@@ -308,7 +312,8 @@
 	}
 
 	async function submitForm() {
-		const recaptchaResponse = document.querySelector('[name="g-recaptcha-response"]').value;
+			const recaptchaElement = document.querySelector('[name="g-recaptcha-response"]');
+			const recaptchaResponse = (recaptchaElement as HTMLTextAreaElement | null)?.value ?? '';
 
 		const res = await fetch('/api/verify-captcha', {
 			method: 'POST',

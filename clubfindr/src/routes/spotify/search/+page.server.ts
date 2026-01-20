@@ -50,7 +50,7 @@ export const load = async ({ cookies }) => {
 	console.log('Encrypted Token Expiry:', encryptedTokenExpiry);
 
 	// Decrypt the tokens
-	let accessToken = encryptedAccessToken; // ? decryptToken(encryptedAccessToken) : null;
+	let accessToken: string | null = encryptedAccessToken || null;
 	let tokenExpiry = encryptedTokenExpiry ? parseInt(encryptedTokenExpiry, 10) : 0;
 
 	console.log('Decrypted Access Token:', accessToken);
@@ -91,10 +91,12 @@ export const load = async ({ cookies }) => {
 		// Token expires in `expires_in` seconds (convert to milliseconds and add to current time)
 		tokenExpiry = now + data.expires_in * 1000;
 
-		cookieManager.set(cookies, 'spotifyAccessToken', accessToken, {
-			path: '/', // Make it available site-wide
-			maxAge: data.expires_in // Ensure the cookie lasts as long as the token is valid
-		});
+		if (accessToken) {
+			cookieManager.set(cookies, 'spotifyAccessToken', accessToken, {
+				path: '/', // Make it available site-wide
+				maxAge: data.expires_in // Ensure the cookie lasts as long as the token is valid
+			});
+		}
 	}
 	console.log('Using Access Token:', accessToken);
 
@@ -192,7 +194,7 @@ function mapToTrack(data: Data): Track[] {
 		artists: item.artists.map((artist) => ({
 			id: artist.id,
 			name: artist.name,
-			spotifyLink: artist.external_urls.spotify // Correct Spotify link for the artist
+			external_urls: { spotify: artist.external_urls.spotify }
 		})),
 		album: {
 			id: item.album.id,
@@ -202,10 +204,10 @@ function mapToTrack(data: Data): Track[] {
 				height: image.height,
 				width: image.width
 			})),
-			spotifyLink: item.album.external_urls.spotify // Correct Spotify link for the album
+			external_urls: { spotify: item.album.external_urls.spotify }
 		},
-		preview_url: item.preview_url, // Preview URL, if available
-		uri: item.uri, // Internal Spotify URI (for Spotify apps)
-		spotifyLink: item.external_urls.spotify // Correct Spotify link for the track
+		preview_url: item.preview_url,
+		uri: item.uri,
+		external_urls: { spotify: item.external_urls.spotify }
 	}));
 }
