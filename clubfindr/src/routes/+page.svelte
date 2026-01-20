@@ -1014,12 +1014,45 @@
 	<button type="button" id="form-submit-button" class="hidden">Submit</button>
 </form>
 
-<div>
-	<h1
+<!-- Main layout wrapper with side columns -->
+<div class="landing-layout">
+	<!-- Left sidebar - hidden on mobile -->
+	<aside class="hidden lg:block sidebar-left">
+		<div class="feature-card">
+			<div class="feature-icon">
+				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M9 18V5l12-2v13"/>
+					<circle cx="6" cy="18" r="3"/>
+					<circle cx="18" cy="16" r="3"/>
+				</svg>
+			</div>
+			<h3 class="feature-title">Connect Your Music</h3>
+			<p class="feature-description">Link your Spotify or SoundCloud account to get personalized venue recommendations based on your listening history.</p>
+		</div>
+		<div class="feature-card">
+			<div class="feature-icon">
+				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+				</svg>
+			</div>
+			<h3 class="feature-title">Discover by Genre</h3>
+			<p class="feature-description">Browse through hundreds of music genres and subgenres to find clubs that match your exact taste.</p>
+		</div>
+	</aside>
+
+	<!-- Center content -->
+	<div class="main-content">
+		<div>
+			<h1
 		class="text-4xl md:text-8xl font-bold my-1 md:my-2 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
 	>
-		ClubFinder
+		CLUBFINDR
 	</h1>
+	<img
+		src="/images/landingpage_CP.png"
+		alt="Clubfindr"
+		class="mx-auto my-4 max-w-xs md:max-w-md"
+	/>
 	<p class="text-l md:text-3xl">Your style of music every time</p>
 	{#if isUserLoggedIn}
 		<p class="text-l md:text-3xl">
@@ -1431,8 +1464,106 @@
 		</div>
 	</div>
 </div>
+	</div>
+	<!-- End center content -->
+
+	<!-- Right sidebar - hidden on mobile -->
+	<aside class="hidden lg:block sidebar-right">
+		<div class="feature-card">
+			<div class="feature-icon">
+				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+					<circle cx="12" cy="10" r="3"/>
+				</svg>
+			</div>
+			<h3 class="feature-title">Find Venues Near You</h3>
+			<p class="feature-description">Discover clubs and bars in your city or explore nightlife in cities you're visiting.</p>
+		</div>
+		<div class="feature-card">
+			<div class="feature-icon">
+				<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+					<line x1="16" y1="2" x2="16" y2="6"/>
+					<line x1="8" y1="2" x2="8" y2="6"/>
+					<line x1="3" y1="10" x2="21" y2="10"/>
+				</svg>
+			</div>
+			<h3 class="feature-title">Browse by Date</h3>
+			<p class="feature-description">Plan your night out by checking which venues have events on your chosen date.</p>
+		</div>
+	</aside>
+</div>
+<!-- End landing layout -->
 
 <style>
+	/* Landing page layout */
+	.landing-layout {
+		display: flex;
+		justify-content: center;
+		align-items: flex-start;
+		gap: 2rem;
+		width: 100%;
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 0 1rem;
+	}
+
+	.sidebar-left,
+	.sidebar-right {
+		flex: 0 0 280px;
+		max-width: 280px;
+		position: sticky;
+		top: 2rem;
+	}
+
+	.main-content {
+		flex: 1;
+		max-width: 600px;
+		min-width: 0;
+	}
+
+	.feature-card {
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 12px;
+		padding: 1.5rem;
+		margin-bottom: 1.5rem;
+		transition: transform 0.2s, border-color 0.2s;
+	}
+
+	.feature-card:hover {
+		transform: translateY(-2px);
+		border-color: rgba(255, 255, 255, 0.2);
+	}
+
+	.feature-icon {
+		color: var(--color-secondary, #1db954);
+		margin-bottom: 1rem;
+	}
+
+	.feature-title {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+		color: #fff;
+	}
+
+	.feature-description {
+		font-size: 0.9rem;
+		color: rgba(255, 255, 255, 0.7);
+		line-height: 1.5;
+	}
+
+	@media (max-width: 1024px) {
+		.landing-layout {
+			justify-content: center;
+		}
+
+		.main-content {
+			max-width: 100%;
+		}
+	}
+
 	:global(body) {
 		--date-picker-foreground: #f7f7f7;
 		--date-picker-background: #16171c;
