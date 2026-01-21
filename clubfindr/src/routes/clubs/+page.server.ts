@@ -5,16 +5,17 @@ import type { DbDataRow } from '$lib/$types';
 import { genreClusters } from '$lib/data/validatedGenreClusters';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
-import {
-	isFuzzyMatch,
-	isWordBoundaryPartialMatch,
-	jaccardSimilarity,
-	makeClusterId
-} from '$lib/genreSimilarity';
+import { isFuzzyMatch, isWordBoundaryPartialMatch, makeClusterId } from '$lib/genreSimilarity';
 type Genre = string;
 
 type ClusterEntry = {
 	genre: string;
+	cluster: string;
+	subCluster: string;
+	weight: number;
+};
+
+type ClusterIndexEntry = {
 	cluster: string;
 	subCluster: string;
 };
@@ -51,8 +52,9 @@ function normalizeGenre(genre: string): string {
 	return genre
 		.toLowerCase()
 		.trim()
-		.replace(/\s*\/\s*/g, ' ') // Replace slashes with spaces
-		.replace(/[&']/g, '') // Remove & and '
+		.replace(/\s*&\s*/g, ' and ') // Replace & with "and"
+		.replace(/\s*\/\s*/g, ' / ') // Preserve slash as delimiter
+		.replace(/'/g, '') // Remove apostrophes
 		.replace(/\s+/g, ' '); // Normalize spaces
 }
 
@@ -66,8 +68,45 @@ function createClusterCacheKey(genres: string[]): string {
 	return JSON.stringify([...genres].sort());
 }
 
+const genreToClusterIndex = new Map<string, ClusterIndexEntry[]>();
+
+function addGenreToIndex(genre: string, cluster: string, subCluster: string): void {
+	const normalizedGenre = normalizeGenre(genre);
+	const existing = genreToClusterIndex.get(normalizedGenre);
+
+	const entry = { cluster, subCluster };
+	if (existing) {
+		existing.push(entry);
+	} else {
+		genreToClusterIndex.set(normalizedGenre, [entry]);
+	}
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function indexSubClusters(subClusters: any[], clusterName: string): void {
+	for (const subCluster of subClusters) {
+		const subClusterName = subCluster.name;
+		const genres = subCluster.genres ?? [];
+
+		for (const genre of genres) {
+			addGenreToIndex(genre, clusterName, subClusterName);
+		}
+
+		if (subCluster.sub_clusters) {
+			indexSubClusters(subCluster.sub_clusters, clusterName);
+		}
+	}
+}
+
+function buildGenreIndex(): void {
+	for (const cluster of genreClusters.clusters) {
+		indexSubClusters(cluster.sub_clusters, cluster.name);
+	}
+}
+
+buildGenreIndex();
+
 // Export for testing only (SvelteKit requires _ prefix for non-standard exports)
-export const _createClusterCacheKey = createClusterCacheKey;
 
 function shouldIgnoreGenre(genre: string): boolean {
 	const ignoredGenres = [
@@ -91,80 +130,8 @@ function findClusters(genres: string[]): ClusterEntry[] {
 
 	const clusters: ClusterEntry[] = [];
 
-	const findMatchInSubClusters = (
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		subClusters: any[],
-		matchFn: (normalizedSubGenres: string[] | undefined) => boolean
-	): string | null => {
-		for (const subCluster of subClusters) {
-			const normalizedSubGenres = subCluster.genres?.map((g: string) => normalizeGenre(g));
-			if (matchFn(normalizedSubGenres)) {
-				return subCluster.name;
-			}
-
-			if (subCluster.sub_clusters) {
-				const foundInNested = findMatchInSubClusters(subCluster.sub_clusters, matchFn);
-				if (foundInNested) {
-					return foundInNested;
-				}
-			}
-		}
-
-		return null;
-	};
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const matchGenreInSubClusters = (subClusters: any[], genre: string, clusterName: string) => {
-		const normalizedInputGenre = normalizeGenre(genre);
-
-		// Skip processing for ignored genres
-		if (shouldIgnoreGenre(normalizedInputGenre)) {
-			return true; // Return true to prevent logging
-		}
-
-		const exactMatch = findMatchInSubClusters(subClusters, (normalizedSubGenres) =>
-			(normalizedSubGenres ?? []).some((g: string) => g === normalizedInputGenre)
-		);
-		if (exactMatch) {
-			clusters.push({
-				genre,
-				cluster: clusterName,
-				subCluster: exactMatch
-			});
-			return true;
-		}
-
-		const fuzzyMatch = findMatchInSubClusters(subClusters, (normalizedSubGenres) =>
-			(normalizedSubGenres ?? []).some((g: string) => isFuzzyMatch(normalizedInputGenre, g))
-		);
-		if (fuzzyMatch) {
-			clusters.push({
-				genre,
-				cluster: clusterName,
-				subCluster: fuzzyMatch
-			});
-			return true;
-		}
-
-		const partialMatch = findMatchInSubClusters(subClusters, (normalizedSubGenres) =>
-			(normalizedSubGenres ?? []).some((g: string) =>
-				isWordBoundaryPartialMatch(normalizedInputGenre, g)
-			)
-		);
-		if (partialMatch) {
-			clusters.push({
-				genre,
-				cluster: clusterName,
-				subCluster: partialMatch
-			});
-			return true;
-		}
-
-		return false;
-	};
-
 	genres.forEach((genre) => {
-		const normalizedGenre = genre.toLowerCase().trim(); // Normalize the genre name
+		const normalizedGenre = normalizeGenre(genre);
 
 		// Skip empty genres or very short strings
 		if (!normalizedGenre || normalizedGenre.length < 2) {
@@ -178,10 +145,47 @@ function findClusters(genres: string[]): ClusterEntry[] {
 
 		let found = false;
 
-		for (const cluster of genreClusters.clusters) {
-			if (matchGenreInSubClusters(cluster.sub_clusters, normalizedGenre, cluster.name)) {
-				found = true;
-				break;
+		const exactEntries = genreToClusterIndex.get(normalizedGenre);
+		if (exactEntries && exactEntries.length > 0) {
+			const entry = exactEntries[0];
+			clusters.push({
+				genre,
+				cluster: entry.cluster,
+				subCluster: entry.subCluster,
+				weight: 1.0
+			});
+			found = true;
+		}
+
+		if (!found) {
+			for (const [candidateGenre, entries] of genreToClusterIndex) {
+				if (isFuzzyMatch(normalizedGenre, candidateGenre)) {
+					const entry = entries[0];
+					clusters.push({
+						genre,
+						cluster: entry.cluster,
+						subCluster: entry.subCluster,
+						weight: 0.8
+					});
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if (!found) {
+			for (const [candidateGenre, entries] of genreToClusterIndex) {
+				if (isWordBoundaryPartialMatch(normalizedGenre, candidateGenre)) {
+					const entry = entries[0];
+					clusters.push({
+						genre,
+						cluster: entry.cluster,
+						subCluster: entry.subCluster,
+						weight: 0.6
+					});
+					found = true;
+					break;
+				}
 			}
 		}
 
@@ -205,22 +209,51 @@ function calculateClusterSimilarity(
 	userClusters: ClusterEntry[],
 	clubClusters: ClusterEntry[]
 ): { similarity: number; matchingGenres: string[] } {
-	const userClusterNames = new Set(userClusters.map((c) => makeClusterId(c.cluster, c.subCluster)));
-	const clubClusterNames = new Set(clubClusters.map((c) => makeClusterId(c.cluster, c.subCluster)));
+	const userClusterWeights = new Map<string, number>();
+	const clubClusterWeights = new Map<string, number>();
 
-	if (userClusterNames.size === 0 && clubClusterNames.size === 0) {
+	for (const entry of userClusters) {
+		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
+		const existing = userClusterWeights.get(clusterId) ?? 0;
+		if (entry.weight > existing) {
+			userClusterWeights.set(clusterId, entry.weight);
+		}
+	}
+
+	for (const entry of clubClusters) {
+		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
+		const existing = clubClusterWeights.get(clusterId) ?? 0;
+		if (entry.weight > existing) {
+			clubClusterWeights.set(clusterId, entry.weight);
+		}
+	}
+
+	if (userClusterWeights.size === 0 && clubClusterWeights.size === 0) {
 		console.warn('Union size is zero, returning similarity as 0 to avoid NaN.');
 	}
 
-	const similarityScore = jaccardSimilarity(userClusterNames, clubClusterNames);
+	let userWeightedSum = 0;
+	for (const weight of userClusterWeights.values()) {
+		userWeightedSum += weight;
+	}
 
-	// Find the matching genres based on the clusters
+	let clubWeightedSum = 0;
+	for (const weight of clubClusterWeights.values()) {
+		clubWeightedSum += weight;
+	}
+
 	const matchingClusterIds = new Set<string>();
-	for (const clusterId of userClusterNames) {
-		if (clubClusterNames.has(clusterId)) {
+	let matchingWeightedSum = 0;
+	for (const [clusterId, userWeight] of userClusterWeights) {
+		const clubWeight = clubClusterWeights.get(clusterId);
+		if (clubWeight !== undefined) {
 			matchingClusterIds.add(clusterId);
+			matchingWeightedSum += Math.min(userWeight, clubWeight);
 		}
 	}
+
+	const denominator = userWeightedSum + clubWeightedSum - matchingWeightedSum;
+	const similarityScore = denominator === 0 ? 0 : matchingWeightedSum / denominator;
 
 	const matchingGenres = [
 		...new Set(
@@ -235,6 +268,9 @@ function calculateClusterSimilarity(
 
 export const _findClusters = findClusters;
 export const _calculateClusterSimilarity = calculateClusterSimilarity;
+export const _normalizeGenre = normalizeGenre;
+export const _createClusterCacheKey = createClusterCacheKey;
+export const _genreToClusterIndex = genreToClusterIndex;
 
 export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	depends('app:date');
