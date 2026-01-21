@@ -5,7 +5,7 @@
 
 ## Progress Summary
 
-### ✅ Completed (5 Issues)
+### ✅ Completed (6 Issues)
 
 **Issue #1: Flawed Cluster Identification** ✓ FIXED
 **Status:** Completed by codex
@@ -113,62 +113,26 @@
 
 ---
 
-### 🔄 Remaining Issues (8 Issues)
+**Issue #2: Lossy Genre Normalization** ✓ FIXED
+**Status:** Completed by codex
+**Solution:**
 
-**Issue #2: Lossy Genre Normalization** 🔴 HIGH PRIORITY
-**Status:** Not started
-**Problem:**
+- Updated `normalizeGenre()` to preserve semantic meaning:
+  - Ampersands replaced with "and": "Drum & Bass" → "drum and bass"
+  - Slashes preserved as delimiters: "Hip Hop/Rap" → "hip hop / rap"
+  - Apostrophes still removed, whitespace normalized
+- Added 3 unit tests for normalization
 
-- Current normalization removes slashes/ampersands: "Drum & Bass" → "Drum Bass", "Hip Hop/Rap" → "Hip Hop Rap"
-- Loses semantic meaning and causes mismatches
-- Example: "acid/jazz" becomes "acid jazz" which might not exist in clusters
+**Files Modified:**
 
-**Recommended Solution:**
+- `src/routes/clubs/+page.server.ts` - Updated `normalizeGenre()` function (lines 50-58)
+- `src/lib/clubs-page-server.test.ts` - Added normalization tests (lines 91-107)
 
-````
-Prompt for codex:
-
-In clubfindr/src/routes/clubs/+page.server.ts, the normalizeGenre() function (lines ~50-57) removes slashes and ampersands, which loses semantic meaning.
-
-Current behavior:
-- "Drum & Bass" → "Drum  Bass" (double space)
-- "Hip Hop/Rap" → "Hip Hop Rap"
-- "acid/jazz" → "acid jazz"
-
-FIX REQUIRED:
-1. Preserve slashes as delimiters by replacing them with " / " (space-slash-space):
-   - "Hip Hop/Rap" → "Hip Hop / Rap"
-   - "acid/jazz" → "acid / jazz"
-
-2. Replace ampersands with "and":
-   - "Drum & Bass" → "Drum and Bass"
-   - "Rock & Roll" → "Rock and Roll"
-
-3. Then normalize whitespace as currently done
-
-Updated function should be:
-```typescript
-function normalizeGenre(genre: string): string {
-  return genre
-    .toLowerCase()
-    .trim()
-    .replace(/\s*&\s*/g, ' and ') // Replace & with "and"
-    .replace(/\s*\/\s*/g, ' / ') // Preserve slash as delimiter
-    .replace(/'/g, '') // Remove apostrophes
-    .replace(/\s+/g, ' '); // Normalize whitespace
-}
-````
-
-4. Update genreClusters.json if needed to use consistent format
-
-5. Add tests to verify:
-   - "Drum & Bass" normalizes correctly and matches
-   - "Hip Hop/Rap" normalizes and matches
-   - "acid/jazz" is preserved correctly
-
-```
+**Impact:** Genres with slashes and ampersands now normalize correctly without losing semantic meaning
 
 ---
+
+### 🔄 Remaining Issues (7 Issues)
 
 **Issue #5: No Weighting System** 🔴 HIGH PRIORITY
 **Status:** Not started
@@ -179,7 +143,7 @@ function normalizeGenre(genre: string): string {
 
 **Recommended Solution:**
 
-```
+````
 
 Prompt for codex:
 
@@ -207,7 +171,7 @@ type ClusterEntry = {
 	subCluster: string;
 	weight: number; // NEW: match quality weight
 };
-```
+````
 
 3. Modify calculateClusterSimilarity() to use weighted Jaccard:
 
@@ -535,13 +499,12 @@ Results include:
 
 ## Next Steps Priority Order
 
-1. **Issue #2** - Lossy Genre Normalization (HIGH - affects matching accuracy)
-2. **Issue #5** - Weighting System (HIGH - improves recommendation quality)
-3. **Issue #10** - Missing Genre Handling (MEDIUM - better logging)
-4. **Issue #12** - Hard-coded Threshold (MEDIUM - adaptive filtering)
-5. **Issue #13** - Result Diversity (MEDIUM - better user experience)
-6. **Issue #6** - Further O(n³) optimization (MEDIUM - reverse index)
-7. **Issue #9** - Genre Source Prioritization (LOW - data flow)
+1. **Issue #5** - Weighting System (HIGH - improves recommendation quality)
+2. **Issue #10** - Missing Genre Handling (MEDIUM - better logging)
+3. **Issue #12** - Hard-coded Threshold (MEDIUM - adaptive filtering)
+4. **Issue #13** - Result Diversity (MEDIUM - better user experience)
+5. **Issue #6** - Further O(n³) optimization (MEDIUM - reverse index)
+6. **Issue #9** - Genre Source Prioritization (LOW - data flow)
 
 ---
 
