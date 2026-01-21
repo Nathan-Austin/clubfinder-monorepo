@@ -2,9 +2,15 @@
 import { pool } from '$lib/db';
 import type { PageServerLoad } from './$types';
 import type { DbDataRow } from '$lib/$types';
-import genreClusters from '$lib/data/genreClusters.json';
+import { genreClusters } from '$lib/data/validatedGenreClusters';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
+import {
+	isFuzzyMatch,
+	isWordBoundaryPartialMatch,
+	jaccardSimilarity,
+	makeClusterId
+} from '$lib/genreSimilarity';
 type Genre = string;
 
 type ClusterEntry = {
@@ -41,28 +47,6 @@ process.on('SIGINT', async () => {
 	process.exit();
 });
 
-export function makeClusterId(cluster: string, subCluster: string): string {
-	return JSON.stringify([cluster, subCluster]);
-}
-
-export function jaccardSimilarity<T>(setA: Set<T>, setB: Set<T>): number {
-	if (setA.size === 0 && setB.size === 0) {
-		return 0;
-	}
-
-	const [smallSet, largeSet] = setA.size <= setB.size ? [setA, setB] : [setB, setA];
-	let intersectionSize = 0;
-
-	for (const value of smallSet) {
-		if (largeSet.has(value)) {
-			intersectionSize += 1;
-		}
-	}
-
-	const unionSize = setA.size + setB.size - intersectionSize;
-	return unionSize === 0 ? 0 : intersectionSize / unionSize;
-}
-
 function normalizeGenre(genre: string): string {
 	return genre
 		.toLowerCase()
@@ -73,6 +57,17 @@ function normalizeGenre(genre: string): string {
 }
 
 const missingGenresCache = new Set<string>();
+
+// Cache for findClusters results to avoid redundant computation
+const clusterCache = new Map<string, ClusterEntry[]>();
+
+function createClusterCacheKey(genres: string[]): string {
+	// Sort and stringify to ensure ['techno', 'house'] and ['house', 'techno'] hit same cache
+	return JSON.stringify([...genres].sort());
+}
+
+// Export for testing only (SvelteKit requires _ prefix for non-standard exports)
+export const _createClusterCacheKey = createClusterCacheKey;
 
 function shouldIgnoreGenre(genre: string): boolean {
 	const ignoredGenres = [
@@ -87,7 +82,36 @@ function shouldIgnoreGenre(genre: string): boolean {
 }
 
 function findClusters(genres: string[]): ClusterEntry[] {
+	// Check cache first
+	const cacheKey = createClusterCacheKey(genres);
+	const cached = clusterCache.get(cacheKey);
+	if (cached) {
+		return cached;
+	}
+
 	const clusters: ClusterEntry[] = [];
+
+	const findMatchInSubClusters = (
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		subClusters: any[],
+		matchFn: (normalizedSubGenres: string[] | undefined) => boolean
+	): string | null => {
+		for (const subCluster of subClusters) {
+			const normalizedSubGenres = subCluster.genres?.map((g: string) => normalizeGenre(g));
+			if (matchFn(normalizedSubGenres)) {
+				return subCluster.name;
+			}
+
+			if (subCluster.sub_clusters) {
+				const foundInNested = findMatchInSubClusters(subCluster.sub_clusters, matchFn);
+				if (foundInNested) {
+					return foundInNested;
+				}
+			}
+		}
+
+		return null;
+	};
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const matchGenreInSubClusters = (subClusters: any[], genre: string, clusterName: string) => {
@@ -98,30 +122,44 @@ function findClusters(genres: string[]): ClusterEntry[] {
 			return true; // Return true to prevent logging
 		}
 
-		for (const subCluster of subClusters) {
-			const normalizedSubGenres = subCluster.genres?.map((g: string) => normalizeGenre(g));
-			if (
-				normalizedSubGenres?.some(
-					(g: string) =>
-						g === normalizedInputGenre ||
-						g.includes(normalizedInputGenre) ||
-						normalizedInputGenre.includes(g)
-				)
-			) {
-				clusters.push({
-					genre,
-					cluster: clusterName,
-					subCluster: subCluster.name
-				});
-				return true; // Genre found, stop further search
-			}
-
-			// Recursively search in nested sub_clusters
-			if (subCluster.sub_clusters) {
-				const foundInNested = matchGenreInSubClusters(subCluster.sub_clusters, genre, clusterName);
-				if (foundInNested) return true; // Stop searching if already found
-			}
+		const exactMatch = findMatchInSubClusters(subClusters, (normalizedSubGenres) =>
+			(normalizedSubGenres ?? []).some((g: string) => g === normalizedInputGenre)
+		);
+		if (exactMatch) {
+			clusters.push({
+				genre,
+				cluster: clusterName,
+				subCluster: exactMatch
+			});
+			return true;
 		}
+
+		const fuzzyMatch = findMatchInSubClusters(subClusters, (normalizedSubGenres) =>
+			(normalizedSubGenres ?? []).some((g: string) => isFuzzyMatch(normalizedInputGenre, g))
+		);
+		if (fuzzyMatch) {
+			clusters.push({
+				genre,
+				cluster: clusterName,
+				subCluster: fuzzyMatch
+			});
+			return true;
+		}
+
+		const partialMatch = findMatchInSubClusters(subClusters, (normalizedSubGenres) =>
+			(normalizedSubGenres ?? []).some((g: string) =>
+				isWordBoundaryPartialMatch(normalizedInputGenre, g)
+			)
+		);
+		if (partialMatch) {
+			clusters.push({
+				genre,
+				cluster: clusterName,
+				subCluster: partialMatch
+			});
+			return true;
+		}
+
 		return false;
 	};
 
@@ -140,11 +178,12 @@ function findClusters(genres: string[]): ClusterEntry[] {
 
 		let found = false;
 
-		genreClusters.clusters.forEach((cluster) => {
+		for (const cluster of genreClusters.clusters) {
 			if (matchGenreInSubClusters(cluster.sub_clusters, normalizedGenre, cluster.name)) {
 				found = true;
+				break;
 			}
-		});
+		}
 
 		if (!found && !missingGenresCache.has(normalizedGenre)) {
 			// Only log each missing genre once per server session
@@ -157,6 +196,8 @@ function findClusters(genres: string[]): ClusterEntry[] {
 		}
 	});
 
+	// Cache the result before returning
+	clusterCache.set(cacheKey, clusters);
 	return clusters;
 }
 
@@ -181,12 +222,19 @@ function calculateClusterSimilarity(
 		}
 	}
 
-	const matchingGenres = userClusters
-		.filter((uc) => matchingClusterIds.has(makeClusterId(uc.cluster, uc.subCluster)))
-		.map((uc) => uc.genre);
+	const matchingGenres = [
+		...new Set(
+			userClusters
+				.filter((uc) => matchingClusterIds.has(makeClusterId(uc.cluster, uc.subCluster)))
+				.map((uc) => uc.genre)
+		)
+	];
 
 	return { similarity: similarityScore, matchingGenres };
 }
+
+export const _findClusters = findClusters;
+export const _calculateClusterSimilarity = calculateClusterSimilarity;
 
 export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	depends('app:date');

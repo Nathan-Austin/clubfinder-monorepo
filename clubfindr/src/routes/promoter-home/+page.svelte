@@ -3,7 +3,7 @@
 	import type { PageData } from './$types';
 	import GenreSelector from './components/GenreSelector.svelte';
 	import ArtistSearchForm from './components/ArtistSearchForm.svelte';
-	import type { Performer, PerformerTrack } from '$lib/$types';
+	import type { Performer } from '$lib/$types';
 
 	import { Search } from 'lucide-svelte';
 	export let data: PageData;

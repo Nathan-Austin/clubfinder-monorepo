@@ -410,7 +410,6 @@
 			</div>
 
 			<div>
-				<!-- svelte-ignore a11y-label-has-associated-control -->
 				<div class="block text-gray-700 text-sm font-bold mb-2">Performer Genres</div>
 				<GenreSelector bind:selectedGenres={formData.genres} />
 			</div>
