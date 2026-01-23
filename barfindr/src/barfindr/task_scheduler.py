@@ -1,9 +1,11 @@
+import multiprocessing
 import os
 import time
-import multiprocessing
+from typing import Any, Callable
+
 import structlog
+
 from .celery import app as celery  # Import the central celery app
-from typing import Callable, Any
 
 # Configure structured logging
 logger = structlog.get_logger()

@@ -1,10 +1,12 @@
 import asyncio
 import traceback
+
 import requests
-from src.barfindr.spotify_service import spotify_service
+from sqlalchemy import text
+
 from src.barfindr.database import database_manager
 from src.barfindr.encryption import encryption_service
-from sqlalchemy import text
+from src.barfindr.spotify_service import spotify_service
 
 
 async def test_spotify():

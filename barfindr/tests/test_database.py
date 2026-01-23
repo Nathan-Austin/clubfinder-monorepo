@@ -1,7 +1,9 @@
 # tests/test_database.py
-from src.barfindr.database import database_manager
-from sqlalchemy import text
 import os
+
+from sqlalchemy import text
+
+from src.barfindr.database import database_manager
 
 
 def test_database():

@@ -3,13 +3,15 @@ import base64
 import json
 import logging
 import os
-import requests
 import traceback
-from src.barfindr.database import database_manager
-from src.barfindr.encryption import encryption_service
-from sqlalchemy import text
+
+import requests
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from sqlalchemy import text
+
+from src.barfindr.database import database_manager
+from src.barfindr.encryption import encryption_service
 
 # Configure detailed logging
 logging.basicConfig(level=logging.DEBUG)

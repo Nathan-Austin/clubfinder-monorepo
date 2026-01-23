@@ -1,10 +1,12 @@
 # tests/test_genre_aggregates.py
-from src.barfindr.database import database_manager
-from src.barfindr.tasks import update_genre_aggregates
-from sqlalchemy import text
-from datetime import datetime, timedelta
 import json
 import uuid
+from datetime import datetime, timedelta
+
+from sqlalchemy import text
+
+from src.barfindr.database import database_manager
+from src.barfindr.tasks import update_genre_aggregates
 
 
 def check_profiles_data():

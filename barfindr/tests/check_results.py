@@ -1,7 +1,9 @@
 # Create a test script: check_results.py
-from barfindr.database import database_manager
-from sqlalchemy import text
 from datetime import datetime, timedelta
+
+from sqlalchemy import text
+
+from barfindr.database import database_manager
 
 
 def check_results():

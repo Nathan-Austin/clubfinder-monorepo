@@ -1,8 +1,10 @@
 # models/bar_profile.py
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Float, Index
+
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
 from ..database import Base
 from .bar import Bar
 

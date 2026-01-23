@@ -1,10 +1,10 @@
-import os
 import base64
 import hashlib
-from typing import Optional, Union
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import os
 from pathlib import Path
+from typing import Optional, Union
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from dotenv import load_dotenv
 
 # Get the directory of the current file

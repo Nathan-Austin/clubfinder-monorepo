@@ -1,18 +1,19 @@
+import uuid
+from datetime import datetime
+
 import pytest
 from sqlalchemy import (
-    create_engine,
-    Column,
-    String,
     Boolean,
+    Column,
     DateTime,
     ForeignKey,
-    text,
     MetaData,
+    String,
+    TypeDecorator,
+    create_engine,
+    text,
 )
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base, backref
-from datetime import datetime
-import uuid
-from sqlalchemy import TypeDecorator, String
+from sqlalchemy.orm import backref, declarative_base, relationship, sessionmaker
 
 # Create a separate Base for tests
 TestBase = declarative_base()

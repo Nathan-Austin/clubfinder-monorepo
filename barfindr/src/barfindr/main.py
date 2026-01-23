@@ -1,9 +1,11 @@
 # src/barfindr/main.py
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
 import structlog
+
 from .database import database_manager
 
 logger = structlog.get_logger()

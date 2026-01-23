@@ -1,17 +1,16 @@
 # Description: Spotify service to get live music profile for a bar.
 # Spotify_service.py
+import asyncio
 import os
 import time
 from collections import Counter
 from datetime import datetime
-from typing import List, Dict, Optional
-import structlog
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
+from typing import Dict, List, Optional
+
 import requests
-import asyncio
-from datetime import datetime
-from collections import Counter
+import spotipy
+import structlog
+from spotipy.oauth2 import SpotifyOAuth
 
 logger = structlog.get_logger()
 

@@ -1,11 +1,11 @@
-import os
 import logging
+import os
 from typing import Optional
 
 import structlog
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
 # Create the declarative base
