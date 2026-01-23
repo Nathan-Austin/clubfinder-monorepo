@@ -18,8 +18,7 @@ async def test_spotify():
     with database_manager.get_session() as session:
         try:
             # Get the specific bar with Spotify integration for nath.austin@gmail.com
-            bar_query = text(
-                """
+            bar_query = text("""
                 SELECT b.id, b.spotify_access_token, b.spotify_refresh_token, 
                        b.spotify_app_name, b.music_service,
                        a.client_id, a.client_secret
@@ -28,8 +27,7 @@ async def test_spotify():
                 WHERE b.general_email = 'nath.austin@gmail.com'
                 AND LOWER(b.music_service) = 'spotify' 
                 AND b.spotify_access_token IS NOT NULL
-            """
-            )
+            """)
 
             bar = session.execute(bar_query).mappings().fetchone()
 

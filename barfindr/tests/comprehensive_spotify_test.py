@@ -23,16 +23,14 @@ def verify_spotify_credentials():
     with database_manager.get_session() as session:
         try:
             # Query to get Spotify app details
-            query = text(
-                """
+            query = text("""
                 SELECT 
                     app_name, 
                     client_id, 
                     client_secret
                 FROM clubfindr.spotify_apps
                 WHERE app_name = 'Clubfindr Bars 1'
-            """
-            )
+            """)
 
             result = session.execute(query).fetchone()
 
@@ -134,8 +132,7 @@ async def comprehensive_spotify_debug():
     with database_manager.get_session() as session:
         try:
             # Extended query to get bar details
-            bar_query = text(
-                """
+            bar_query = text("""
                 SELECT 
                     id, 
                     spotify_access_token, 
@@ -153,8 +150,7 @@ async def comprehensive_spotify_debug():
                 AND spotify_access_token IS NOT NULL
                 AND general_email = 'nath.austin@gmail.com'
                 LIMIT 1
-            """
-            )
+            """)
 
             bar = session.execute(bar_query).mappings().fetchone()
 
@@ -162,8 +158,7 @@ async def comprehensive_spotify_debug():
                 print("No bar with Spotify integration found for nath.austin@gmail.com")
 
                 # Fallback query if email-specific query fails
-                bar_query = text(
-                    """
+                bar_query = text("""
                     SELECT 
                         id, 
                         spotify_access_token, 
@@ -180,8 +175,7 @@ async def comprehensive_spotify_debug():
                     WHERE LOWER(music_service) = 'spotify' 
                     AND spotify_access_token IS NOT NULL
                     LIMIT 1
-                """
-                )
+                """)
                 bar = session.execute(bar_query).mappings().fetchone()
 
             if not bar:
@@ -200,16 +194,14 @@ async def comprehensive_spotify_debug():
             print(f"Updated At: {bar.updated_at}")
 
             # Verify Spotify app credentials
-            spotify_app_query = text(
-                """
+            spotify_app_query = text("""
                 SELECT 
                     app_name, 
                     client_id, 
                     client_secret
                 FROM clubfindr.spotify_apps
                 WHERE app_name = :app_name
-            """
-            )
+            """)
             spotify_app = session.execute(
                 spotify_app_query, {"app_name": bar.spotify_app_name}
             ).fetchone()
