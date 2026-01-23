@@ -15,7 +15,9 @@ def load_graphql_query_template():
         return json.load(file)
 
 
-def parse_graphql_response(payload, path, context="GraphQL response", logger=None, expected_type=None):
+def parse_graphql_response(
+    payload, path, context="GraphQL response", logger=None, expected_type=None
+):
     """Extract a nested value from a GraphQL payload with basic validation."""
     if logger is None:
         logger = logging.getLogger(__name__)

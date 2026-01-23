@@ -1,10 +1,12 @@
 from sqlalchemy import TypeDecorator, String
 import uuid
 
+
 class SqliteUUID(TypeDecorator):
     """SQLite-friendly UUID type.
     Uses a string to store UUIDs to work around SQLite's lack of native UUID support.
     """
+
     impl = String
     cache_ok = True
 

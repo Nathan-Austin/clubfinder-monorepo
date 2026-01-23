@@ -351,17 +351,19 @@ Results include:
 ## Next Steps Priority Order
 
 **✅ COMPLETED:**
+
 1. ~~Issue #5 - Weighting System~~ (HIGH - improves recommendation quality) ✓
 2. ~~Issue #6 - O(n³) optimization~~ (MEDIUM - reverse index) ✓
 3. ~~Issue #12 - Hard-coded Threshold~~ (MEDIUM - adaptive filtering) ✓
 4. ~~Issue #10 - Missing Genre Handling~~ (MEDIUM - better logging + fallback) ✓
 5. ~~Issue #13 - Result Diversity~~ (MEDIUM - MMR implementation) ✓
 
-**🟢 LOW PRIORITY:**
-6. **Issue #9** - Genre Source Prioritization (LOW - refactoring for clarity)
-7. **Issue #8** - Partially addressed by Issue #1
+**🟢 LOW PRIORITY:** 6. **Issue #9** - Genre Source Prioritization (LOW - refactoring for clarity) 7. **Issue #8** - Partially addressed by Issue #1
 
 ---
 
 _Last updated: 2026-01-21 by Claude Code & codex_
+
+```
+
 ```

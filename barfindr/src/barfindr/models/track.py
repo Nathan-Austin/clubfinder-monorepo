@@ -5,20 +5,22 @@ from datetime import datetime
 import uuid
 from .bar_reference import Bar
 
+
 class BarTrack(Base):
     """
     Represents a track played at a specific bar.
     Stores track metadata and Spotify audio features.
     """
-    __tablename__ = 'bar_tracks'
-    __table_args__ = {'schema': 'clubfindr'}  # Adjust schema as needed
+
+    __tablename__ = "bar_tracks"
+    __table_args__ = {"schema": "clubfindr"}  # Adjust schema as needed
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    bar_id = Column(UUID(as_uuid=True), ForeignKey('clubfindr.bars.id'), nullable=False)
-    
+    bar_id = Column(UUID(as_uuid=True), ForeignKey("clubfindr.bars.id"), nullable=False)
+
     # Relationship to the Bar model
     bar = relationship("Bar", foreign_keys=[bar_id])
-    
+
     track_id = Column(String, nullable=False)
     name = Column(String, nullable=False)
     artist = Column(String, nullable=False)

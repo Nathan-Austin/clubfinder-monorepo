@@ -18,27 +18,29 @@ from log_utils import redact_identifier
 # Configure logging
 logging.basicConfig(
     level=logging.ERROR,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("event_fetcher.log"),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("event_fetcher.log"), logging.StreamHandler()],
 )
 
-URL = 'https://ra.co/graphql'
+URL = "https://ra.co/graphql"
 HEADERS_TEMPLATE = {
-    'Content-Type': 'application/json',
-    'Referer': 'https://ra.co/events/{country_code}/{city_name}',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'
+    "Content-Type": "application/json",
+    "Referer": "https://ra.co/events/{country_code}/{city_name}",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0",
 }
+
 
 class EventFetcher:
     """
     A class to fetch and save event details from RA.co
     """
 
-    def __init__(self, areas, listing_date_gte, listing_date_lte, city_name, country_code):
-        logging.info(f"Initializing EventFetcher for city: {city_name} and country: {country_code}")
+    def __init__(
+        self, areas, listing_date_gte, listing_date_lte, city_name, country_code
+    ):
+        logging.info(
+            f"Initializing EventFetcher for city: {city_name} and country: {country_code}"
+        )
         self.headers = self.generate_headers(city_name, country_code)
         self.payload = self.generate_payload(areas, listing_date_gte, listing_date_lte)
         self.city_name = city_name
@@ -49,12 +51,12 @@ class EventFetcher:
     @staticmethod
     def generate_headers(city_name, country_code):
         headers = HEADERS_TEMPLATE.copy()
-        headers['Referer'] = headers['Referer'].format(
-            country_code=country_code.lower(), 
-            city_name=city_name.lower().replace(" ", "-")
+        headers["Referer"] = headers["Referer"].format(
+            country_code=country_code.lower(),
+            city_name=city_name.lower().replace(" ", "-"),
         )
         return headers
-    
+
     @staticmethod
     def generate_payload(areas, listing_date_gte, listing_date_lte):
         """Generate the payload for the GraphQL request."""
@@ -65,16 +67,15 @@ class EventFetcher:
         payload["variables"]["filters"]["listingDate"]["lte"] = listing_date_lte
         return payload
 
-    
-    def save_response_to_json(self, response, filename='event_response.json'):
+    def save_response_to_json(self, response, filename="event_response.json"):
         """Save API response to a JSON file for debugging."""
         try:
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 json.dump(response, f, indent=4)
             logging.info(f"Response saved to {filename}")
         except Exception as e:
             logging.error(f"Failed to save response to JSON: {e}")
-    
+
     def get_events(self, page_number):
         """Fetch events from the RA API."""
         self.payload["variables"]["page"] = page_number
@@ -91,10 +92,10 @@ class EventFetcher:
         except Exception as e:
             logging.error(f"Error fetching events: {e}")
             return []
-            
+
         end_time = time.time()
         logging.info(f"Request completed in {end_time - start_time:.2f} seconds")
-        
+
         events = parse_graphql_response(
             data,
             ["eventListings", "data"],
@@ -106,42 +107,36 @@ class EventFetcher:
             return []
 
         return events
-    
+
     def get_venue_coordinates(self, venue_name):
         """Get coordinates for a venue from the venues table or fetch them from RA."""
         # Check if coordinates are in the cache
         if venue_name in self.venue_cache:
             return self.venue_cache[venue_name]
-        
+
         # Check if coordinates are in the venues table
         query = """
         SELECT latitude, longitude
         FROM clubfindr.venues
         WHERE name = %s AND city = %s;
         """
-        
+
         result = execute_query(query, params=(venue_name, self.city_name), fetch=True)
-        
+
         if result and result[0][0] is not None and result[0][1] is not None:
             # Coordinates found in venues table
-            coordinates = {
-                'latitude': result[0][0],
-                'longitude': result[0][1]
-            }
+            coordinates = {"latitude": result[0][0], "longitude": result[0][1]}
             self.venue_cache[venue_name] = coordinates
             return coordinates
-        
+
         # If not in the database, fetch from RA
         return self.fetch_venue_coordinates(venue_name)
-    
+
     def fetch_venue_coordinates(self, venue_name):
         """Fetch venue coordinates from RA Search API."""
         payload = {
             "operationName": "SearchVenues",
-            "variables": {
-                "searchQuery": venue_name,
-                "areaId": self.area_code
-            },
+            "variables": {"searchQuery": venue_name, "areaId": self.area_code},
             "query": """
             query SearchVenues($searchQuery: String!, $areaId: Int) {
               venueSearch(searchQuery: $searchQuery, areaId: $areaId) {
@@ -156,9 +151,9 @@ class EventFetcher:
                 }
               }
             }
-            """
+            """,
         }
-        
+
         try:
             response = requests.post(URL, headers=self.headers, json=payload)
             response.raise_for_status()
@@ -166,7 +161,7 @@ class EventFetcher:
                 data = response.json()
             except ValueError:
                 logging.error("Failed to parse JSON response for venue search")
-                return {'latitude': None, 'longitude': None}
+                return {"latitude": None, "longitude": None}
 
             venues = parse_graphql_response(
                 data,
@@ -176,55 +171,65 @@ class EventFetcher:
                 expected_type=list,
             )
             if venues is None:
-                return {'latitude': None, 'longitude': None}
-                
+                return {"latitude": None, "longitude": None}
+
                 if venues:
                     # Find the best match for the venue
                     best_match = None
                     for venue in venues:
-                        if venue_name.lower() in venue['name'].lower() or venue['name'].lower() in venue_name.lower():
+                        if (
+                            venue_name.lower() in venue["name"].lower()
+                            or venue["name"].lower() in venue_name.lower()
+                        ):
                             best_match = venue
                             break
-                    
+
                     # If no direct match, use the first venue
                     if not best_match and venues:
                         best_match = venues[0]
-                    
+
                     if best_match:
-                        location = best_match.get('location', {})
-                        if location and 'latitude' in location and 'longitude' in location:
+                        location = best_match.get("location", {})
+                        if (
+                            location
+                            and "latitude" in location
+                            and "longitude" in location
+                        ):
                             coordinates = {
-                                'latitude': location['latitude'],
-                                'longitude': location['longitude']
+                                "latitude": location["latitude"],
+                                "longitude": location["longitude"],
                             }
-                            
+
                             # Save to venues table for future use
                             self.save_venue_to_database(
-                                best_match.get('id', ''), 
-                                best_match['name'], 
-                                best_match.get('address', ''), 
-                                coordinates['latitude'], 
-                                coordinates['longitude']
+                                best_match.get("id", ""),
+                                best_match["name"],
+                                best_match.get("address", ""),
+                                coordinates["latitude"],
+                                coordinates["longitude"],
                             )
-                            
+
                             # Cache the coordinates
                             self.venue_cache[venue_name] = coordinates
                             return coordinates
-            
+
             # If we get here, we couldn't find coordinates
-            logging.warning("Could not find coordinates for venue: %s", redact_identifier(venue_name, "venue"))
-            self.venue_cache[venue_name] = {'latitude': None, 'longitude': None}
-            return {'latitude': None, 'longitude': None}
-            
+            logging.warning(
+                "Could not find coordinates for venue: %s",
+                redact_identifier(venue_name, "venue"),
+            )
+            self.venue_cache[venue_name] = {"latitude": None, "longitude": None}
+            return {"latitude": None, "longitude": None}
+
         except Exception as e:
             logging.error(
                 "Error fetching coordinates for venue %s: %s",
                 redact_identifier(venue_name, "venue"),
                 e,
             )
-            self.venue_cache[venue_name] = {'latitude': None, 'longitude': None}
-            return {'latitude': None, 'longitude': None}
-    
+            self.venue_cache[venue_name] = {"latitude": None, "longitude": None}
+            return {"latitude": None, "longitude": None}
+
     def save_venue_to_database(self, venue_id, name, address, latitude, longitude):
         """Save venue information to the venues table."""
         # Make sure the venues table exists
@@ -241,10 +246,10 @@ class EventFetcher:
             UNIQUE(name, city)
         );
         """
-        
+
         try:
             execute_query(create_table_query)
-            
+
             # Insert venue information
             query = """
             INSERT INTO clubfindr.venues (venue_id, name, address, city, latitude, longitude)
@@ -256,9 +261,13 @@ class EventFetcher:
                 longitude = EXCLUDED.longitude,
                 last_updated = CURRENT_TIMESTAMP;
             """
-            
-            commit_to_database(query, (venue_id, name, address, self.city_name, latitude, longitude))
-            logging.info("Saved venue information for %s", redact_identifier(name, "venue"))
+
+            commit_to_database(
+                query, (venue_id, name, address, self.city_name, latitude, longitude)
+            )
+            logging.info(
+                "Saved venue information for %s", redact_identifier(name, "venue")
+            )
             return True
         except Exception as e:
             logging.error(
@@ -267,7 +276,7 @@ class EventFetcher:
                 e,
             )
             return False
-    
+
     def save_event_and_artists(self, events, city_name):
         """Saves events, artists, and their associations to the database with coordinates."""
         event_ids = {}
@@ -278,26 +287,41 @@ class EventFetcher:
             try:
                 event_data = event.get("event", {})
                 if isinstance(event_data, list):
-                    logging.warning("Skipping event data because it's a list (len=%d)", len(event_data))
+                    logging.warning(
+                        "Skipping event data because it's a list (len=%d)",
+                        len(event_data),
+                    )
                     continue
 
                 # Safely extract event details
-                event_id = event_data.get('id', '')
-                event_name = event_data.get('title', 'Unnamed Event')
-                event_date = event_data.get('date', '').split('T')[0] if event_data.get('date') else None
-                start_time = event_data.get('startTime', '').split('T')[1].split('.')[0] if 'startTime' in event_data and event_data.get('startTime') else None
-                end_time = event_data.get('endTime', '').split('T')[1].split('.')[0] if 'endTime' in event_data and event_data.get('endTime') else None
-                
+                event_id = event_data.get("id", "")
+                event_name = event_data.get("title", "Unnamed Event")
+                event_date = (
+                    event_data.get("date", "").split("T")[0]
+                    if event_data.get("date")
+                    else None
+                )
+                start_time = (
+                    event_data.get("startTime", "").split("T")[1].split(".")[0]
+                    if "startTime" in event_data and event_data.get("startTime")
+                    else None
+                )
+                end_time = (
+                    event_data.get("endTime", "").split("T")[1].split(".")[0]
+                    if "endTime" in event_data and event_data.get("endTime")
+                    else None
+                )
+
                 # Extract venue details
-                venue = event_data.get('venue', {})
-                club_name = venue.get('name', 'Unknown Venue')
-                club_address = venue.get('address', 'Unknown Address')
-                
+                venue = event_data.get("venue", {})
+                club_name = venue.get("name", "Unknown Venue")
+                club_address = venue.get("address", "Unknown Address")
+
                 # Get coordinates for this venue
                 coordinates = self.get_venue_coordinates(club_name)
-                latitude = coordinates['latitude']
-                longitude = coordinates['longitude']
-                
+                latitude = coordinates["latitude"]
+                longitude = coordinates["longitude"]
+
                 if latitude and longitude:
                     logging.info(
                         "Using coordinates for %s: %s, %s",
@@ -307,18 +331,23 @@ class EventFetcher:
                     )
                     events_with_coords += 1
                 else:
-                    logging.warning("No coordinates found for %s", redact_identifier(club_name, "venue"))
+                    logging.warning(
+                        "No coordinates found for %s",
+                        redact_identifier(club_name, "venue"),
+                    )
                     events_without_coords += 1
-                
-                popularity = event_data.get('attending', '0')
-                price = event_data.get('cost', 'N/A')
-                genres_info = event_data.get('genres', [])
+
+                popularity = event_data.get("attending", "0")
+                price = event_data.get("cost", "N/A")
+                genres_info = event_data.get("genres", [])
                 images = event_data.get("images", [])
-                event_image = images[0].get('filename', '') if images else ''
+                event_image = images[0].get("filename", "") if images else ""
 
                 # Safely extract genres
-                genres = [genre.get('name', '') for genre in genres_info if genre.get('name')]
-                genres = genres if genres else ['None']
+                genres = [
+                    genre.get("name", "") for genre in genres_info if genre.get("name")
+                ]
+                genres = genres if genres else ["None"]
 
                 # Insert event into the database
                 query = """
@@ -345,8 +374,20 @@ class EventFetcher:
                 """
 
                 query_params = (
-                    event_id, event_name, club_name, club_address, event_date,
-                    start_time, end_time, genres, popularity, price, event_image, city_name, latitude, longitude
+                    event_id,
+                    event_name,
+                    club_name,
+                    club_address,
+                    event_date,
+                    start_time,
+                    end_time,
+                    genres,
+                    popularity,
+                    price,
+                    event_image,
+                    city_name,
+                    latitude,
+                    longitude,
                 )
 
                 result = execute_query2(query, query_params, return_results=True)
@@ -360,12 +401,12 @@ class EventFetcher:
                     artist_ids = []
 
                     for artist in artists_info:
-                        artist_name = name_cleaner(artist.get('name', 'Unknown Artist'))
-                        facebook = artist.get('facebook', None)
-                        instagram = artist.get('instagram', None)
-                        soundcloud = artist.get('soundcloud', None)
-                        bandcamp = artist.get('bandcamp', None)
-                        website = artist.get('website', None)
+                        artist_name = name_cleaner(artist.get("name", "Unknown Artist"))
+                        facebook = artist.get("facebook", None)
+                        instagram = artist.get("instagram", None)
+                        soundcloud = artist.get("soundcloud", None)
+                        bandcamp = artist.get("bandcamp", None)
+                        website = artist.get("website", None)
 
                         artist_query = """
                         INSERT INTO clubfindr.artists (
@@ -379,15 +420,25 @@ class EventFetcher:
                         """
 
                         artist_query_params = (
-                            artist_name, facebook, instagram, genres,
-                            soundcloud, bandcamp, website, city_name
+                            artist_name,
+                            facebook,
+                            instagram,
+                            genres,
+                            soundcloud,
+                            bandcamp,
+                            website,
+                            city_name,
                         )
 
-                        artist_result = execute_query2(artist_query, artist_query_params, return_results=True)
+                        artist_result = execute_query2(
+                            artist_query, artist_query_params, return_results=True
+                        )
 
                         if artist_result:
                             artist_id = artist_result[0]  # Get the artist's DB ID
-                            artist_ids.append(artist_id)  # Store artist ID for event_artists table
+                            artist_ids.append(
+                                artist_id
+                            )  # Store artist ID for event_artists table
 
                     # Insert event-artist relationships into event_artists table
                     self.save_event_artists(event_db_id, artist_ids, city_name)
@@ -395,14 +446,19 @@ class EventFetcher:
             except Exception as e:
                 logging.error(
                     "Failed to process event %s: %s",
-                    redact_identifier(event_name if 'event_name' in locals() else None, "event"),
+                    redact_identifier(
+                        event_name if "event_name" in locals() else None, "event"
+                    ),
                     e,
                 )
                 import traceback
+
                 logging.error(traceback.format_exc())
                 continue
 
-        logging.info(f"Processed {len(events)} events. Events with coordinates: {events_with_coords}, without coordinates: {events_without_coords}")
+        logging.info(
+            f"Processed {len(events)} events. Events with coordinates: {events_with_coords}, without coordinates: {events_without_coords}"
+        )
         return event_ids
 
     def save_event_artists(self, event_id, artist_ids, city_name):
@@ -420,13 +476,27 @@ class EventFetcher:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fetch events from ra.co and save them to a database with coordinates.")
-    parser.add_argument("start_date", type=str, help="The start date for event listings (inclusive, format: YYYY-MM-DD).")
-    parser.add_argument("end_date", type=str, help="The end date for event listings (inclusive, format: YYYY-MM-DD).")
-    parser.add_argument('city_name', type=str, help="Name of the city")
-    parser.add_argument('areas', type=int, help="Code of the city")
-    parser.add_argument('country_code', type=str, help="Country code for the city")
-    parser.add_argument('--save-response', action='store_true', help="Save the API response for debugging")
+    parser = argparse.ArgumentParser(
+        description="Fetch events from ra.co and save them to a database with coordinates."
+    )
+    parser.add_argument(
+        "start_date",
+        type=str,
+        help="The start date for event listings (inclusive, format: YYYY-MM-DD).",
+    )
+    parser.add_argument(
+        "end_date",
+        type=str,
+        help="The end date for event listings (inclusive, format: YYYY-MM-DD).",
+    )
+    parser.add_argument("city_name", type=str, help="Name of the city")
+    parser.add_argument("areas", type=int, help="Code of the city")
+    parser.add_argument("country_code", type=str, help="Country code for the city")
+    parser.add_argument(
+        "--save-response",
+        action="store_true",
+        help="Save the API response for debugging",
+    )
 
     args = parser.parse_args()
 
@@ -435,7 +505,13 @@ def main():
     listing_date_lte = f"{args.end_date}T23:59:59.999Z"
 
     # Initialize event fetcher with the area, city, and country details
-    event_fetcher = EventFetcher(args.areas, listing_date_gte, listing_date_lte, args.city_name, args.country_code)
+    event_fetcher = EventFetcher(
+        args.areas,
+        listing_date_gte,
+        listing_date_lte,
+        args.city_name,
+        args.country_code,
+    )
 
     all_events = []
     current_start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
@@ -444,39 +520,55 @@ def main():
     # Loop through dates to fetch events
     while current_start_date <= end_date:
         listing_date_gte = current_start_date.strftime("%Y-%m-%dT00:00:00.000Z")
-        event_fetcher.payload = event_fetcher.generate_payload(args.areas, listing_date_gte, listing_date_lte)
+        event_fetcher.payload = event_fetcher.generate_payload(
+            args.areas, listing_date_gte, listing_date_lte
+        )
 
         try:
             events = event_fetcher.get_events(1)
-            
+
             # Save response for debugging if requested
-            if args.save_response and events and current_start_date == datetime.strptime(args.start_date, "%Y-%m-%d"):
-                event_fetcher.save_response_to_json({"events": events}, f"{args.city_name}_response.json")
-                
+            if (
+                args.save_response
+                and events
+                and current_start_date == datetime.strptime(args.start_date, "%Y-%m-%d")
+            ):
+                event_fetcher.save_response_to_json(
+                    {"events": events}, f"{args.city_name}_response.json"
+                )
+
         except Exception as e:
             logging.error(f"Error fetching events: {e}")
-            current_start_date += timedelta(days=1)  # Move to the next day if the API call fails
+            current_start_date += timedelta(
+                days=1
+            )  # Move to the next day if the API call fails
             continue
 
         if events:
             all_events.extend(events)
-            logging.info(f"Added {len(events)} events for {current_start_date.strftime('%Y-%m-%d')}")
+            logging.info(
+                f"Added {len(events)} events for {current_start_date.strftime('%Y-%m-%d')}"
+            )
 
         # Move to the next day
         current_start_date += timedelta(days=1)
 
     logging.info(f"Total events fetched: {len(all_events)}")
-    
+
     try:
         # Save events and artists in one function
-        logging.info(f"Saving {len(all_events)} events to database for {args.city_name}")
+        logging.info(
+            f"Saving {len(all_events)} events to database for {args.city_name}"
+        )
         event_fetcher.save_event_and_artists(all_events, args.city_name)
         logging.info(f"Finished saving events to database for {args.city_name}")
-        
+
     except Exception as e:
         logging.error(f"Error saving events or artists: {e}")
         import traceback
+
         logging.error(traceback.format_exc())
+
 
 if __name__ == "__main__":
     main()
