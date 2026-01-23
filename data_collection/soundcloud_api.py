@@ -24,7 +24,7 @@ from utils import (
 load_dotenv()
 logging.basicConfig(
     level=logging.ERROR,
-    filename="/home/nathan/clubfinder-monorepo/data_collection/soundcloud_api.log",
+    filename="/home/nathan/clubfinder/data_collection/soundcloud_api.log",
     filemode="a",
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -40,7 +40,7 @@ MAX_API_CALLS = 15000
 DELAY_BETWEEN_CALLS = 1  # 1 second delay between calls
 
 # Initialize or load API call count from file
-API_CALL_COUNT_FILE = "/home/nathan/clubfinder-monorepo/data_collection/api_call_count.json"
+API_CALL_COUNT_FILE = "/home/nathan/clubfinder/data_collection/api_call_count.json"
 if os.path.exists(API_CALL_COUNT_FILE):
     with open(API_CALL_COUNT_FILE, "r") as f:
         api_call_count_data = json.load(f)
@@ -329,7 +329,7 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
     """Update artist and event genres with properly cleaned and normalized genres."""
     try:
         # Load valid genres from CSV
-        valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
+        valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
         if not valid_genres:
             logging.error("Failed to load valid genres from CSV")
             return
@@ -486,7 +486,7 @@ def split_and_clean_genres(genres, valid_genres):
 
 
 # Load or initialize the failed artist tracking system
-FAILED_ARTISTS_FILE = "/home/nathan/clubfinder-monorepo/data_collection/failed_artists.json"
+FAILED_ARTISTS_FILE = "/home/nathan/clubfinder/data_collection/failed_artists.json"
 
 # Initialize or load failed artist log
 if os.path.exists(FAILED_ARTISTS_FILE):

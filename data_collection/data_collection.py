@@ -22,7 +22,7 @@ lock_file_handle = None  # Global variable to store lock file handle
 
 STATE_FILE = os.getenv(
     "DATA_COLLECTION_STATE_FILE",
-    "/home/nathan/clubfinder-monorepo/data_collection/run_state.json",
+    "/home/nathan/clubfinder/data_collection/run_state.json",
 )
 RESUME_MODE = os.getenv("DATA_COLLECTION_RESUME", "").lower() in {"1", "true", "yes"}
 START_CITY = os.getenv("DATA_COLLECTION_START_CITY")
@@ -163,7 +163,7 @@ def load_cities_from_file(file_path):
 
 # Define the path to your cities file
 # TEMPORARY: Using single city for testing
-cities_file_path = '/home/nathan/clubfinder-monorepo/data_collection/live_cities.txt'
+cities_file_path = '/home/nathan/clubfinder/data_collection/live_cities.txt'
 
 # Function to generate the dates
 def get_dates():
@@ -223,17 +223,17 @@ def run_with_timeout(script_path, args, timeout):
         return False
 
 def open_event_fetcher(today_date, end_date, city_name, city_code, country_code):
-    script_path = "/home/nathan/clubfinder-monorepo/data_collection/event_fetcher.py"
+    script_path = "/home/nathan/clubfinder/data_collection/event_fetcher.py"
     args = [today_date, end_date, city_name, str(city_code), country_code]
     return run_with_timeout(script_path, args, timeout=EVENT_FETCHER_TIMEOUT)
 
 def open_soundcloud_search(city_name):
-    script_path = "/home/nathan/clubfinder-monorepo/data_collection/soundcloud_api.py"
+    script_path = "/home/nathan/clubfinder/data_collection/soundcloud_api.py"
     args = [city_name]
     return run_with_timeout(script_path, args, timeout=SOUNDCLOUD_TIMEOUT)
 
 def open_spotipy_search(city_name):
-    script_path = "/home/nathan/clubfinder-monorepo/data_collection/spotipy_search.py"
+    script_path = "/home/nathan/clubfinder/data_collection/spotipy_search.py"
     args = [city_name]
     return run_with_timeout(script_path, args, timeout=SPOTIFY_TIMEOUT)
 
