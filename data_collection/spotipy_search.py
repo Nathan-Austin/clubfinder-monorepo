@@ -15,12 +15,14 @@ from utils import (
     split_and_clean_genres
 )
 import datetime
-import pickle
 import argparse
 import time
 import json
 import requests
 import sys
+import re
+from spotify_rate_limiter import ApiKeyRateLimiter
+from log_utils import redact_identifier, redact_list
 
 # Load environment variables
 load_dotenv()
@@ -40,10 +42,10 @@ def ensure_directory_exists(filepath):
         os.makedirs(directory)
 
 # Set up file paths
-log_dir = f'/home/nathan/clubfinder/data_collection/logs/{city_name}'
+log_dir = f'/home/nathan/clubfinder-monorepo/data_collection/logs/{city_name}'
 api_log_file = os.path.join(log_dir, 'spotify_api.log')
 fuzzy_match_log_file = os.path.join(log_dir, 'spotify_fuzzy_match.log')
-api_call_log_file = os.path.join(log_dir, f'spotify_api_call_log_{city_name}.pkl')
+api_call_log_file = os.path.join(log_dir, f'spotify_api_call_log_{city_name}.json')
 
 # Ensure the directories exist
 ensure_directory_exists(api_log_file)
@@ -51,7 +53,7 @@ ensure_directory_exists(fuzzy_match_log_file)
 ensure_directory_exists(api_call_log_file)
 
 # Configure the main logger
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler(api_log_file),
@@ -61,7 +63,7 @@ logging.basicConfig(level=logging.INFO,
 # Separate logger for tracking fuzzy matching and fallback scenarios
 fallback_logger = logging.getLogger('fuzzyMatchLogger')
 fallback_handler = logging.FileHandler(fuzzy_match_log_file, mode='a')
-fallback_handler.setLevel(logging.INFO)
+fallback_handler.setLevel(logging.ERROR)
 fallback_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 fallback_handler.setFormatter(fallback_formatter)
 fallback_logger.addHandler(fallback_handler)
@@ -69,8 +71,13 @@ fallback_logger.addHandler(fallback_handler)
 # Load or initialize the API call log with improved error handling
 try:
     if os.path.exists(api_call_log_file):
-        with open(api_call_log_file, 'rb') as f:
-            api_call_log = pickle.load(f)
+        with open(api_call_log_file, 'r') as f:
+            api_call_log_raw = json.load(f)
+            # Convert ISO format strings back to datetime objects
+            api_call_log = {
+                name: datetime.datetime.fromisoformat(timestamp)
+                for name, timestamp in api_call_log_raw.items()
+            }
     else:
         api_call_log = {}
 except Exception as e:
@@ -96,7 +103,7 @@ timeout_session = TimeoutSession()
 logging.info(f"Starting Spotify search for city: {city_name}")
 try:
     spotify_credentials_str = os.environ.get('SPOTIFY_CREDENTIALS', '[]')
-    logging.debug(f"Raw SPOTIFY_CREDENTIALS: {spotify_credentials_str[:20]}...")  # Log first 20 chars for debugging
+    logging.debug("SPOTIFY_CREDENTIALS length: %d", len(spotify_credentials_str))
     
     spotify_credentials = json.loads(spotify_credentials_str)
     if not spotify_credentials:
@@ -105,7 +112,7 @@ try:
     logging.info(f"Successfully loaded {len(spotify_credentials)} Spotify credentials")
 except json.JSONDecodeError as e:
     logging.error(f"Failed to parse Spotify credentials: {e}")
-    logging.error(f"Raw credentials value: {spotify_credentials_str[:50]}...")  # First 50 chars
+    logging.error("SPOTIFY_CREDENTIALS length: %d", len(spotify_credentials_str))
     sys.exit(1)  # Exit with error rather than proceeding with invalid credentials
 except Exception as e:
     logging.error(f"Unexpected error loading credentials: {e}")
@@ -116,18 +123,11 @@ current_credential_index = 0
 spotify_clients = []
 
 # Rate limiting settings per API key
-REQUESTS_PER_KEY = 80  # More conservative limit (reduced from 100)
-REQUEST_TRACKING = {}  # Track requests per key
+REQUESTS_PER_KEY = int(os.getenv("SPOTIFY_REQUESTS_PER_KEY", "80"))
+MIN_REQUEST_INTERVAL = float(os.getenv("SPOTIFY_MIN_REQUEST_INTERVAL", "0.2"))
+API_CALL_COOLDOWN_DAYS = int(os.getenv("SPOTIFY_API_CALL_COOLDOWN_DAYS", "14"))
 
-def init_request_tracking(client_id):
-    """Initialize or reset tracking for an API key."""
-    REQUEST_TRACKING[client_id] = {
-        'count': 0,
-        'start_time': time.time(),
-        'last_request': time.time()
-    }
-
-# Initialize clients and request tracking for each credential
+# Initialize clients for each credential
 try:
     for cred in spotify_credentials:
         try:
@@ -142,9 +142,6 @@ try:
                 requests_timeout=DEFAULT_TIMEOUT
             )
             spotify_clients.append(client)
-            
-            # Initialize request tracking for this client
-            init_request_tracking(cred['client_id'])
             logging.info(f"Initialized client {cred['client_id'][-4:]} with rate limit tracking")
         except Exception as e:
             logging.error(f"Failed to initialize Spotify client {cred['client_id'][-4:]}: {e}")
@@ -158,6 +155,12 @@ except Exception as e:
 sp = spotify_clients[current_credential_index]
 logging.info(f"Using initial client {spotify_credentials[current_credential_index]['client_id'][-4:]}")
 
+rate_limiter = ApiKeyRateLimiter(
+    [cred['client_id'] for cred in spotify_credentials],
+    requests_per_window=REQUESTS_PER_KEY,
+    min_interval_seconds=MIN_REQUEST_INTERVAL,
+)
+
 def rotate_spotify_client():
     """Enhanced client rotation with rate limit tracking."""
     global current_credential_index, sp
@@ -167,23 +170,17 @@ def rotate_spotify_client():
     old_client_id = current_cred['client_id']
     
     # Rotate to next client
-    current_credential_index = (current_credential_index + 1) % len(spotify_clients)
+    rate_limiter.rotate()
+    current_credential_index = rate_limiter.current_index
     sp = spotify_clients[current_credential_index]
-    
-    # Get new client's ID
-    new_cred = spotify_credentials[current_credential_index]
-    new_client_id = new_cred['client_id']
-    
-    # Initialize tracking for the new client if needed
-    if new_client_id not in REQUEST_TRACKING:
-        init_request_tracking(new_client_id)
+    new_client_id = spotify_credentials[current_credential_index]['client_id']
     
     logging.info(f"Rotated from client {old_client_id[-4:]} to {new_client_id[-4:]} (index: {current_credential_index + 1})")
 
 # Function to check if an artist has been called recently
 def has_been_called_recently(name):
-    two_weeks_ago = datetime.datetime.now() - datetime.timedelta(days=14)
-    return name in api_call_log and api_call_log[name] > two_weeks_ago
+    cutoff = datetime.datetime.now() - datetime.timedelta(days=API_CALL_COOLDOWN_DAYS)
+    return name in api_call_log and api_call_log[name] > cutoff
 
 # Function to update the API call log with periodic saves
 last_save_time = time.time()
@@ -193,78 +190,73 @@ def update_api_call_log(artist):
     global last_save_time
     current_time = time.time()
     api_call_log[artist] = datetime.datetime.now()
-    
+
     # Save periodically rather than after every update
     if current_time - last_save_time > SAVE_INTERVAL:
         try:
-            with open(api_call_log_file, 'wb') as f:
-                pickle.dump(api_call_log, f)
+            # Convert datetime objects to ISO format strings for JSON serialization
+            api_call_log_serializable = {
+                name: timestamp.isoformat()
+                for name, timestamp in api_call_log.items()
+            }
+            with open(api_call_log_file, 'w') as f:
+                json.dump(api_call_log_serializable, f, indent=2)
             last_save_time = current_time
             logging.debug(f"Saved API call log at {datetime.datetime.now()}")
         except Exception as e:
             logging.error(f"Failed to save API call log: {e}")
 
-def check_rate_limit(client_id):
-    """Check if we've hit rate limit for this key and handle accordingly."""
-    if client_id not in REQUEST_TRACKING:
-        init_request_tracking(client_id)
-        return
-
-    tracking = REQUEST_TRACKING[client_id]
-    current_time = time.time()
-    elapsed_time = current_time - tracking['start_time']
-
-    # Add small delay between requests to the same key
-    time_since_last = current_time - tracking['last_request']
-    if time_since_last < 0.2:  # 200ms minimum between requests (increased from 100ms)
-        time.sleep(0.2 - time_since_last)
-
-    # Reset counter if a minute has passed
-    if elapsed_time >= 60:
-        init_request_tracking(client_id)
-    else:
-        # If we've hit the limit, rotate to next client
-        if tracking['count'] >= REQUESTS_PER_KEY:
-            rotate_spotify_client()
-            # Initialize tracking for the new client
-            current_cred = spotify_credentials[current_credential_index]
-            init_request_tracking(current_cred['client_id'])
-        else:
-            tracking['count'] += 1
-            tracking['last_request'] = time.time()
-
 def global_rate_limiter():
     """Enhanced rate limiter that handles multiple API keys."""
+    global current_credential_index, sp
     try:
-        current_cred = spotify_credentials[current_credential_index]
-        check_rate_limit(current_cred['client_id'])
+        client_id = rate_limiter.acquire()
+        if client_id is None:
+            return
+        if spotify_credentials[current_credential_index]['client_id'] != client_id:
+            current_credential_index = next(
+                i for i, cred in enumerate(spotify_credentials)
+                if cred['client_id'] == client_id
+            )
+            sp = spotify_clients[current_credential_index]
     except Exception as e:
         logging.error(f"Error in rate limiter: {e}")
         # Rotate to next client as precaution
         rotate_spotify_client()
 
 # Function to handle Spotify API search with retries and improved error handling
-def safe_spotify_search(sp, artist_name, retries=3):
+def safe_spotify_search(artist_name, retries=3):
     """
     Perform a safe search using the Spotify API with credential rotation and detailed genre logging.
     """
-    global_rate_limiter()  # Apply the global rate limiter before each API call
-    
     all_clients_tried = False
     original_client_index = current_credential_index
     
     for attempt in range(retries):
         try:
-            logging.info(f"Attempt {attempt + 1} to search for artist: {artist_name}")
+            global_rate_limiter()  # Apply the global rate limiter before each API call
+            logging.info(
+                "Attempt %d to search for artist: %s",
+                attempt + 1,
+                redact_identifier(artist_name, "artist"),
+            )
             
             # Make the API call with a timeout
             result = sp.search(artist_name, type='artist', limit=10)
-            logging.info(f"Successfully retrieved data for {artist_name} on attempt {attempt + 1}")
+            logging.info(
+                "Successfully retrieved data for %s on attempt %d",
+                redact_identifier(artist_name, "artist"),
+                attempt + 1,
+            )
             
             # Log the structure of the result to understand what we got back
             if result and 'artists' in result and 'items' in result['artists']:
                 items_count = len(result['artists']['items'])
-                logging.info(f"Found {items_count} artist results for '{artist_name}'")
+                logging.info(
+                    "Found %d artist results for %s",
+                    items_count,
+                    redact_identifier(artist_name, "artist"),
+                )
                 
                 if items_count > 0:
                     # Log the top result
@@ -275,38 +267,57 @@ def safe_spotify_search(sp, artist_name, retries=3):
                     
                     # Extract and log the genres
                     raw_genres = top_result.get('genres', [])
-                    logging.info(f"Top result: '{found_name}' (Popularity: {found_popularity}, URI: {found_uri})")
-                    logging.info(f"Raw genres for '{found_name}': {raw_genres}")
+                    logging.info(
+                        "Top result: %s (Popularity: %s, URI: %s)",
+                        redact_identifier(found_name, "artist"),
+                        found_popularity,
+                        redact_identifier(found_uri, "uri"),
+                    )
+                    logging.info(
+                        "Raw genres for %s: %s",
+                        redact_identifier(found_name, "artist"),
+                        redact_list(raw_genres, "genres"),
+                    )
                     
                     # Load valid genres from CSV for comparison
-                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
+                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
                     if valid_genres:
-                        logging.info(f"Loaded {len(valid_genres)} valid genres from CSV")
+                        logging.info("Loaded %d valid genres from CSV", len(valid_genres))
                         
                         # Log which raw genres are in the valid genres list
                         valid_matches = [genre for genre in raw_genres if genre in valid_genres]
                         invalid_genres = [genre for genre in raw_genres if genre not in valid_genres]
                         
                         if valid_matches:
-                            logging.info(f"Valid genres found: {valid_matches}")
+                            logging.info("Valid genres found: %s", redact_list(valid_matches, "genres"))
                         else:
-                            logging.info(f"No valid genres found among: {raw_genres}")
+                            logging.info("No valid genres found among: %s", redact_list(raw_genres, "genres"))
                         
                         if invalid_genres:
-                            logging.info(f"Invalid/Unknown genres: {invalid_genres}")
+                            logging.info("Invalid/Unknown genres: %s", redact_list(invalid_genres, "genres"))
                     else:
                         logging.error("Failed to load valid genres from CSV")
                 else:
-                    logging.info(f"No artist results found for '{artist_name}'")
+                    logging.info(
+                        "No artist results found for %s",
+                        redact_identifier(artist_name, "artist"),
+                    )
             else:
-                logging.warning(f"Unexpected result structure for '{artist_name}': {result}")
+                logging.warning(
+                    "Unexpected result structure for %s",
+                    redact_identifier(artist_name, "artist"),
+                )
                 
             return result
 
         except spotipy.exceptions.SpotifyException as e:
             # Handling Rate limit errors
             if hasattr(e, 'http_status') and e.http_status == 429:  # Rate limit exceeded
-                logging.warning(f"Rate limit exceeded on attempt {attempt + 1} for {artist_name}.")
+                logging.warning(
+                    "Rate limit exceeded on attempt %d for %s.",
+                    attempt + 1,
+                    redact_identifier(artist_name, "artist"),
+                )
                 
                 if not all_clients_tried:
                     # Rotate to the next client
@@ -328,7 +339,12 @@ def safe_spotify_search(sp, artist_name, retries=3):
             
             else:
                 # Other Spotify API errors
-                logging.error(f"Spotify API error for {artist_name} on attempt {attempt + 1}: {e}")
+                logging.error(
+                    "Spotify API error for %s on attempt %d: %s",
+                    redact_identifier(artist_name, "artist"),
+                    attempt + 1,
+                    e,
+                )
                 if attempt < retries - 1:
                     time.sleep(1)  # Brief delay before retrying
                     rotate_spotify_client()  # Try with a different client
@@ -337,7 +353,12 @@ def safe_spotify_search(sp, artist_name, retries=3):
 
         except Exception as e:
             # Catch unexpected errors (network, timeout, etc.)
-            logging.error(f"An unexpected error occurred while searching for {artist_name} on attempt {attempt + 1}: {e}")
+            logging.error(
+                "An unexpected error occurred while searching for %s on attempt %d: %s",
+                redact_identifier(artist_name, "artist"),
+                attempt + 1,
+                e,
+            )
             if attempt < retries - 1:
                 time.sleep(1)  # Brief delay before retrying
                 rotate_spotify_client()  # Try with a different client
@@ -345,13 +366,17 @@ def safe_spotify_search(sp, artist_name, retries=3):
             return None
 
     # If we've exhausted all retries
-    logging.error(f"Failed to retrieve data for {artist_name} after {retries} attempts.")
+    logging.error(
+        "Failed to retrieve data for %s after %d attempts.",
+        redact_identifier(artist_name, "artist"),
+        retries,
+    )
     return None
 
 
 def split_and_clean_genres_with_logging(genres, valid_genres):
     """Splits and cleans genres based on valid genres with detailed logging."""
-    logging.info(f"Input genres for cleaning: {genres}")
+    logging.info("Input genres for cleaning: %s", redact_list(genres, "genres"))
     
     if not genres:
         logging.info("No genres provided for cleaning")
@@ -359,7 +384,7 @@ def split_and_clean_genres_with_logging(genres, valid_genres):
 
     # Convert valid_genres to set for O(1) lookup and normalize to lowercase
     valid_genres_set = {genre.strip().lower() for genre in valid_genres if genre}
-    logging.info(f"Using {len(valid_genres_set)} valid genres for comparison")
+    logging.info("Using %d valid genres for comparison", len(valid_genres_set))
     
     # Handle list or string input
     if isinstance(genres, list):
@@ -368,7 +393,7 @@ def split_and_clean_genres_with_logging(genres, valid_genres):
         # Split on common delimiters and handle edge cases
         genre_list = re.split(r'\s*[,|/]\s*', str(genres))
     
-    logging.info(f"Split into {len(genre_list)} genres: {genre_list}")
+    logging.info("Split into %d genres: %s", len(genre_list), redact_list(genre_list, "genres"))
 
     cleaned_genres = set()  # Use set to automatically deduplicate
     skipped_genres = []
@@ -384,32 +409,41 @@ def split_and_clean_genres_with_logging(genres, valid_genres):
         normalized = re.sub(r'["\']', '', normalized)
         normalized = re.sub(r'[^\w\s-]', ' ', normalized)
         
+        # Prefer exact matches before fuzzy compound matching.
+        if normalized in valid_genres_set:
+            cleaned_genres.add(normalized)
+            logging.info("Exact match found for %s", redact_identifier(normalized, "genre"))
+            continue
+
         # Handle compound genres (e.g., "TechHouse" -> "Tech House")
+        normalized_compact = re.sub(r'[\s-]+', '', normalized)
         compound_matches = []
         for valid_genre in valid_genres_set:
-            if valid_genre in normalized or normalized in valid_genre:
+            valid_compact = re.sub(r'[\s-]+', '', valid_genre)
+            if not valid_compact:
+                continue
+            if valid_compact in normalized_compact or normalized_compact in valid_compact:
                 compound_matches.append(valid_genre)
-        
+
         if compound_matches:
             # Sort by length descending to prefer longer matches
             compound_matches.sort(key=len, reverse=True)
             best_match = compound_matches[0]
             cleaned_genres.add(best_match)
-            logging.info(f"Matched '{normalized}' to compound genre '{best_match}'")
+            logging.info(
+                "Matched %s to compound genre %s",
+                redact_identifier(normalized, "genre"),
+                redact_identifier(best_match, "genre"),
+            )
         else:
-            # Try exact match
-            if normalized in valid_genres_set:
-                cleaned_genres.add(normalized)
-                logging.info(f"Exact match found for '{normalized}'")
-            else:
-                skipped_genres.append(normalized)
-                logging.info(f"No match found for '{normalized}', skipping")
+            skipped_genres.append(normalized)
+            logging.info("No match found for %s, skipping", redact_identifier(normalized, "genre"))
 
     if skipped_genres:
-        logging.info(f"Skipped {len(skipped_genres)} invalid genres: {skipped_genres}")
+        logging.info("Skipped %d invalid genres: %s", len(skipped_genres), redact_list(skipped_genres, "genres"))
     
     result = list(cleaned_genres)
-    logging.info(f"Final cleaned genres ({len(result)}): {result}")
+    logging.info("Final cleaned genres (%d): %s", len(result), redact_list(result, "genres"))
     return result
 # Modified to return the query string without parameters
 def get_artists_query():
@@ -426,7 +460,7 @@ def update_event_genres(artist_name, max_retries=3):
     """Update event genres with properly cleaned and normalized genres from all associated artists."""
     try:
         # Load valid genres from CSV
-        valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
+        valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
         if not valid_genres:
             logging.error("Failed to load valid genres from CSV")
             return
@@ -441,9 +475,12 @@ def update_event_genres(artist_name, max_retries=3):
         
         for attempt in range(max_retries):
             try:
-                event_ids_results = execute_query2(event_ids_query, (artist_name,), return_results=True)
+                event_ids_results = execute_query2(event_ids_query, (artist_name,), fetch=True)
                 if not event_ids_results:
-                    logging.warning(f"No events found for artist {artist_name}")
+                    logging.warning(
+                        "No events found for artist %s",
+                        redact_identifier(artist_name, "artist"),
+                    )
                     return
                 break
             except Exception as e:
@@ -467,7 +504,7 @@ def update_event_genres(artist_name, max_retries=3):
             city_result = None
             for attempt in range(max_retries):
                 try:
-                    city_result = execute_query2(city_query, (event_id,event_id), return_results=True)
+                    city_result = execute_query2(city_query, (event_id,event_id), fetch=True)
                     break
                 except Exception as e:
                     logging.error(f"Database error fetching city (attempt {attempt+1}): {e}")
@@ -494,7 +531,7 @@ def update_event_genres(artist_name, max_retries=3):
             genres_result = None
             for attempt in range(max_retries):
                 try:
-                    genres_result = execute_query2(all_genres_query, (event_id,), return_results=True)
+                    genres_result = execute_query2(all_genres_query, (event_id,), fetch=True)
                     break
                 except Exception as e:
                     logging.error(f"Database error fetching genres (attempt {attempt+1}): {e}")
@@ -543,7 +580,11 @@ def update_event_genres(artist_name, max_retries=3):
                         time.sleep(1)  # Wait before retrying
     
     except Exception as e:
-        logging.error(f"Error processing events for artist {artist_name}: {e}")
+        logging.error(
+            "Error processing events for artist %s: %s",
+            redact_identifier(artist_name, "artist"),
+            e,
+        )
 
 # Main execution
 try:
@@ -558,9 +599,9 @@ try:
     
     # Add detailed debugging info
     logging.info(f"Fetched {len(raw_artist_data)} artists from database.")
-    # Log sample data (first few artists) for debugging
+    # Log sample size only to avoid PII in logs
     sample_data = list(raw_artist_data.items())[:3] if raw_artist_data else []
-    logging.info(f"Sample artist data: {sample_data}")
+    logging.info("Sample artist data: %d entries", len(sample_data))
 
     # Prepare dictionaries to hold artists with and without URIs
     artists_with_uri = {}
@@ -594,13 +635,16 @@ try:
         
         for artist_id, (artist_name, spotify_uri) in batch:
             try:
-                logging.info(f"Processing artist with URI: {artist_name}")
-                result = safe_spotify_search(sp, spotify_uri)
+                logging.info(
+                    "Processing artist with URI: %s",
+                    redact_identifier(artist_name, "artist"),
+                )
+                result = safe_spotify_search(spotify_uri)
                 if result is None:
                     continue
 
                 # Load valid genres from CSV
-                valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
+                valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
                 if not valid_genres:
                     logging.error("Failed to load valid genres from CSV")
                     continue
@@ -612,14 +656,20 @@ try:
                     raw_genres = artist_item.get('genres', [])
                 
                 if not raw_genres:
-                    logging.warning(f"No genres found for artist {artist_name}")
+                    logging.warning(
+                        "No genres found for artist %s",
+                        redact_identifier(artist_name, "artist"),
+                    )
                     update_api_call_log(artist_name)  # Still mark as processed
                     continue
 
                 # Clean and normalize genres
                 cleaned_genres = split_and_clean_genres_with_logging(raw_genres, valid_genres)
                 if not cleaned_genres:
-                    logging.warning(f"No valid genres found for artist {artist_name}")
+                    logging.warning(
+                        "No valid genres found for artist %s",
+                        redact_identifier(artist_name, "artist"),
+                    )
                     update_api_call_log(artist_name)  # Still mark as processed
                     continue
 
@@ -636,8 +686,8 @@ try:
                                     COALESCE(clubfindr.artists.genres, ARRAY[]::text[]),
                                     %s::text[]
                                 )) AS x
-                                WHERE x IS NOT NULL AND x != ''
                             ) subquery
+                            WHERE x IS NOT NULL AND x != ''
                         )
                         WHERE artist_name = %s
                         RETURNING id;
@@ -651,19 +701,34 @@ try:
                                                 (cleaned_genres, artist_name),
                                                 return_results=True)
                     if artist_result:
-                        logging.info(f"Genres updated for {artist_name}: {cleaned_genres}")
+                        logging.info(
+                            "Genres updated for %s: %s",
+                            redact_identifier(artist_name, "artist"),
+                            redact_list(cleaned_genres, "genres"),
+                        )
                         # Update event genres for the artist
                         update_event_genres(artist_name)
                     else:
-                        logging.error(f"Failed to update genres for {artist_name}")
+                        logging.error(
+                            "Failed to update genres for %s",
+                            redact_identifier(artist_name, "artist"),
+                        )
                 except Exception as e:
-                    logging.error(f"Failed to update genres for {artist_name}: {e}")
+                    logging.error(
+                        "Failed to update genres for %s: %s",
+                        redact_identifier(artist_name, "artist"),
+                        e,
+                    )
 
                 # Update API call log
                 update_api_call_log(artist_name)
                 
             except Exception as e:
-                logging.error(f"Error processing artist {artist_name}: {e}")
+                logging.error(
+                    "Error processing artist %s: %s",
+                    redact_identifier(artist_name, "artist"),
+                    e,
+                )
                 continue  # Skip to next artist
         
         # After processing all artists in the batch
@@ -684,19 +749,25 @@ try:
         
         for artist_id, artist_name in batch:
             try:
-                logging.info(f"Processing artist without URI: {artist_name}")
+                logging.info(
+                    "Processing artist without URI: %s",
+                    redact_identifier(artist_name, "artist"),
+                )
                 
                 if not artist_name or not artist_name.strip():
                     logging.warning(f"Empty artist name encountered for artist_id: {artist_id}. Skipping...")
                     continue
 
-                result = safe_spotify_search(sp, artist_name)
+                result = safe_spotify_search(artist_name)
                 if result is None or 'artists' not in result or 'items' not in result['artists']:
                     update_api_call_log(artist_name)  # Mark as processed even if failed
                     continue
 
                 if not result['artists']['items']:
-                    logging.warning(f"No artists found for {artist_name} in Spotify search.")
+                    logging.warning(
+                        "No artists found for %s in Spotify search.",
+                        redact_identifier(artist_name, "artist"),
+                    )
                     update_api_call_log(artist_name)  # Mark as processed
                     continue
 
@@ -711,16 +782,24 @@ try:
                         names_uri[d['name']] = d.get('uri', '')
 
                 best_match = process.extractBests(artist_name, names_genres.keys(), score_cutoff=80, limit=1)
-                fallback_logger.info(f"Fuzzy matching result for {artist_name}: {best_match}")
+                best_match_score = best_match[0][1] if best_match else None
+                fallback_logger.info(
+                    "Fuzzy matching result for %s: score=%s",
+                    redact_identifier(artist_name, "artist"),
+                    best_match_score,
+                )
 
                 if not best_match:
-                    logging.warning(f"No fuzzy match found for {artist_name}.")
+                    logging.warning(
+                        "No fuzzy match found for %s.",
+                        redact_identifier(artist_name, "artist"),
+                    )
                     update_api_call_log(artist_name)  # Mark as processed
                     continue
 
                 if best_match[0][1] >= 95:
                     # Load valid genres from CSV
-                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
+                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
                     if not valid_genres:
                         logging.error("Failed to load valid genres from CSV")
                         continue
@@ -732,7 +811,10 @@ try:
                     # Clean and normalize genres
                     cleaned_genres = split_and_clean_genres_with_logging(raw_genres, valid_genres)
                     if not cleaned_genres:
-                        logging.warning(f"No valid genres found for artist {artist_name}")
+                        logging.warning(
+                            "No valid genres found for artist %s",
+                            redact_identifier(artist_name, "artist"),
+                        )
                         update_api_call_log(artist_name)  # Mark as processed
                         continue
 
@@ -748,11 +830,22 @@ try:
                                                     (uri, artist_name),
                                                     return_results=True)
                         if not artist_result:
-                            logging.error(f"Failed to update Spotify URI for {artist_name}")
+                            logging.error(
+                                "Failed to update Spotify URI for %s",
+                                redact_identifier(artist_name, "artist"),
+                            )
                             continue
-                        logging.info(f"Spotify URI updated for {artist_name}: {uri}")
+                        logging.info(
+                            "Spotify URI updated for %s: %s",
+                            redact_identifier(artist_name, "artist"),
+                            redact_identifier(uri, "uri"),
+                        )
                     except Exception as e:
-                        logging.error(f"Failed to update Spotify URI for {artist_name}: {e}")
+                        logging.error(
+                            "Failed to update Spotify URI for %s: %s",
+                            redact_identifier(artist_name, "artist"),
+                            e,
+                        )
                         continue
 
                     try:
@@ -767,8 +860,8 @@ try:
                                         COALESCE(clubfindr.artists.genres, ARRAY[]::text[]),
                                         %s::text[]
                                     )) AS x
-                                    WHERE x IS NOT NULL AND x != ''
                                 ) subquery
+                                WHERE x IS NOT NULL AND x != ''
                             )
                             WHERE artist_name = %s
                             RETURNING id;
@@ -782,18 +875,33 @@ try:
                                                     (cleaned_genres, artist_name),
                                                     return_results=True)
                         if artist_result:
-                            logging.info(f"Genres updated for {artist_name}: {cleaned_genres}")
+                            logging.info(
+                                "Genres updated for %s: %s",
+                                redact_identifier(artist_name, "artist"),
+                                redact_list(cleaned_genres, "genres"),
+                            )
                             # Update event genres for the artist
                             update_event_genres(artist_name)
                         else:
-                            logging.error(f"Failed to update genres for {artist_name}")
+                            logging.error(
+                                "Failed to update genres for %s",
+                                redact_identifier(artist_name, "artist"),
+                            )
                     except Exception as e:
-                        logging.error(f"Failed to update genres for {artist_name}: {e}")
+                        logging.error(
+                            "Failed to update genres for %s: %s",
+                            redact_identifier(artist_name, "artist"),
+                            e,
+                        )
 
                     # Update API call log
                     update_api_call_log(artist_name)
             except Exception as e:
-                logging.error(f"Error processing artist {artist_name}: {e}")
+                logging.error(
+                    "Error processing artist %s: %s",
+                    redact_identifier(artist_name, "artist"),
+                    e,
+                )
         
         # After processing all artists in the batch
         try:
@@ -813,8 +921,13 @@ finally:
     # Final cleanup before exit
     try:
         # Save the API call log one last time
-        with open(api_call_log_file, 'wb') as f:
-            pickle.dump(api_call_log, f)
+        # Convert datetime objects to ISO format strings for JSON serialization
+        api_call_log_serializable = {
+            name: timestamp.isoformat()
+            for name, timestamp in api_call_log.items()
+        }
+        with open(api_call_log_file, 'w') as f:
+            json.dump(api_call_log_serializable, f, indent=2)
         logging.info("Final API call log saved")
     except Exception as e:
         logging.error(f"Failed to save final API call log: {e}")

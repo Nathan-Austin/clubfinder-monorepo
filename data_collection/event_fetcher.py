@@ -12,10 +12,12 @@ from psycopg2 import sql
 import logging
 import uuid
 import os
+from graphql_utils import load_graphql_query_template, parse_graphql_response
+from log_utils import redact_identifier
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("event_fetcher.log"),
@@ -29,8 +31,6 @@ HEADERS_TEMPLATE = {
     'Referer': 'https://ra.co/events/{country_code}/{city_name}',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'
 }
-
-QUERY_TEMPLATE_PATH = "/home/nathan/clubfinder/data_collection/graphql_query_template.json"
 
 class EventFetcher:
     """
@@ -58,13 +58,13 @@ class EventFetcher:
     @staticmethod
     def generate_payload(areas, listing_date_gte, listing_date_lte):
         """Generate the payload for the GraphQL request."""
-        with open(QUERY_TEMPLATE_PATH, "r") as file:
-            payload = json.load(file)
+        payload = load_graphql_query_template()
 
         payload["variables"]["filters"]["areas"]["eq"] = areas
         payload["variables"]["filters"]["listingDate"]["gte"] = listing_date_gte
         payload["variables"]["filters"]["listingDate"]["lte"] = listing_date_lte
         return payload
+
     
     def save_response_to_json(self, response, filename='event_response.json'):
         """Save API response to a JSON file for debugging."""
@@ -83,7 +83,11 @@ class EventFetcher:
         try:
             response = requests.post(URL, headers=self.headers, json=self.payload)
             response.raise_for_status()
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                logging.error("Failed to parse JSON response for events")
+                return []
         except Exception as e:
             logging.error(f"Error fetching events: {e}")
             return []
@@ -91,11 +95,17 @@ class EventFetcher:
         end_time = time.time()
         logging.info(f"Request completed in {end_time - start_time:.2f} seconds")
         
-        if 'data' not in data:
-            logging.error(f"Error in API response: {data}")
+        events = parse_graphql_response(
+            data,
+            ["eventListings", "data"],
+            context="Event listings response",
+            logger=logging,
+            expected_type=list,
+        )
+        if events is None:
             return []
 
-        return data["data"]["eventListings"]["data"]
+        return events
     
     def get_venue_coordinates(self, venue_name):
         """Get coordinates for a venue from the venues table or fetch them from RA."""
@@ -152,10 +162,21 @@ class EventFetcher:
         try:
             response = requests.post(URL, headers=self.headers, json=payload)
             response.raise_for_status()
-            data = response.json()
-            
-            if 'data' in data and 'venueSearch' in data['data'] and 'data' in data['data']['venueSearch']:
-                venues = data['data']['venueSearch']['data']
+            try:
+                data = response.json()
+            except ValueError:
+                logging.error("Failed to parse JSON response for venue search")
+                return {'latitude': None, 'longitude': None}
+
+            venues = parse_graphql_response(
+                data,
+                ["venueSearch", "data"],
+                context="Venue search response",
+                logger=logging,
+                expected_type=list,
+            )
+            if venues is None:
+                return {'latitude': None, 'longitude': None}
                 
                 if venues:
                     # Find the best match for the venue
@@ -191,12 +212,16 @@ class EventFetcher:
                             return coordinates
             
             # If we get here, we couldn't find coordinates
-            logging.warning(f"Could not find coordinates for venue: {venue_name}")
+            logging.warning("Could not find coordinates for venue: %s", redact_identifier(venue_name, "venue"))
             self.venue_cache[venue_name] = {'latitude': None, 'longitude': None}
             return {'latitude': None, 'longitude': None}
             
         except Exception as e:
-            logging.error(f"Error fetching coordinates for venue {venue_name}: {e}")
+            logging.error(
+                "Error fetching coordinates for venue %s: %s",
+                redact_identifier(venue_name, "venue"),
+                e,
+            )
             self.venue_cache[venue_name] = {'latitude': None, 'longitude': None}
             return {'latitude': None, 'longitude': None}
     
@@ -233,10 +258,14 @@ class EventFetcher:
             """
             
             commit_to_database(query, (venue_id, name, address, self.city_name, latitude, longitude))
-            logging.info(f"Saved venue information for {name}")
+            logging.info("Saved venue information for %s", redact_identifier(name, "venue"))
             return True
         except Exception as e:
-            logging.error(f"Error saving venue information for {name}: {e}")
+            logging.error(
+                "Error saving venue information for %s: %s",
+                redact_identifier(name, "venue"),
+                e,
+            )
             return False
     
     def save_event_and_artists(self, events, city_name):
@@ -249,7 +278,7 @@ class EventFetcher:
             try:
                 event_data = event.get("event", {})
                 if isinstance(event_data, list):
-                    logging.warning(f"Skipping event data because it's a list: {event_data}")
+                    logging.warning("Skipping event data because it's a list (len=%d)", len(event_data))
                     continue
 
                 # Safely extract event details
@@ -270,10 +299,15 @@ class EventFetcher:
                 longitude = coordinates['longitude']
                 
                 if latitude and longitude:
-                    logging.info(f"Using coordinates for {club_name}: {latitude}, {longitude}")
+                    logging.info(
+                        "Using coordinates for %s: %s, %s",
+                        redact_identifier(club_name, "venue"),
+                        latitude,
+                        longitude,
+                    )
                     events_with_coords += 1
                 else:
-                    logging.warning(f"No coordinates found for {club_name}")
+                    logging.warning("No coordinates found for %s", redact_identifier(club_name, "venue"))
                     events_without_coords += 1
                 
                 popularity = event_data.get('attending', '0')
@@ -339,7 +373,8 @@ class EventFetcher:
                         ) VALUES (
                             %s, %s, %s, %s, %s, %s, %s, %s
                         )
-                        ON CONFLICT (artist_name, primary_city) DO NOTHING
+                        ON CONFLICT (artist_name, primary_city) DO UPDATE
+                            SET artist_name = EXCLUDED.artist_name
                         RETURNING id;
                         """
 
@@ -358,7 +393,11 @@ class EventFetcher:
                     self.save_event_artists(event_db_id, artist_ids, city_name)
 
             except Exception as e:
-                logging.error(f"Failed to process event {event_name if 'event_name' in locals() else 'unknown'}: {e}")
+                logging.error(
+                    "Failed to process event %s: %s",
+                    redact_identifier(event_name if 'event_name' in locals() else None, "event"),
+                    e,
+                )
                 import traceback
                 logging.error(traceback.format_exc())
                 continue

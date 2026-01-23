@@ -9,10 +9,11 @@ import os
 import argparse
 from datetime import datetime, timedelta
 from utils import commit_to_database, execute_query, execute_query2
+from graphql_utils import load_graphql_query_template, parse_graphql_response, get_graphql_template_path
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("batch_coordinate_update.log"),
@@ -27,7 +28,7 @@ HEADERS_TEMPLATE = {
     'Referer': 'https://ra.co/events/{country_code}/{city_name}',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'
 }
-QUERY_TEMPLATE_PATH = "/home/nathan/clubfinder/data_collection/graphql_query_template.json"
+QUERY_TEMPLATE_PATH = get_graphql_template_path()
 DELAY = 2  # Delay between API calls
 
 def get_existing_events_by_city(city_name):
@@ -86,8 +87,7 @@ def fetch_venue_coordinates(city_info):
     headers = generate_headers(city_info["name"], city_info["country_code"])
     
     try:
-        with open(QUERY_TEMPLATE_PATH, "r") as file:
-            payload = json.load(file)
+        payload = load_graphql_query_template()
         
         # Update payload with dates and area code
         payload["variables"]["filters"]["areas"]["eq"] = city_info["code"]
@@ -98,15 +98,24 @@ def fetch_venue_coordinates(city_info):
         
         response = requests.post(URL, headers=headers, json=payload)
         response.raise_for_status()
-        data = response.json()
-        
-        if 'data' not in data or 'eventListings' not in data['data'] or 'data' not in data['data']['eventListings']:
-            logging.error(f"Invalid response format: {data}")
+        try:
+            data = response.json()
+        except ValueError:
+            logging.error("Failed to parse JSON response for venue coordinates")
+            return {}
+
+        events_data = parse_graphql_response(
+            data,
+            ["eventListings", "data"],
+            context="Event listings response",
+            logger=logging,
+            expected_type=list,
+        )
+        if events_data is None:
+            logging.error("Invalid response format for event listings")
             return {}
         
         venues = {}
-        events_data = data["data"]["eventListings"]["data"]
-        
         for event_data in events_data:
             event = event_data.get("event", {})
             venue = event.get("venue", {})
