@@ -1,15 +1,17 @@
 # src/barfindr/tasks.py
-from celery import shared_task
-import structlog
 import asyncio
 import os
-from sqlalchemy import text
 from datetime import datetime, timedelta
-from .spotify_service import spotify_service
-from .database import database_manager
-from .models.bar_profile import BarGenreProfile, BarGenreAggregate
-from .encryption import encryption_service
+
+import structlog
+from celery import shared_task
 from dotenv import load_dotenv
+from sqlalchemy import text
+
+from .database import database_manager
+from .encryption import encryption_service
+from .models.bar_profile import BarGenreAggregate, BarGenreProfile
+from .spotify_service import spotify_service
 
 logger = structlog.get_logger()
 load_dotenv()
