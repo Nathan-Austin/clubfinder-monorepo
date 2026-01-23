@@ -8,7 +8,7 @@ User=nathan
 WorkingDirectory=/home/nathan/clubfinder/barfindr
 Environment="PYTHONPATH=/home/nathan/clubfinder/barfindr/src"
 EnvironmentFile=/home/nathan/clubfinder/barfindr/.env
-ExecStart=/usr/bin/celery -A src.barfindr.celery:app worker --loglevel=info
+ExecStart=/usr/bin/celery -A src.barfindr.celery:app worker --loglevel=info -Q celery,spotify,maintenance
 Restart=always
 
 [Install]

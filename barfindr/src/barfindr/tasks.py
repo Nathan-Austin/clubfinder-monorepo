@@ -13,143 +13,158 @@ from dotenv import load_dotenv
 logger = structlog.get_logger()
 load_dotenv()
 
+@shared_task(name='barfindr.tasks.process_bar_batch')
+def process_bar_batch(bar_ids):
+    """
+    Worker Task: Process a batch of bars.
+    Fetches details, polls Spotify, and updates profiles.
+    """
+    logger.info(f"Processing batch of {len(bar_ids)} bars")
+    
+    # Get redirect URI here
+    redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI', 'https://www.clubfindr.com/spotify/login')
+
+    with database_manager.get_session() as session:
+        try:
+            # Fetch details only for this batch
+            # We need the JOIN to get app credentials
+            batch_query = text("""
+                SELECT b.id, b.spotify_access_token, b.spotify_refresh_token, 
+                       b.spotify_app_name, b.music_service,
+                       a.client_id, a.client_secret
+                FROM clubfindr.bars b
+                JOIN clubfindr.spotify_apps a ON b.spotify_app_name = a.app_name
+                WHERE b.id = ANY(:bar_ids)
+            """)
+            
+            # Convert UUID strings back to UUID objects if needed, 
+            # but SQLAlchemy often handles string lists for UUID columns nicely.
+            # Safe bet is to pass them as they come (usually strings from Celery).
+            bars = session.execute(batch_query, {'bar_ids': bar_ids}).fetchall()
+            
+            for bar in bars:
+                try:
+                    # Decrypt tokens
+                    access_token = encryption_service.decrypt_token(bar.spotify_access_token).decode()
+                    refresh_token = encryption_service.decrypt_token(bar.spotify_refresh_token).decode()
+
+                    # Get comprehensive music profile
+                    profile_data = asyncio.run(spotify_service.get_bar_music_profile(
+                        bar.id,
+                        bar.client_id,
+                        bar.client_secret,
+                        redirect_uri,
+                        access_token,
+                        refresh_token
+                    ))
+
+                    if not profile_data:
+                        logger.info(f"No profile data for bar {bar.id}")
+                        continue
+                    
+                    # Update tokens if refreshed
+                    if profile_data.get('new_token_info'):
+                        try:
+                            encrypted_access = encryption_service.encrypt_token(
+                                profile_data['new_token_info']['access_token']
+                            )
+                            encrypted_refresh = encryption_service.encrypt_token(
+                                profile_data['new_token_info']['refresh_token']
+                            )
+
+                            token_update_query = text("""
+                                UPDATE clubfindr.bars 
+                                SET spotify_access_token = :access_token,
+                                    spotify_refresh_token = :refresh_token,
+                                    updated_at = CURRENT_TIMESTAMP
+                                WHERE id = :bar_id
+                            """)
+
+                            session.execute(
+                                token_update_query,
+                                {
+                                    'access_token': encrypted_access,
+                                    'refresh_token': encrypted_refresh,
+                                    'bar_id': bar.id
+                                }
+                            )
+                        except ValueError as e:
+                            logger.error(f"Failed to encrypt new tokens for bar {bar.id}", error=str(e))
+
+                    # Create new profile record
+                    new_profile = BarGenreProfile(
+                        bar_id=bar.id,
+                        timestamp=datetime.fromisoformat(profile_data['timestamp']),
+                        current_track_id=profile_data['current_track']['id'] if profile_data['current_track'] else None,
+                        current_track_name=profile_data['current_track']['name'] if profile_data['current_track'] else None,
+                        current_genres=profile_data['current_genres'],
+                        rolling_genre_profile=profile_data['rolling_genre_profile'],
+                        immediate_genre_profile=profile_data['immediate_genre_profile'],
+                        track_counts=profile_data['track_counts']
+                    )
+
+                    session.add(new_profile)
+                    # Commit per bar to ensure partial batch success
+                    session.commit()
+
+                    logger.info(f"Successfully recorded genre profile for bar {bar.id}",
+                              current_track=new_profile.current_track_name)
+
+                except Exception as bar_error:
+                    session.rollback()
+                    logger.error(f"Error processing bar {bar.id}", error=str(bar_error))
+                    continue
+                    
+        except Exception as e:
+            logger.error("Error in process_bar_batch", error=str(e))
+            raise
+
 @shared_task(name='barfindr.tasks.spotify_genre_polling')
 def spotify_genre_polling():
     """
-    Poll Spotify for current, recent, and queued tracks for active bars.
-    Analyzes genres and updates bar music profiles.
+    Dispatcher Task:
+    1. Finds all active bars.
+    2. Chunks them into batches.
+    3. Dispatches `process_bar_batch` tasks.
     """
     try:
         # Check if within active hours
-        if not hasattr(spotify_service, '_is_within_active_hours'):
-            logger.warning("spotify_service missing _is_within_active_hours method")
-            # Default to True if method doesn't exist
-            is_active = True
-        else:
-            is_active = spotify_service._is_within_active_hours()
-            
-        if not is_active:
+        if hasattr(spotify_service, '_is_within_active_hours') and not spotify_service._is_within_active_hours():
             logger.info("Outside active hours, skipping Spotify polling")
             return
 
-        logger.info("Starting Spotify genre polling task")
+        logger.info("Starting Spotify genre polling dispatcher")
         
         with database_manager.get_session() as session:
-            try:
-                # Query active bars with their Spotify tokens and app credentials
-                active_bars_query = text("""
-                    SELECT b.id, b.spotify_access_token, b.spotify_refresh_token, 
-                           b.spotify_app_name, b.music_service,
-                           a.client_id, a.client_secret
-                    FROM clubfindr.bars b
-                    JOIN clubfindr.spotify_apps a ON b.spotify_app_name = a.app_name
-                    WHERE LOWER(b.music_service) = 'spotify' 
-                    AND b.spotify_access_token IS NOT NULL
-                """)
+            # Query just the IDs of active bars
+            active_bars_query = text("""
+                SELECT b.id
+                FROM clubfindr.bars b
+                WHERE LOWER(b.music_service) = 'spotify' 
+                AND b.spotify_access_token IS NOT NULL
+            """)
+            
+            result = session.execute(active_bars_query).fetchall()
+            bar_ids = [str(row.id) for row in result]
+            
+            total_bars = len(bar_ids)
+            logger.info(f"Found {total_bars} active bars")
+            
+            if total_bars == 0:
+                return
+
+            # Chunk size configuration (default 10)
+            chunk_size = 10
+            
+            # Dispatch batches
+            for i in range(0, total_bars, chunk_size):
+                chunk = bar_ids[i:i + chunk_size]
+                process_bar_batch.delay(chunk)
                 
-                # Get the redirect URI from environment
-                redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI', 'https://www.clubfindr.com/spotify/login')
-                
-                active_bars = session.execute(active_bars_query).fetchall()
-                logger.info(f"Found {len(active_bars)} active bars for Spotify polling")
-
-                # Group bars by app_name to minimize credential swapping
-                bars_by_app = {}
-                for bar in active_bars:
-                    app_name = bar.spotify_app_name
-                    if app_name not in bars_by_app:
-                        bars_by_app[app_name] = []
-                    bars_by_app[app_name].append(bar)
-                
-                # Process each app group
-                for app_name, bars in bars_by_app.items():
-                    logger.info(f"Processing {len(bars)} bars for app {app_name}")
-                    
-                    for bar in bars:
-                        try:
-                            # Decrypt tokens
-                            access_token = encryption_service.decrypt_token(bar.spotify_access_token).decode()
-                            refresh_token = encryption_service.decrypt_token(bar.spotify_refresh_token).decode()
-
-                            # Get comprehensive music profile using specific app credentials
-                            profile_data = asyncio.run(spotify_service.get_bar_music_profile(
-                                bar.id,
-                                bar.client_id,
-                                bar.client_secret,
-                                redirect_uri,
-                                access_token,
-                                refresh_token
-                            ))
-
-                            if not profile_data:
-                                logger.info(f"No profile data for bar {bar.id}")
-                                continue
-                         
-                        
-                            # Update tokens if refreshed
-                            if profile_data.get('new_token_info'):
-                                # Encrypt new tokens before storing
-                                try:
-                                    encrypted_access = encryption_service.encrypt_token(
-                                        profile_data['new_token_info']['access_token']
-                                    )
-                                    encrypted_refresh = encryption_service.encrypt_token(
-                                        profile_data['new_token_info']['refresh_token']
-                                    )
-
-                                    token_update_query = text("""
-                                        UPDATE clubfindr.bars 
-                                        SET spotify_access_token = :access_token,
-                                            spotify_refresh_token = :refresh_token,
-                                            updated_at = CURRENT_TIMESTAMP
-                                        WHERE id = :bar_id
-                                    """)
-
-                                    session.execute(
-                                        token_update_query,
-                                        {
-                                            'access_token': encrypted_access,
-                                            'refresh_token': encrypted_refresh,
-                                            'bar_id': bar.id
-                                        }
-                                    )
-                                except ValueError as e:
-                                    logger.error(f"Failed to encrypt new tokens for bar {bar.id}", error=str(e))
-
-
-
-                            # Create new profile record
-                            new_profile = BarGenreProfile(
-                                bar_id=bar.id,
-                                timestamp=datetime.fromisoformat(profile_data['timestamp']),
-                                current_track_id=profile_data['current_track']['id'] if profile_data['current_track'] else None,
-                                current_track_name=profile_data['current_track']['name'] if profile_data['current_track'] else None,
-                                current_genres=profile_data['current_genres'],
-                                rolling_genre_profile=profile_data['rolling_genre_profile'],
-                                immediate_genre_profile=profile_data['immediate_genre_profile'],
-                                track_counts=profile_data['track_counts']
-                            )
-
-                            session.add(new_profile)
-                            session.commit()
-
-                            logger.info(f"Successfully recorded genre profile for bar {bar.id}",
-                                      current_track=new_profile.current_track_name,
-                                      genre_count=len(new_profile.current_genres))
-
-                        except Exception as bar_error:
-                                session.rollback()
-                                logger.error(f"Error processing bar {bar.id}", 
-                                           error=str(bar_error))
-                                continue
-
-            except Exception as session_error:
-                session.rollback()
-                logger.error("Error in Spotify polling session", error=str(session_error))
-                raise
+            logger.info(f"Dispatched {len(range(0, total_bars, chunk_size))} batches")
 
     except Exception as task_error:
-        logger.error("Spotify polling task failed", error=str(task_error))
+        logger.error("Spotify polling dispatcher failed", error=str(task_error))
         raise
 
 
@@ -191,117 +206,51 @@ def database_cleanup():
 @shared_task(name='barfindr.tasks.update_genre_aggregates')
 def update_genre_aggregates():
     """
-    Update aggregated genre weights for bars based on recent genre profiles.
-    This task calculates weighted averages of genres from recent profiles and
-    updates the bar_genre_aggregates table.
+    Update aggregated genre weights using SQL-based aggregation.
+    Replaces the entire table content with fresh averages from the last 24h.
     """
     try:
-        logger.info("Starting genre aggregates update task")
+        logger.info("Starting SQL-based genre aggregates update")
         
         with database_manager.get_session() as session:
             try:
-                # First, let's get some diagnostics
-                profiles_check = text("""
-                    SELECT COUNT(*) FROM clubfindr.bar_genre_profiles
-                    WHERE timestamp > NOW() - INTERVAL '24 hours'
-                    AND rolling_genre_profile IS NOT NULL
+                # 1. Clear existing aggregates (Full Refresh strategy is safer/cleaner here)
+                #    Alternatively, we could do UPSERT, but full refresh ensures 
+                #    we don't keep stale genres that dropped below 0.1
+                session.execute(text("DELETE FROM clubfindr.bar_genre_aggregates"))
+                
+                # 2. Insert new aggregates directly from JSONB data
+                #    Logic:
+                #    - Filter profiles from last 24h
+                #    - Expand JSONB keys/values (genre/weight)
+                #    - Group by bar_id and genre
+                #    - Calculate AVG weight
+                #    - Filter HAVING avg_weight >= 0.1
+                
+                aggregation_query = text("""
+                    INSERT INTO clubfindr.bar_genre_aggregates (bar_id, genre, weight)
+                    SELECT 
+                        p.bar_id,
+                        key as genre,
+                        AVG(value::float) as weight
+                    FROM 
+                        clubfindr.bar_genre_profiles p,
+                        jsonb_each_text(p.rolling_genre_profile)
+                    WHERE 
+                        p.timestamp > NOW() - INTERVAL '24 hours'
+                    GROUP BY 
+                        p.bar_id, key
+                    HAVING 
+                        AVG(value::float) >= 0.1
                 """)
                 
-                profile_count = session.execute(profiles_check).scalar()
-                logger.info(f"Found {profile_count} recent profiles with genre data")
+                result = session.execute(aggregation_query)
+                row_count = result.rowcount
                 
-                if profile_count == 0:
-                    logger.warning("No recent profiles found, skipping genre aggregation")
-                    return
-                
-                # Simplified approach: First get all recent profiles
-                profiles_query = text("""
-                    SELECT bar_id, rolling_genre_profile 
-                    FROM clubfindr.bar_genre_profiles
-                    WHERE timestamp > NOW() - INTERVAL '24 hours'
-                    AND rolling_genre_profile IS NOT NULL
-                """)
-                
-                profiles = session.execute(profiles_query).fetchall()
-                
-                # Process each bar's genres manually to avoid complex SQL
-                bar_genres = {}
-                
-                for profile in profiles:
-                    bar_id = profile.bar_id
-                    if bar_id not in bar_genres:
-                        bar_genres[bar_id] = {}
-                    
-                    # Extract genres and weights
-                    genre_profile = profile.rolling_genre_profile
-                    for genre, weight in genre_profile.items():
-                        if genre not in bar_genres[bar_id]:
-                            bar_genres[bar_id][genre] = []
-                        
-                        # Add this weight to the list for averaging
-                        bar_genres[bar_id][genre].append(float(weight))
-                
-                # Process each bar and calculate averages
-                for bar_id, genres in bar_genres.items():
-                    for genre, weights in genres.items():
-                        # Calculate average weight
-                        avg_weight = sum(weights) / len(weights)
-                        
-                        # Only keep significant genres
-                        if avg_weight >= 0.1:
-                            # Check if this bar-genre pair already exists
-                            check_query = text("""
-                                SELECT id FROM clubfindr.bar_genre_aggregates
-                                WHERE bar_id = :bar_id AND genre = :genre
-                            """)
-                            
-                            existing = session.execute(check_query, {
-                                'bar_id': bar_id,
-                                'genre': genre
-                            }).fetchone()
-                            
-                            if existing:
-                                # Update existing record
-                                update_query = text("""
-                                    UPDATE clubfindr.bar_genre_aggregates
-                                    SET weight = :weight, last_updated = CURRENT_TIMESTAMP
-                                    WHERE bar_id = :bar_id AND genre = :genre
-                                """)
-                                
-                                session.execute(update_query, {
-                                    'bar_id': bar_id,
-                                    'genre': genre,
-                                    'weight': avg_weight
-                                })
-                                
-                                logger.debug(f"Updated genre {genre} for bar {bar_id} with weight {avg_weight}")
-                            else:
-                                # Create new aggregate record
-                                new_aggregate = BarGenreAggregate(
-                                    bar_id=bar_id,
-                                    genre=genre,
-                                    weight=avg_weight,
-                                    last_updated=datetime.utcnow()
-                                )
-                                session.add(new_aggregate)
-                                
-                                logger.debug(f"Added new genre {genre} for bar {bar_id} with weight {avg_weight}")
-                
-                # Clean up old/irrelevant genres (weight below threshold)
-                cleanup_query = text("""
-                    DELETE FROM clubfindr.bar_genre_aggregates
-                    WHERE weight < 0.1
-                """)
-                
-                cleanup_result = session.execute(cleanup_query)
-                deleted_count = cleanup_result.rowcount
-                
-                # Commit all changes
                 session.commit()
                 
-                logger.info("Genre aggregates update completed successfully", 
-                            bars_processed=len(bar_genres),
-                            old_records_removed=deleted_count)
+                logger.info("Genre aggregates update completed", 
+                            rows_inserted=row_count)
 
             except Exception as session_error:
                 session.rollback()

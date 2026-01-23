@@ -46,6 +46,7 @@ app.conf.update(
     # Task routing and execution settings
     task_routes={
         'barfindr.tasks.spotify_genre_polling': {'queue': 'spotify'},
+        'barfindr.tasks.process_bar_batch': {'queue': 'spotify'},
         'barfindr.tasks.update_genre_aggregates': {'queue': 'spotify'},
         'barfindr.tasks.database_cleanup': {'queue': 'maintenance'}
     },
