@@ -1,5 +1,6 @@
-from sqlalchemy import TypeDecorator, String
 import uuid
+
+from sqlalchemy import String, TypeDecorator
 
 
 class SqliteUUID(TypeDecorator):

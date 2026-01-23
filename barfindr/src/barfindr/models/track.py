@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, DateTime, JSON, Float, ForeignKey, UUID
-from sqlalchemy.orm import relationship
-from ..database import Base
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+from sqlalchemy import JSON, UUID, Column, DateTime, Float, ForeignKey, String
+from sqlalchemy.orm import relationship
+
+from ..database import Base
 from .bar_reference import Bar
 
 

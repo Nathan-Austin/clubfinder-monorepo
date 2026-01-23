@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Boolean, DateTime, UUID
-from sqlalchemy.orm import declarative_base
 import uuid
 from datetime import datetime
+
+from sqlalchemy import UUID, Boolean, Column, DateTime, String
+from sqlalchemy.orm import declarative_base
 
 # Use a separate base to avoid conflicts with our other models
 BarBase = declarative_base()

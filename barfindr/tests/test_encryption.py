@@ -1,8 +1,10 @@
-import os
-from dotenv import load_dotenv
-from barfindr.encryption import encryption_service, base64url_decode
 import base64
+import os
 import traceback
+
+from dotenv import load_dotenv
+
+from barfindr.encryption import base64url_decode, encryption_service
 
 # Load environment variables from .env file
 load_dotenv()

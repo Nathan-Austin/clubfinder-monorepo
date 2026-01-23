@@ -1,8 +1,10 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, UUID, Text
-from sqlalchemy.orm import relationship
-from ..database import Base
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+from sqlalchemy import UUID, Boolean, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy.orm import relationship
+
+from ..database import Base
 
 
 class Bar(Base):

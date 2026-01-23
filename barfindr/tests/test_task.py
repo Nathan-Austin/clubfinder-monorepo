@@ -1,6 +1,7 @@
 # Create a test script: test_task.py
-from src.barfindr.tasks import spotify_genre_polling
 import asyncio
+
+from src.barfindr.tasks import spotify_genre_polling
 
 
 async def test_task():

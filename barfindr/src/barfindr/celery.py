@@ -1,8 +1,9 @@
 # src/barfindr/celery.py
+import os
+
+import structlog
 from celery import Celery
 from celery.schedules import crontab
-import os
-import structlog
 
 # Configure logging
 logger = structlog.get_logger()
