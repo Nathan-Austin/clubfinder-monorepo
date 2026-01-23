@@ -2,7 +2,7 @@
 
 from subprocess import Popen, PIPE, TimeoutExpired
 import datetime
-from utils import execute_query
+from utils import execute_query, commit_to_database
 import time
 import logging
 import sys
@@ -190,9 +190,7 @@ def build_database_tables(city_name):
     time.sleep(5)
 
     clear_past_events_query = "DELETE FROM clubfindr.events WHERE event_date < %s;"
-    commit_genres_to_dataBase(
-        clear_past_events_query, (datetime.datetime.now().date(),)
-    )
+    commit_to_database(clear_past_events_query, (datetime.datetime.now().date(),))
 
 
 def run_with_timeout(script_path, args, timeout):

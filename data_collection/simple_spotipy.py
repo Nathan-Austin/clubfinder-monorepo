@@ -117,7 +117,6 @@ def has_been_called_recently(name):
 
 # Function to update the API call log
 def update_api_call_log(artist):
-    global api_call_log
     api_call_log[artist] = datetime.datetime.now()
 
     # Save periodically to avoid constant disk writes
