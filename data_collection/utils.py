@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import psycopg2
 from psycopg2 import sql
+from psycopg2 import pool as pg_pool
 import pandas as pd
 import logging
 from sqlalchemy import create_engine
@@ -130,7 +131,7 @@ def update_primary_keys():
 ##############################################################################################
 ############################## DATABASE CONNECTION FUNCTIONS #################################
 
-def config(filename='/home/nathan/clubfinder/data_collection/database.ini', section='postgresql'):
+def config(filename='/home/nathan/clubfinder-monorepo/data_collection/database.ini', section='postgresql'):
     """Takes secret login info from database.ini to connect to PostgreSQL."""
     parser = ConfigParser()
     parser.read(filename)
@@ -144,6 +145,49 @@ def config(filename='/home/nathan/clubfinder/data_collection/database.ini', sect
     else:
         raise Exception(f'Section {section} not found in the {filename} file')
 
+_DB_POOL = None
+_DB_POOL_CONFIG = None
+
+
+def _get_db_pool():
+    global _DB_POOL, _DB_POOL_CONFIG
+
+    if os.getenv("DB_POOL_DISABLE") == "1":
+        return None
+
+    params = config()
+    config_key = tuple(sorted(params.items()))
+    if _DB_POOL is None or _DB_POOL_CONFIG != config_key:
+        minconn = int(os.getenv("DB_POOL_MINCONN", "1"))
+        maxconn = int(os.getenv("DB_POOL_MAXCONN", "5"))
+        if maxconn < minconn:
+            maxconn = minconn
+        _DB_POOL = pg_pool.ThreadedConnectionPool(minconn, maxconn, **params)
+        _DB_POOL_CONFIG = config_key
+
+    return _DB_POOL
+
+
+def get_connection():
+    db_pool = _get_db_pool()
+    if db_pool:
+        return db_pool.getconn()
+    return psycopg2.connect(**config())
+
+
+def release_connection(conn):
+    if conn is None:
+        return
+
+    if _DB_POOL and os.getenv("DB_POOL_DISABLE") != "1":
+        try:
+            _DB_POOL.putconn(conn)
+            return
+        except Exception:
+            pass
+
+    conn.close()
+
 
 
 def execute_query(query, params=None, fetch=False, autocommit=True):
@@ -152,11 +196,8 @@ def execute_query(query, params=None, fetch=False, autocommit=True):
     result = None
     
     try:
-        # Get connection configuration
-        params_config = config()
-        
-        # Establish connection
-        conn = psycopg2.connect(**params_config)
+        # Establish connection (pooled if available)
+        conn = get_connection()
         
         with conn.cursor() as cur:
             cur.execute(query, params)
@@ -180,7 +221,7 @@ def execute_query(query, params=None, fetch=False, autocommit=True):
     
     finally:
         if conn is not None:
-            conn.close()  # Always close the connection
+            release_connection(conn)  # Return to pool or close
 
     return result
 
@@ -199,19 +240,18 @@ def execute_query2(query, params=None, fetch=False, return_results=False):
     result = None
     
     try:
-        # Get database connection parameters
-        params_config = config()
-        
-        # Establish connection
-        conn = psycopg2.connect(**params_config)
+        # Establish connection (pooled if available)
+        conn = get_connection()
 
         with conn.cursor() as cur:
             # Execute the query with optional parameters
             cur.execute(query, params)
 
-            # Fetch the result if the query uses RETURNING
-            if return_results:
-                result = cur.fetchone()  # Fetch one row; you can use fetchall() if expecting multiple
+            # Fetch the result if requested
+            if fetch:
+                result = cur.fetchall()
+            elif return_results:
+                result = cur.fetchone()  # Fetch one row; use fetch=True for multiple rows
 
             # Commit the transaction (useful for INSERT, UPDATE, DELETE)
             conn.commit()
@@ -232,7 +272,7 @@ def execute_query2(query, params=None, fetch=False, return_results=False):
     
     finally:
         if conn is not None:
-            conn.close()  # Always close the connection
+            release_connection(conn)  # Return to pool or close
 
     return result
 
@@ -256,10 +296,8 @@ def extract_from_database(query, params=None):
     artdict = {}
     
     try:
-        # Read connection parameters
-        params_config = config()
-
-        conn = psycopg2.connect(**params_config)
+        # Establish connection (pooled if available)
+        conn = get_connection()
         # Create a cursor
         cur = conn.cursor()
         # Execute the query with optional parameters
@@ -292,7 +330,7 @@ def extract_from_database(query, params=None):
     
     finally:
         if conn is not None:
-            conn.close()
+            release_connection(conn)
     
     return artdict
 
@@ -302,11 +340,8 @@ def extract_event_id_from_database(query, params=None):
     result = []
 
     try:
-        # Read connection parameters
-        params_config = config()
-
-        # Connect to the PostgreSQL server
-        conn = psycopg2.connect(**params_config)
+        # Establish connection (pooled if available)
+        conn = get_connection()
 
         # Create a cursor
         cur = conn.cursor()
@@ -331,7 +366,7 @@ def extract_event_id_from_database(query, params=None):
 
     finally:
         if conn is not None:
-            conn.close()
+            release_connection(conn)
 
     # Return the raw result set (can be a list of tuples or a single list, depending on the query)
     return result
@@ -343,10 +378,8 @@ def extract_from_database_spotify(query, params=None):
     artist_dict = {}
     
     try:
-        # Read connection parameters
-        params_config = config()
-        
-        conn = psycopg2.connect(**params_config)
+        # Establish connection (pooled if available)
+        conn = get_connection()
         # Create a cursor
         cur = conn.cursor()
         # Execute the query with parameters
@@ -389,52 +422,20 @@ def extract_from_database_spotify(query, params=None):
     
     finally:
         if conn is not None:
-            conn.close()
+            release_connection(conn)
     
     return artist_dict
 
 
 
-def extract_genres_from_database(query):
-    """ Connect to the PostgreSQL database server to allow for artist names to be inputed to
-    spotify api search"""
-    conn = None
-
-    artdict = {}
-    
-    try:
-        # read connection parameters
-        params = config()
-        # connect to the PostgreSQL server
-        
-
-        conn = psycopg2.connect(**params)
-        # create a cursor
-        cur = conn.cursor()
-        # execute a statement
-        cur.execute(query)
-        result = cur.fetchall()
-        
-        conn.commit()
-        cur.close()
+_GENRE_CACHE = {}
 
 
-
-    except (Exception, psycopg2.DatabaseError) as error:
-        logging.error(error)
-        # close the communication with the PostgreSQL
-
-
-    finally:
-        if conn is not None:
-            conn.close()
-            
-    
-    artdict = [(item[0], item[1].split(',') if isinstance(item[1], str) else item[1]) for item in result]
-
-    return artdict
-def load_genres_from_csv(file_path):
+def load_genres_from_csv(file_path, use_cache=True):
     """Loads genres from a CSV file into a set for fast lookup."""
+    if use_cache and file_path in _GENRE_CACHE:
+        return _GENRE_CACHE[file_path]
+
     genres = set()
     try:
         with open(file_path, mode='r') as csv_file:
@@ -447,8 +448,10 @@ def load_genres_from_csv(file_path):
         logging.error(f"CSV file not found: {file_path}")
     except Exception as e:
         logging.error(f"Error loading genres from CSV: {e}")
-    
+
     logging.info(f"Loaded {len(genres)} genres from {file_path}")
+    if use_cache:
+        _GENRE_CACHE[file_path] = genres
     return genres
 
 def extract_array_from_database(query, params=None):
@@ -458,12 +461,8 @@ def extract_array_from_database(query, params=None):
     artdict = {}
     
     try:
-        # read connection parameters
-        params_config = config()
-        # connect to the PostgreSQL server
-        
-
-        conn = psycopg2.connect(**params_config)
+        # Establish connection (pooled if available)
+        conn = get_connection()
         # create a cursor
         cur = conn.cursor()
         # execute a statement
@@ -478,7 +477,7 @@ def extract_array_from_database(query, params=None):
 
     finally:
         if conn is not None:
-            conn.close()
+            release_connection(conn)
             
     
     # Convert the array strings to actual lists
@@ -493,10 +492,8 @@ def extract_genres_from_database(query):
     artdict = {}
     
     try:
-        # Read connection parameters
-        params = config()
-        # Connect to the PostgreSQL server
-        conn = psycopg2.connect(**params)
+        # Establish connection (pooled if available)
+        conn = get_connection()
         # Create a cursor
         cur = conn.cursor()
         # Execute the query
@@ -513,7 +510,7 @@ def extract_genres_from_database(query):
     
     finally:
         if conn is not None:
-            conn.close()
+            release_connection(conn)
 
     # Ensure result is not None before processing it
     artdict = [(item[0], item[1].split(',') if isinstance(item[1], str) else item[1]) for item in result]
@@ -548,20 +545,25 @@ def split_and_clean_genres(genres, valid_genres):
         normalized = re.sub(r'["\']', '', normalized)
         normalized = re.sub(r'[^\w\s-]', ' ', normalized)
         
+        # Prefer exact matches before fuzzy compound matching.
+        if normalized in valid_genres_set:
+            cleaned_genres.add(normalized)
+            continue
+
         # Handle compound genres (e.g., "TechHouse" -> "Tech House")
+        normalized_compact = re.sub(r'[\s-]+', '', normalized)
         compound_matches = []
         for valid_genre in valid_genres_set:
-            if valid_genre in normalized or normalized in valid_genre:
+            valid_compact = re.sub(r'[\s-]+', '', valid_genre)
+            if not valid_compact:
+                continue
+            if valid_compact in normalized_compact or normalized_compact in valid_compact:
                 compound_matches.append(valid_genre)
-        
+
         if compound_matches:
             # Sort by length descending to prefer longer matches
             compound_matches.sort(key=len, reverse=True)
             cleaned_genres.add(compound_matches[0])
-        else:
-            # Try exact match
-            if normalized in valid_genres_set:
-                cleaned_genres.add(normalized)
 
     return list(cleaned_genres)
 
@@ -576,9 +578,8 @@ def filter_genres(genres, valid_genres):
     Returns:
         list: A list of genres that are in the valid genres list.
     """
-    valid_genre_set = set(valid_genres)
-    filtered_genres = [genre for genre in genres if genre in valid_genre_set]
-    return filtered_genres
+    valid_genre_set = {genre.lower() for genre in valid_genres}
+    return [genre.lower() for genre in genres if genre and genre.lower() in valid_genre_set]
 
 import csv
 
@@ -711,35 +712,18 @@ def extract_for_models(query):
     """Extract data for modeling."""
     conn = None
     try:
-        params = config()
         logging.info("Connecting to the PostgreSQL database...")
-        conn = psycopg2.connect(**params)
+        conn = get_connection()
         df = pd.read_sql_query(query, conn)
         df['event_genres'] = df['event_genres'].apply(lambda x: ', '.join(x) if isinstance(x, list) else x)
     except (Exception, psycopg2.DatabaseError) as error:
         logging.error(error)
     finally:
         if conn is not None:
-            conn.close()
+            release_connection(conn)
             logging.info("Database connection closed.")
     return df
 
-
-def filter_genres(genres, valid_genres):
-    """
-    Filters out genres that are not in the list of valid genres.
-
-    Parameters:
-        genres (list): The list of genres to filter.
-        valid_genres (list): The list of valid genres to compare against.
-
-    Returns:
-        list: A list of genres that are in the valid genres list.
-    """
-    # Use a set for faster membership checking
-    valid_genre_set = set(genre.lower() for genre in valid_genres)
-    filtered_genres = [genre.lower() for genre in genres if genre.lower() in valid_genre_set]
-    return filtered_genres
 
 def get_all_genres():
     """Retrieves all valid genres from the Musicalyst website."""
@@ -778,22 +762,6 @@ def name_cleaner(name):
     name = re.sub(r'^[,\s]+|[,\s]+$', '', name) # Remove leading/trailing commas and spaces
     
     return name.strip()
-
-def split_and_clean_genres(genres, valid_genres):
-    """Cleans the genres list from the database to match the valid genres set."""
-    cleaned_genres = []
-    
-    for genre in genres:
-        # Normalize the genre: strip spaces, convert to lowercase, and remove special characters
-        normalized_genre = re.sub(r'[^a-zA-Z0-9\s]', '', genre).strip().lower()
-        
-        if normalized_genre in valid_genres:
-            cleaned_genres.append(normalized_genre)
-        else:
-            logging.warning(f"Genre '{genre}' normalized to '{normalized_genre}' not found in valid genres list.")
-
-    return cleaned_genres
-
 
 def collect_genres_for_event(event_id):
     """

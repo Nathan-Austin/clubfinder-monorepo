@@ -3,13 +3,14 @@ import time
 import json
 import requests
 import datetime
-import pickle
 import logging
 import argparse
 import re
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 from psycopg2 import sql
 import csv
+from log_utils import redact_identifier
 from utils import (
     extract_from_database, 
     commit_to_database, 
@@ -23,7 +24,7 @@ from utils import (
 load_dotenv()
 logging.basicConfig(
     level=logging.ERROR,
-    filename="/home/nathan/clubfinder/data_collection/soundcloud_api.log",
+    filename="/home/nathan/clubfinder-monorepo/data_collection/soundcloud_api.log",
     filemode="a",
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -39,7 +40,7 @@ MAX_API_CALLS = 15000
 DELAY_BETWEEN_CALLS = 1  # 1 second delay between calls
 
 # Initialize or load API call count from file
-API_CALL_COUNT_FILE = "/home/nathan/clubfinder/data_collection/api_call_count.json"
+API_CALL_COUNT_FILE = "/home/nathan/clubfinder-monorepo/data_collection/api_call_count.json"
 if os.path.exists(API_CALL_COUNT_FILE):
     with open(API_CALL_COUNT_FILE, "r") as f:
         api_call_count_data = json.load(f)
@@ -133,63 +134,167 @@ def refresh_access_token(client_id, client_secret, refresh_token):
     return access_token, refresh_token, token_expiry
 
 
+def normalize_soundcloud_url(raw_url):
+    if not raw_url:
+        return None
+
+    cleaned = raw_url.strip()
+    if not cleaned.startswith(("http://", "https://")):
+        cleaned = f"https://{cleaned}"
+
+    try:
+        parsed = urlparse(cleaned)
+    except Exception:
+        return cleaned
+
+    netloc = parsed.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+
+    if netloc:
+        parsed = parsed._replace(netloc=netloc, query="", fragment="")
+        return parsed.geturl()
+
+    return cleaned
+
+
 def get_user_id(access_token, artist_name, artist_url):
     """Enhanced user ID retrieval with more robust error handling and logging."""
-    # Ensure artist_name and artist_url are not None
-    if not artist_name or not artist_url:
-        logging.error(f"Invalid artist input - Name: {artist_name}, URL: {artist_url}")
+    # Require at least one identifier so we can attempt resolve or search.
+    if not artist_name and not artist_url:
+        logging.error(
+            "Invalid artist input - Name: %s, URL: %s",
+            redact_identifier(artist_name, "artist"),
+            redact_identifier(artist_url, "url"),
+        )
         return None
 
     try:
-        # Try to extract username from URL first
-        username = artist_url.split("/")[-1]
-        resolve_url = f"https://api.soundcloud.com/resolve?url=http://soundcloud.com/{username}&format=json"
         headers = {"Authorization": f"Bearer {access_token}"}
 
-        # First attempt: Resolve by username
-        try:
-            response = requests.get(resolve_url, headers=headers)
-            response.raise_for_status()
-            user_info = response.json()
-            user_id = user_info.get("id")
-            if user_id:
-                logging.info(f"Successfully resolved user ID for {artist_name} via URL")
-                return user_id
-        except Exception as url_resolve_error:
-            logging.warning(f"URL resolution failed for {artist_name}: {url_resolve_error}")
+        # First attempt: Resolve using the normalized URL if present.
+        if artist_url:
+            normalized_url = normalize_soundcloud_url(artist_url)
+            candidates = [normalized_url]
+            if normalized_url != artist_url:
+                candidates.append(artist_url)
+
+            for candidate_url in candidates:
+                if not candidate_url:
+                    continue
+                try:
+                    response = requests.get(
+                        "https://api.soundcloud.com/resolve",
+                        params={"url": candidate_url, "format": "json"},
+                        headers=headers,
+                        timeout=15,
+                    )
+                    response.raise_for_status()
+                    user_info = response.json()
+                    user_id = user_info.get("id")
+                    if user_id:
+                        logging.info(
+                            "Successfully resolved user ID for %s via URL",
+                            redact_identifier(artist_name, "artist"),
+                        )
+                        return user_id
+                except Exception as url_resolve_error:
+                    logging.warning(
+                        "URL resolution failed for %s: %s",
+                        redact_identifier(artist_name, "artist"),
+                        url_resolve_error,
+                    )
+
+            # Fallback: resolve using username extracted from the URL path.
+            try:
+                parsed = urlparse(normalized_url or artist_url)
+                path_parts = [part for part in parsed.path.split("/") if part]
+                username = path_parts[0] if path_parts else None
+            except Exception:
+                username = None
+
+            if username:
+                try:
+                    response = requests.get(
+                        "https://api.soundcloud.com/resolve",
+                        params={"url": f"https://soundcloud.com/{username}", "format": "json"},
+                        headers=headers,
+                        timeout=15,
+                    )
+                    response.raise_for_status()
+                    user_info = response.json()
+                    user_id = user_info.get("id")
+                    if user_id:
+                        logging.info(
+                            "Successfully resolved user ID for %s via URL username",
+                            redact_identifier(artist_name, "artist"),
+                        )
+                        return user_id
+                except Exception as url_resolve_error:
+                    logging.warning(
+                        "URL username resolution failed for %s: %s",
+                        redact_identifier(artist_name, "artist"),
+                        url_resolve_error,
+                    )
 
         # Fallback: Search by artist name
-        search_url = f"https://api.soundcloud.com/users?q={artist_name}"
-        try:
-            response = requests.get(search_url, headers=headers)
-            response.raise_for_status()
-            search_results = response.json()
-
-            if search_results and "collection" in search_results and search_results["collection"]:
-                # Find the best match
-                best_match = max(
-                    search_results["collection"], 
-                    key=lambda x: (
-                        # Prioritize exact name match
-                        1 if x.get('username', '').lower() == artist_name.lower() else 0,
-                        # Then by follower count or tracks count as a proxy for relevance
-                        x.get('followers_count', 0) + x.get('track_count', 0)
-                    )
+        if artist_name:
+            try:
+                response = requests.get(
+                    "https://api.soundcloud.com/users",
+                    params={"q": artist_name, "limit": 10},
+                    headers=headers,
+                    timeout=15,
                 )
-                user_id = best_match.get("id")
-                
-                if user_id:
-                    logging.info(f"Found user ID for {artist_name} via search")
-                    return user_id
-        except Exception as search_error:
-            logging.warning(f"Search failed for {artist_name}: {search_error}")
+                response.raise_for_status()
+                search_results = response.json()
+
+                if isinstance(search_results, dict):
+                    collection = search_results.get("collection", [])
+                elif isinstance(search_results, list):
+                    collection = search_results
+                else:
+                    collection = []
+
+                if collection:
+                    # Find the best match
+                    best_match = max(
+                        collection,
+                        key=lambda x: (
+                            # Prioritize exact name match
+                            1 if x.get("username", "").lower() == artist_name.lower() else 0,
+                            # Then by follower count or tracks count as a proxy for relevance
+                            x.get("followers_count", 0) + x.get("track_count", 0),
+                        ),
+                    )
+                    user_id = best_match.get("id")
+
+                    if user_id:
+                        logging.info(
+                            "Found user ID for %s via search",
+                            redact_identifier(artist_name, "artist"),
+                        )
+                        return user_id
+            except Exception as search_error:
+                logging.warning(
+                    "Search failed for %s: %s",
+                    redact_identifier(artist_name, "artist"),
+                    search_error,
+                )
 
         # If all methods fail
-        logging.error(f"Could not find user ID for artist: {artist_name}")
+        logging.error(
+            "Could not find user ID for artist: %s",
+            redact_identifier(artist_name, "artist"),
+        )
         return None
 
     except Exception as e:
-        logging.error(f"Unexpected error finding user ID for {artist_name}: {e}")
+        logging.error(
+            "Unexpected error finding user ID for %s: %s",
+            redact_identifier(artist_name, "artist"),
+            e,
+        )
         return None
 
 
@@ -224,7 +329,7 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
     """Update artist and event genres with properly cleaned and normalized genres."""
     try:
         # Load valid genres from CSV
-        valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
+        valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
         if not valid_genres:
             logging.error("Failed to load valid genres from CSV")
             return
@@ -232,7 +337,10 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
         # Clean and normalize genres using the improved split_and_clean_genres function
         cleaned_genres = split_and_clean_genres(genres, valid_genres)
         if not cleaned_genres:
-            logging.warning(f"No valid genres found for artist {artist_name}")
+            logging.warning(
+                "No valid genres found for artist %s",
+                redact_identifier(artist_name, "artist"),
+            )
             return
 
         # Updated query to use fully qualified column reference
@@ -259,7 +367,10 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
                                      return_results=True)
         
         if not artist_result:
-            logging.error(f"Failed to update or find artist {artist_name}")
+            logging.error(
+                "Failed to update or find artist %s",
+                redact_identifier(artist_name, "artist"),
+            )
             return
 
         # Update event genres by aggregating from all associated artists
@@ -282,10 +393,18 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
         
         # Execute event update
         commit_to_database(update_event_data_genres_query, (event_id, event_id, city_name))
-        logging.info(f"Successfully updated genres for artist {artist_name} and event {event_id}")
+        logging.info(
+            "Successfully updated genres for artist %s and event %s",
+            redact_identifier(artist_name, "artist"),
+            redact_identifier(event_id, "event"),
+        )
 
     except Exception as e:
-        logging.error(f"Failed to update database for artist {artist_name} with error: {e}")
+        logging.error(
+            "Failed to update database for artist %s with error: %s",
+            redact_identifier(artist_name, "artist"),
+            e,
+        )
         # Add more detailed logging
         import traceback
         logging.error(traceback.format_exc())
@@ -357,26 +476,39 @@ def split_and_clean_genres(genres, valid_genres):
             cleaned_genres.append(matching_genres[0])  # Use the exact case from valid genres
         else:
             # Log genres not found in the valid list
-            logging.warning(f"Genre '{cleaned_genre}' not found in valid genres list.")
+            logging.warning(
+                "Genre not found in valid genres list: %s",
+                redact_identifier(cleaned_genre, "genre"),
+            )
     
     # Remove duplicates while preserving order
     return list(dict.fromkeys(cleaned_genres))
 
 
 # Load or initialize the failed artist tracking system
-FAILED_ARTISTS_FILE = "/home/nathan/clubfinder/data_collection/failed_artists.pkl"
+FAILED_ARTISTS_FILE = "/home/nathan/clubfinder-monorepo/data_collection/failed_artists.json"
 
 # Initialize or load failed artist log
 if os.path.exists(FAILED_ARTISTS_FILE):
-    with open(FAILED_ARTISTS_FILE, "rb") as f:
-        failed_artists_log = pickle.load(f)
+    with open(FAILED_ARTISTS_FILE, "r") as f:
+        failed_artists_log_raw = json.load(f)
+        # Convert ISO format strings back to datetime objects
+        failed_artists_log = {
+            name: datetime.datetime.fromisoformat(timestamp)
+            for name, timestamp in failed_artists_log_raw.items()
+        }
 else:
     failed_artists_log = {}
 
 def save_failed_artists():
     """Save the failed artists log to a file."""
-    with open(FAILED_ARTISTS_FILE, "wb") as f:
-        pickle.dump(failed_artists_log, f)
+    # Convert datetime objects to ISO format strings for JSON serialization
+    failed_artists_log_serializable = {
+        name: timestamp.isoformat()
+        for name, timestamp in failed_artists_log.items()
+    }
+    with open(FAILED_ARTISTS_FILE, "w") as f:
+        json.dump(failed_artists_log_serializable, f, indent=2)
 
 
 
@@ -399,15 +531,25 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
 
     # Add more robust input validation
     if not artist_cleaned or not artist_url:
-        logging.warning(f"Invalid artist input - Name: {artist_cleaned}, URL: {artist_url}")
+        logging.warning(
+            "Invalid artist input - Name: %s, URL: %s",
+            redact_identifier(artist_cleaned, "artist"),
+            redact_identifier(artist_url, "url"),
+        )
         return
 
     if has_bad_link(artist_cleaned):
-        logging.info(f"Skipping API call for {artist_cleaned}, marked as bad link.")
+        logging.info(
+            "Skipping API call for %s, marked as bad link.",
+            redact_identifier(artist_cleaned, "artist"),
+        )
         return
 
     if has_been_called_recently(artist_cleaned):
-        logging.info(f"Skipping API call for {artist_cleaned}, recently fetched.")
+        logging.info(
+            "Skipping API call for %s, recently fetched.",
+            redact_identifier(artist_cleaned, "artist"),
+        )
         return
 
     if api_call_count >= MAX_API_CALLS:
@@ -420,7 +562,10 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
     # Update get_user_id call to handle potential None returns more gracefully
     user_id = get_user_id(access_token, artist_cleaned, artist_url)
     if not user_id:
-        logging.error(f"Failed to retrieve user ID for artist {artist_cleaned}")
+        logging.error(
+            "Failed to retrieve user ID for artist %s",
+            redact_identifier(artist_cleaned, "artist"),
+        )
         
         # Mark the artist as having a bad link and save the failed artists log
         failed_artists_log[artist_cleaned] = datetime.datetime.now()
@@ -429,20 +574,29 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
 
     # Reuse existing query pattern for fetching artist_id with improved error handling
     artist_id_query = "SELECT id FROM clubfindr.artists WHERE soundcloud_link = %s;"
-    logging.info(f"Querying artist_id for artist_url: {artist_url}")
+    logging.info(
+        "Querying artist_id for artist_url: %s",
+        redact_identifier(artist_url, "url"),
+    )
 
     try:
         artist_id_result = extract_event_id_from_database(artist_id_query, (artist_url,))
         artist_id = artist_id_result[0][0] if artist_id_result else None
 
         if not artist_id:
-            logging.error(f"Could not find artist ID for {artist_cleaned}.")
+            logging.error(
+                "Could not find artist ID for %s.",
+                redact_identifier(artist_cleaned, "artist"),
+            )
             return
 
         # Fetch event_ids associated with the artist
         event_ids = get_event_id_for_artist(artist_id)
         if not event_ids:
-            logging.error(f"No associated event IDs found for artist {artist_cleaned}.")
+            logging.error(
+                "No associated event IDs found for artist %s.",
+                redact_identifier(artist_cleaned, "artist"),
+            )
             return
 
         genre_set = set()
@@ -460,14 +614,22 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
 
                 if genres:
                     genres = genre_cleaner(genres)
-                    genres = list(
-                        filter(None, [genre.strip() for genre in genres.split(", ")])
-                    )
-                    genre_set.update(genres)
+                    if genres:
+                        genres = list(
+                            filter(None, [genre.strip() for genre in genres.split(", ")])
+                        )
+                        genre_set.update(genres)
                 else:
-                    logging.warning(f"No genres found for track {track_id}.")
+                    logging.warning(
+                        "No genres found for track %s.",
+                        redact_identifier(track_id, "track"),
+                    )
         except Exception as e:
-            logging.error(f"Error processing tracks for {artist_cleaned}: {e}")
+            logging.error(
+                "Error processing tracks for %s: %s",
+                redact_identifier(artist_cleaned, "artist"),
+                e,
+            )
             import traceback
             logging.error(traceback.format_exc())
             return
@@ -477,13 +639,22 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
             update_database_new_genres(artist_cleaned, artist_url, list(genre_set), city_name, event_id)
 
         api_call_log[artist_cleaned] = datetime.datetime.now()
-        with open("api_call_log.pkl", "wb") as f:
-            pickle.dump(api_call_log, f)
+        # Convert datetime objects to ISO format strings for JSON serialization
+        api_call_log_serializable = {
+            name: timestamp.isoformat()
+            for name, timestamp in api_call_log.items()
+        }
+        with open("api_call_log.json", "w") as f:
+            json.dump(api_call_log_serializable, f, indent=2)
 
         time.sleep(DELAY_BETWEEN_CALLS)  # Throttle API calls
 
     except Exception as e:
-        logging.error(f"Unexpected error processing {artist_cleaned}: {e}")
+        logging.error(
+            "Unexpected error processing %s: %s",
+            redact_identifier(artist_cleaned, "artist"),
+            e,
+        )
         import traceback
         logging.error(traceback.format_exc())
 
@@ -508,9 +679,14 @@ if __name__ == "__main__":
     access_token, refresh_token, token_expiry = get_access_token(client_id, client_secret)
     api_call_log = {}
 
-    if os.path.exists("api_call_log.pkl"):
-        with open("api_call_log.pkl", "rb") as f:
-            api_call_log = pickle.load(f)
+    if os.path.exists("api_call_log.json"):
+        with open("api_call_log.json", "r") as f:
+            api_call_log_raw = json.load(f)
+            # Convert ISO format strings back to datetime objects
+            api_call_log = {
+                name: datetime.datetime.fromisoformat(timestamp)
+                for name, timestamp in api_call_log_raw.items()
+            }
 
     # Process artists in batches
     BATCH_SIZE = 50

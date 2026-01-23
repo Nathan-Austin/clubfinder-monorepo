@@ -6,10 +6,12 @@ import logging
 import time
 import sys
 from utils import execute_query, commit_to_database
+from graphql_utils import parse_graphql_response
+from log_utils import redact_identifier
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("venue_coordinates.log"),
@@ -80,10 +82,21 @@ def get_venue_details(venue_name, area_code):
     try:
         response = requests.post(URL, headers=HEADERS, json=payload)
         response.raise_for_status()
-        data = response.json()
-        
-        if 'data' in data and 'venueSearch' in data['data'] and 'data' in data['data']['venueSearch']:
-            venues = data['data']['venueSearch']['data']
+        try:
+            data = response.json()
+        except ValueError:
+            logging.error("Failed to parse JSON response for venue search")
+            return None
+
+        venues = parse_graphql_response(
+            data,
+            ["venueSearch", "data"],
+            context="Venue search response",
+            logger=logging,
+            expected_type=list,
+        )
+        if venues is None:
+            return None
             
             if venues:
                 # Find best match
@@ -115,7 +128,11 @@ def get_venue_details(venue_name, area_code):
         return None
     
     except Exception as e:
-        logging.error(f"Error getting venue details for '{venue_name}': {e}")
+        logging.error(
+            "Error getting venue details for %s: %s",
+            redact_identifier(venue_name, "venue"),
+            e,
+        )
         return None
 
 def update_venue_coordinates(venue_name, latitude, longitude, city):
@@ -137,11 +154,20 @@ def update_venue_coordinates(venue_name, latitude, longitude, city):
         result = execute_query(count_query, params=(venue_name, city), fetch=True)
         count = result[0][0] if result else 0
         
-        logging.info(f"Updated {count} events for venue '{venue_name}' in {city}")
+        logging.info(
+            "Updated %d events for venue %s in %s",
+            count,
+            redact_identifier(venue_name, "venue"),
+            city,
+        )
         return count
     
     except Exception as e:
-        logging.error(f"Error updating venue '{venue_name}' in database: {e}")
+        logging.error(
+            "Error updating venue %s in database: %s",
+            redact_identifier(venue_name, "venue"),
+            e,
+        )
         return 0
 
 def create_venues_table():
@@ -190,7 +216,10 @@ def save_venue_to_table(venue_data, city):
             venue_data.get('latitude'),
             venue_data.get('longitude')
         ))
-        logging.info(f"Saved venue '{venue_data.get('name')}' to venues table")
+        logging.info(
+            "Saved venue %s to venues table",
+            redact_identifier(venue_data.get('name'), "venue"),
+        )
         return True
     except Exception as e:
         logging.error(f"Error saving venue to table: {e}")
@@ -214,7 +243,7 @@ def process_venues_for_city(city, area_code):
     total_events_updated = 0
     
     for venue_name in venues:
-        logging.info(f"Processing venue: {venue_name}")
+        logging.info("Processing venue: %s", redact_identifier(venue_name, "venue"))
         
         # Get venue details
         venue_data = get_venue_details(venue_name, area_code)
@@ -237,7 +266,10 @@ def process_venues_for_city(city, area_code):
             else:
                 failed += 1
         else:
-            logging.warning(f"Could not get coordinates for venue '{venue_name}'")
+            logging.warning(
+                "Could not get coordinates for venue %s",
+                redact_identifier(venue_name, "venue"),
+            )
             failed += 1
         
         # Add delay to avoid rate limiting

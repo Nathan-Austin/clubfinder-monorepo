@@ -8,10 +8,12 @@ import sys
 import os
 from datetime import datetime, timedelta
 from utils import execute_query, commit_to_database
+from graphql_utils import parse_graphql_response, get_graphql_template_path
+from log_utils import redact_identifier
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("improved_venue_update.log"),
@@ -26,7 +28,7 @@ HEADERS_TEMPLATE = {
     'Referer': 'https://ra.co/events/{country_code}/{city_name}',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0'
 }
-QUERY_TEMPLATE_PATH = "/home/nathan/clubfinder/data_collection/graphql_query_template.json"
+QUERY_TEMPLATE_PATH = get_graphql_template_path()
 DELAY = 2  # Delay between API calls
 
 # Manual coordinates for some popular venues (as backup)
@@ -125,10 +127,10 @@ def save_venue_to_database(venue_name, city, latitude, longitude, venue_id=None,
     
     try:
         commit_to_database(query, (venue_id, venue_name, address, city, latitude, longitude))
-        logging.info(f"Saved venue information for {venue_name}")
+        logging.info("Saved venue information for %s", redact_identifier(venue_name, "venue"))
         return True
     except Exception as e:
-        logging.error(f"Error saving venue information: {e}")
+        logging.error("Error saving venue information for %s: %s", redact_identifier(venue_name, "venue"), e)
         return False
 
 def update_events_with_coordinates(venue_name, city, latitude, longitude):
@@ -150,10 +152,19 @@ def update_events_with_coordinates(venue_name, city, latitude, longitude):
         result = execute_query(count_query, params=(venue_name, city), fetch=True)
         count = result[0][0] if result else 0
         
-        logging.info(f"Updated {count} events for venue '{venue_name}' in {city}")
+        logging.info(
+            "Updated %d events for venue %s in %s",
+            count,
+            redact_identifier(venue_name, "venue"),
+            city,
+        )
         return count
     except Exception as e:
-        logging.error(f"Error updating events for venue '{venue_name}': {e}")
+        logging.error(
+            "Error updating events for venue %s: %s",
+            redact_identifier(venue_name, "venue"),
+            e,
+        )
         return 0
 
 def generate_headers(city_name, country_code):
@@ -218,7 +229,11 @@ def fetch_city_events(city_info):
     try:
         response = requests.post(URL, headers=headers, json=payload)
         response.raise_for_status()
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            logging.error("Failed to parse JSON response for event listings")
+            return {}
         
         # Save response for debugging
         with open(f"{city_info['name'].lower()}_events_response.json", 'w') as f:
@@ -226,8 +241,15 @@ def fetch_city_events(city_info):
         
         venues = {}
         
-        if 'data' in data and 'eventListings' in data['data'] and 'data' in data['data']['eventListings']:
-            events_data = data['data']['eventListings']['data']
+        events_data = parse_graphql_response(
+            data,
+            ["eventListings", "data"],
+            context="Event listings response",
+            logger=logging,
+            expected_type=list,
+        )
+        if events_data is None:
+            return {}
             
             for event_data in events_data:
                 event = event_data.get("event", {})
@@ -291,7 +313,11 @@ def get_coordinated_clubs_from_ra(city_info):
     try:
         response = requests.post(URL, headers=headers, json=payload)
         response.raise_for_status()
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            logging.error("Failed to parse JSON response for clubs listing")
+            return {}
         
         # Save response for debugging
         with open(f"{city_info['name'].lower()}_clubs_response.json", 'w') as f:
@@ -299,8 +325,15 @@ def get_coordinated_clubs_from_ra(city_info):
         
         venues = {}
         
-        if 'data' in data and 'area' in data['data'] and 'venues' in data['data']['area'] and 'data' in data['data']['area']['venues']:
-            venues_data = data['data']['area']['venues']['data']
+        venues_data = parse_graphql_response(
+            data,
+            ["area", "venues", "data"],
+            context="Clubs listing response",
+            logger=logging,
+            expected_type=list,
+        )
+        if venues_data is None:
+            return {}
             
             for venue in venues_data:
                 if "name" in venue:
@@ -376,7 +409,7 @@ def update_venues_for_city(city_name):
     
     # Process each venue
     for venue_name in venues_to_update:
-        logging.info(f"Processing venue: {venue_name}")
+        logging.info("Processing venue: %s", redact_identifier(venue_name, "venue"))
         
         # Check for exact match
         if venue_name in all_venues:
@@ -414,7 +447,11 @@ def update_venues_for_city(city_name):
                 if (venue_name.lower() in ra_venue_name.lower() or
                     ra_venue_name.lower() in venue_name.lower()):
                     
-                    logging.info(f"Found fuzzy match: '{venue_name}' -> '{ra_venue_name}'")
+                    logging.info(
+                        "Found fuzzy match: %s -> %s",
+                        redact_identifier(venue_name, "venue"),
+                        redact_identifier(ra_venue_name, "venue"),
+                    )
                     
                     # Save to venues table
                     save_venue_to_database(
@@ -441,7 +478,10 @@ def update_venues_for_city(city_name):
                         break
             
             if not found_match:
-                logging.warning(f"Could not find coordinates for venue: {venue_name}")
+                logging.warning(
+                    "Could not find coordinates for venue: %s",
+                    redact_identifier(venue_name, "venue"),
+                )
                 failed_venues.append(venue_name)
         
         # Small delay to avoid overwhelming the database
@@ -453,9 +493,9 @@ def update_venues_for_city(city_name):
     logging.info(f"Updated {total_events_updated} events total")
     
     if failed_venues:
-        logging.warning(f"Failed to update {len(failed_venues)} venues:")
+        logging.warning("Failed to update %d venues:", len(failed_venues))
         for venue in failed_venues:
-            logging.warning(f"  - {venue}")
+            logging.warning("  - %s", redact_identifier(venue, "venue"))
 
 def main():
     if len(sys.argv) < 2:
