@@ -34,13 +34,14 @@ function normalizeGenre(genre: string): string {
 		.toLowerCase()
 		.trim()
 		.replace(/\s*\/\s*/g, ' ') // Replace slashes with spaces
+		.replace(/-/g, ' ') // Replace hyphens with spaces
 		.replace(/[&']/g, '') // Remove & and '
 		.replace(/\s+/g, ' '); // Normalize spaces
 }
 
 function shouldIgnoreGenre(genre: string): boolean {
-	const ignoredGenres = ['none', 'soft porn', 'vaa', 'idiotic', 'new', 'the'];
-	return ignoredGenres.some((ignored) => genre.toLowerCase().includes(ignored.toLowerCase()));
+	const ignoredGenres = ['none', 'soft porn', 'vaa', 'idiotic'];
+	return ignoredGenres.some((ignored) => genre.toLowerCase() === ignored.toLowerCase());
 }
 
 function findClusters(
@@ -78,14 +79,7 @@ function findClusters(
 		for (const subCluster of subClusters) {
 			const normalizedSubGenres = subCluster.genres?.map((g: string) => normalizeGenre(g)) || [];
 
-			if (
-				normalizedSubGenres.some(
-					(g: string) =>
-						g === normalizedInputGenre ||
-						(g.includes('house') && normalizedInputGenre.includes('house')) ||
-						(g.includes('techno') && normalizedInputGenre.includes('techno'))
-				)
-			) {
+			if (normalizedSubGenres.some((g: string) => g === normalizedInputGenre)) {
 				return {
 					genre,
 					cluster: clusterName,

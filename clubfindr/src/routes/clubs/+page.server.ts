@@ -5,7 +5,14 @@ import type { DbDataRow } from '$lib/$types';
 import { genreClusters } from '$lib/data/validatedGenreClusters';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
-import { isFuzzyMatch, isWordBoundaryPartialMatch, makeClusterId } from '$lib/genreSimilarity';
+import {
+	genreOverlap,
+	isFuzzyMatch,
+	isWordBoundaryPartialMatch,
+	makeClusterId
+} from '$lib/genreSimilarity';
+import fs from 'node:fs';
+import path from 'node:path';
 type Genre = string;
 
 type ClusterEntry = {
@@ -189,14 +196,25 @@ function findClusters(genres: string[]): ClusterEntry[] {
 			}
 		}
 
-		if (!found && !missingGenresCache.has(normalizedGenre)) {
-			// Only log each missing genre once per server session
-			console.warn(`Genre ${normalizedGenre} not found in any cluster`);
-			missingGenresCache.add(normalizedGenre);
+		if (!found) {
+			if (!missingGenresCache.has(normalizedGenre)) {
+				console.warn(`Genre "${normalizedGenre}" not found in any cluster`);
+				missingGenresCache.add(normalizedGenre);
 
-			// Optionally, record the missing genre for later processing
-			// This could append to a file for batch processing with the genre classifier
-			// fs.appendFileSync('missing-genres.txt', normalizedGenre + '\n');
+				try {
+					const logPath = path.join(process.cwd(), 'missing-genres.txt');
+					fs.appendFileSync(logPath, `${normalizedGenre}\n`, 'utf8');
+				} catch (error) {
+					console.error('Failed to log missing genre to file:', error);
+				}
+			}
+
+			clusters.push({
+				genre,
+				cluster: 'Uncategorized',
+				subCluster: 'Other',
+				weight: 0.3
+			});
 		}
 	});
 
@@ -266,11 +284,60 @@ function calculateClusterSimilarity(
 	return { similarity: similarityScore, matchingGenres };
 }
 
+type MmrCandidate = {
+	similarity: number;
+	genres: string[];
+};
+
+function applyMmrDiversity<T extends MmrCandidate>(
+	items: T[],
+	maxResults: number,
+	diversityWeight: number
+): T[] {
+	if (maxResults <= 0) {
+		return [];
+	}
+
+	if (items.length <= 1) {
+		return items.slice(0, maxResults);
+	}
+
+	const diverseResults: T[] = [];
+	const remainingResults = [...items];
+
+	diverseResults.push(remainingResults.shift()!);
+
+	while (remainingResults.length > 0 && diverseResults.length < maxResults) {
+		let bestScore = -Infinity;
+		let bestIndex = 0;
+
+		for (let i = 0; i < remainingResults.length; i += 1) {
+			const candidate = remainingResults[i];
+			const minDiversity = Math.min(
+				...diverseResults.map((selected) => 1 - genreOverlap(candidate.genres, selected.genres))
+			);
+
+			const mmrScore =
+				(1 - diversityWeight) * candidate.similarity + diversityWeight * minDiversity;
+
+			if (mmrScore > bestScore) {
+				bestScore = mmrScore;
+				bestIndex = i;
+			}
+		}
+
+		diverseResults.push(remainingResults.splice(bestIndex, 1)[0]);
+	}
+
+	return diverseResults;
+}
+
 export const _findClusters = findClusters;
 export const _calculateClusterSimilarity = calculateClusterSimilarity;
 export const _normalizeGenre = normalizeGenre;
 export const _createClusterCacheKey = createClusterCacheKey;
 export const _genreToClusterIndex = genreToClusterIndex;
+export const _applyMmrDiversity = applyMmrDiversity;
 
 export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	depends('app:date');
@@ -438,32 +505,51 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 		//////////////////////CLUSTERING LOGIC/////////////////////////
 
+		const MIN_SIMILARITY = 0.05;
+		const TARGET_RESULTS = 50;
+		const MAX_RESULTS = 100;
+		const DEFAULT_SIMILARITY_THRESHOLD = 0.1;
+		const DIVERSITY_WEIGHT = 0.3;
+
 		const userClusters = findClusters(genresList);
 
-		const clubSimilarities = processedData
-			.map((club) => {
-				const clubClusters = findClusters(club.genres);
+		const clubSimilarities = processedData.map((club) => {
+			const clubClusters = findClusters(club.genres);
 
-				// Calculate similarity between userClusters and clubClusters
-				const { similarity: similarityScore, matchingGenres } = calculateClusterSimilarity(
-					userClusters,
-					clubClusters
-				);
+			// Calculate similarity between userClusters and clubClusters
+			const { similarity: similarityScore, matchingGenres } = calculateClusterSimilarity(
+				userClusters,
+				clubClusters
+			);
 
-				return {
-					...club,
-					similarity: similarityScore,
-					matchingGenres
-				};
-			})
-			// Filter out entries with similarity score of 0
-			.filter((club) => club.similarity > 0.1);
+			return {
+				...club,
+				similarity: similarityScore,
+				matchingGenres
+			};
+		});
 
-		// Sort the filtered clubSimilarities array in descending order based on similarity
-		clubSimilarities.sort((a, b) => b.similarity - a.similarity);
+		const sortedByScore = [...clubSimilarities].sort((a, b) => b.similarity - a.similarity);
+		let threshold = DEFAULT_SIMILARITY_THRESHOLD;
+
+		if (sortedByScore.filter((club) => club.similarity > threshold).length < TARGET_RESULTS) {
+			threshold = Math.max(
+				MIN_SIMILARITY,
+				sortedByScore[TARGET_RESULTS - 1]?.similarity ?? MIN_SIMILARITY
+			);
+		}
+
+		const filteredSimilarities = sortedByScore
+			.filter((club) => club.similarity >= threshold)
+			.slice(0, MAX_RESULTS);
+		const diverseSimilarities = applyMmrDiversity(
+			filteredSimilarities,
+			MAX_RESULTS,
+			DIVERSITY_WEIGHT
+		);
 
 		// Map all matching clubs to the desired structure
-		const serverSimilarityResults: SimilarityResult[] = clubSimilarities.map((similarity) => {
+		const serverSimilarityResults: SimilarityResult[] = diverseSimilarities.map((similarity) => {
 			return {
 				...similarity
 			};
