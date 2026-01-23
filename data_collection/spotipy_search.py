@@ -42,7 +42,7 @@ def ensure_directory_exists(filepath):
         os.makedirs(directory)
 
 # Set up file paths
-log_dir = f'/home/nathan/clubfinder-monorepo/data_collection/logs/{city_name}'
+log_dir = f'/home/nathan/clubfinder/data_collection/logs/{city_name}'
 api_log_file = os.path.join(log_dir, 'spotify_api.log')
 fuzzy_match_log_file = os.path.join(log_dir, 'spotify_fuzzy_match.log')
 api_call_log_file = os.path.join(log_dir, f'spotify_api_call_log_{city_name}.json')
@@ -280,7 +280,7 @@ def safe_spotify_search(artist_name, retries=3):
                     )
                     
                     # Load valid genres from CSV for comparison
-                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
+                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
                     if valid_genres:
                         logging.info("Loaded %d valid genres from CSV", len(valid_genres))
                         
@@ -460,7 +460,7 @@ def update_event_genres(artist_name, max_retries=3):
     """Update event genres with properly cleaned and normalized genres from all associated artists."""
     try:
         # Load valid genres from CSV
-        valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
+        valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
         if not valid_genres:
             logging.error("Failed to load valid genres from CSV")
             return
@@ -644,7 +644,7 @@ try:
                     continue
 
                 # Load valid genres from CSV
-                valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
+                valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
                 if not valid_genres:
                     logging.error("Failed to load valid genres from CSV")
                     continue
@@ -799,7 +799,7 @@ try:
 
                 if best_match[0][1] >= 95:
                     # Load valid genres from CSV
-                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder-monorepo/data_collection/full_genre_list.csv")
+                    valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
                     if not valid_genres:
                         logging.error("Failed to load valid genres from CSV")
                         continue

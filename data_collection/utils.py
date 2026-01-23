@@ -131,7 +131,7 @@ def update_primary_keys():
 ##############################################################################################
 ############################## DATABASE CONNECTION FUNCTIONS #################################
 
-def config(filename='/home/nathan/clubfinder-monorepo/data_collection/database.ini', section='postgresql'):
+def config(filename='/home/nathan/clubfinder/data_collection/database.ini', section='postgresql'):
     """Takes secret login info from database.ini to connect to PostgreSQL."""
     parser = ConfigParser()
     parser.read(filename)
