@@ -88,10 +88,23 @@ jobs:
 
             # Restart barfindr services (systemd) only if it changed
             if [ "${{ steps.changes.outputs.barfindr }}" == "true" ]; then
+              echo "=== Updating barfindr systemd services ==="
+              sudo cp /home/nathan/clubfinder/barfindr/systemd/barfindr.service /etc/systemd/system/
+              sudo cp /home/nathan/clubfinder/barfindr/systemd/barfindr-celery-worker.service /etc/systemd/system/
+              sudo cp /home/nathan/clubfinder/barfindr/systemd/barfindr-celery-beat.service /etc/systemd/system/
+              sudo systemctl daemon-reload
+
               echo "Restarting barfindr services..."
               sudo systemctl restart barfindr.service
               sudo systemctl restart barfindr-celery-worker.service
               sudo systemctl restart barfindr-celery-beat.service
+
+              echo "Verifying barfindr deployment..."
+              sleep 5
+              if ! systemctl is-active --quiet barfindr.service; then echo "❌ barfindr.service failed"; exit 1; fi
+              if ! systemctl is-active --quiet barfindr-celery-worker.service; then echo "❌ barfindr-celery-worker.service failed"; exit 1; fi
+              if ! systemctl is-active --quiet barfindr-celery-beat.service; then echo "❌ barfindr-celery-beat.service failed"; exit 1; fi
+              echo "✅ All barfindr services are active."
             fi
 
             # Restart spotify_service (systemd) only if it changed
