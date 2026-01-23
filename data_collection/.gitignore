@@ -44,3 +44,11 @@ __pycache__/
 # docs
 docs/
 production_schema.sql
+
+# logs and jsons
+api_call_log.json
+failed_artists.json
+run_state.json
+
+docker-compose.test.yml
+requirements.clean.txt
