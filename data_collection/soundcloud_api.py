@@ -12,12 +12,11 @@ from psycopg2 import sql
 import csv
 from log_utils import redact_identifier
 from utils import (
-    extract_from_database, 
-    commit_to_database, 
+    extract_from_database,
+    commit_to_database,
     extract_event_id_from_database,
     execute_query2,
     load_genres_from_csv,
-   
 )
 
 
@@ -44,9 +43,11 @@ API_CALL_COUNT_FILE = "/home/nathan/clubfinder/data_collection/api_call_count.js
 if os.path.exists(API_CALL_COUNT_FILE):
     with open(API_CALL_COUNT_FILE, "r") as f:
         api_call_count_data = json.load(f)
-        last_reset_time = datetime.datetime.fromisoformat(api_call_count_data['last_reset_time'])
-        api_call_count = api_call_count_data['api_call_count']
-        
+        last_reset_time = datetime.datetime.fromisoformat(
+            api_call_count_data["last_reset_time"]
+        )
+        api_call_count = api_call_count_data["api_call_count"]
+
         # Reset count if 24 hours have passed
         if datetime.datetime.now() - last_reset_time > datetime.timedelta(days=1):
             api_call_count = 0
@@ -55,12 +56,17 @@ else:
     api_call_count = 0
     last_reset_time = datetime.datetime.now()
 
+
 def save_api_call_count():
     with open(API_CALL_COUNT_FILE, "w") as f:
-        json.dump({
-            'api_call_count': api_call_count,
-            'last_reset_time': last_reset_time.isoformat()
-        }, f)
+        json.dump(
+            {
+                "api_call_count": api_call_count,
+                "last_reset_time": last_reset_time.isoformat(),
+            },
+            f,
+        )
+
 
 def has_been_called_recently(name):
     two_weeks_ago = datetime.datetime.now() - datetime.timedelta(days=14)
@@ -78,11 +84,12 @@ def get_data_base_info(city_name):
         FROM clubfindr.artists
         WHERE soundcloud_link IS NOT NULL AND primary_city = %s; 
     """
-    
+
     # Execute the query and pass the city_name as a parameter
     links_dict = extract_from_database(artists_names_query, (city_name,))
-    
+
     return links_dict
+
 
 def get_event_id_for_artist(artist_id):
     # Query to get event_id associated with the artist_id from event_artists
@@ -91,13 +98,12 @@ def get_event_id_for_artist(artist_id):
         FROM clubfindr.event_artists
         WHERE artist_id = %s;
     """
-    
+
     # Fetch the event_id(s) for the given artist_id
     event_ids = extract_event_id_from_database(event_id_query, (artist_id,))
-    
+
     # Extract the actual event_id values from the tuples and return as a list
     return [event_id[0] for event_id in event_ids] if event_ids else None
-
 
 
 def get_access_token(client_id, client_secret):
@@ -115,6 +121,7 @@ def get_access_token(client_id, client_secret):
     expires_in = tokens.get("expires_in", 3600)  # Default to 1 hour if not provided
     token_expiry = time.time() + expires_in  # Calculate the expiry time
     return access_token, refresh_token, token_expiry
+
 
 def refresh_access_token(client_id, client_secret, refresh_token):
     url = "https://secure.soundcloud.com/oauth/token"
@@ -217,7 +224,10 @@ def get_user_id(access_token, artist_name, artist_url):
                 try:
                     response = requests.get(
                         "https://api.soundcloud.com/resolve",
-                        params={"url": f"https://soundcloud.com/{username}", "format": "json"},
+                        params={
+                            "url": f"https://soundcloud.com/{username}",
+                            "format": "json",
+                        },
                         headers=headers,
                         timeout=15,
                     )
@@ -262,7 +272,11 @@ def get_user_id(access_token, artist_name, artist_url):
                         collection,
                         key=lambda x: (
                             # Prioritize exact name match
-                            1 if x.get("username", "").lower() == artist_name.lower() else 0,
+                            (
+                                1
+                                if x.get("username", "").lower() == artist_name.lower()
+                                else 0
+                            ),
                             # Then by follower count or tracks count as a proxy for relevance
                             x.get("followers_count", 0) + x.get("track_count", 0),
                         ),
@@ -298,9 +312,10 @@ def get_user_id(access_token, artist_name, artist_url):
         return None
 
 
-
 def get_tracks_info(access_token, user_id, limit=10):
-    tracks_url = f"https://api.soundcloud.com/users/{user_id}/tracks?limit={limit}format=json"
+    tracks_url = (
+        f"https://api.soundcloud.com/users/{user_id}/tracks?limit={limit}format=json"
+    )
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(tracks_url, headers=headers, timeout=10)
     response.raise_for_status()
@@ -322,14 +337,16 @@ def get_track_data(access_token, track_id):
     genre_data = track_data_json.get("genre", "")
     return genre_data
 
- 
 
-
-def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, event_id):
+def update_database_new_genres(
+    artist_name, soundcloud_link, genres, city_name, event_id
+):
     """Update artist and event genres with properly cleaned and normalized genres."""
     try:
         # Load valid genres from CSV
-        valid_genres = load_genres_from_csv("/home/nathan/clubfinder/data_collection/full_genre_list.csv")
+        valid_genres = load_genres_from_csv(
+            "/home/nathan/clubfinder/data_collection/full_genre_list.csv"
+        )
         if not valid_genres:
             logging.error("Failed to load valid genres from CSV")
             return
@@ -360,12 +377,14 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
             WHERE a.soundcloud_link = %s AND a.primary_city = %s
             RETURNING a.id;
         """
-        
+
         # Execute artist update and get artist ID
-        artist_result = execute_query2(update_artists_genres_query, 
-                                     (cleaned_genres, soundcloud_link, city_name),
-                                     return_results=True)
-        
+        artist_result = execute_query2(
+            update_artists_genres_query,
+            (cleaned_genres, soundcloud_link, city_name),
+            return_results=True,
+        )
+
         if not artist_result:
             logging.error(
                 "Failed to update or find artist %s",
@@ -390,9 +409,11 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
             )
             WHERE e.id = %s AND e.city = %s;
         """
-        
+
         # Execute event update
-        commit_to_database(update_event_data_genres_query, (event_id, event_id, city_name))
+        commit_to_database(
+            update_event_data_genres_query, (event_id, event_id, city_name)
+        )
         logging.info(
             "Successfully updated genres for artist %s and event %s",
             redact_identifier(artist_name, "artist"),
@@ -407,80 +428,85 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name, 
         )
         # Add more detailed logging
         import traceback
+
         logging.error(traceback.format_exc())
 
 
 def genre_cleaner(genre_str):
     """Enhanced genre cleaning and normalization."""
-    if not genre_str or genre_str.lower() in ['none', '']:
+    if not genre_str or genre_str.lower() in ["none", ""]:
         return None
-        
+
     # Convert to string and lowercase
     genre_str = str(genre_str).lower().strip()
-    
+
     # Remove quotes and special characters
-    genre_str = re.sub(r'["\']', '', genre_str)
-    genre_str = re.sub(r'[^\w\s-]', ' ', genre_str)
-    
+    genre_str = re.sub(r'["\']', "", genre_str)
+    genre_str = re.sub(r"[^\w\s-]", " ", genre_str)
+
     # Handle common compound genres and normalizations
     genre_mappings = {
-        'techhouse': 'tech house',
-        'deephouse': 'deep house',
-        'proghouse': 'progressive house',
-        'dance - house': 'dance house',
-        'dance edm': 'dance',
+        "techhouse": "tech house",
+        "deephouse": "deep house",
+        "proghouse": "progressive house",
+        "dance - house": "dance house",
+        "dance edm": "dance",
     }
-    
+
     # Apply genre mappings
     for old, new in genre_mappings.items():
         genre_str = genre_str.replace(old, new)
-    
+
     # Clean up whitespace
-    genre_str = re.sub(r'\s+', ' ', genre_str)
+    genre_str = re.sub(r"\s+", " ", genre_str)
     genre_str = genre_str.strip()
-    
+
     return genre_str if genre_str else None
+
 
 def split_and_clean_genres(genres, valid_genres):
     """
     Enhanced genre splitting and cleaning function.
-    
+
     Args:
         genres (list or str): List of genres or single genre string
         valid_genres (set): Set of valid genres
-    
+
     Returns:
         list: Cleaned and validated genres
     """
     # Ensure genres is a list
     if isinstance(genres, str):
         genres = [genres]
-    
+
     # Clean and normalize genres
     cleaned_genres = []
     for genre in genres:
         # Clean the genre
         cleaned_genre = genre_cleaner(genre)
-        
+
         # Skip if genre is None or empty after cleaning
         if not cleaned_genre:
             continue
-        
+
         # Check against valid genres (case-insensitive)
         matching_genres = [
-            valid_genre for valid_genre in valid_genres 
+            valid_genre
+            for valid_genre in valid_genres
             if cleaned_genre.lower() == valid_genre.lower()
         ]
-        
+
         if matching_genres:
-            cleaned_genres.append(matching_genres[0])  # Use the exact case from valid genres
+            cleaned_genres.append(
+                matching_genres[0]
+            )  # Use the exact case from valid genres
         else:
             # Log genres not found in the valid list
             logging.warning(
                 "Genre not found in valid genres list: %s",
                 redact_identifier(cleaned_genre, "genre"),
             )
-    
+
     # Remove duplicates while preserving order
     return list(dict.fromkeys(cleaned_genres))
 
@@ -500,16 +526,15 @@ if os.path.exists(FAILED_ARTISTS_FILE):
 else:
     failed_artists_log = {}
 
+
 def save_failed_artists():
     """Save the failed artists log to a file."""
     # Convert datetime objects to ISO format strings for JSON serialization
     failed_artists_log_serializable = {
-        name: timestamp.isoformat()
-        for name, timestamp in failed_artists_log.items()
+        name: timestamp.isoformat() for name, timestamp in failed_artists_log.items()
     }
     with open(FAILED_ARTISTS_FILE, "w") as f:
         json.dump(failed_artists_log_serializable, f, indent=2)
-
 
 
 def has_bad_link(name):
@@ -524,8 +549,17 @@ def has_bad_link(name):
     return False
 
 
-
-def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_call_log, city_name, client_id, client_secret):
+def call_api(
+    artist,
+    artist_url,
+    access_token,
+    refresh_token,
+    token_expiry,
+    api_call_log,
+    city_name,
+    client_id,
+    client_secret,
+):
     global api_call_count
     artist_cleaned = artist.replace(",", " ").strip()
 
@@ -553,11 +587,15 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
         return
 
     if api_call_count >= MAX_API_CALLS:
-        logging.error("Reached the maximum API call limit for the day. Stopping execution.")
+        logging.error(
+            "Reached the maximum API call limit for the day. Stopping execution."
+        )
         return
 
     if time.time() >= token_expiry:
-        access_token, refresh_token, token_expiry = refresh_access_token(client_id, client_secret, refresh_token)
+        access_token, refresh_token, token_expiry = refresh_access_token(
+            client_id, client_secret, refresh_token
+        )
 
     # Update get_user_id call to handle potential None returns more gracefully
     user_id = get_user_id(access_token, artist_cleaned, artist_url)
@@ -566,7 +604,7 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
             "Failed to retrieve user ID for artist %s",
             redact_identifier(artist_cleaned, "artist"),
         )
-        
+
         # Mark the artist as having a bad link and save the failed artists log
         failed_artists_log[artist_cleaned] = datetime.datetime.now()
         save_failed_artists()
@@ -580,7 +618,9 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
     )
 
     try:
-        artist_id_result = extract_event_id_from_database(artist_id_query, (artist_url,))
+        artist_id_result = extract_event_id_from_database(
+            artist_id_query, (artist_url,)
+        )
         artist_id = artist_id_result[0][0] if artist_id_result else None
 
         if not artist_id:
@@ -609,14 +649,18 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
             for track in tracks_info:
                 track_id = track["id"]
                 genres = get_track_data(access_token, track_id)
-                api_call_count += 1  # Increment the API call count for each track data call
+                api_call_count += (
+                    1  # Increment the API call count for each track data call
+                )
                 save_api_call_count()  # Save the updated count
 
                 if genres:
                     genres = genre_cleaner(genres)
                     if genres:
                         genres = list(
-                            filter(None, [genre.strip() for genre in genres.split(", ")])
+                            filter(
+                                None, [genre.strip() for genre in genres.split(", ")]
+                            )
                         )
                         genre_set.update(genres)
                 else:
@@ -631,18 +675,20 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
                 e,
             )
             import traceback
+
             logging.error(traceback.format_exc())
             return
-        
+
         # Update the genres for both the artist and the associated events
         for event_id in event_ids:  # Update genres for all associated events
-            update_database_new_genres(artist_cleaned, artist_url, list(genre_set), city_name, event_id)
+            update_database_new_genres(
+                artist_cleaned, artist_url, list(genre_set), city_name, event_id
+            )
 
         api_call_log[artist_cleaned] = datetime.datetime.now()
         # Convert datetime objects to ISO format strings for JSON serialization
         api_call_log_serializable = {
-            name: timestamp.isoformat()
-            for name, timestamp in api_call_log.items()
+            name: timestamp.isoformat() for name, timestamp in api_call_log.items()
         }
         with open("api_call_log.json", "w") as f:
             json.dump(api_call_log_serializable, f, indent=2)
@@ -656,27 +702,30 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
             e,
         )
         import traceback
-        logging.error(traceback.format_exc())
 
+        logging.error(traceback.format_exc())
 
 
 if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(
-    description="Fetch SoundCloud data and update the database.")
+        description="Fetch SoundCloud data and update the database."
+    )
     parser.add_argument("city_name", type=str, help="Name of the city")
     args = parser.parse_args()
 
     # Use the city_name argument in your script
     city_name = args.city_name
-    artists_table_name = 'clubfindr.artists'
-    events_table_name = 'clubfindr.events'
+    artists_table_name = "clubfindr.artists"
+    events_table_name = "clubfindr.events"
     client_id = os.environ.get("SC_CLIENT_ID")
     client_secret = os.environ.get("SC_CLIENT_SECRET")
     logging.info(f"Starting Soundcloud API call for {city_name}...")
 
     artist_dict = get_data_base_info(city_name)
-    access_token, refresh_token, token_expiry = get_access_token(client_id, client_secret)
+    access_token, refresh_token, token_expiry = get_access_token(
+        client_id, client_secret
+    )
     api_call_log = {}
 
     if os.path.exists("api_call_log.json"):
@@ -691,17 +740,33 @@ if __name__ == "__main__":
     # Process artists in batches
     BATCH_SIZE = 50
     artist_items = list(artist_dict.items())
-    artist_batches = [artist_items[i:i+BATCH_SIZE] for i in range(0, len(artist_items), BATCH_SIZE)]
+    artist_batches = [
+        artist_items[i : i + BATCH_SIZE]
+        for i in range(0, len(artist_items), BATCH_SIZE)
+    ]
 
     for batch_idx, batch in enumerate(artist_batches):
-        logging.info(f"Processing SoundCloud artist batch {batch_idx+1}/{len(artist_batches)}")
-        
+        logging.info(
+            f"Processing SoundCloud artist batch {batch_idx+1}/{len(artist_batches)}"
+        )
+
         for artist, artist_urls in batch:
             artist_url = artist_urls[0]
-            call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_call_log, city_name, client_id, client_secret)
-        
+            call_api(
+                artist,
+                artist_url,
+                access_token,
+                refresh_token,
+                token_expiry,
+                api_call_log,
+                city_name,
+                client_id,
+                client_secret,
+            )
+
         # Force garbage collection between batches
         import gc
+
         gc.collect()
         logging.info(f"Completed processing batch of {len(batch)} SoundCloud artists")
         time.sleep(2)  # Slightly longer pause between SoundCloud batches

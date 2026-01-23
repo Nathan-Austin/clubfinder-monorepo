@@ -35,9 +35,11 @@ API_CALL_COUNT_FILE = "api_call_count.json"
 if os.path.exists(API_CALL_COUNT_FILE):
     with open(API_CALL_COUNT_FILE, "r") as f:
         api_call_count_data = json.load(f)
-        last_reset_time = datetime.datetime.fromisoformat(api_call_count_data['last_reset_time'])
-        api_call_count = api_call_count_data['api_call_count']
-        
+        last_reset_time = datetime.datetime.fromisoformat(
+            api_call_count_data["last_reset_time"]
+        )
+        api_call_count = api_call_count_data["api_call_count"]
+
         # Reset count if 24 hours have passed
         if datetime.datetime.now() - last_reset_time > datetime.timedelta(days=1):
             api_call_count = 0
@@ -46,12 +48,17 @@ else:
     api_call_count = 0
     last_reset_time = datetime.datetime.now()
 
+
 def save_api_call_count():
     with open(API_CALL_COUNT_FILE, "w") as f:
-        json.dump({
-            'api_call_count': api_call_count,
-            'last_reset_time': last_reset_time.isoformat()
-        }, f)
+        json.dump(
+            {
+                "api_call_count": api_call_count,
+                "last_reset_time": last_reset_time.isoformat(),
+            },
+            f,
+        )
+
 
 def has_been_called_recently(name):
     seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
@@ -83,6 +90,7 @@ def get_access_token(client_id, client_secret):
     expires_in = tokens.get("expires_in", 3600)  # Default to 1 hour if not provided
     token_expiry = time.time() + expires_in  # Calculate the expiry time
     return access_token, refresh_token, token_expiry
+
 
 def refresh_access_token(client_id, client_secret, refresh_token):
     url = "https://secure.soundcloud.com/oauth/token"
@@ -153,7 +161,6 @@ def get_user_id(access_token, artist_name, artist_url):
     return None
 
 
-
 def get_tracks_info(access_token, user_id):
     tracks_url = f"https://api.soundcloud.com/users/{user_id}/tracks?format=json"
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -178,8 +185,6 @@ def get_track_data(access_token, track_id):
     return genre_data
 
 
-
-
 def update_database_new_genres(artist_name, soundcloud_link, genres, city_name):
     # Prepare the genres list for parameterized query
     genres = [genre.replace("'", "''") for genre in genres]
@@ -187,9 +192,10 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name):
     # Create dynamic table names
     artists_table_name = sql.Identifier(f"artists_{city_name}")
     events_table_name = sql.Identifier(f"event_data_{city_name}")
-    
+
     # Construct SQL queries using parameterized queries
-    update_artists_genres_query = sql.SQL("""
+    update_artists_genres_query = sql.SQL(
+        """
         UPDATE {artists_table_name}
         SET genres = (
             SELECT array_agg(x) 
@@ -198,15 +204,15 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name):
             ) a
         )
         WHERE soundcloud_link = {soundcloud_link};
-    """).format(
+    """
+    ).format(
         artists_table_name=artists_table_name,
         genres=sql.Literal(genres),
-        soundcloud_link=sql.Literal(soundcloud_link)
+        soundcloud_link=sql.Literal(soundcloud_link),
     )
-    
-    
 
-    update_event_data_genres_query = sql.SQL("""
+    update_event_data_genres_query = sql.SQL(
+        """
         UPDATE {events_table_name}
         SET event_genres = (
             SELECT array_agg(x)
@@ -215,23 +221,21 @@ def update_database_new_genres(artist_name, soundcloud_link, genres, city_name):
             ) a
         )
         WHERE {artist_name} = ANY(artists);
-    """).format(
+    """
+    ).format(
         events_table_name=events_table_name,
         genres=sql.Literal(genres),
-        artist_name=sql.Literal(artist_name)
+        artist_name=sql.Literal(artist_name),
     )
-    
+
     try:
         # Execute the queries with parameters
         commit_to_database(update_artists_genres_query)
         commit_to_database(update_event_data_genres_query)
     except Exception as e:
-        logging.error(f"Failed to update database for artist {artist_name} with error: {e}")
-
-
-
-
-
+        logging.error(
+            f"Failed to update database for artist {artist_name} with error: {e}"
+        )
 
 
 def genre_cleaner(s):
@@ -245,7 +249,17 @@ def genre_cleaner(s):
     return result
 
 
-def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_call_log, city_name, client_id, client_secret):
+def call_api(
+    artist,
+    artist_url,
+    access_token,
+    refresh_token,
+    token_expiry,
+    api_call_log,
+    city_name,
+    client_id,
+    client_secret,
+):
     global api_call_count
     artist_cleaned = artist.replace(",", " ")
 
@@ -254,11 +268,15 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
         return
 
     if api_call_count >= MAX_API_CALLS:
-        logging.error("Reached the maximum API call limit for the day. Stopping execution.")
+        logging.error(
+            "Reached the maximum API call limit for the day. Stopping execution."
+        )
         return
 
     if time.time() >= token_expiry:
-        access_token, refresh_token, token_expiry = refresh_access_token(client_id, client_secret, refresh_token)
+        access_token, refresh_token, token_expiry = refresh_access_token(
+            client_id, client_secret, refresh_token
+        )
 
     user_id = get_user_id(access_token, artist_cleaned, artist_url)
     if not user_id:
@@ -289,7 +307,7 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
     except Exception as e:
         logging.error(f"Error processing tracks for {artist_cleaned}: {e}")
         return
-    
+
     update_database_new_genres(artist_cleaned, artist_url, list(genre_set), city_name)
 
     api_call_log[artist_cleaned] = datetime.datetime.now()
@@ -299,11 +317,11 @@ def call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_
     time.sleep(DELAY_BETWEEN_CALLS)  # Throttle API calls
 
 
-
 if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(
-        description="Fetch SoundCloud data and update the database.")
+        description="Fetch SoundCloud data and update the database."
+    )
     parser.add_argument("city_name", type=str, help="Name of the city")
     args = parser.parse_args()
 
@@ -316,7 +334,9 @@ if __name__ == "__main__":
     logging.info(f"Starting Soundcloud API call for {city_name}...")
 
     artist_dict = get_data_base_info(city_name)
-    access_token, refresh_token, token_expiry = get_access_token(client_id, client_secret)
+    access_token, refresh_token, token_expiry = get_access_token(
+        client_id, client_secret
+    )
     api_call_log = {}
 
     if os.path.exists("api_call_log.pkl"):
@@ -325,7 +345,16 @@ if __name__ == "__main__":
 
     for artist, artist_urls in artist_dict.items():
         artist_url = artist_urls[0]
-        call_api(artist, artist_url, access_token, refresh_token, token_expiry, api_call_log, city_name, client_id, client_secret)
-
+        call_api(
+            artist,
+            artist_url,
+            access_token,
+            refresh_token,
+            token_expiry,
+            api_call_log,
+            city_name,
+            client_id,
+            client_secret,
+        )
 
     logging.info(f"Finished Soundcloud API call for {city_name}.")

@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 import os
 import logging
 
+
 def get_create_artists_table_query(city_name):
     table_name = f"artists_{city_name.lower().replace(' ', '_')}"
     create_artists_table = f"""
@@ -89,20 +90,19 @@ def update_primary_keys():
         FROM information_schema.tables 
         WHERE table_schema = 'public';
     """
-    
+
     tables = execute_query(fetch_tables_query, fetch=True)
-    
+
     for table_template, primary_keys in tables_to_update.items():
         for table in tables:
             table_name = table[0]
-            if table_name.startswith(table_template.split('_{}')[0]):
+            if table_name.startswith(table_template.split("_{}")[0]):
                 # Drop the existing primary key constraint
-                drop_constraint_query = sql.SQL("""
+                drop_constraint_query = sql.SQL(
+                    """
                     ALTER TABLE {} DROP CONSTRAINT IF EXISTS {}_pkey;
-                """).format(
-                    sql.Identifier(table_name),
-                    sql.Identifier(table_name)
-                )
+                """
+                ).format(sql.Identifier(table_name), sql.Identifier(table_name))
                 try:
                     commit_to_database(drop_constraint_query)
                     print(f"Primary key constraint dropped for table {table_name}")
@@ -110,12 +110,14 @@ def update_primary_keys():
                     print(f"Failed to drop primary key for table {table_name}: {e}")
 
                 # Add the new primary key constraint
-                add_primary_key_query = sql.SQL("""
+                add_primary_key_query = sql.SQL(
+                    """
                     ALTER TABLE {} ADD PRIMARY KEY ({}, {});
-                """).format(
+                """
+                ).format(
                     sql.Identifier(table_name),
                     sql.Identifier(primary_keys[0]),
-                    sql.Identifier(primary_keys[1])
+                    sql.Identifier(primary_keys[1]),
                 )
                 try:
                     commit_to_database(add_primary_key_query)
@@ -125,34 +127,39 @@ def update_primary_keys():
 
     print("Primary key updates completed.")
 
+
 ##############################################################################################
 ############################## DATABASE CONNECTION FUNCTIONS #################################
 
-def config(filename='/home/nathan/clubfinder/data_collection/database.ini', section='postgresql'):
+
+def config(
+    filename="/home/nathan/clubfinder/data_collection/database.ini",
+    section="postgresql",
+):
     """Takes secret login info from database.ini to connect to PostgreSQL."""
     parser = ConfigParser()
     parser.read(filename)
-    
+
     if not parser.read(filename):
         raise FileNotFoundError(f"Could not find file: {filename}")
-    
+
     if parser.has_section(section):
         logging.info(f"Configuration section '{section}' found.")
         return {param[0]: param[1] for param in parser.items(section)}
     else:
-        raise Exception(f'Section {section} not found in the {filename} file')
+        raise Exception(f"Section {section} not found in the {filename} file")
 
 
 def execute_query(query, params=None, fetch=False):
     """Execute a SQL query and optionally fetch results."""
     conn = None
     result = None
-    
+
     try:
         params_config = config()
-        
+
         conn = psycopg2.connect(**params_config)
-        
+
         with conn.cursor() as cur:
             cur.execute(query, params)
             if fetch:
@@ -164,14 +171,15 @@ def execute_query(query, params=None, fetch=False):
     finally:
         if conn is not None:
             conn.close()
-            
-    
+
     return result
+
 
 def commit_to_database(query, params=None):
     """Commit changes to the database."""
-    
+
     execute_query(query, params=params)
+
 
 def commit_genres_to_dataBase(query, params=None):
     """Commit changes to the database related to genres."""
@@ -182,15 +190,15 @@ def call_club_data(query, params=None):
     """Fetch data from the database."""
     return execute_query(query, params=params, fetch=True)
 
+
 def extract_from_database(query):
     """Extract data from the database and format it."""
     conn = None
     artdict = {}
-    
+
     try:
         # Read connection parameters
         params = config()
-        
 
         conn = psycopg2.connect(**params)
         # Create a cursor
@@ -198,13 +206,13 @@ def extract_from_database(query):
         # Execute the query
         cur.execute(query)
         result = cur.fetchall()
-        
+
         # Check if result has tuples with the expected structure
         if not result:
             logging.error("No data returned from query.")
             return {}
 
-        #logging.info(f"Raw query result: {result}")
+        # logging.info(f"Raw query result: {result}")
 
         # Process results
         for i in result:
@@ -213,7 +221,7 @@ def extract_from_database(query):
                 continue
             # Ensure the second element is not None and is a string
             if i[1] is not None and isinstance(i[1], str):
-                x = i[1].split(',')
+                x = i[1].split(",")
                 artdict[i[0]] = x
             else:
                 logging.error(f"Unexpected format for genres: {i[1]}")
@@ -223,30 +231,30 @@ def extract_from_database(query):
 
     except (Exception, psycopg2.DatabaseError) as error:
         logging.error("Error in database operation: %s", error)
-    
+
     finally:
         if conn is not None:
             conn.close()
-            
-    
+
     return artdict
+
 
 def extract_from_database_spotify(query):
     """Extract data from the database and format it."""
     conn = None
     artdict = {}
-    
+
     try:
         # Read connection parameters
         params = config()
-        
+
         conn = psycopg2.connect(**params)
         # Create a cursor
         cur = conn.cursor()
         # Execute the query
         cur.execute(query)
         result = cur.fetchall()
-        
+
         # Check if result has tuples with the expected structure
         if not result:
             logging.error("No data returned from query.")
@@ -260,9 +268,9 @@ def extract_from_database_spotify(query):
             artist_id, artist_name, spotify_uri = i
             # Ensure the second element is not None and is a string
             if artist_name is not None and isinstance(artist_name, str):
-                artist_name_list = artist_name.split(',')
+                artist_name_list = artist_name.split(",")
                 artdict[artist_id] = (artist_name_list, spotify_uri)
-                #logging.info(f"database query output: {artdict}")
+                # logging.info(f"database query output: {artdict}")
             else:
                 logging.error(f"Unexpected format for artist_name: {artist_name}")
 
@@ -271,27 +279,25 @@ def extract_from_database_spotify(query):
 
     except (Exception, psycopg2.DatabaseError) as error:
         logging.error("Error in database operation: %s", error)
-    
+
     finally:
         if conn is not None:
             conn.close()
-    
+
     return artdict
 
 
-
 def extract_genres_from_database(query):
-    """ Connect to the PostgreSQL database server to allow for artist names to be inputed to
+    """Connect to the PostgreSQL database server to allow for artist names to be inputed to
     spotify api search"""
     conn = None
 
     artdict = {}
-    
+
     try:
         # read connection parameters
         params = config()
         # connect to the PostgreSQL server
-        
 
         conn = psycopg2.connect(**params)
         # create a cursor
@@ -299,38 +305,36 @@ def extract_genres_from_database(query):
         # execute a statement
         cur.execute(query)
         result = cur.fetchall()
-        
+
         conn.commit()
         cur.close()
-
-
 
     except (Exception, psycopg2.DatabaseError) as error:
         logging.error(error)
         # close the communication with the PostgreSQL
 
-
     finally:
         if conn is not None:
             conn.close()
-            
-    
-    artdict = [(item[0], item[1].split(',') if isinstance(item[1], str) else item[1]) for item in result]
+
+    artdict = [
+        (item[0], item[1].split(",") if isinstance(item[1], str) else item[1])
+        for item in result
+    ]
 
     return artdict
 
 
 def extract_array_from_database(query, params=None):
-    """ Connect to the PostgreSQL database server to allow for artist names to be inputed to
+    """Connect to the PostgreSQL database server to allow for artist names to be inputed to
     spotify api search"""
     conn = None
     artdict = {}
-    
+
     try:
         # read connection parameters
         params_config = config()
         # connect to the PostgreSQL server
-        
 
         conn = psycopg2.connect(**params_config)
         # create a cursor
@@ -338,7 +342,7 @@ def extract_array_from_database(query, params=None):
         # execute a statement
         cur.execute(query, params)
         result = cur.fetchall()
-        
+
         conn.commit()
         cur.close()
 
@@ -348,10 +352,25 @@ def extract_array_from_database(query, params=None):
     finally:
         if conn is not None:
             conn.close()
-            
-    
+
     # Convert the array strings to actual lists
-    artdict = [(item[0], item[1][1:-1].split(',') if len(item) > 1 and isinstance(item[1], str) else item[1], item[2][1:-1].split(',') if len(item) > 2 and isinstance(item[2], str) else item[2]) for item in result if len(item) > 1]
+    artdict = [
+        (
+            item[0],
+            (
+                item[1][1:-1].split(",")
+                if len(item) > 1 and isinstance(item[1], str)
+                else item[1]
+            ),
+            (
+                item[2][1:-1].split(",")
+                if len(item) > 2 and isinstance(item[2], str)
+                else item[2]
+            ),
+        )
+        for item in result
+        if len(item) > 1
+    ]
 
     return artdict
 
@@ -360,17 +379,17 @@ def split_and_clean_genres(genres, valid_genres):
     """Splits and cleans genres based on valid genres."""
     # If genres is a list, join it into a single string separated by commas
     if isinstance(genres, list):
-        genres = ', '.join(genres)
-    
+        genres = ", ".join(genres)
+
     # Convert the genres string to lowercase
     genres = genres.lower()
-    
+
     # Sort valid genres by length in descending order to prioritize compound genres
     valid_genres_sorted = sorted(valid_genres, key=len, reverse=True)
-    
+
     genres_split = []
-    
-    for genre in re.split(r'\s*[,|/]\s*', genres):
+
+    for genre in re.split(r"\s*[,|/]\s*", genres):
         genre = genre.strip()
         if not genre:
             continue
@@ -389,6 +408,7 @@ def split_and_clean_genres(genres, valid_genres):
 
     return cleaned_genres
 
+
 def filter_genres(genres, valid_genres):
     """
     Filters out genres that are not in the list of valid genres.
@@ -404,23 +424,27 @@ def filter_genres(genres, valid_genres):
     filtered_genres = [genre for genre in genres if genre in valid_genre_set]
     return filtered_genres
 
+
 import csv
+
 
 def load_genres_from_csv(file_path):
     """Loads genres from a CSV file into a set for fast lookup."""
     genres = set()
     try:
-        with open(file_path, mode='r') as csv_file:
+        with open(file_path, mode="r") as csv_file:
             reader = csv.reader(csv_file)
             for row in reader:
                 if len(row) > 1:  # Ensure the row has at least two columns
-                    genre = row[1].strip().lower()  # Use the second column for genre names
+                    genre = (
+                        row[1].strip().lower()
+                    )  # Use the second column for genre names
                     genres.add(genre)
     except FileNotFoundError:
         logging.error(f"CSV file not found: {file_path}")
     except Exception as e:
         logging.error(f"Error loading genres from CSV: {e}")
-    
+
     logging.info(f"Loaded {len(genres)} genres from {file_path}")
     return genres
 
@@ -428,7 +452,7 @@ def load_genres_from_csv(file_path):
 def clean_and_replace_genres(name, genre_csv_path):
     # Load genres from CSV
     genres_list = load_genres_from_csv(genre_csv_path)
-    
+
     if not genres_list:
         logging.error("Failed to load genres from the CSV file")
         return
@@ -436,37 +460,45 @@ def clean_and_replace_genres(name, genre_csv_path):
     # Correctly format the table name using an f-string
     get_genres_query = f"SELECT artist_name, genres FROM artists_{name}"
     result = extract_genres_from_database(get_genres_query)
-    
+
     if not result:
         logging.error("Failed to retrieve genres from the database")
         return
 
     # Clean and map the genres
     artist_genres_dict = {name_cleaner(item[0]): item[1] for item in result if item[1]}
-    
+
     if not artist_genres_dict:
         logging.info("No valid genres found for artists in the database.")
         return
 
     for artist_name, existing_genres in artist_genres_dict.items():
         logging.info(f"Original genres for artist {artist_name}: {existing_genres}")
-        
+
         # Clean and filter genres
         cleaned_genres = split_and_clean_genres(existing_genres, genres_list)
-        
+
         if cleaned_genres:
-            formatted_genres = '{' + ','.join(cleaned_genres) + '}'
-            logging.info(f"Cleaned and formatted genres for artist {artist_name}: {formatted_genres}")
-            
+            formatted_genres = "{" + ",".join(cleaned_genres) + "}"
+            logging.info(
+                f"Cleaned and formatted genres for artist {artist_name}: {formatted_genres}"
+            )
+
             # Format the replace query correctly
-            replace_genres_query = f"UPDATE artists_{name} SET genres = %s WHERE artist_name = %s"
+            replace_genres_query = (
+                f"UPDATE artists_{name} SET genres = %s WHERE artist_name = %s"
+            )
             try:
-                commit_to_database(replace_genres_query, (formatted_genres, artist_name))
+                commit_to_database(
+                    replace_genres_query, (formatted_genres, artist_name)
+                )
                 logging.info(f"Genres updated in database for artist {artist_name}")
             except Exception as e:
                 logging.error(f"Failed to update genres for artist {artist_name}: {e}")
         else:
-            logging.info(f"No valid genres found for artist {artist_name}. No update performed.")
+            logging.info(
+                f"No valid genres found for artist {artist_name}. No update performed."
+            )
 
 
 def update_event_genres(city_name):
@@ -477,34 +509,59 @@ def update_event_genres(city_name):
         logging.info(f"Original genres for event {event_name}: {current_genres}")
 
         # Clean artist names and split appropriately
-        artists = [name_cleaner(artist.strip()) for artist in (artists_data[0].split(',') if isinstance(artists_data, list) and len(artists_data) == 1 else artists_data[1:-1].split(','))]
+        artists = [
+            name_cleaner(artist.strip())
+            for artist in (
+                artists_data[0].split(",")
+                if isinstance(artists_data, list) and len(artists_data) == 1
+                else artists_data[1:-1].split(",")
+            )
+        ]
         existing_genres = set(current_genres)
 
         for artist in artists:
-            get_artist_genres_query = """SELECT genres FROM artists WHERE artist_name = %s """  
+            get_artist_genres_query = (
+                """SELECT genres FROM artists WHERE artist_name = %s """
+            )
             artist_genres = call_club_data(get_artist_genres_query, (artist,))
-            
-            if artist_genres:
-                genres_list = artist_genres[0][0] if artist_genres and artist_genres[0] and isinstance(artist_genres[0][0], list) else artist_genres[0]
-                if genres_list:
-                    existing_genres.update([name_cleaner(genre.lower()) for genre in genres_list if genre])
 
-        existing_genres.discard('')
-        existing_genres = {name_cleaner(genre.lower()).replace('"', '') for genre in existing_genres}
-        
-        logging.info(f"Final genres for event {event_name} after update: {existing_genres}")
+            if artist_genres:
+                genres_list = (
+                    artist_genres[0][0]
+                    if artist_genres
+                    and artist_genres[0]
+                    and isinstance(artist_genres[0][0], list)
+                    else artist_genres[0]
+                )
+                if genres_list:
+                    existing_genres.update(
+                        [name_cleaner(genre.lower()) for genre in genres_list if genre]
+                    )
+
+        existing_genres.discard("")
+        existing_genres = {
+            name_cleaner(genre.lower()).replace('"', "") for genre in existing_genres
+        }
+
+        logging.info(
+            f"Final genres for event {event_name} after update: {existing_genres}"
+        )
 
         update_event_data_genres_query = f"""UPDATE event_data_{city_name.lower().replace(' ', '_')} SET event_genres = %s WHERE event_name = %s;"""
         try:
-            commit_to_database(update_event_data_genres_query, (list(existing_genres), event_name))
+            commit_to_database(
+                update_event_data_genres_query, (list(existing_genres), event_name)
+            )
             logging.info(f"Event genres updated in database for event {event_name}")
         except Exception as e:
             logging.error(f"Failed to update event genres for event {event_name}: {e}")
+
 
 def backup_table(table_name, backup_name):
     """Create a backup of a table."""
     backup_query = f"""CREATE TABLE {backup_name} AS TABLE {table_name};"""
     commit_to_database(backup_query)
+
 
 def create_array_check_function():
     create_function_query = """
@@ -525,6 +582,7 @@ def create_array_check_function():
     $$ LANGUAGE plpgsql;
     """
     commit_to_database(create_function_query)
+
 
 def remove_no_data_events(city_name):
     remove_no_data_events_query = f"""
@@ -551,7 +609,9 @@ def extract_for_models(query):
         logging.info("Connecting to the PostgreSQL database...")
         conn = psycopg2.connect(**params)
         df = pd.read_sql_query(query, conn)
-        df['event_genres'] = df['event_genres'].apply(lambda x: ', '.join(x) if isinstance(x, list) else x)
+        df["event_genres"] = df["event_genres"].apply(
+            lambda x: ", ".join(x) if isinstance(x, list) else x
+        )
     except (Exception, psycopg2.DatabaseError) as error:
         logging.error(error)
     finally:
@@ -574,66 +634,74 @@ def filter_genres(genres, valid_genres):
     """
     # Use a set for faster membership checking
     valid_genre_set = set(genre.lower() for genre in valid_genres)
-    filtered_genres = [genre.lower() for genre in genres if genre.lower() in valid_genre_set]
+    filtered_genres = [
+        genre.lower() for genre in genres if genre.lower() in valid_genre_set
+    ]
     return filtered_genres
+
 
 def get_all_genres():
     """Retrieves all valid genres from the Musicalyst website."""
-    url = 'https://musicalyst.com/genres'
+    url = "https://musicalyst.com/genres"
     response = requests.get(url)
     genre_html = response.text
-    soup = BeautifulSoup(genre_html, 'html.parser')
-    genres = [genre.text.lower() for genre in soup.find_all('li')]
+    soup = BeautifulSoup(genre_html, "html.parser")
+    genres = [genre.text.lower() for genre in soup.find_all("li")]
     return genres
-    
-
 
 
 def name_cleaner(name):
     """Cleans unwanted words and symbols from names scraped."""
-    
+
     if name is None:
         return ""
-    
+
     # Replace newline characters with spaces instead of commas
-    name = re.sub(r'\n', ' ', name)
-    
+    name = re.sub(r"\n", " ", name)
+
     # Replace certain keywords with empty strings
-    name = re.sub(r'\b(room|ROOM|TBA|tba|Friends|friends|opening|Opening|OPENING|closing|Closing|CLOSING|Residents|residents|Resident|resident)\b', '', name)
-    
+    name = re.sub(
+        r"\b(room|ROOM|TBA|tba|Friends|friends|opening|Opening|OPENING|closing|Closing|CLOSING|Residents|residents|Resident|resident)\b",
+        "",
+        name,
+    )
+
     # Remove non-breaking spaces and unwanted parentheses content
-    name = re.sub(r'\xa0', '', name)
-    name = re.sub(r'\(.*?\)', ' ', name)
-    
+    name = re.sub(r"\xa0", "", name)
+    name = re.sub(r"\(.*?\)", " ", name)
+
     # Replace '&' and '//' with a space instead of commas
-    name = re.sub(r'&|[\/]{2}', ' ', name)
-    
+    name = re.sub(r"&|[\/]{2}", " ", name)
+
     # Replace multiple spaces with a single space
-    name = re.sub(r'\s+', ' ', name)
-    
+    name = re.sub(r"\s+", " ", name)
+
     # Remove leading/trailing spaces or commas
-    name = re.sub(r'^,+|,+$', '', name)
-    name = re.sub(r'^\s+|\s+$', '', name)
-    
+    name = re.sub(r"^,+|,+$", "", name)
+    name = re.sub(r"^\s+|\s+$", "", name)
+
     # Remove numerical patterns and 'b2b' occurrences
-    name = re.sub(r'\b\d{2}\b|b2b|B2B', '', name)
-    
+    name = re.sub(r"\b\d{2}\b|b2b|B2B", "", name)
+
     # Final cleanup of any remaining unwanted characters
-    name = re.sub(r'[\[\]\'\'_]', '', name)
-    
+    name = re.sub(r"[\[\]\'\'_]", "", name)
+
     return name.strip()
+
 
 def split_and_clean_genres(genres, valid_genres):
     """Cleans the genres list from the database to match the valid genres set."""
     cleaned_genres = []
-    
+
     for genre in genres:
         # Normalize the genre: strip spaces, convert to lowercase, and remove special characters
-        normalized_genre = re.sub(r'[^a-zA-Z0-9\s]', '', genre).strip().lower()
-        
+        normalized_genre = re.sub(r"[^a-zA-Z0-9\s]", "", genre).strip().lower()
+
         if normalized_genre in valid_genres:
             cleaned_genres.append(normalized_genre)
         else:
-            logging.warning(f"Genre '{genre}' normalized to '{normalized_genre}' not found in valid genres list.")
+            logging.warning(
+                f"Genre '{genre}' normalized to '{normalized_genre}' not found in valid genres list."
+            )
 
     return cleaned_genres

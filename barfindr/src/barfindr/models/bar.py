@@ -6,8 +6,8 @@ import uuid
 
 
 class Bar(Base):
-    __tablename__ = 'bars'
-    __table_args__ = {'schema': 'clubfindr'}
+    __tablename__ = "bars"
+    __table_args__ = {"schema": "clubfindr"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
@@ -24,25 +24,37 @@ class Bar(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     confirmed = Column(Boolean, default=False)
-    genre_profiles = relationship("BarGenreProfile", back_populates="bar", cascade="all, delete-orphan")
-    genre_aggregates = relationship("BarGenreAggregate", back_populates="bar", cascade="all, delete-orphan")
+    genre_profiles = relationship(
+        "BarGenreProfile", back_populates="bar", cascade="all, delete-orphan"
+    )
+    genre_aggregates = relationship(
+        "BarGenreAggregate", back_populates="bar", cascade="all, delete-orphan"
+    )
+
 
 class BarMusicProfile(Base):
-    __tablename__ = 'bar_music_profiles'
-    __table_args__ = {'schema': 'clubfindr'}
+    __tablename__ = "bar_music_profiles"
+    __table_args__ = {"schema": "clubfindr"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    bar_id = Column(UUID(as_uuid=True), ForeignKey('clubfindr.bars.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False, unique=True)
-    
+    bar_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("clubfindr.bars.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+
     current_artist = Column(String(255))
     current_track = Column(String(255))
-    
+
     is_active = Column(Boolean, default=True)
-    last_updated = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+    last_updated = Column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
     genre = Column(Text)
     music_style = Column(Text)
-    
+
     bar = relationship("Bar", backref="music_profile")
 
     def __repr__(self):
