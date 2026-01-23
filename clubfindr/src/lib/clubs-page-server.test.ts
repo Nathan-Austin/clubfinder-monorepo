@@ -1,12 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import {
 	_calculateClusterSimilarity,
 	_findClusters,
 	_normalizeGenre,
 	_createClusterCacheKey,
-	_genreToClusterIndex
+	_genreToClusterIndex,
+	_applyMmrDiversity
 } from '../routes/clubs/+page.server';
-import { isGenreMatch, jaccardSimilarity, makeClusterId } from './genreSimilarity';
+import { genreOverlap, isGenreMatch, jaccardSimilarity, makeClusterId } from './genreSimilarity';
+import * as fs from 'node:fs';
+
+vi.mock('node:fs', () => {
+	const appendFileSync = vi.fn();
+	return {
+		default: { appendFileSync },
+		appendFileSync
+	};
+});
+
+beforeEach(() => {
+	vi.clearAllMocks();
+});
 
 describe('makeClusterId', () => {
 	it('is deterministic for the same inputs', () => {
@@ -68,12 +82,87 @@ describe('isGenreMatch', () => {
 	});
 });
 
+describe('genreOverlap', () => {
+	it('returns 0 for empty arrays', () => {
+		expect(genreOverlap([], [])).toBe(0);
+		expect(genreOverlap(['techno'], [])).toBe(0);
+	});
+
+	it('returns 1 for identical genre sets', () => {
+		expect(genreOverlap(['techno', 'house'], ['house', 'techno'])).toBe(1);
+	});
+
+	it('returns 0 for no overlap', () => {
+		expect(genreOverlap(['techno'], ['house'])).toBe(0);
+	});
+
+	it('returns partial overlap for shared genres', () => {
+		expect(genreOverlap(['techno', 'house'], ['house', 'trance'])).toBe(0.5);
+	});
+});
+
+describe('_applyMmrDiversity', () => {
+	it('prefers diverse results after the top match', () => {
+		const items = [
+			{ id: 'a', similarity: 0.9, genres: ['techno'] },
+			{ id: 'b', similarity: 0.85, genres: ['techno'] },
+			{ id: 'c', similarity: 0.84, genres: ['house'] }
+		];
+
+		const result = _applyMmrDiversity(items, 3, 0.3);
+		expect(result.map((item) => item.id)).toEqual(['a', 'c', 'b']);
+	});
+
+	it('handles empty and single-item inputs', () => {
+		expect(_applyMmrDiversity([], 3, 0.3)).toEqual([]);
+		expect(_applyMmrDiversity([{ id: 'a', similarity: 1, genres: ['techno'] }], 3, 0.3)).toEqual([
+			{ id: 'a', similarity: 1, genres: ['techno'] }
+		]);
+	});
+
+	it('respects max results', () => {
+		const items = [
+			{ id: 'a', similarity: 0.9, genres: ['techno'] },
+			{ id: 'b', similarity: 0.85, genres: ['techno'] },
+			{ id: 'c', similarity: 0.84, genres: ['house'] }
+		];
+
+		const result = _applyMmrDiversity(items, 2, 0.3);
+		expect(result).toHaveLength(2);
+	});
+});
+
 describe('_findClusters', () => {
 	it('returns one cluster entry for a genre that appears in multiple clusters', () => {
 		const clusters = _findClusters(['ambient dub']);
 		expect(clusters.length).toBe(1);
 		expect(clusters[0]?.genre).toBe('ambient dub');
 		expect(clusters[0]?.weight).toBe(1.0);
+	});
+
+	it('adds a fallback cluster for missing genres', () => {
+		const missingGenre = 'zzzz-unmatched-genre-12345';
+		const clusters = _findClusters([missingGenre]);
+		expect(clusters.length).toBe(1);
+		expect(clusters[0]).toEqual({
+			genre: missingGenre,
+			cluster: 'Uncategorized',
+			subCluster: 'Other',
+			weight: 0.3
+		});
+	});
+
+	it('logs missing genres to file', () => {
+		const missingGenre = 'zzzz-unmatched-genre-logging-00001';
+		_findClusters([missingGenre]);
+
+		const normalized = _normalizeGenre(missingGenre);
+		const appendFileSyncMock = vi.mocked(fs.appendFileSync);
+		expect(appendFileSyncMock).toHaveBeenCalledWith(
+			expect.stringContaining('missing-genres.txt'),
+			`${normalized}\n`,
+			'utf8'
+		);
 	});
 });
 
@@ -109,6 +198,15 @@ describe('_calculateClusterSimilarity', () => {
 
 		const { matchingGenres } = _calculateClusterSimilarity(userClusters, clubClusters);
 		expect(matchingGenres).toEqual(['ambient']);
+	});
+
+	it('includes missing genres in similarity calculations', () => {
+		const missingGenre = 'zzzz-unmatched-genre-67890';
+		const userClusters = _findClusters([missingGenre]);
+		const clubClusters = _findClusters([missingGenre]);
+		const { similarity } = _calculateClusterSimilarity(userClusters, clubClusters);
+
+		expect(similarity).toBeGreaterThan(0);
 	});
 
 	it('scores exact matches higher than fuzzy matches', () => {

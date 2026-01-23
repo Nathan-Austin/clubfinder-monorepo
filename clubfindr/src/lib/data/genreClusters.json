@@ -329,6 +329,7 @@
 						{
 							"name": "Drum & Bass",
 							"genres": [
+								"Drum & Bass",
 								"Liquid DnB",
 								"Neurofunk",
 								"Jump Up",
@@ -389,6 +390,7 @@
 						{
 							"name": "Footwork/Juke",
 							"genres": [
+								"Ghetto House",
 								"Footwork",
 								"Juke",
 								"Chicago Footwork",
@@ -704,6 +706,7 @@
 				{
 					"name": "Cloud Rap and SoundCloud Rap",
 					"genres": [
+						"Lo-Fi Beats",
 						"Cloud Rap",
 						"SoundCloud Rap",
 						"Emo Rap",
@@ -730,6 +733,7 @@
 				{
 					"name": "Pop Rap and Melodic Rap",
 					"genres": [
+						"R&B",
 						"Pop Rap",
 						"Melodic Rap",
 						"Rap&B",
@@ -1257,6 +1261,7 @@
 						{
 							"name": "Early Rock and Roll",
 							"genres": [
+								"Rock 'n' Roll",
 								"1950s Rock and Roll",
 								"Rockabilly",
 								"Surf Rock",

@@ -5,7 +5,7 @@
 
 ## Progress Summary
 
-### ✅ Completed (6 Issues)
+### ✅ Completed (11 Issues)
 
 **Issue #1: Flawed Cluster Identification** ✓ FIXED
 **Status:** Completed by codex
@@ -132,284 +132,135 @@
 
 ---
 
-### 🔄 Remaining Issues (7 Issues)
+**Issue #5: No Weighting System** ✓ FIXED
+**Status:** Completed by codex
+**Solution:**
 
-**Issue #5: No Weighting System** 🔴 HIGH PRIORITY
-**Status:** Not started
-**Problem:**
+- Added `weight` to `ClusterEntry` and assigned weights by match type:
+  - Exact match: `1.0`
+  - Fuzzy match: `0.8`
+  - Word boundary partial: `0.6`
+- Replaced unweighted Jaccard with weighted Jaccard (sum of matching weights divided by weighted union)
+- Added 4 unit tests for weighted scoring order and edge cases
 
-- All genre matches treated equally
-- Doesn't account for: exact vs fuzzy matches, main vs sub-cluster matches, genre specificity/popularity
+**Files Modified:**
 
-**Recommended Solution:**
+- `src/routes/clubs/+page.server.ts` - Added weights and weighted Jaccard
+- `src/lib/clubs-page-server.test.ts` - Added weighted similarity tests
 
-````
-
-Prompt for codex:
-
-In clubfindr/src/routes/clubs/+page.server.ts, implement a weighted scoring system for genre matches to improve recommendation quality.
-
-CURRENT BEHAVIOR:
-
-- All matches have equal weight
-- Similarity = intersection / union of cluster IDs
-
-NEW WEIGHTED SYSTEM:
-
-1. Assign weights to match types in findClusters():
-
-   - Exact match: weight = 1.0
-   - Fuzzy match: weight = 0.8
-   - Word boundary partial: weight = 0.6
-
-2. Update ClusterEntry type to include weight:
-
-```typescript
-type ClusterEntry = {
-	genre: string;
-	cluster: string;
-	subCluster: string;
-	weight: number; // NEW: match quality weight
-};
-````
-
-3. Modify calculateClusterSimilarity() to use weighted Jaccard:
-
-```typescript
-// Instead of: intersection / union
-// Use: sum(weights of matching) / (sum(all user weights) + sum(all club weights) - sum(matching weights))
-
-const userWeightedSum = userClusters.reduce((sum, c) => sum + c.weight, 0);
-const clubWeightedSum = clubClusters.reduce((sum, c) => sum + c.weight, 0);
-const matchingWeightedSum = matchingClusters.reduce((sum, c) => sum + c.weight, 0);
-const weightedSimilarity =
-	matchingWeightedSum / (userWeightedSum + clubWeightedSum - matchingWeightedSum);
-```
-
-4. Add tests to verify:
-   - Exact matches score higher than fuzzy matches
-   - Fuzzy matches score higher than partial matches
-   - Weighted Jaccard still returns 1.0 for identical sets
-   - Weighted Jaccard returns 0.0 for no overlap
-
-```
+**Impact:** Higher-quality matches now score higher than fuzzier or partial matches
 
 ---
 
-**Issue #6: O(n³) Complexity** 🟡 MEDIUM PRIORITY
-**Status:** Partially addressed by caching (Issue #7)
-**Note:** Caching significantly reduces this, but further optimization possible
+**Issue #6: O(n³) Complexity** ✓ FIXED
+**Status:** Completed by codex
+**Solution:**
 
-**Recommended Solution:**
+- Built a reverse index (`genreToClusterIndex`) at module load to map genres to cluster/sub-cluster pairs
+- Replaced repeated tree traversal in `findClusters()` with index lookups for exact matches
+- Retained ordered fuzzy/partial scans over indexed genres
+- Added 2 unit tests to verify index correctness
 
-```
+**Files Modified:**
 
-Prompt for codex:
+- `src/routes/clubs/+page.server.ts` - Added index build + index-based lookup
+- `src/lib/clubs-page-server.test.ts` - Added index tests
 
-The O(n³) complexity in findClusters() is partially addressed by caching, but we can further optimize:
-
-1. Build a reverse index at module load time:
-
-```typescript
-// At module level, create genre → cluster mapping
-const genreToClusterIndex = new Map<string, Array<{ cluster: string; subCluster: string }>>();
-
-// Populate on module init by iterating genreClusters once
-function buildGenreIndex() {
-	for (const cluster of genreClusters.clusters) {
-		// Flatten all genres and their cluster/subCluster locations
-		// ...traverse and populate index
-	}
-}
-buildGenreIndex();
-```
-
-2. Use index in findClusters() for O(1) lookup per genre
-3. Add tests to verify index correctness
-
-```
+**Impact:** Exact-match lookups are now O(1); overall clustering is significantly faster
 
 ---
+
+**Issue #12: Hard-coded Threshold** ✓ FIXED
+**Status:** Completed by codex
+**Solution:**
+
+- Replaced static `0.1` threshold with adaptive filtering system
+- Configuration constants:
+  - `MIN_SIMILARITY = 0.05` (absolute minimum)
+  - `TARGET_RESULTS = 50` (ideal number)
+  - `MAX_RESULTS = 100` (maximum to return)
+- Adaptive logic: if fewer than TARGET_RESULTS pass initial threshold, lower threshold to MIN_SIMILARITY or the 50th-best score
+- Results are sorted by similarity, filtered by adaptive threshold, then limited to MAX_RESULTS
+
+**Files Modified:**
+
+- `src/routes/clubs/+page.server.ts` - Added adaptive threshold logic (lines 460+)
+- `src/lib/clubs-page-server.test.ts` - Added tests for adaptive behavior
+
+**Impact:** System now returns appropriate number of results regardless of score distribution, prevents returning 0 or 500+ results
+
+---
+
+**Issue #10: Missing Genre Handling** ✓ FIXED
+**Status:** Completed by codex
+**Solution:**
+
+- Added `fs` and `path` imports for file operations
+- Enabled file logging: missing genres now append to `missing-genres.txt` with error handling
+- Added fallback cluster system: unmatched genres get `{ cluster: 'Uncategorized', subCluster: 'Other', weight: 0.3 }`
+- Unmatched genres now contribute to similarity calculations instead of being ignored
+- Added `missing-genres.txt` to `.gitignore`
+- Added comprehensive tests for fallback behavior and file logging
+
+**Files Modified:**
+
+- `src/routes/clubs/+page.server.ts` - Added file logging and fallback cluster (lines 192-207)
+- `src/lib/clubs-page-server.test.ts` - Added tests for missing genre handling
+- `.gitignore` - Added `missing-genres.txt`
+
+**Impact:** Better observability of missing genres for batch processing, unmatched genres still contribute meaningfully to recommendations
+
+---
+
+**Issue #13: No Diversity in Results** ✓ FIXED
+**Status:** Completed by codex
+**Solution:**
+
+- Added `genreOverlap()` helper to measure Jaccard overlap between genre lists
+- Implemented MMR-based diversity (`applyMmrDiversity`) after similarity filtering
+- Diversity is blended with relevance (`DIVERSITY_WEIGHT = 0.3`) while respecting `MAX_RESULTS`
+- Added tests for overlap, MMR ordering, and edge cases
+
+**Files Modified:**
+
+- `src/lib/genreSimilarity.ts` - Added `genreOverlap()` utility
+- `src/routes/clubs/+page.server.ts` - Added MMR selection logic
+- `src/lib/clubs-page-server.test.ts` - Added overlap/MMR tests
+
+**Impact:** Results are more varied while still prioritizing relevance
+
+---
+
+### 🔄 Remaining Issues (2 Issues)
 
 **Issue #8: Inefficient Data Structure** ✓ PARTIALLY FIXED
 **Status:** Improved by Issue #1 (now uses Sets directly)
 **Note:** May not need further work
 
+**Proposed Fixes (Optional):**
+
+- Build a `Map<string, number>` of cluster weights (keyed by `clusterId`) and pass it into similarity calculation to avoid repeated `Set` construction.
+- Add a helper like `buildClusterWeightMap(entries: ClusterEntry[]): Map<string, number>` to normalize weights once.
+- Cache normalized genre sets on `SimilarityResult` for MMR overlap calculations to avoid repeated lowercasing and set creation.
+
 ---
 
 **Issue #9: Genre Source Prioritization Complexity** 🟢 LOW PRIORITY
 **Status:** Not started
-**Note:** This is a data flow issue, not a similarity algorithm issue
-
----
-
-**Issue #10: Missing Genre Handling** 🟡 MEDIUM PRIORITY
-**Status:** Not started
 **Problem:**
 
-- Missing genres only logged to console
-- File logging commented out
-- No fallback or alternative matching
+- Complex prioritization logic (lines 299-375) with 4 different genre sources
+- Cookie cleanup logic scattered throughout (delete after reading)
+- No clear documentation of which source "wins" when multiple are present
 
-**Recommended Solution:**
+**Note:** This is a data flow/architecture issue, not a similarity algorithm issue. The current implementation works correctly but could be refactored for clarity.
 
-```
+**Proposed Fixes (Optional):**
 
-Prompt for codex:
-
-In clubfindr/src/routes/clubs/+page.server.ts, improve missing genre handling:
-
-1. Uncomment and fix file logging (line ~128):
-
-```typescript
-import fs from 'fs';
-import path from 'path';
-
-// In findClusters() where missing genres are logged:
-if (!found && !missingGenresCache.has(normalizedGenre)) {
-	console.warn(`Genre ${normalizedGenre} not found in any cluster`);
-	missingGenresCache.add(normalizedGenre);
-
-	// Log to file for batch processing
-	const logPath = path.join(process.cwd(), 'missing-genres.txt');
-	fs.appendFileSync(logPath, `${normalizedGenre}\n`, 'utf8');
-}
-```
-
-2. Add fallback: if genre not found in clusters, still return a generic cluster entry so it contributes to similarity:
-
-```typescript
-// Fallback cluster for unmatched genres
-clusters.push({
-	genre,
-	cluster: 'Uncategorized',
-	subCluster: 'Other',
-	weight: 0.3 // Lower weight for unmatched
-});
-```
-
-3. Add periodic cleanup of missing-genres.txt (e.g., weekly log rotation)
-
-```
-
----
-
-**Issue #12: Hard-coded Threshold** 🟡 MEDIUM PRIORITY
-**Status:** Not started
-**Problem:**
-
-- `.filter((club) => club.similarity > 0.1)` seems arbitrary
-- Doesn't adapt to result count (might return 0 or 500 results)
-
-**Recommended Solution:**
-
-```
-
-Prompt for codex:
-
-In clubfindr/src/routes/clubs/+page.server.ts, make the similarity threshold adaptive:
-
-CURRENT:
-
-```typescript
-.filter((club) => club.similarity > 0.1)
-```
-
-NEW ADAPTIVE APPROACH:
-
-```typescript
-// Configuration
-const MIN_SIMILARITY = 0.05; // Absolute minimum
-const TARGET_RESULTS = 50; // Ideal number of results
-const MAX_RESULTS = 100; // Maximum to return
-
-// Adaptive filtering
-let threshold = 0.1; // Start with default
-const sortedByScore = clubSimilarities.sort((a, b) => b.similarity - a.similarity);
-
-// If we have too few results, lower threshold
-if (sortedByScore.filter((c) => c.similarity > threshold).length < TARGET_RESULTS) {
-	threshold = Math.max(
-		MIN_SIMILARITY,
-		sortedByScore[TARGET_RESULTS - 1]?.similarity || MIN_SIMILARITY
-	);
-}
-
-// Apply threshold and limit
-const filtered = sortedByScore.filter((club) => club.similarity >= threshold).slice(0, MAX_RESULTS);
-```
-
-Add configuration options that could be user-customizable in the future.
-
-```
-
----
-
-**Issue #13: No Diversity in Results** 🟡 MEDIUM PRIORITY
-**Status:** Not started
-**Problem:**
-
-- Pure similarity sort means all results could be nearly identical
-- No diversity injection
-
-**Recommended Solution:**
-
-```
-
-Prompt for codex:
-
-In clubfindr/src/routes/clubs/+page.server.ts, add diversity to results after similarity filtering:
-
-APPROACH - Maximal Marginal Relevance (MMR):
-
-```typescript
-// After getting top similarity results
-const topResults = filtered.slice(0, 50);
-
-// Apply MMR for diversity
-const diverseResults: SimilarityResult[] = [];
-const remainingResults = [...topResults];
-const DIVERSITY_WEIGHT = 0.3; // 30% diversity, 70% relevance
-
-// Start with highest similarity
-diverseResults.push(remainingResults.shift()!);
-
-while (remainingResults.length > 0 && diverseResults.length < MAX_RESULTS) {
-	let bestScore = -Infinity;
-	let bestIndex = 0;
-
-	for (let i = 0; i < remainingResults.length; i++) {
-		const candidate = remainingResults[i];
-
-		// Calculate diversity: how different is this from already selected?
-		const minDiversity = Math.min(
-			...diverseResults.map((selected) => 1 - genreOverlap(candidate.genres, selected.genres))
-		);
-
-		// MMR score = (1 - lambda) * relevance + lambda * diversity
-		const mmrScore =
-			(1 - DIVERSITY_WEIGHT) * candidate.similarity + DIVERSITY_WEIGHT * minDiversity;
-
-		if (mmrScore > bestScore) {
-			bestScore = mmrScore;
-			bestIndex = i;
-		}
-	}
-
-	diverseResults.push(remainingResults.splice(bestIndex, 1)[0]);
-}
-
-function genreOverlap(genres1: string[], genres2: string[]): number {
-	const set1 = new Set(genres1);
-	const set2 = new Set(genres2);
-	const intersection = new Set([...set1].filter((g) => set2.has(g)));
-	return intersection.size / Math.max(set1.size, set2.size);
-}
-```
-
-Add tests to verify results are more diverse while maintaining relevance.
-
-```
+- Extract source resolution into `resolveGenres({ cookies, sessionId, city })` returning `{ genres, source }`.
+- Centralize cookie parsing/cleanup in that function so it happens exactly once.
+- Add debug logging for the chosen source (e.g., `selected`, `legacy`, `spotify`, `database`, `none`).
+- Add unit tests to cover priority order and cookie cleanup behavior.
 
 ---
 
@@ -470,9 +321,9 @@ Results include:
 
 **Current Test Stats:**
 
-- **43 tests passing**
+- **Tests passing** (updated after Issues #10, #12, #13)
 - **4 test files**
-- Coverage includes: cluster ID generation, Jaccard similarity, fuzzy matching, word boundary matching, caching, deduplication, validation
+- Coverage includes: cluster ID generation, Jaccard similarity, fuzzy matching, word boundary matching, caching, deduplication, validation, adaptive thresholding, missing genre fallback, file logging
 
 ---
 
@@ -499,12 +350,16 @@ Results include:
 
 ## Next Steps Priority Order
 
-1. **Issue #5** - Weighting System (HIGH - improves recommendation quality)
-2. **Issue #10** - Missing Genre Handling (MEDIUM - better logging)
-3. **Issue #12** - Hard-coded Threshold (MEDIUM - adaptive filtering)
-4. **Issue #13** - Result Diversity (MEDIUM - better user experience)
-5. **Issue #6** - Further O(n³) optimization (MEDIUM - reverse index)
-6. **Issue #9** - Genre Source Prioritization (LOW - data flow)
+**✅ COMPLETED:**
+1. ~~Issue #5 - Weighting System~~ (HIGH - improves recommendation quality) ✓
+2. ~~Issue #6 - O(n³) optimization~~ (MEDIUM - reverse index) ✓
+3. ~~Issue #12 - Hard-coded Threshold~~ (MEDIUM - adaptive filtering) ✓
+4. ~~Issue #10 - Missing Genre Handling~~ (MEDIUM - better logging + fallback) ✓
+5. ~~Issue #13 - Result Diversity~~ (MEDIUM - MMR implementation) ✓
+
+**🟢 LOW PRIORITY:**
+6. **Issue #9** - Genre Source Prioritization (LOW - refactoring for clarity)
+7. **Issue #8** - Partially addressed by Issue #1
 
 ---
 

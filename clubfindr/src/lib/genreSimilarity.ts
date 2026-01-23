@@ -133,3 +133,15 @@ export function isGenreMatch(normalizedInput: string, normalizedCandidate: strin
 
 	return isWordBoundaryPartialMatch(normalizedInput, normalizedCandidate);
 }
+
+export function genreOverlap(genres1: string[], genres2: string[]): number {
+	if (genres1.length === 0 || genres2.length === 0) {
+		return 0;
+	}
+
+	const set1 = new Set(genres1.map((genre) => genre.toLowerCase()));
+	const set2 = new Set(genres2.map((genre) => genre.toLowerCase()));
+	const intersection = new Set([...set1].filter((genre) => set2.has(genre)));
+
+	return intersection.size / Math.max(set1.size, set2.size);
+}
