@@ -32,13 +32,11 @@ def test_database():
                 # Check if key tables exist
                 print("\nChecking for required tables...")
                 try:
-                    tables_query = text(
-                        """
+                    tables_query = text("""
                         SELECT table_name 
                         FROM information_schema.tables 
                         WHERE table_schema = 'clubfindr'
-                    """
-                    )
+                    """)
                     tables = session.execute(tables_query).fetchall()
                     if tables:
                         print(f"Found {len(tables)} tables in clubfindr schema:")

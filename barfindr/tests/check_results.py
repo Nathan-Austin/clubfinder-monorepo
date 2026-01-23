@@ -14,28 +14,24 @@ def check_results():
             # Check for recent profile entries
             cutoff = datetime.utcnow() - timedelta(hours=1)
 
-            query = text(
-                """
+            query = text("""
                 SELECT COUNT(*) 
                 FROM clubfindr.bar_genre_profiles
                 WHERE timestamp > :cutoff
-            """
-            )
+            """)
 
             count = session.execute(query, {"cutoff": cutoff}).scalar()
             print(f"Found {count} profiles created in the last hour")
 
             if count > 0:
                 # Get some details about recent entries
-                detail_query = text(
-                    """
+                detail_query = text("""
                     SELECT bar_id, timestamp, current_track_name, current_genres
                     FROM clubfindr.bar_genre_profiles
                     WHERE timestamp > :cutoff
                     ORDER BY timestamp DESC
                     LIMIT 5
-                """
-                )
+                """)
 
                 results = session.execute(detail_query, {"cutoff": cutoff}).fetchall()
 

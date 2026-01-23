@@ -20,14 +20,12 @@ def check_profiles_data():
             # Check for recent profiles
             cutoff = datetime.utcnow() - timedelta(hours=24)
 
-            query = text(
-                """
+            query = text("""
                 SELECT COUNT(*) 
                 FROM clubfindr.bar_genre_profiles
                 WHERE timestamp > :cutoff
                 AND rolling_genre_profile IS NOT NULL
-            """
-            )
+            """)
 
             count = session.execute(query, {"cutoff": cutoff}).scalar()
             print(
@@ -36,16 +34,14 @@ def check_profiles_data():
 
             if count > 0:
                 # Get a sample profile to inspect
-                sample_query = text(
-                    """
+                sample_query = text("""
                     SELECT bar_id, timestamp, rolling_genre_profile
                     FROM clubfindr.bar_genre_profiles
                     WHERE timestamp > :cutoff
                     AND rolling_genre_profile IS NOT NULL
                     ORDER BY timestamp DESC
                     LIMIT 1
-                """
-                )
+                """)
 
                 sample = session.execute(sample_query, {"cutoff": cutoff}).fetchone()
 
@@ -73,16 +69,14 @@ def check_aggregates_table():
     with database_manager.get_session() as session:
         try:
             # Check if table exists
-            table_query = text(
-                """
+            table_query = text("""
                 SELECT EXISTS (
                     SELECT 1 
                     FROM information_schema.tables 
                     WHERE table_schema = 'clubfindr' 
                     AND table_name = 'bar_genre_aggregates'
                 )
-            """
-            )
+            """)
 
             table_exists = session.execute(table_query).scalar()
 
@@ -98,13 +92,11 @@ def check_aggregates_table():
 
             if count > 0:
                 # Get a sample
-                sample_query = text(
-                    """
+                sample_query = text("""
                     SELECT bar_id, genre, weight, last_updated 
                     FROM clubfindr.bar_genre_aggregates
                     LIMIT 5
-                """
-                )
+                """)
 
                 samples = session.execute(sample_query).fetchall()
 
@@ -156,13 +148,11 @@ def create_test_data():
             print("No profiles found, creating test data...")
 
             # Get some bar IDs to use
-            bars_query = text(
-                """
+            bars_query = text("""
                 SELECT id FROM clubfindr.bars 
                 WHERE music_service = 'spotify'
                 LIMIT 3
-            """
-            )
+            """)
 
             bars = session.execute(bars_query).fetchall()
 
@@ -188,16 +178,14 @@ def create_test_data():
                 # Create profile from 2 hours ago
                 timestamp1 = datetime.utcnow() - timedelta(hours=2)
 
-                create_query = text(
-                    """
+                create_query = text("""
                     INSERT INTO clubfindr.bar_genre_profiles
                     (id, bar_id, timestamp, current_track_id, current_track_name, 
                      current_genres, rolling_genre_profile, immediate_genre_profile, track_counts)
                     VALUES
                     (:id, :bar_id, :timestamp, :track_id, :track_name,
                      :current_genres, :rolling_profile, :immediate_profile, :track_counts)
-                """
-                )
+                """)
 
                 session.execute(
                     create_query,
