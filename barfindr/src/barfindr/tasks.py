@@ -34,16 +34,14 @@ def process_bar_batch(bar_ids):
         try:
             # Fetch details only for this batch
             # We need the JOIN to get app credentials
-            batch_query = text(
-                """
+            batch_query = text("""
                 SELECT b.id, b.spotify_access_token, b.spotify_refresh_token, 
                        b.spotify_app_name, b.music_service,
                        a.client_id, a.client_secret
                 FROM clubfindr.bars b
                 JOIN clubfindr.spotify_apps a ON b.spotify_app_name = a.app_name
                 WHERE b.id = ANY(:bar_ids)
-            """
-            )
+            """)
 
             # Convert UUID strings back to UUID objects if needed,
             # but SQLAlchemy often handles string lists for UUID columns nicely.
@@ -86,15 +84,13 @@ def process_bar_batch(bar_ids):
                                 profile_data["new_token_info"]["refresh_token"]
                             )
 
-                            token_update_query = text(
-                                """
+                            token_update_query = text("""
                                 UPDATE clubfindr.bars 
                                 SET spotify_access_token = :access_token,
                                     spotify_refresh_token = :refresh_token,
                                     updated_at = CURRENT_TIMESTAMP
                                 WHERE id = :bar_id
-                            """
-                            )
+                            """)
 
                             session.execute(
                                 token_update_query,
@@ -170,14 +166,12 @@ def spotify_genre_polling():
 
         with database_manager.get_session() as session:
             # Query just the IDs of active bars
-            active_bars_query = text(
-                """
+            active_bars_query = text("""
                 SELECT b.id
                 FROM clubfindr.bars b
                 WHERE LOWER(b.music_service) = 'spotify' 
                 AND b.spotify_access_token IS NOT NULL
-            """
-            )
+            """)
 
             result = session.execute(active_bars_query).fetchall()
             bar_ids = [str(row.id) for row in result]
@@ -217,12 +211,10 @@ def database_cleanup():
                 # Clean up bar genre profiles older than 24 hours
                 profiles_cutoff_date = datetime.utcnow() - timedelta(hours=24)
 
-                profile_cleanup_query = text(
-                    """
+                profile_cleanup_query = text("""
                     DELETE FROM clubfindr.bar_genre_profiles
                     WHERE timestamp < :cutoff_date
-                """
-                )
+                """)
 
                 profile_result = session.execute(
                     profile_cleanup_query, {"cutoff_date": profiles_cutoff_date}
@@ -269,8 +261,7 @@ def update_genre_aggregates():
                 #    - Calculate AVG weight
                 #    - Filter HAVING avg_weight >= 0.1
 
-                aggregation_query = text(
-                    """
+                aggregation_query = text("""
                     INSERT INTO clubfindr.bar_genre_aggregates (bar_id, genre, weight)
                     SELECT 
                         p.bar_id,
@@ -285,8 +276,7 @@ def update_genre_aggregates():
                         p.bar_id, key
                     HAVING 
                         AVG(value::float) >= 0.1
-                """
-                )
+                """)
 
                 result = session.execute(aggregation_query)
                 row_count = result.rowcount
