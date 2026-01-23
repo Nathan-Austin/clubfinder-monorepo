@@ -14,7 +14,7 @@ logs/
 # Temporary files
 tmp/
 *.tmp
-
+*.log
 # Compiled code (e.g., TypeScript or CoffeeScript)
 dist/
 build/
@@ -25,7 +25,7 @@ build/
 
 # Ignore specific files
 config/*.local.js
-
+tests/
 # Python pickle files
 *.pkl
 
@@ -40,3 +40,6 @@ api_call_count.json
 test.py
 # Python cache
 __pycache__/
+
+# docs
+docs/
