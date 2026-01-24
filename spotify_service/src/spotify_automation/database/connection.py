@@ -1,4 +1,3 @@
-import os
 import structlog
 from typing import Optional
 from sqlalchemy import create_engine, text
@@ -8,6 +7,7 @@ from sqlalchemy.pool import QueuePool
 from ..config import config
 
 logger = structlog.get_logger()
+
 
 class DatabaseManager:
     _instance = None
@@ -20,7 +20,7 @@ class DatabaseManager:
     def __init__(self):
         if not hasattr(self, "initialized"):
             self.connection_string = config.DATABASE_URL
-            
+
             # Extract host/db for logging (best effort)
             try:
                 if "@" in self.connection_string:
@@ -87,6 +87,7 @@ class DatabaseManager:
         self.Session.remove()
         self.engine.dispose()
         logger.info("Database connections closed")
+
 
 # Singleton instance
 database_manager = DatabaseManager()

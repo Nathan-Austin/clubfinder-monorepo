@@ -1,6 +1,5 @@
-import sys
-
 class BrokenPipeProtection:
+
     def __init__(self, original_stream):
         self.original_stream = original_stream
 
