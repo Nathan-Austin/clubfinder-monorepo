@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 from spotify_automation.services.user_service import UserService
 
 

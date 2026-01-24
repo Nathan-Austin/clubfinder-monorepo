@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
 from spotify_automation.services.auth_service import AuthService
-from selenium.webdriver.common.by import By
 
 
 @pytest.fixture
