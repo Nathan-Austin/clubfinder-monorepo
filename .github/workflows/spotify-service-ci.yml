@@ -55,7 +55,7 @@ jobs:
     - name: Validate service configuration
       run: |
         # Check if required files exist
-        test -f SpotifyUserManagementService.py || exit 1
+        test -f manage_celery.sh || exit 1
         test -f cleanup.py || exit 1
         test -f manage_spotify_service.sh || exit 1
 
