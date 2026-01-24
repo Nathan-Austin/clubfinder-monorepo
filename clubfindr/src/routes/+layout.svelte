@@ -472,7 +472,11 @@
 </header>
 
 <main class="content-container">
-	<div class="md:container md:mx-auto text-light font-sen p-4 pt-8 md:p-16 text-center">
+	<div
+		class="text-light font-sen p-4 pt-8 text-center {$page.url.pathname === '/'
+			? 'w-full'
+			: 'md:container md:mx-auto md:p-16'}"
+	>
 		<slot />
 	</div>
 </main>

@@ -1139,7 +1139,7 @@
 	<div class="main-content">
 		<div>
 			<h1
-				class="text-4xl md:text-8xl font-bold my-1 md:my-2 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
+				class="text-[2.1rem] md:text-[5.7rem] font-bold my-1 md:my-2 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
 			>
 				CLUBFINDR
 			</h1>
