@@ -120,3 +120,6 @@ def shutdown_worker_browser(**kwargs):
 # Expose the Celery app
 __all__ = ["app"]
 celery = app
+
+# Set as default for @shared_task decorators
+app.set_default()
