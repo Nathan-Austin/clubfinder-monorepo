@@ -3,8 +3,6 @@ import random
 import time
 import gc
 import logging
-import subprocess
-import getpass
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -16,12 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 class BrowserSession:
-    def __init__(self):
+    def __init__(self, worker_id="default"):
         self.screenshots_dir = "screenshots"
         self.driver = None
         self.wait = None
         self.is_logged_in = False
         self.current_app = None
+        self.worker_id = worker_id
 
         # Create screenshots directory
         os.makedirs(self.screenshots_dir, exist_ok=True)
@@ -29,19 +28,15 @@ class BrowserSession:
     def initialize_browser(self):
         """Initialize browser for a new session"""
         try:
-            # First run cleanup (internal import to avoid circular dependency)
-            from cleanup import cleanup_processes
-
-            cleanup_processes()
-
-            logger.info("Initializing browser for a new session")
+            logger.info(f"Initializing browser for session (Worker: {self.worker_id})")
 
             options = Options()
 
             # Set up chrome directories relative to current working directory
+            # Use worker-specific directories to prevent locking conflicts
             base_dir = os.getcwd()
-            user_data_dir = os.path.join(base_dir, "chrome_profile")
-            cache_dir = os.path.join(base_dir, "chrome_cache")
+            user_data_dir = os.path.join(base_dir, f"chrome_profile_{self.worker_id}")
+            cache_dir = os.path.join(base_dir, f"chrome_cache_{self.worker_id}")
 
             # Ensure directories exist with proper permissions
             for directory in [user_data_dir, cache_dir]:
@@ -108,13 +103,24 @@ class BrowserSession:
             return True
         except Exception as e:
             logger.error(f"Failed to initialize browser: {str(e)}")
-            self.close_browser()
+            self.close_browser(force_cleanup=True)
             return False
 
-    def close_browser(self):
+    def check_health(self):
+        """Check if browser is responsive"""
+        if not self.driver:
+            return False
+        try:
+            # Simple lightweight check
+            _ = self.driver.current_url
+            return True
+        except Exception:
+            return False
+
+    def close_browser(self, force_cleanup=False):
         """Close browser and clean up resources"""
         try:
-            logger.info("Closing browser session")
+            logger.info(f"Closing browser session (Worker: {self.worker_id})")
             if self.driver:
                 try:
                     self.driver.quit()
@@ -124,17 +130,17 @@ class BrowserSession:
                     self.driver = None
                     self.wait = None
 
-            # Forceful cleanup
-            try:
-                from cleanup import cleanup_processes
+            if force_cleanup:
+                # Forceful cleanup
+                try:
+                    from .cleanup import cleanup_processes
 
-                cleanup_processes()
-            except Exception as e:
-                logger.error(f"Error running cleanup processes: {str(e)}")
-                # Manual fallback
-                user = os.getenv("USER") or getpass.getuser()
-                for proc_name in ["chrome", "chromium", "chromedriver"]:
-                    subprocess.run(["pkill", "-9", "-u", user, proc_name], check=False)
+                    # Only clean up this worker's specific processes if possible,
+                    # but current cleanup is global. Use with caution.
+                    # Ideally, we'd pass ignore_pids to cleanup_processes.
+                    cleanup_processes()
+                except Exception as e:
+                    logger.error(f"Error running cleanup processes: {str(e)}")
 
             self.is_logged_in = False
             gc.collect()
@@ -156,6 +162,8 @@ class BrowserSession:
     def safe_screenshot(self, description):
         """Safely take a screenshot with error handling and unique naming"""
         try:
+            if not self.driver:
+                return None
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             filename = f"{description}_{timestamp}.png"
             full_path = os.path.join(self.screenshots_dir, filename)

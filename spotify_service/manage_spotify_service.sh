@@ -6,10 +6,12 @@ set -e
 trap 'echo "Error occurred at line $LINENO. Command: $BASH_COMMAND"' ERR
 
 # Configuration
-SERVICE_NAME="spotify-service"
 SERVICE_DIR="/home/nathan/clubfinder/spotify_service"
 PYTHON_ENV="/home/nathan/spotify_service_env/bin/python"
 LOG_FILE="${SERVICE_DIR}/service_management_$(date +%Y%m%d_%H%M%S).log"
+
+# Import manage_celery functions if possible, or just call it
+MANAGE_CELERY="./manage_celery.sh"
 
 # Start logging
 exec > >(tee -i $LOG_FILE)
@@ -23,14 +25,12 @@ show_usage() {
     echo "Usage: $0 [command]"
     echo
     echo "Commands:"
-    echo "  start        - Start the service"
-    echo "  stop         - Stop the service"
-    echo "  restart      - Restart the service"
+    echo "  start        - Start all Spotify services"
+    echo "  stop         - Stop all Spotify services"
+    echo "  restart      - Restart all Spotify services"
     echo "  status       - Show service status"
     echo "  logs         - View service logs"
-    echo "  cleanup      - Run cleanup only without affecting service"
-    echo "  process-queue - Process pending queue items"
-    echo "  install      - Install the service files"
+    echo "  cleanup      - Run cleanup"
     echo "  help         - Show this help message"
     echo
 }
@@ -40,72 +40,50 @@ run_cleanup() {
     echo "Running cleanup process..."
     cd $SERVICE_DIR
     
-    # Run the Python cleanup script (handles process killing safely)
+    # Run the Python cleanup script
     echo "Running Python cleanup script..."
     $PYTHON_ENV cleanup.py
     
     echo "Cleanup completed."
 }
 
-# Function to process queue
-process_queue() {
-    echo "Processing pending queue..."
-    curl -X POST http://localhost:5000/process_queue
-    echo "Queue processing request sent."
-}
-
-# Function to reload service configuration
-reload_service() {
-    echo "Reloading systemd service configuration..."
-    
-    # Reload systemd
-    sudo systemctl daemon-reload
-    
-    echo "Service configuration reloaded."
-}
 # Handle commands
-case "$1" in
+case "" in
     start)
-        echo "Starting ${SERVICE_NAME} service..."
+        echo "Starting Spotify Automation services..."
         run_cleanup
-        sudo systemctl start ${SERVICE_NAME}
-        echo "Service started."
+        $MANAGE_CELERY start
         ;;
     stop)
-        echo "Stopping ${SERVICE_NAME} service..."
-        sudo systemctl stop ${SERVICE_NAME}
+        echo "Stopping Spotify Automation services..."
+        $MANAGE_CELERY stop
         run_cleanup
-        echo "Service stopped."
         ;;
     restart)
-        echo "Restarting ${SERVICE_NAME} service..."
-        sudo systemctl stop ${SERVICE_NAME}
+        echo "Restarting Spotify Automation services..."
+        $MANAGE_CELERY stop
         run_cleanup
-        sudo systemctl start ${SERVICE_NAME}
-        echo "Service restarted."
+        $MANAGE_CELERY start
         ;;
     status)
         echo "Service status:"
-        sudo systemctl status ${SERVICE_NAME}
+        $MANAGE_CELERY status
         ;;
     logs)
-        echo "Viewing service logs:"
-        sudo journalctl -u ${SERVICE_NAME} -n 100 --no-pager
+        echo "Viewing worker logs (ctrl+c to exit):"
+        $MANAGE_CELERY logs-worker
         ;;
     cleanup)
         run_cleanup
         ;;
     process-queue)
-        process_queue
-        ;;
-    install)
-        reload_service
+        echo "Command 'process-queue' is deprecated. Tasks are processed automatically by Celery."
         ;;
     help|--help|-h)
         show_usage
         ;;
     *)
-        echo "Unknown command: $1"
+        echo "Unknown command: "
         show_usage
         exit 1
         ;;
