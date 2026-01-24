@@ -1,8 +1,8 @@
 import logging
 import os
-import sys
 import traceback
 from logging.handlers import RotatingFileHandler
+
 
 def setup_logging(log_file="spotify_service.log"):
     """Configure logging with rotation and custom filter"""

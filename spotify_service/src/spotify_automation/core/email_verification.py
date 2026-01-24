@@ -8,6 +8,7 @@ import time
 import logging
 from .stream_protection import BrokenPipeProtection
 
+
 class EmailVerificationHandler:
     def __init__(
         self,
