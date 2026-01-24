@@ -38,14 +38,14 @@ class EmailVerificationHandler:
             if detected and detected["confidence"] > 0.5:
                 try:
                     return text.decode(detected["encoding"])
-                except:
+                except Exception:
                     pass
                     # Try common encodings
             encodings = ["utf-8", "latin-1", "iso-8859-1", "ascii", "windows-1252"]
             for encoding in encodings:
                 try:
                     return text.decode(encoding)
-                except:
+                except Exception:
                     continue
                     # Fall back to replacing invalid characters
             return text.decode(default_encoding, errors="replace")
@@ -64,7 +64,7 @@ class EmailVerificationHandler:
                 if encoding:
                     try:
                         subject = subject_text.decode(encoding)
-                    except:
+                    except Exception:
                         subject = self.decode_text(subject_text)
                 else:
                     subject = self.decode_text(subject_text)
@@ -116,7 +116,7 @@ class EmailVerificationHandler:
             from datetime import datetime
 
             start_timestamp = datetime.now()
-            logger.info(f"Monitoring inbox for Spotify verification code...")
+            logger.info("Monitoring inbox for Spotify verification code...")
             logger.info(
                 f"Will only consider emails after {start_timestamp.strftime('%H:%M:%S')}"
             )
@@ -227,7 +227,7 @@ class EmailVerificationHandler:
                             try:
                                 self.mail.close()
                                 self.mail.logout()
-                            except:
+                            except Exception:
                                 pass
                             self.mail = None
                             if not self.connect():
@@ -253,7 +253,7 @@ class EmailVerificationHandler:
                 if self.mail:
                     self.mail.close()
                     self.mail.logout()
-            except:
+            except Exception:
                 pass
 
     def connect(self):

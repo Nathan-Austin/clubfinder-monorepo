@@ -1,5 +1,4 @@
 import pytest
-import time
 from celery.contrib.testing.worker import start_worker
 from spotify_automation.celery import app
 from spotify_automation.tasks.user_tasks import add_user_task

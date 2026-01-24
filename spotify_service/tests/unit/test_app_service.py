@@ -1,6 +1,5 @@
 import pytest
 import json
-import os
 from unittest.mock import Mock, patch, mock_open
 from spotify_automation.services.app_service import AppService
 

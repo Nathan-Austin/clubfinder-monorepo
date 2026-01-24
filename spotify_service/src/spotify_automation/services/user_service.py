@@ -113,10 +113,10 @@ class UserService:
             # Update entity record
             session.execute(
                 text(f"""
-                    UPDATE {table} 
-                    SET spotify_app_name = :app_name, 
-                        spotify_email = :email, 
-                        updated_at = CURRENT_TIMESTAMP 
+                    UPDATE {table}
+                    SET spotify_app_name = :app_name,
+                        spotify_email = :email,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = :id
                 """),
                 {"app_name": app_name, "email": spotify_email, "id": entity_id},

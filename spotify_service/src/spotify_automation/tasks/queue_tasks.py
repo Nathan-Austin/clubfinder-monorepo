@@ -2,12 +2,12 @@ import os
 import json
 import shutil
 import structlog
-from datetime import datetime
 from celery import shared_task
 from .user_tasks import add_user_task
 from .bar_tasks import add_bar_task
 
 logger = structlog.get_logger()
+
 
 @shared_task(name="spotify_automation.tasks.migrate_file_queue")
 def migrate_file_queue_task():
@@ -26,13 +26,8 @@ def migrate_file_queue_task():
     os.makedirs(corrupt_dir, exist_ok=True)
 
     files = [f for f in os.listdir(queue_dir) if f.endswith(".json")]
-    
-    stats = {
-        "total": len(files),
-        "user_tasks": 0,
-        "bar_tasks": 0,
-        "failed": 0
-    }
+
+    stats = {"total": len(files), "user_tasks": 0, "bar_tasks": 0, "failed": 0}
 
     logger.info("Starting file queue migration", count=len(files))
 
@@ -62,7 +57,7 @@ def migrate_file_queue_task():
 
             # Move to migrated
             shutil.move(file_path, os.path.join(migrated_dir, filename))
-            
+
         except Exception as e:
             logger.error("Failed to migrate file", filename=filename, error=str(e))
             shutil.move(file_path, os.path.join(corrupt_dir, filename))
@@ -70,6 +65,7 @@ def migrate_file_queue_task():
 
     logger.info("Migration completed", stats=stats)
     return stats
+
 
 @shared_task(name="spotify_automation.tasks.process_failed_tasks")
 def process_failed_tasks():

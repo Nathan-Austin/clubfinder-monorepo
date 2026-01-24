@@ -1,13 +1,8 @@
 import logging
 import time
-import re
-import traceback
-from datetime import datetime
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from ..core.email_verification import EmailVerificationHandler
 from ..config import config
 
@@ -115,7 +110,7 @@ class AuthService:
             )
             self.driver.execute_script("arguments[0].click();", accept_button)
             return True
-        except:
+        except Exception:
             return False
 
     def find_and_click_login(self):
@@ -135,7 +130,7 @@ class AuthService:
                 button = self.wait.until(EC.element_to_be_clickable(locator))
                 button.click()
                 return True
-            except:
+            except Exception:
                 continue
         return False
 
@@ -169,7 +164,7 @@ class AuthService:
 
             if self.handle_spotify_captcha() and self.verify_login_success():
                 return True
-        except:
+        except Exception:
             pass
         return False
 
@@ -186,12 +181,9 @@ class AuthService:
             return False
 
         # Simplified logic for extraction
-        site_key = "6LfCVLAUAAAAALFwwRnnCJ12DalriUGbj8FW_J39"
         try:
-            import requests
-
             # This would be the full solve_recaptcha logic
             # For extraction, we'll keep it consistent with original
             return True  # Placeholder for actual implementation in service
-        except:
+        except Exception:
             return False

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from spotify_automation.tasks.user_tasks import add_user_task
 from spotify_automation.tasks.bar_tasks import add_bar_task
 
