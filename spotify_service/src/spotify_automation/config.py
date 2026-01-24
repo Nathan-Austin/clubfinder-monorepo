@@ -2,7 +2,20 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
+# Try current directory first, then spotify_service root
 load_dotenv()
+if not os.getenv("SPOTIFY_EMAIL"):
+    # Try looking in the spotify_service directory specifically
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up from src/spotify_automation to spotify_service/
+    service_root = os.path.abspath(os.path.join(current_dir, "../../"))
+    env_path = os.path.join(service_root, ".env")
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+
+print(f"DEBUG: DATABASE_URL set: {bool(os.getenv('DATABASE_URL'))}")
+
+print(f"DEBUG: REDIS_URL: {os.getenv('REDIS_URL', 'Using default')}")
 
 
 class Config:
