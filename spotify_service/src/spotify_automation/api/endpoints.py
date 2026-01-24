@@ -4,7 +4,7 @@ from ..tasks import (
     add_user_task,
     add_bar_task,
     create_spotify_app_task,
-    refresh_app_credentials_task
+    refresh_app_credentials_task,
 )
 
 api_bp = Blueprint("api", __name__)

@@ -40,14 +40,18 @@ def cleanup_old_screenshots_task(days=7):
         for filename in os.listdir(screenshot_dir):
             file_path = os.path.join(screenshot_dir, filename)
             # Only delete image files to be safe
-            if os.path.isfile(file_path) and filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            if os.path.isfile(file_path) and filename.lower().endswith(
+                (".png", ".jpg", ".jpeg")
+            ):
                 file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
                 if file_time < cutoff_time:
                     try:
                         os.remove(file_path)
                         deleted_count += 1
                     except Exception as delete_error:
-                        logger.warning(f"Failed to delete {filename}", error=str(delete_error))
+                        logger.warning(
+                            f"Failed to delete {filename}", error=str(delete_error)
+                        )
 
         logger.info(f"Screenshot cleanup completed. Deleted {deleted_count} files.")
         return {"success": True, "deleted_count": deleted_count}

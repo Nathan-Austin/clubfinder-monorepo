@@ -178,7 +178,9 @@ class EmailVerificationHandler:
                 current_time = time.time()
                 if current_time - last_check_time >= check_interval:
                     last_check_time = current_time
-                    logger.info(f"Waiting for code... {int(wait_time - (current_time - start_time))}s left")
+                    logger.info(
+                        f"Waiting for code... {int(wait_time - (current_time - start_time))}s left"  # noqa: E501
+                    )
 
                     try:
                         email_ids = self._search_inbox()

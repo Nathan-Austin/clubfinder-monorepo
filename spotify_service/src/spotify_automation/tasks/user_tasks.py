@@ -37,7 +37,10 @@ def get_or_init_browser():
     max_retries=3,
     retry_backoff=True,
     retry_backoff_max=600,
-    autoretry_for=(TimeoutException, ConnectionError),  # Don't auto-retry WebDriverException immediately, handle it
+    autoretry_for=(
+        TimeoutException,
+        ConnectionError,
+    ),  # Don't auto-retry WebDriverException immediately, handle it
 )
 def add_user_task(self, user_id, spotify_email):
     """Add user to Spotify app with automatic retries"""

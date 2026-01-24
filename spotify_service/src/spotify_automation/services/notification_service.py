@@ -29,7 +29,7 @@ class NotificationService:
                 message["Subject"] = (
                     "Your Tilki-Clubfindr Bar Account Has Been Connected to Spotify"
                 )
-                body = "Your bar's Spotify account has been successfully connected to Clubfindr."
+                body = "Your bar's Spotify account has been successfully connected to Clubfindr."  # noqa: E501
 
             message.attach(MIMEText(body, "plain"))
 
