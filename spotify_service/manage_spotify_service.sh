@@ -40,11 +40,7 @@ run_cleanup() {
     echo "Running cleanup process..."
     cd $SERVICE_DIR
     
-    # Kill any stray processes
-    echo "Killing stray browser processes..."
-    pkill -9 -f "chrome|chromium|chromedriver" 2>/dev/null || echo "No processes to kill"
-    
-    # Run the Python cleanup script
+    # Run the Python cleanup script (handles process killing safely)
     echo "Running Python cleanup script..."
     $PYTHON_ENV cleanup.py
     
