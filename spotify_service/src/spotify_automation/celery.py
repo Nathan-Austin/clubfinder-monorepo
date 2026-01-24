@@ -69,6 +69,8 @@ app.conf.update(
     task_send_result_event=True,
 )
 
+# Discover tasks in the current package
+app.autodiscover_tasks(["src.spotify_automation"])
 
 # Register error handler (optional, can be expanded later)
 @app.task(bind=True)
