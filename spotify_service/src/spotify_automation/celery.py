@@ -72,6 +72,7 @@ app.conf.update(
 # Discover tasks in the current package
 app.autodiscover_tasks(["src.spotify_automation"])
 
+
 # Register error handler (optional, can be expanded later)
 @app.task(bind=True)
 def handle_task_error(self, task_id, exc):
