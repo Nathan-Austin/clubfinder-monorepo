@@ -1,5 +1,24 @@
-selenium>=4.15.0
+# Core Python Libraries
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+# API and Web Frameworks
 flask>=2.3.0
 requests>=2.31.0
-psycopg2-binary>=2.9.0
+
+# Background Tasks
+celery==5.3.6
+redis==5.0.1
+flower>=2.0.0
+
+# Browser Automation
+selenium>=4.15.0
+
+# Logging and Monitoring
+structlog==24.1.0
+
+# Environment and Configuration
+python-dotenv==1.0.0
+
+# Utilities
 psutil>=5.9.0
+chardet>=5.0.0
