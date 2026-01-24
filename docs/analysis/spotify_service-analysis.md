@@ -1,7 +1,8 @@
 # spotify_service Analysis
 
 **Priority: HIGH**
-**Last Updated: 2026-01-17**
+**Last Updated: 2026-01-24**
+**Status: Security Hardening Complete / Ready for Deployment**
 
 ## Component Overview
 
@@ -16,295 +17,113 @@ Automated management of Spotify for Developers applications using Selenium brows
 - **Queue**: File-based pending queue system
 
 ### Current State
-The service functions but has significant security vulnerabilities, including shell injection risks and plaintext credential storage. Code quality issues include bare exception handling and missing dependency management.
+The service has undergone a **critical security remediation phase** (Jan 24, 2026).
+- **Security**: Shell injection vulnerabilities have been patched. Credentials can now be loaded from environment variables.
+- **Stability**: The aggressive process cleanup logic has been rewritten to be safer and user-scoped. Regressions related to missing `USER` env var have been fixed.
+- **Architecture**: Remains a monolithic script (`SpotifyUserManagementService.py`, 3200+ lines). Splitting this monolith is the next major technical debt item.
 
-## Architecture
+## Recent Changes (Jan 24, 2026)
 
-### File Structure
+1.  **Shell Injection Remediation**:
+    -   Replaced dangerous `subprocess.run(..., shell=True)` calls in `SpotifyUserManagementService.py` with safe list-based arguments.
+    -   Prevented potential remote code execution via the API.
+
+2.  **Configuration Security**:
+    -   Updated `load_config` to prioritize **Environment Variables** (e.g., `SPOTIFY_EMAIL`, `DB_PASSWORD`) over values in `config.json`.
+    -   Allows for secure deployment without committing secrets to disk.
+
+3.  **Process Cleanup Rewrite**:
+    -   Completely rewrote `cleanup.py` using `psutil`.
+    -   Removed unsafe shell pipelines (`ps | grep | kill`) in both Python and Shell scripts.
+    -   Added user-scoping (only kills processes owned by the running user) to prevent disrupting other system services.
+    -   Added robustness for missing `USER` environment variable (using `getpass.getuser()` fallback).
+
+4.  **Dependency Management**:
+    -   Created `requirements.txt` to define minimum dependencies (`selenium`, `flask`, `psycopg2-binary`, `psutil`). Note: Versions are minimums (`>=`), not strictly locked.
+
+## Architecture (Current)
+
 ```
 spotify_service/
-├── spotify_app_manager.py      # Main automation logic
-├── flask_api.py                # Flask REST API
-├── config.json                 # Configuration (CREDENTIALS!)
+├── SpotifyUserManagementService.py  # MONOLITH: Main automation logic + Flask API
+├── cleanup.py                  # [UPDATED] Safe process cleanup using psutil
 ├── manage_spotify_service.sh   # Service management script
-├── pending_queue/              # Failed operation queue
+├── app_info.json               # Local state of managed apps
+├── requirements.txt            # [NEW] Python dependencies
+├── pending_queue/              # Failed operation queue (JSON files)
 ├── screenshots/                # Debug screenshots
 ├── logs/                       # Application logs
-└── spotify_service.service     # Systemd unit file
+└── drivers/                    # Directory for browser drivers
 ```
 
-### Key Patterns
-- Selenium-based browser automation for Spotify Developer portal
-- Flask API for external service communication
-- File-based queue for retry logic
-- Systemd integration for service management
-- On-demand browser launching (lazy initialization)
+## Deployment & Post-Deployment Checklist
 
-### API Endpoints
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | /add_user | Add user to Spotify app |
-| POST | /add_bar | Add bar to Spotify app |
-| GET | /get_credentials/{app_name} | Retrieve app credentials |
-| POST | /process_queue | Process pending queue items |
-| POST | /cleanup | Trigger cleanup process |
+These steps are required to deploy the recent changes to the production server.
 
-## Critical Issues
+### 1. Environment Setup
+- [ ] **Install Dependencies**:
+    ```bash
+    pip install -r spotify_service/requirements.txt
+    ```
+- [ ] **Configure Environment Variables**:
+    Create a `.env` file or configure systemd service environment variables:
+    ```ini
+    SPOTIFY_EMAIL=your_email@example.com
+    SPOTIFY_PASSWORD=your_password
+    DB_HOST=localhost
+    DB_NAME=clubfindr
+    DB_USER=...
+    DB_PASSWORD=...
+    CAPTCHA_API_KEY=...
+    
+    # Email Verification (Required for Login Challenges)
+    EMAIL_ADDRESS=your_support_email@domain.com
+    EMAIL_PASSWORD=your_email_password
+    EMAIL_SERVER=mail.spacemail.com  # Defaults to mail.spacemail.com if omitted
+    EMAIL_PORT=993                   # Defaults to 993 if omitted
+    SMTP_PORT=587                    # Defaults to 587 if omitted
+    ```
 
-### 1. Shell Injection Vulnerability
-**Severity**: Critical
-**Location**: `spotify_app_manager.py`, `manage_spotify_service.sh`
+### 2. Service Restart
+- [ ] **Reload Systemd**:
+    ```bash
+    sudo systemctl daemon-reload
+    sudo systemctl restart spotify-service
+    ```
+- [ ] **Verify Logs**:
+    Check `journalctl -u spotify-service -f` to ensure configuration is loaded correctly from environment variables (logs should *not* show "Missing required Spotify credentials").
 
-Multiple instances of `shell=True` in subprocess calls with user-controlled input:
+### 3. Cleanup Verification
+- [ ] **Test Cleanup**:
+    Run `python3 spotify_service/cleanup.py` manually and verify it only targets the intended Chrome/Selenium processes and does not affect the rest of the system.
 
-```python
-# VULNERABLE PATTERN
-subprocess.run(f"some_command {user_input}", shell=True)
-```
+## Remaining Technical Debt & Future Work
 
-**Impact**: Remote code execution if attacker can influence input parameters.
+### Phase 2: Refactoring (High Priority)
+The `SpotifyUserManagementService.py` file is a "God Object" mixing HTTP handling, database logic, and browser automation.
 
-**Recommended Fix**:
-```python
-# SAFE PATTERN
-subprocess.run(["some_command", user_input], shell=False)
-```
+- [ ] **Split the Monolith**:
+    -   `api.py`: Flask application and route definitions.
+    -   `browser_session.py`: Class encapsulating Selenium logic.
+    -   `database.py`: Database connection and query logic.
+    -   `models.py`: Data classes for User, Bar, and App.
+- [ ] **Unify Logic**:
+    -   Refactor `add_user` and `add_bar` into a generic `add_entity(type, data)` method to reduce 90% code duplication.
 
-### 2. Plaintext Credentials in config.json
-**Severity**: Critical
-**Location**: `config.json`
+### Phase 3: Architecture Modernization (Medium Priority)
+- [ ] **Async Task Queue**:
+    -   The current API blocks for 30-60s while the browser runs.
+    -   **Solution**: Integrate Celery (already used in `barfindr`) to handle browser tasks in the background. API should return `202 Accepted` immediately with a task ID.
+- [ ] **Hardcoded Paths**:
+    -   Audit codebase for absolute paths (e.g., `/home/nathan/...`) and replace with relative paths or config variables.
 
-Spotify API credentials, email passwords, and other secrets stored in plaintext:
+## Critical Issues Log
 
-```json
-{
-  "spotify_client_id": "abc123...",
-  "spotify_client_secret": "secret...",
-  "email_password": "..."
-}
-```
-
-**Impact**: Credential exposure if file is accessed or committed to VCS.
-
-**Recommended Fix**:
-1. Move to environment variables
-2. Use encrypted secrets management (Vault, AWS Secrets Manager)
-3. Add config.json to .gitignore
-
-### 3. Bare Exception Handlers
-**Severity**: High
-**Location**: Throughout `spotify_app_manager.py`
-**Count**: 22+ instances
-
-```python
-# PROBLEMATIC PATTERN
-try:
-    risky_operation()
-except:  # Catches EVERYTHING including KeyboardInterrupt, SystemExit
-    pass
-```
-
-**Impact**:
-- Silently swallows critical errors
-- Makes debugging extremely difficult
-- Can mask security issues
-
-**Recommended Fix**:
-```python
-# CORRECT PATTERN
-try:
-    risky_operation()
-except SpecificException as e:
-    logger.error(f"Operation failed: {e}")
-    raise
-```
-
-### 4. Aggressive Process Cleanup
-**Severity**: High
-**Location**: `manage_spotify_service.sh`, cleanup functions
-
-The cleanup process uses broad patterns to kill processes:
-
-```bash
-pkill -f "chrome"
-pkill -f "spotify"
-```
-
-**Impact**: May kill unrelated Chrome/Spotify processes on the system.
-
-**Recommended Fix**:
-- Track PIDs spawned by this service
-- Only kill known PIDs
-- Use process groups
-
-## Technical Debt
-
-### 1. No requirements.txt
-**Location**: Root directory
-**Impact**: Dependency versions not locked, reproducible builds impossible
-
-```bash
-# Missing file should contain:
-selenium==4.x.x
-flask==2.x.x
-requests==2.x.x
-# etc.
-```
-
-### 2. No Test Coverage
-**Current State**: 0% coverage, no test files exist
-
-Critical paths needing tests:
-- OAuth flow simulation
-- Queue processing logic
-- API endpoint responses
-- Error handling paths
-
-### 3. Hardcoded Paths
-**Locations**: Multiple files
-**Examples**:
-- `/home/nathan/...` hardcoded paths
-- Fixed Chrome binary locations
-- Non-configurable log paths
-
-### 4. Missing Type Hints
-**Location**: All Python files
-**Impact**: IDE support limited, harder to catch type errors
-
-### 5. No Logging Configuration
-**Issue**: Inconsistent logging, some using print(), some using logger
-
-### 6. Synchronous Flask with Long Operations
-**Location**: `flask_api.py`
-**Issue**: Browser automation can take 30+ seconds, blocking Flask
-
-### 7. No Rate Limiting on API
-**Location**: `flask_api.py`
-**Impact**: API can be overwhelmed, Spotify may rate limit
-
-### 8. Screenshot Accumulation
-**Location**: `screenshots/` directory
-**Issue**: Screenshots accumulate without cleanup, consuming disk space
-
-## Improvement Checklist
-
-### Critical (Fix Immediately)
-- [ ] Replace all `shell=True` with `shell=False` and proper argument lists
-- [ ] Move credentials from config.json to environment variables
-- [ ] Add config.json to .gitignore (if not already)
-- [ ] Replace bare `except:` with specific exception types
-- [ ] Implement targeted process cleanup (PID tracking)
-
-### High Priority (This Sprint)
-- [ ] Create requirements.txt with pinned versions
-- [ ] Add basic test suite for API endpoints
-- [ ] Implement proper logging configuration
-- [ ] Add input validation for all API endpoints
-- [ ] Add rate limiting to Flask API
-
-### Medium Priority (Next Sprint)
-- [ ] Add type hints to all functions
-- [ ] Implement async task handling (Celery or background threads)
-- [ ] Add automated screenshot cleanup (age-based)
-- [ ] Make paths configurable via environment
-- [ ] Add health check endpoint
-
-### Lower Priority (Backlog)
-- [ ] Add API authentication/authorization
-- [ ] Implement proper retry logic with exponential backoff
-- [ ] Add metrics/monitoring endpoints
-- [ ] Create Docker containerization
-- [ ] Add comprehensive integration tests
-
-## Verification Steps
-
-### Verifying Shell Injection Fix
-```bash
-# 1. Search for remaining shell=True
-grep -r "shell=True" spotify_service/
-
-# Should return 0 results or only safe usages
-
-# 2. Test with malicious input
-curl -X POST http://localhost:5000/add_user \
-  -d '{"email": "test; rm -rf /tmp/test"}'
-
-# Should NOT execute the rm command
-```
-
-### Verifying Credential Security
-```bash
-# 1. Check config.json is gitignored
-git check-ignore spotify_service/config.json
-
-# 2. Verify environment variables work
-export SPOTIFY_CLIENT_ID="test"
-python -c "import os; print(os.environ.get('SPOTIFY_CLIENT_ID'))"
-
-# 3. Ensure no credentials in committed files
-git log -p | grep -i "password\|secret\|credential" | head -20
-```
-
-### Testing Exception Handling
-```bash
-# 1. Search for bare excepts
-grep -r "except:" --include="*.py" spotify_service/
-
-# Should only find specific exceptions or documented bare excepts
-
-# 2. Force an error and check logs
-# Verify error is logged with traceback, not silently swallowed
-```
-
-### Creating requirements.txt
-```bash
-cd spotify_service
-
-# Generate from current environment
-pip freeze > requirements.txt
-
-# Or manually create with known versions:
-cat > requirements.txt << EOF
-selenium>=4.15.0
-flask>=2.3.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-EOF
-
-# Test installation
-pip install -r requirements.txt
-```
-
-## Dependencies to Add
-
-| Package | Purpose | Version |
-|---------|---------|---------|
-| selenium | Browser automation | >=4.15.0 |
-| flask | REST API | >=2.3.0 |
-| requests | HTTP client | >=2.31.0 |
-| python-dotenv | Environment management | >=1.0.0 |
-| webdriver-manager | Chrome driver management | >=4.0.0 |
-
-## Related Components
-
-- **app_clubfindr**: Consumes OAuth tokens managed by this service
-- **clubfindr**: Uses credentials for Spotify integration
-- **barfindr**: May request user additions via API
-
-## Security Recommendations
-
-### Immediate Actions
-1. Audit all subprocess calls for injection risks
-2. Rotate any credentials that may have been exposed
-3. Review git history for committed secrets
-4. Add secret scanning to CI pipeline
-
-### Long-term Improvements
-1. Implement secrets management solution
-2. Add API authentication
-3. Network isolation for the service
-4. Regular security audits
-
-## Notes
-
-This service is critical infrastructure for the Spotify integration across the platform. Security issues here could compromise the entire Spotify ecosystem for the application. The shell injection and credential exposure issues should be treated as urgent priorities.
+| Issue | Severity | Status | Fixed Date |
+|-------|----------|--------|------------|
+| Shell Injection in `cleanup.py` | Critical | **FIXED** | 2026-01-24 |
+| Shell Injection in `manage_spotify_service.sh` | Critical | **FIXED** | 2026-01-24 |
+| Plaintext Credentials in `config.json` | Critical | **MITIGATED** | 2026-01-24 |
+| Aggressive Process Killing | High | **FIXED** | 2026-01-24 |
+| Monolithic Codebase | Medium | OPEN | - |
+| Blocking Sync API | Medium | OPEN | - |
