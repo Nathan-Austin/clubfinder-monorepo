@@ -86,7 +86,7 @@ def _update_app_credentials(app_name, client_id, client_secret):
     try:
         query = """
             UPDATE clubfindr.spotify_apps
-            SET client_id = :client_id, client_secret = :client_secret, updated_at = NOW()
+            SET client_id = :client_id, client_secret = :client_secret, updated_at = NOW()  # noqa: E501
             WHERE app_name = :app_name
         """
         session.execute(

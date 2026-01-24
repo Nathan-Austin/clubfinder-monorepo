@@ -78,7 +78,7 @@ def process_failed_tasks():
         # Query for failed tasks that haven't reached max retries (3)
         # and were last attempted more than 1 hour ago to avoid tight loops
         query = """
-            SELECT id, task_name, entity_type, entity_id, result->>'spotify_email' as email, retries
+            SELECT id, task_name, entity_type, entity_id, result->>'spotify_email' as email, retries  # noqa: E501
             FROM clubfindr.spotify_task_log
             WHERE status = 'failed'
             AND retries < 3
@@ -88,7 +88,11 @@ def process_failed_tasks():
 
         retried_count = 0
         for task in failed_tasks:
-            logger.info("Retrying failed task", task_name=task.task_name, entity_id=task.entity_id)
+            logger.info(
+                "Retrying failed task",
+                task_name=task.task_name,
+                entity_id=task.entity_id,
+            )
 
             if task.task_name == "spotify_automation.tasks.add_user":
                 add_user_task.delay(str(task.entity_id), task.email)

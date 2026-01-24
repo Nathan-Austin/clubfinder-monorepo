@@ -46,7 +46,9 @@ app.conf.update(
         "spotify_automation.tasks.create_spotify_app": {"queue": "spotify_browser"},
         # Database/API operations (fast)
         "spotify_automation.tasks.migrate_file_queue": {"queue": "spotify_fast"},
-        "spotify_automation.tasks.refresh_app_credentials": {"queue": "spotify_browser"},
+        "spotify_automation.tasks.refresh_app_credentials": {
+            "queue": "spotify_browser"
+        },
         # Maintenance
         "spotify_automation.tasks.cleanup_chrome_processes": {
             "queue": "spotify_maintenance"

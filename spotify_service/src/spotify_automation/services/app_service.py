@@ -108,9 +108,7 @@ class AppService:
 
     def _calculate_next_app_number(self, base_name):
         """Determine the next available app number."""
-        app_links = self.driver.find_elements(
-            By.CSS_SELECTOR, 'a[href*="/dashboard/"]'
-        )
+        app_links = self.driver.find_elements(By.CSS_SELECTOR, 'a[href*="/dashboard/"]')
         existing_numbers = []
         for link in app_links:
             app_text = link.text.strip()
@@ -175,8 +173,8 @@ class AppService:
         """Save the new app to the database."""
         query = """
             INSERT INTO clubfindr.spotify_apps
-            (app_name, app_id, is_active, user_count, app_type, client_id, client_secret, created_at)
-            VALUES (:app_name, :app_id, :is_active, :user_count, :app_type, :client_id, :client_secret, NOW())
+            (app_name, app_id, is_active, user_count, app_type, client_id, client_secret, created_at)  # noqa: E501
+            VALUES (:app_name, :app_id, :is_active, :user_count, :app_type, :client_id, :client_secret, NOW())  # noqa: E501
         """
         session.execute(text(query), app_data)
 
@@ -194,19 +192,25 @@ class AppService:
 
             create_button = self.wait.until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, 'a[data-encore-id="buttonPrimary"][href="/dashboard/create"]')
+                    (
+                        By.CSS_SELECTOR,
+                        'a[data-encore-id="buttonPrimary"][href="/dashboard/create"]',
+                    )
                 )
             )
             create_button.click()
             time.sleep(3)
 
-            description = f"{'Bar' if app_type == 'bar' else 'Party'} music recommendation app instance {next_number}"
+            description = f"{'Bar' if app_type == 'bar' else 'Party'} music recommendation app instance {next_number}"  # noqa: E501
             self._fill_app_details(app_name, description)
             self._configure_app_settings()
 
             save_button = self.wait.until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, 'button[type="submit"][data-encore-id="buttonPrimary"]')
+                    (
+                        By.CSS_SELECTOR,
+                        'button[type="submit"][data-encore-id="buttonPrimary"]',
+                    )
                 )
             )
             save_button.click()
@@ -250,15 +254,21 @@ class AppService:
         """Attempt to find Client ID using multiple strategies."""
         # Strategy 1: Label then value
         try:
-            label = self.wait.until(EC.presence_of_element_located((By.XPATH, '//span[text()="Client ID"]')))
+            label = self.wait.until(
+                EC.presence_of_element_located((By.XPATH, '//span[text()="Client ID"]'))
+            )
             parent = label.find_element(By.XPATH, "./ancestor::div[1]")
-            return parent.find_element(By.XPATH, './/span[not(text()="Client ID")]').text
+            return parent.find_element(
+                By.XPATH, './/span[not(text()="Client ID")]'
+            ).text
         except Exception:
             pass
 
         # Strategy 2: Any element containing Client ID
         try:
-            elements = self.driver.find_elements(By.XPATH, '//*[contains(text(), "Client ID")]')
+            elements = self.driver.find_elements(
+                By.XPATH, '//*[contains(text(), "Client ID")]'
+            )
             for element in elements:
                 parent = element.find_element(By.XPATH, "./parent::*")
                 potentials = parent.find_elements(By.XPATH, ".//span")
@@ -273,17 +283,22 @@ class AppService:
         """Click the button to reveal client secret."""
         view_buttons = self.driver.find_elements(
             By.XPATH,
-            '//button[contains(text(), "View client secret") or contains(text(), "SHOW") or contains(text(), "Show")]',
+            '//button[contains(text(), "View client secret") or contains(text(), "SHOW") or contains(text(), "Show")]',  # noqa: E501
         )
 
         view_button = next((b for b in view_buttons if b.is_displayed()), None)
         if not view_button:
             # Fallback
             buttons = self.driver.find_elements(By.TAG_NAME, "button")
-            view_button = next((
-                b for b in buttons
-                if b.is_displayed() and any(w in b.text.lower() for w in ["view", "show", "secret"])
-            ), None)
+            view_button = next(
+                (
+                    b
+                    for b in buttons
+                    if b.is_displayed()
+                    and any(w in b.text.lower() for w in ["view", "show", "secret"])
+                ),
+                None,
+            )
 
         if not view_button:
             raise Exception("Could not find 'View client secret' button")
@@ -298,16 +313,24 @@ class AppService:
     def _find_secret_by_label(self):
         """Strategy 1: Find secret by label."""
         try:
-            label = self.wait.until(EC.presence_of_element_located((By.XPATH, '//span[text()="Client secret"]')))
+            label = self.wait.until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//span[text()="Client secret"]')
+                )
+            )
             parent = label.find_element(By.XPATH, "./ancestor::div[1]")
-            return parent.find_element(By.XPATH, './/span[not(text()="Client secret")]').text
+            return parent.find_element(
+                By.XPATH, './/span[not(text()="Client secret")]'
+            ).text
         except Exception:
             return None
 
     def _find_secret_by_container(self):
         """Strategy 2: Find secret by container element."""
         try:
-            elements = self.driver.find_elements(By.XPATH, '//*[contains(text(), "Client secret")]')
+            elements = self.driver.find_elements(
+                By.XPATH, '//*[contains(text(), "Client secret")]'
+            )
             for element in elements:
                 parent = element.find_element(By.XPATH, "./parent::*")
                 potentials = parent.find_elements(By.XPATH, ".//span")
@@ -349,7 +372,9 @@ class AppService:
             logger.info("Getting app credentials")
 
             settings_button = self.wait.until(
-                EC.element_to_be_clickable((By.XPATH, '//a[contains(@href, "/settings")]'))
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//a[contains(@href, "/settings")]')
+                )
             )
             settings_button.click()
             time.sleep(3)

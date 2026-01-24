@@ -46,7 +46,7 @@ class UserService:
 
             self.browser.safe_screenshot(f"before_add_{entity_type}_{entity_id}")
             logger.info(
-                f"Adding {entity_type} {entity_name} ({spotify_email}) to app {app_name}"
+                f"Adding {entity_type} {entity_name} ({spotify_email}) to app {app_name}"  # noqa: E501
             )
 
             # Click Add User button
@@ -105,7 +105,7 @@ class UserService:
             # Update app user count
             session.execute(
                 text(
-                    "UPDATE clubfindr.spotify_apps SET user_count = user_count + 1 WHERE app_name = :app_name"
+                    "UPDATE clubfindr.spotify_apps SET user_count = user_count + 1 WHERE app_name = :app_name"  # noqa: E501
                 ),
                 {"app_name": app_name},
             )
