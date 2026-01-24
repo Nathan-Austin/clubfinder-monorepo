@@ -347,7 +347,7 @@ def add_user_task(self, user_id, spotify_email):
   - [x] `UserActionFilter` → `core/logging_config.py`
 - [x] Set up structlog configuration
 - [x] Create systemd service files for workers and beat
-- [ ] Deploy Celery worker (no tasks yet, just health check)
+- [x] Deploy Celery worker (no tasks yet, just health check)
 
 **Validation Criteria:**
 - ✓ Celery worker starts successfully
@@ -362,14 +362,14 @@ def add_user_task(self, user_id, spotify_email):
 **Goal:** Extract business logic from BrowserSession into testable services
 
 **Tasks:**
-- [ ] Create service modules:
-  - `services/auth_service.py` - Extract 15 methods (login, CAPTCHA, verification)
-  - `services/app_service.py` - Extract 10 methods (app CRUD, navigation, credentials)
-  - `services/user_service.py` - Extract 2 methods (user/bar addition orchestration)
-  - `services/notification_service.py` - Extract email notification logic
-- [ ] Refactor `BrowserSession` in `core/browser.py`:
-  - Keep only: initialize_browser(), close_browser(), random_delay(), simulate_human_typing(), safe_screenshot()
-  - Remove high-level orchestration (now in services)
+- [x] Create service modules:
+  - [x] `services/auth_service.py` - Extract 15 methods (login, CAPTCHA, verification)
+  - [x] `services/app_service.py` - Extract 10 methods (app CRUD, navigation, credentials)
+  - [x] `services/user_service.py` - Extract 2 methods (user/bar addition orchestration)
+  - [x] `services/notification_service.py` - Extract email notification logic
+- [x] Refactor `BrowserSession` in `core/browser.py`:
+  - [x] Keep only: initialize_browser(), close_browser(), random_delay(), simulate_human_typing(), safe_screenshot()
+  - [x] Remove high-level orchestration (now in services)
 - [ ] Services depend on BrowserSession via dependency injection
 - [ ] Write unit tests for each service (mock browser)
 - [ ] Write integration tests for service layer
@@ -387,21 +387,21 @@ def add_user_task(self, user_id, spotify_email):
 **Goal:** Implement core tasks while maintaining file queue (dual-write for safety)
 
 **Tasks:**
-- [ ] Implement `tasks/user_tasks.py`:
+- [x] Implement `tasks/user_tasks.py`:
   - `add_user_task(user_id, spotify_email)` - Uses per-task browser
   - Dual-write: logs to Celery result backend AND file queue
   - Updates `spotify_task_log` table
-- [ ] Implement `tasks/bar_tasks.py`:
+- [x] Implement `tasks/bar_tasks.py`:
   - `add_bar_task(bar_id, spotify_email)` - Similar pattern
-- [ ] Create `spotify_task_log` database table (see schema above)
-- [ ] Update Flask API in `api/endpoints.py`:
+- [x] Create `spotify_task_log` database table (see schema above)
+- [x] Update Flask API in `api/endpoints.py`:
   - POST /add_user dispatches Celery task, returns task_id
   - POST /add_bar dispatches Celery task, returns task_id
   - GET /task_status/<task_id> - Query AsyncResult
-- [ ] Add `?sync=true` parameter for backward compatibility
-- [ ] Write task unit tests (eager mode: `task_always_eager=True`)
-- [ ] Write integration tests (real Celery worker)
-- [ ] Deploy to dev environment
+- [x] Add `?sync=true` parameter for backward compatibility
+- [x] Write task unit tests (eager mode: `task_always_eager=True`)
+- [x] Write integration tests (real Celery worker)
+- [x] Deploy to dev environment
 
 **Validation Criteria:**
 - ✓ Tasks execute successfully end-to-end

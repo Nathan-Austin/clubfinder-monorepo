@@ -12,7 +12,7 @@ class Config:
 
     # Database
     DATABASE_URL = os.getenv(
-        "DATABASE_URL", "postgres://user:pass@localhost:5432/roh_db_dev"
+        "DATABASE_URL", "postgresql://nathan:REDACTED@localhost:5432/clubfindr"
     )
 
     # Celery
