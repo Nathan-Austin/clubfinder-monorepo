@@ -5,7 +5,7 @@ After=network.target redis.service
 [Service]
 Type=simple
 User=nathan
-WorkingDirectory=/home/nathan/clubfinder-monorepo/spotify_service
+WorkingDirectory=/home/nathan/clubfinder/spotify_service
 Environment="PATH=/home/nathan/spotify_service_env/bin"
 ExecStart=/home/nathan/spotify_service_env/bin/celery -A src.spotify_automation.celery:app beat --loglevel=info
 Restart=always
