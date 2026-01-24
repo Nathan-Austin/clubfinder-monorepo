@@ -47,10 +47,25 @@ def add_bar_endpoint():
         except Exception as e:
             return jsonify({"status": "error", "error": str(e)}), 500
 
-    return jsonify({"status": "queued", "task_id": task.id}), 202
+        return jsonify({"status": "queued", "task_id": task.id}), 202
 
+    
 
-@api_bp.route("/task_status/<task_id>", methods=["GET"])
+    @api_bp.route("/migrate_queue", methods=["POST"])
+
+    def migrate_queue_endpoint():
+
+        """Trigger migration of legacy file queue to Celery"""
+
+        from ..tasks import migrate_file_queue_task
+
+        task = migrate_file_queue_task.delay()
+
+        return jsonify({"status": "migration_started", "task_id": task.id}), 202
+
+    
+
+    @api_bp.route("/task_status/<task_id>", methods=["GET"])
 def task_status_endpoint(task_id):
     result = AsyncResult(task_id)
     response = {"state": result.state, "ready": result.ready()}
