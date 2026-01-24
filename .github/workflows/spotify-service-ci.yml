@@ -36,13 +36,21 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install selenium flask requests python-dotenv psycopg2-binary psutil; fi
+        # Install the package in editable mode to verify structure
+        pip install -e .
 
     - name: Run linting
       run: |
         pip install flake8 black
-        flake8 *.py --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 *.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-        black --check *.py
+        # Lint both root scripts and new src directory
+        flake8 *.py src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 *.py src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        black --check *.py src/
+
+    - name: Verify package imports
+      run: |
+        # Basic smoke test to ensure modules are importable
+        python -c "from spotify_automation import celery, config; print('Imports successful')"
 
     - name: Validate service configuration
       run: |
