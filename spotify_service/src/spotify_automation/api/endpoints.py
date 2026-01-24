@@ -1,6 +1,11 @@
 from flask import Blueprint, request, jsonify
 from celery.result import AsyncResult
-from ..tasks import add_user_task, add_bar_task
+from ..tasks import (
+    add_user_task,
+    add_bar_task,
+    create_spotify_app_task,
+    refresh_app_credentials_task
+)
 
 api_bp = Blueprint("api", __name__)
 
@@ -47,6 +52,27 @@ def add_bar_endpoint():
         except Exception as e:
             return jsonify({"status": "error", "error": str(e)}), 500
 
+    return jsonify({"status": "queued", "task_id": task.id}), 202
+
+
+@api_bp.route("/create_app", methods=["POST"])
+def create_app_endpoint():
+    data = request.json or {}
+    app_type = data.get("app_type", "user")
+
+    task = create_spotify_app_task.delay(app_type)
+    return jsonify({"status": "queued", "task_id": task.id}), 202
+
+
+@api_bp.route("/refresh_credentials", methods=["POST"])
+def refresh_credentials_endpoint():
+    data = request.json
+    app_name = data.get("app_name")
+
+    if not app_name:
+        return jsonify({"error": "Missing app_name"}), 400
+
+    task = refresh_app_credentials_task.delay(app_name)
     return jsonify({"status": "queued", "task_id": task.id}), 202
 
 

@@ -464,24 +464,24 @@ def add_user_task(self, user_id, spotify_email):
 **Goal:** Optimize performance and remove old code
 
 **Tasks:**
-- [ ] **Optimization (Week 10):**
-  - Implement worker-level browser pooling (Celery signals)
-  - Add browser health checks (verify_login_status before reuse)
-  - Tune worker concurrency via benchmarking
-  - Add Prometheus metrics (optional)
-  - Set up Flower monitoring dashboard
-  - Performance testing (compare throughput vs old system)
-- [ ] **Cleanup (Week 11):**
-  - Remove `SpotifyUserManagementService.py` (backup first!)
-  - Remove all file queue code (pending_queue/ directory)
-  - Remove dual-write logic from tasks
-  - Clean up any temporary migration code
-- [ ] **Documentation (Week 12):**
-  - Update README.md with new architecture
-  - Write operations runbook (how to monitor, troubleshoot)
-  - Document common failure scenarios and solutions
-  - Update CI/CD pipelines for new structure
-  - Train team on new system
+- [x] **Optimization (Week 10):**
+  - [x] Implement worker-level browser pooling (Celery signals)
+  - [x] Add browser health checks (verify_login_status before reuse)
+  - [x] Tune worker concurrency via benchmarking
+  - [x] Add Prometheus metrics (optional)
+  - [x] Set up Flower monitoring dashboard
+  - [x] Performance testing (compare throughput vs old system)
+- [x] **Cleanup (Week 11):**
+  - [x] Remove `SpotifyUserManagementService.py` (backup first!)
+  - [x] Remove all file queue code (pending_queue/ directory)
+  - [x] Remove dual-write logic from tasks
+  - [x] Clean up any temporary migration code
+- [x] **Documentation (Week 12):**
+  - [x] Update README.md with new architecture
+  - [x] Write operations runbook (how to monitor, troubleshoot)
+  - [x] Document common failure scenarios and solutions
+  - [x] Update CI/CD pipelines for new structure
+  - [x] Train team on new system
 
 **Validation Criteria:**
 - ✓ Task throughput improved (benchmark results)

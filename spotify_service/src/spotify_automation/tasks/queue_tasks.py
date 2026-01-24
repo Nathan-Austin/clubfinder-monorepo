@@ -3,8 +3,10 @@ import json
 import shutil
 import structlog
 from celery import shared_task
+from sqlalchemy import text
 from .user_tasks import add_user_task
 from .bar_tasks import add_bar_task
+from ..database.connection import database_manager
 
 logger = structlog.get_logger()
 
@@ -69,6 +71,37 @@ def migrate_file_queue_task():
 
 @shared_task(name="spotify_automation.tasks.process_failed_tasks")
 def process_failed_tasks():
-    """Dispatcher: Find and retry failed tasks (Placeholder for Phase 5)"""
-    # Logic to query spotify_task_log and retry items
-    pass
+    """Dispatcher: Find and retry failed tasks"""
+    logger.info("Checking for failed tasks to retry")
+    session = database_manager.get_session()
+    try:
+        # Query for failed tasks that haven't reached max retries (3)
+        # and were last attempted more than 1 hour ago to avoid tight loops
+        query = """
+            SELECT id, task_name, entity_type, entity_id, result->>'spotify_email' as email, retries
+            FROM clubfindr.spotify_task_log
+            WHERE status = 'failed'
+            AND retries < 3
+            AND completed_at < CURRENT_TIMESTAMP - INTERVAL '1 hour'
+        """
+        failed_tasks = session.execute(text(query)).fetchall()
+
+        retried_count = 0
+        for task in failed_tasks:
+            logger.info("Retrying failed task", task_name=task.task_name, entity_id=task.entity_id)
+
+            if task.task_name == "spotify_automation.tasks.add_user":
+                add_user_task.delay(str(task.entity_id), task.email)
+                retried_count += 1
+            elif task.task_name == "spotify_automation.tasks.add_bar":
+                add_bar_task.delay(str(task.entity_id), task.email)
+                retried_count += 1
+
+        logger.info(f"Retry dispatcher completed. Dispatched {retried_count} retries.")
+        return {"retried_count": retried_count}
+
+    except Exception as e:
+        logger.error("Failed to process failed tasks", error=str(e))
+        raise
+    finally:
+        session.close()

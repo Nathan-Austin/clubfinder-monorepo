@@ -1,7 +1,11 @@
+import os
 import structlog
 from celery import Celery
+from celery.signals import worker_process_init, worker_process_shutdown
 from celery.schedules import crontab
 from .config import config
+from .core.browser import BrowserSession
+from .core import worker_state
 
 # Configure logging
 logger = structlog.get_logger()
@@ -42,6 +46,7 @@ app.conf.update(
         "spotify_automation.tasks.create_spotify_app": {"queue": "spotify_browser"},
         # Database/API operations (fast)
         "spotify_automation.tasks.migrate_file_queue": {"queue": "spotify_fast"},
+        "spotify_automation.tasks.refresh_app_credentials": {"queue": "spotify_browser"},
         # Maintenance
         "spotify_automation.tasks.cleanup_chrome_processes": {
             "queue": "spotify_maintenance"
@@ -67,6 +72,44 @@ app.conf.update(
 @app.task(bind=True)
 def handle_task_error(self, task_id, exc):
     logger.error(f"Task {task_id} failed", error=str(exc))
+
+
+@worker_process_init.connect
+def init_worker_browser(**kwargs):
+    """Initialize browser session when worker process starts"""
+    try:
+        # Use PID as unique worker ID
+        worker_id = str(os.getpid())
+        worker_state.set_worker_id(worker_id)
+
+        logger.info(f"Initializing worker browser pool (ID: {worker_id})")
+
+        # Initialize the global browser session
+        # We don't initialize the driver yet, just the session object
+        # Driver will be initialized lazily on first use
+        session = BrowserSession(worker_id=worker_id)
+        worker_state.set_browser(session)
+
+        logger.info(f"Worker browser session created (ID: {worker_id})")
+    except Exception as e:
+        logger.error(f"Failed to initialize worker browser: {str(e)}")
+
+
+@worker_process_shutdown.connect
+def shutdown_worker_browser(**kwargs):
+    """Clean up browser session when worker process stops"""
+    try:
+        worker_id = worker_state.get_worker_id()
+        logger.info(f"Shutting down worker browser pool (ID: {worker_id})")
+
+        browser = worker_state.get_browser()
+        if browser:
+            browser.close_browser(force_cleanup=True)
+            worker_state.set_browser(None)
+
+        logger.info(f"Worker browser session cleaned up (ID: {worker_id})")
+    except Exception as e:
+        logger.error(f"Error during worker browser shutdown: {str(e)}")
 
 
 # Expose the Celery app
