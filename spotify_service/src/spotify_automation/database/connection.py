@@ -20,6 +20,10 @@ class DatabaseManager:
     def __init__(self):
         if not hasattr(self, "initialized"):
             self.connection_string = config.DATABASE_URL
+            if self.connection_string and self.connection_string.startswith("postgres://"):
+                self.connection_string = self.connection_string.replace(
+                    "postgres://", "postgresql://", 1
+                )
 
             # Extract host/db for logging (best effort)
             try:
