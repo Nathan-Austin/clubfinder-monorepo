@@ -50,12 +50,9 @@ def create_spotify_app_task(self, app_type="user"):
         app_service = AppService(browser, database_manager)
         auth_service = AuthService(browser)
 
-        # Login is handled by get_or_init_browser potentially, but services might need to re-verify
-        # However, AuthService.login() should handle "already logged in" state gracefully
         if not auth_service.login():
             raise Exception("Failed to login to Spotify")
 
-        # Create app
         app_name = app_service.create_new_app(app_type)
 
         logger.info(
@@ -83,6 +80,50 @@ def create_spotify_app_task(self, app_type="user"):
         raise
 
 
+def _update_app_credentials(app_name, client_id, client_secret):
+    """Update application credentials in the database."""
+    session = database_manager.get_session()
+    try:
+        query = """
+            UPDATE clubfindr.spotify_apps
+            SET client_id = :client_id, client_secret = :client_secret, updated_at = NOW()
+            WHERE app_name = :app_name
+        """
+        session.execute(
+            text(query),
+            {
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "app_name": app_name,
+            },
+        )
+        session.commit()
+    finally:
+        session.close()
+
+
+def _perform_credential_refresh(app_name):
+    """Execute the core logic for refreshing credentials."""
+    browser = get_or_init_browser()
+    app_service = AppService(browser, database_manager)
+    auth_service = AuthService(browser)
+
+    if not auth_service.login():
+        raise Exception("Failed to login to Spotify")
+
+    if not app_service.navigate_to_app(app_name):
+        raise Exception(f"Failed to navigate to app: {app_name}")
+
+    credentials = app_service.get_app_credentials()
+    client_id = credentials.get("client_id")
+    client_secret = credentials.get("client_secret")
+
+    if not client_id or not client_secret:
+        raise Exception("Failed to retrieve credentials")
+
+    _update_app_credentials(app_name, client_id, client_secret)
+
+
 @shared_task(
     name="spotify_automation.tasks.refresh_app_credentials",
     bind=True,
@@ -99,44 +140,8 @@ def refresh_app_credentials_task(self, app_name):
         task_id=self.request.id,
     )
 
-    session = None
     try:
-        browser = get_or_init_browser()
-
-        app_service = AppService(browser, database_manager)
-        auth_service = AuthService(browser)
-
-        if not auth_service.login():
-            raise Exception("Failed to login to Spotify")
-
-        # Navigate to app
-        if not app_service.navigate_to_app(app_name):
-            raise Exception(f"Failed to navigate to app: {app_name}")
-
-        # Get credentials
-        credentials = app_service.get_app_credentials()
-        client_id = credentials.get("client_id")
-        client_secret = credentials.get("client_secret")
-
-        if not client_id or not client_secret:
-            raise Exception("Failed to retrieve credentials")
-
-        # Update database
-        session = database_manager.get_session()
-        query = """
-            UPDATE clubfindr.spotify_apps
-            SET client_id = :client_id, client_secret = :client_secret, updated_at = NOW()
-            WHERE app_name = :app_name
-        """
-        session.execute(
-            text(query),
-            {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "app_name": app_name,
-            },
-        )
-        session.commit()
+        _perform_credential_refresh(app_name)
 
         logger.info(
             "Refresh app credentials task completed",
@@ -153,17 +158,10 @@ def refresh_app_credentials_task(self, app_name):
 
     except WebDriverException as e:
         logger.error("WebDriver exception in refresh credentials", error=str(e))
-        if session:
-            session.rollback()
         if worker_state.get_browser():
             worker_state.get_browser().close_browser()
         raise self.retry(exc=e)
 
     except Exception as e:
         logger.error("Refresh app credentials task failed", error=str(e), exc_info=True)
-        if session:
-            session.rollback()
         raise
-    finally:
-        if session:
-            session.close()
