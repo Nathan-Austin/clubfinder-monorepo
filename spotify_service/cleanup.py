@@ -9,7 +9,7 @@ import os
 # Ensure we can import from src
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-from spotify_automation.core.cleanup import cleanup_processes, print_active_selenium_processes
+from spotify_automation.core.cleanup import cleanup_processes, print_active_selenium_processes  # noqa: E402
 
 # Configure basic logging for standalone run
 logging.basicConfig(
