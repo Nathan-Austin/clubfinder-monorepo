@@ -30,7 +30,10 @@ class Config:
 
     # Celery
     # Using database 1 for spotify_automation to separate from barfindr (db 0)
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/1")
+    _redis_url = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")
+    if "localhost" in _redis_url:
+        _redis_url = _redis_url.replace("localhost", "127.0.0.1")
+    REDIS_URL = _redis_url
 
     # Email
     EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
