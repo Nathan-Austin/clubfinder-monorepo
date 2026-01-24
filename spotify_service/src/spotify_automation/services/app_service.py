@@ -280,7 +280,10 @@ class AppService:
         if not view_button:
             # Fallback
             buttons = self.driver.find_elements(By.TAG_NAME, "button")
-            view_button = next((b for b in buttons if b.is_displayed() and any(w in b.text.lower() for w in ["view", "show", "secret"])), None)
+            view_button = next((
+                b for b in buttons
+                if b.is_displayed() and any(w in b.text.lower() for w in ["view", "show", "secret"])
+            ), None)
 
         if not view_button:
             raise Exception("Could not find 'View client secret' button")
@@ -292,17 +295,17 @@ class AppService:
 
         time.sleep(2)
 
-    def _find_client_secret(self):
-        """Attempt to find Client Secret using multiple strategies."""
-        # Strategy 1
+    def _find_secret_by_label(self):
+        """Strategy 1: Find secret by label."""
         try:
             label = self.wait.until(EC.presence_of_element_located((By.XPATH, '//span[text()="Client secret"]')))
             parent = label.find_element(By.XPATH, "./ancestor::div[1]")
             return parent.find_element(By.XPATH, './/span[not(text()="Client secret")]').text
         except Exception:
-            pass
+            return None
 
-        # Strategy 2
+    def _find_secret_by_container(self):
+        """Strategy 2: Find secret by container element."""
         try:
             elements = self.driver.find_elements(By.XPATH, '//*[contains(text(), "Client secret")]')
             for element in elements:
@@ -313,8 +316,10 @@ class AppService:
                         return p.text
         except Exception:
             pass
+        return None
 
-        # Strategy 3: Heuristic (long alphanumeric)
+    def _find_secret_by_heuristic(self):
+        """Strategy 3: Heuristic find of long alphanumeric string."""
         try:
             spans = self.driver.find_elements(By.TAG_NAME, "span")
             for span in spans:
@@ -325,6 +330,18 @@ class AppService:
         except Exception:
             pass
         return None
+
+    def _find_client_secret(self):
+        """Attempt to find Client Secret using multiple strategies."""
+        secret = self._find_secret_by_label()
+        if secret:
+            return secret
+
+        secret = self._find_secret_by_container()
+        if secret:
+            return secret
+
+        return self._find_secret_by_heuristic()
 
     def get_app_credentials(self):
         """Get Client ID and Secret from current app"""
