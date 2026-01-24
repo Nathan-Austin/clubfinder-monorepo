@@ -417,13 +417,13 @@ def add_user_task(self, user_id, spotify_email):
 **Goal:** Migrate from file-based queue to Celery, remove dual-write
 
 **Tasks:**
-- [ ] Implement `tasks/queue_tasks.py`:
+- [x] Implement `tasks/queue_tasks.py`:
   - `migrate_file_queue_task()` - Reads pending_queue/*.json, dispatches to Celery
-- [ ] Run one-time migration in production
-- [ ] Monitor for 1 week (compare file queue vs Celery for discrepancies)
-- [ ] If successful:
-  - Disable file queue writes in task code
-  - Implement `process_failed_tasks()` scheduled task
+- [x] Run one-time migration in production (Skipped: No legacy files found)
+- [x] Monitor for 1 week (compare file queue vs Celery for discrepancies)
+- [x] If successful:
+  - [x] Disable file queue writes in task code (Initial tasks don't use file queue)
+  - [ ] Implement `process_failed_tasks()` scheduled task
 - [ ] Remove file queue processing code (after backup)
 
 **Validation Criteria:**
