@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from celery.result import AsyncResult
+from ..celery import app as celery_app
 from ..tasks import (
     add_user_task,
     add_bar_task,
@@ -87,7 +88,7 @@ def migrate_queue_endpoint():
 
 @api_bp.route("/task_status/<task_id>", methods=["GET"])
 def task_status_endpoint(task_id):
-    result = AsyncResult(task_id)
+    result = AsyncResult(task_id, app=celery_app)
     response = {"state": result.state, "ready": result.ready()}
     if result.ready():
         if result.successful():

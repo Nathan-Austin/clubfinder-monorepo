@@ -1,10 +1,12 @@
 from flask import Flask
 from .endpoints import api_bp
+from ..celery import app as celery_app
 
 
 def create_app():
     app = Flask(__name__)
     app.register_blueprint(api_bp, url_prefix="/api")
+    print(f"DEBUG: API Celery Broker: {celery_app.conf.broker_url}")
     return app
 
 
