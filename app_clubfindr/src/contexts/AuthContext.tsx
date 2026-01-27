@@ -81,9 +81,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsSpotifyConnected(true);
           } else {
             // Try to refresh the token
-            const refreshed = await mobileSpotifyService.refreshAccessToken();
-            setIsSpotifyConnected(refreshed);
-            await AsyncStorage.setItem('spotifyConnected', refreshed ? 'true' : 'false');
+            const result = await mobileSpotifyService.refreshAccessToken();
+            // Only update connected state if success or fatal error
+            if (result.success) {
+                setIsSpotifyConnected(true);
+                await AsyncStorage.setItem('spotifyConnected', 'true');
+            } else if (result.shouldDisconnect) {
+                setIsSpotifyConnected(false);
+                await AsyncStorage.setItem('spotifyConnected', 'false');
+            }
+            // If failed but not fatal (transient), keep existing state (assumed connected)
           }
         } else {
           setIsSpotifyConnected(false);
@@ -106,9 +113,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const validToken = await mobileSpotifyService.ensureValidSpotifyToken();
           if (!validToken) {
             // Try to refresh the token
-            const refreshed = await mobileSpotifyService.refreshAccessToken();
-            setIsSpotifyConnected(refreshed);
-            await AsyncStorage.setItem('spotifyConnected', refreshed ? 'true' : 'false');
+            const result = await mobileSpotifyService.refreshAccessToken();
+            // Only update connected state if success or fatal error
+            if (result.success) {
+                setIsSpotifyConnected(true);
+                await AsyncStorage.setItem('spotifyConnected', 'true');
+            } else if (result.shouldDisconnect) {
+                setIsSpotifyConnected(false);
+                await AsyncStorage.setItem('spotifyConnected', 'false');
+            }
+            // If failed but not fatal (transient), keep existing state (assumed connected)
           }
         }
       } catch (error) {
@@ -239,7 +253,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsSpotifyConnected(true);
 
         // Ensure we have a valid token by triggering a refresh
-        await mobileSpotifyService.refreshAccessToken();
+        const result = await mobileSpotifyService.refreshAccessToken();
+        if (result.shouldDisconnect) {
+          await AsyncStorage.setItem('spotifyConnected', 'false');
+          setIsSpotifyConnected(false);
+        }
       } else {
         // Check if we have stored Spotify tokens
         const accessToken = await AsyncStorage.getItem('spotify_access_token');
@@ -346,8 +364,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsSpotifyConnected(true);
           } else {
             // Try to refresh the token
-            const refreshed = await mobileSpotifyService.refreshAccessToken();
-            setIsSpotifyConnected(refreshed);
+            const result = await mobileSpotifyService.refreshAccessToken();
+            if (result.success) {
+              setIsSpotifyConnected(true);
+            } else if (result.shouldDisconnect) {
+              setIsSpotifyConnected(false);
+            }
           }
         } else {
           setIsSpotifyConnected(false);

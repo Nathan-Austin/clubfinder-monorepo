@@ -92,8 +92,8 @@ const BarHomeScreen = () => {
                 const isValid = await mobileSpotifyService.validateSpotifyConnection();
                 if (!isValid) {
                     // Try to refresh the token
-                    const refreshed = await mobileSpotifyService.refreshAccessToken();
-                    if (!refreshed) {
+                    const result = await mobileSpotifyService.refreshAccessToken();
+                    if (!result.success) {
                         console.log('Failed to refresh Spotify token');
                         return;
                     }
@@ -118,8 +118,8 @@ const BarHomeScreen = () => {
                     const isValid = await mobileSpotifyService.validateSpotifyConnection();
                     if (!isValid) {
                         // Try to refresh the token
-                        const refreshed = await mobileSpotifyService.refreshAccessToken();
-                        if (!refreshed) {
+                        const result = await mobileSpotifyService.refreshAccessToken();
+                        if (!result.success && result.shouldDisconnect) {
                             // Clear the connection state
                             await AsyncStorage.setItem('spotifyConnected', 'false');
                             Alert.alert(
@@ -192,8 +192,8 @@ const BarHomeScreen = () => {
             if (!accessToken) {
                 console.log('No valid access token for fetching currently playing track');
                 // Try to refresh the token
-                const refreshed = await mobileSpotifyService.refreshAccessToken();
-                if (!refreshed) {
+                const result = await mobileSpotifyService.refreshAccessToken();
+                if (!result.success) {
                     setCurrentlyPlaying(null);
                     return;
                 }
