@@ -113,9 +113,18 @@ export const isTokenExpired = async (): Promise<boolean> => {
 };
 
 /**
+ * Result of a token refresh operation
+ */
+export interface RefreshResult {
+    success: boolean;
+    shouldDisconnect: boolean;
+    error?: string;
+}
+
+/**
  * Refresh the access token using the refresh token
  */
-export const refreshAccessToken = async (): Promise<boolean> => {
+export const refreshAccessToken = async (): Promise<RefreshResult> => {
     try {
         const refreshToken = await AsyncStorage.getItem(SPOTIFY_REFRESH_TOKEN);
         const userType = await AsyncStorage.getItem('spotifyUserType') as 'bar' | 'customer' || 'customer';
@@ -123,7 +132,7 @@ export const refreshAccessToken = async (): Promise<boolean> => {
 
         if (!refreshToken || !clientId) {
             console.error('Missing refresh token or client ID');
-            return false;
+            return { success: false, shouldDisconnect: true, error: 'Missing credentials' };
         }
 
         console.log(`Refreshing token using client ID for ${userType}`);
@@ -161,7 +170,28 @@ export const refreshAccessToken = async (): Promise<boolean> => {
 
         if (!response.ok) {
             console.error('Token refresh failed:', response.status);
-            return false;
+
+            // Parse error to check if it's fatal
+            try {
+                const errorData = await response.json();
+                console.error('Token refresh error data:', errorData);
+
+                // Check for fatal errors (invalid_grant usually means revoked/expired refresh token)
+                if (response.status === 400 && errorData.error === 'invalid_grant') {
+                    return { success: false, shouldDisconnect: true, error: 'invalid_grant' };
+                }
+            } catch (e) {
+                // If we can't parse JSON, rely on status code
+            }
+
+            // Treat 4xx errors as potentially fatal if we can't confirm it's transient
+            // But let's be conservative: only disconnect on 400 (Bad Request) or 401 (Unauthorized)
+            // 429 (Rate Limit) or 5xx (Server Error) should NOT disconnect
+            if (response.status === 400 || response.status === 401) {
+                 return { success: false, shouldDisconnect: true, error: `Auth failed: ${response.status}` };
+            }
+
+            return { success: false, shouldDisconnect: false, error: `Server error: ${response.status}` };
         }
 
         const tokenData = await response.json();
@@ -179,10 +209,11 @@ export const refreshAccessToken = async (): Promise<boolean> => {
         // Store refresh timestamp
         await AsyncStorage.setItem(SPOTIFY_LAST_REFRESH, new Date().toISOString());
 
-        return true;
+        return { success: true, shouldDisconnect: false };
     } catch (error) {
         console.error('Error refreshing token:', error);
-        return false;
+        // Network errors or other exceptions should NOT cause disconnect
+        return { success: false, shouldDisconnect: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 };
 
@@ -200,10 +231,12 @@ export const getValidAccessToken = async (): Promise<string | null> => {
         const expired = await isTokenExpired();
 
         if (expired) {
-            const refreshed = await refreshAccessToken();
-            if (!refreshed) {
-                // If refresh fails, clear the connection state
-                await AsyncStorage.setItem('spotifyConnected', 'false');
+            const result = await refreshAccessToken();
+            if (!result.success) {
+                // Only disconnect if explicitly told to
+                if (result.shouldDisconnect) {
+                    await AsyncStorage.setItem('spotifyConnected', 'false');
+                }
                 return null;
             }
         }
@@ -227,7 +260,8 @@ export const ensureValidSpotifyToken = async (): Promise<boolean> => {
 
         if (expired) {
             console.log('Spotify token expired, attempting refresh');
-            return await refreshAccessToken();
+            const result = await refreshAccessToken();
+            return result.success;
         }
 
         return true;
@@ -251,8 +285,8 @@ export const validateSpotifyConnection = async (): Promise<boolean> => {
         }
 
         // If the request fails, try refreshing the token
-        const refreshed = await refreshAccessToken();
-        return refreshed;
+        const result = await refreshAccessToken();
+        return result.success;
     } catch (error) {
         console.error('Failed to validate Spotify connection:', error);
         return false;

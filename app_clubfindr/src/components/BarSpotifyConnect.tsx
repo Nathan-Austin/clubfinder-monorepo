@@ -95,9 +95,9 @@ const BarSpotifyConnect = ({ barMusicService, onConnection }: BarSpotifyConnectP
             console.log('Spotify connection invalid, trying to refresh token...');
 
             // If not valid, try to refresh
-            const refreshed = await mobileSpotifyService.refreshAccessToken();
+            const result = await mobileSpotifyService.refreshAccessToken();
 
-            if (!refreshed) {
+            if (!result.success) {
                 console.log('Failed to refresh Spotify token');
                 return false;
             }

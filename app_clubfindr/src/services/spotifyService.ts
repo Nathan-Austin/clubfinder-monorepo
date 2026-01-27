@@ -10,8 +10,8 @@ export const callSpotifyApi = async (endpoint: string, options: RequestInit = {}
 
         if (!accessToken) {
             // Try to refresh the token
-            const refreshed = await mobileSpotifyService.refreshAccessToken();
-            if (!refreshed) {
+            const result = await mobileSpotifyService.refreshAccessToken();
+            if (!result.success) {
                 throw new Error('No valid Spotify access token available');
             }
             accessToken = await mobileSpotifyService.getValidAccessToken();
@@ -32,8 +32,8 @@ export const callSpotifyApi = async (endpoint: string, options: RequestInit = {}
 
         // If unauthorized and haven't retried yet, try refreshing token
         if (response.status === 401 && retryCount === 0) {
-            const refreshed = await mobileSpotifyService.refreshAccessToken();
-            if (refreshed) {
+            const result = await mobileSpotifyService.refreshAccessToken();
+            if (result.success) {
                 // Retry the call with refreshed token
                 return callSpotifyApi(endpoint, options, retryCount + 1);
             }
