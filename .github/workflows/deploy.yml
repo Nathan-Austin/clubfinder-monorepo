@@ -109,8 +109,23 @@ jobs:
 
             # Restart spotify_service (systemd) only if it changed
             if [ "${{ steps.changes.outputs.spotify_service }}" == "true" ]; then
-              echo "Restarting spotify_service..."
-              sudo systemctl restart spotify-service.service
+              echo "=== Updating spotify_service systemd services ==="
+              sudo cp /home/nathan/clubfinder/spotify_service/systemd/spotify-automation-api.service /etc/systemd/system/
+              sudo cp /home/nathan/clubfinder/spotify_service/systemd/spotify-automation-beat.service /etc/systemd/system/
+              sudo cp /home/nathan/clubfinder/spotify_service/systemd/spotify-automation-worker-browser.service /etc/systemd/system/
+              sudo systemctl daemon-reload
+
+              echo "Restarting spotify_service services..."
+              sudo systemctl restart spotify-automation-api.service
+              sudo systemctl restart spotify-automation-beat.service
+              sudo systemctl restart spotify-automation-worker-browser.service
+
+              echo "Verifying spotify_service deployment..."
+              sleep 5
+              if ! systemctl is-active --quiet spotify-automation-api.service; then echo "❌ spotify-automation-api.service failed"; exit 1; fi
+              if ! systemctl is-active --quiet spotify-automation-beat.service; then echo "❌ spotify-automation-beat.service failed"; exit 1; fi
+              if ! systemctl is-active --quiet spotify-automation-worker-browser.service; then echo "❌ spotify-automation-worker-browser.service failed"; exit 1; fi
+              echo "✅ All spotify_service services are active."
             fi
 
             echo "=== Deployment complete ==="
