@@ -33,10 +33,11 @@ class BrowserSession:
             options = Options()
 
             # Set up chrome directories relative to current working directory
-            # Use worker-specific directories to prevent locking conflicts
+            # Use shared profile to preserve login cookies across sessions
+            # (concurrency=1 prevents locking conflicts)
             base_dir = os.getcwd()
-            user_data_dir = os.path.join(base_dir, f"chrome_profile_{self.worker_id}")
-            cache_dir = os.path.join(base_dir, f"chrome_cache_{self.worker_id}")
+            user_data_dir = os.path.join(base_dir, "chrome_profile")
+            cache_dir = os.path.join(base_dir, "chrome_cache")
 
             # Ensure directories exist with proper permissions
             for directory in [user_data_dir, cache_dir]:

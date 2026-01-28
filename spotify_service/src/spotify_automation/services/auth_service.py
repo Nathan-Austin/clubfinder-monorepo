@@ -36,56 +36,154 @@ class AuthService:
                 return True
 
             self.handle_cookie_banner()
+            time.sleep(1)
 
             if not self.find_and_click_login():
                 raise Exception("Could not find login button")
 
-            # Email entry
-            username_field = self.wait.until(
-                EC.presence_of_element_located((By.ID, "login-username"))
-            )
+            time.sleep(3)
+            self.browser.safe_screenshot("login_page_loaded")
+
+            # Step 1: Enter email/username (Spotify's new two-step login)
+            username_field = self._find_username_field()
+            if not username_field:
+                raise Exception("Could not find username field")
+
             username_field.clear()
             self.browser.simulate_human_typing(username_field, config.SPOTIFY_EMAIL)
             time.sleep(1)
+            self.browser.safe_screenshot("email_entered")
 
-            # Try password first
+            # Click Continue/Submit button for email step
+            continue_button = self._find_continue_button()
+            if not continue_button:
+                raise Exception("Could not find continue button")
+            continue_button.click()
+            time.sleep(3)
+            self.browser.safe_screenshot("after_continue_click")
+
+            if not self.handle_spotify_captcha():
+                return False
+
+            # Step 2: Enter password (appears on second screen)
             try:
-                password_field = WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((By.ID, "login-password"))
-                )
-                password_field.clear()
-                password_field.click()
-                self.browser.simulate_human_typing(
-                    password_field, config.SPOTIFY_PASSWORD
-                )
+                password_field = self._find_password_field()
+                if password_field:
+                    password_field.clear()
+                    password_field.click()
+                    self.browser.simulate_human_typing(
+                        password_field, config.SPOTIFY_PASSWORD
+                    )
+                    time.sleep(1)
+                    self.browser.safe_screenshot("password_entered")
 
-                submit_button = self.wait.until(
-                    EC.element_to_be_clickable((By.ID, "login-button"))
-                )
-                submit_button.click()
+                    submit_button = self._find_submit_button()
+                    if submit_button:
+                        submit_button.click()
+                        time.sleep(3)
 
-                time.sleep(3)
-                if not self.handle_spotify_captcha():
-                    return False
+                        if not self.handle_spotify_captcha():
+                            return False
 
-                if self.verify_login_success():
-                    return True
-            except Exception:
-                logger.info("Proceeding with email verification")
-                submit_button = self.wait.until(
-                    EC.element_to_be_clickable((By.ID, "login-button"))
-                )
-                submit_button.click()
+                        if self.verify_login_success():
+                            return True
+                else:
+                    # No password field - might be email verification flow
+                    logger.info("No password field found, trying email verification")
+                    return self.handle_email_verification()
 
-                if not self.handle_spotify_captcha():
-                    return False
-
+            except Exception as e:
+                logger.info(f"Password step exception: {e}, trying email verification")
                 return self.handle_email_verification()
 
         except Exception as e:
             logger.error(f"Login failed: {str(e)}")
             self.browser.safe_screenshot("login_error")
             raise
+
+    def _find_username_field(self):
+        """Find the username/email input field with multiple selector strategies"""
+        selectors = [
+            (By.ID, "login-username"),
+            (By.NAME, "username"),
+            (By.CSS_SELECTOR, 'input[data-testid="login-username"]'),
+            (By.CSS_SELECTOR, 'input[autocomplete="username"]'),
+            (By.CSS_SELECTOR, 'input[type="text"]'),
+            (By.CSS_SELECTOR, 'input[type="email"]'),
+        ]
+        for by, selector in selectors:
+            try:
+                field = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((by, selector))
+                )
+                logger.info(f"Found username field with: {by}={selector}")
+                return field
+            except Exception:
+                continue
+        return None
+
+    def _find_password_field(self):
+        """Find the password input field with multiple selector strategies"""
+        selectors = [
+            (By.ID, "login-password"),
+            (By.NAME, "password"),
+            (By.CSS_SELECTOR, 'input[data-testid="login-password"]'),
+            (By.CSS_SELECTOR, 'input[autocomplete="current-password"]'),
+            (By.CSS_SELECTOR, 'input[type="password"]'),
+        ]
+        for by, selector in selectors:
+            try:
+                field = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((by, selector))
+                )
+                logger.info(f"Found password field with: {by}={selector}")
+                return field
+            except Exception:
+                continue
+        return None
+
+    def _find_continue_button(self):
+        """Find the Continue button (first step of two-step login)"""
+        selectors = [
+            (By.ID, "login-button"),
+            (By.CSS_SELECTOR, 'button[data-testid="login-button"]'),
+            (By.CSS_SELECTOR, 'button[type="submit"]'),
+            (By.XPATH, '//button[contains(text(), "Continue")]'),
+            (By.XPATH, '//button[contains(text(), "Log In")]'),
+            (By.XPATH, '//button[contains(text(), "Log in")]'),
+            (By.CSS_SELECTOR, 'button[data-encore-id="buttonPrimary"]'),
+        ]
+        for by, selector in selectors:
+            try:
+                button = WebDriverWait(self.driver, 5).until(
+                    EC.element_to_be_clickable((by, selector))
+                )
+                logger.info(f"Found continue button with: {by}={selector}")
+                return button
+            except Exception:
+                continue
+        return None
+
+    def _find_submit_button(self):
+        """Find the final submit/login button (second step)"""
+        selectors = [
+            (By.ID, "login-button"),
+            (By.CSS_SELECTOR, 'button[data-testid="login-button"]'),
+            (By.CSS_SELECTOR, 'button[type="submit"]'),
+            (By.XPATH, '//button[contains(text(), "Log In")]'),
+            (By.XPATH, '//button[contains(text(), "Log in")]'),
+            (By.CSS_SELECTOR, 'button[data-encore-id="buttonPrimary"]'),
+        ]
+        for by, selector in selectors:
+            try:
+                button = WebDriverWait(self.driver, 5).until(
+                    EC.element_to_be_clickable((by, selector))
+                )
+                logger.info(f"Found submit button with: {by}={selector}")
+                return button
+            except Exception:
+                continue
+        return None
 
     def detect_login_status(self):
         """Detect if we're already logged in"""
