@@ -18,8 +18,7 @@ class UserService:
     def _add_entity_to_spotify(self, entity_id, spotify_email, entity_type="user"):
         session = self.db_manager.get_session()
         try:
-            # 1. Initialize & Login
-            self.browser.initialize_browser()
+            # 1. Login (browser already initialized by get_or_init_browser in task)
             if not self.auth_service.login():
                 raise Exception("Auth failed")
 
