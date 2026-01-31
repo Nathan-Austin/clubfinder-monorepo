@@ -24,61 +24,87 @@ export function isValidEmail(email: string): boolean {
 	return emailRegex.test(email);
 }
 
-/**
- * Validates a bar update payload
- * @param data The bar update data
- * @returns An array of validation errors, empty if valid
- */
-export function validateBarUpdate(data: Record<string, unknown>): string[] {
+export function validateBarUpdate(
+	data: Record<string, unknown>,
+	isPartial: boolean = false
+): string[] {
 	const errors: string[] = [];
 
-	const name = typeof data.name === 'string' ? data.name : '';
-	const address = typeof data.address === 'string' ? data.address : '';
-	const city = typeof data.city === 'string' ? data.city : '';
-	const phone = typeof data.phone === 'string' ? data.phone : '';
-	const general_email = typeof data.general_email === 'string' ? data.general_email : '';
-	const description = typeof data.description === 'string' ? data.description : '';
-
-	// Check required fields
-	if (!name || name.trim() === '') {
-		errors.push('Bar name is required');
+	// Check required fields (only for full updates)
+	if (!isPartial) {
+		if (!data.name || typeof data.name !== 'string' || data.name.trim() === '') {
+			errors.push('Bar name is required');
+		}
+		if (!data.address || typeof data.address !== 'string' || data.address.trim() === '') {
+			errors.push('Address is required');
+		}
+		if (!data.city || typeof data.city !== 'string' || data.city.trim() === '') {
+			errors.push('City is required');
+		}
+		if (!data.phone || typeof data.phone !== 'string') {
+			errors.push('Telephone number is required');
+		}
+		if (!data.general_email || typeof data.general_email !== 'string') {
+			errors.push('Email address is required');
+		}
 	}
 
-	if (!address || address.trim() === '') {
-		errors.push('Address is required');
+	// Validate fields if they are present
+	if (data.name !== undefined) {
+		const name = typeof data.name === 'string' ? data.name : '';
+		if (name.length > 100) {
+			errors.push('Bar name must be 100 characters or less');
+		}
+		if (isPartial && name.trim() === '') {
+			errors.push('Bar name cannot be empty');
+		}
 	}
 
-	if (!city || city.trim() === '') {
-		errors.push('City is required');
+	if (data.address !== undefined) {
+		const address = typeof data.address === 'string' ? data.address : '';
+		if (address.length > 255) {
+			errors.push('Address must be 255 characters or less');
+		}
+		if (isPartial && address.trim() === '') {
+			errors.push('Address cannot be empty');
+		}
 	}
 
-	if (!phone) {
-		errors.push('Telephone number is required');
-	} else if (!isValidTelephone(phone)) {
-		errors.push('Please enter a valid telephone number');
+	if (data.city !== undefined) {
+		const city = typeof data.city === 'string' ? data.city : '';
+		if (city.length > 100) {
+			errors.push('City must be 100 characters or less');
+		}
+		if (isPartial && city.trim() === '') {
+			errors.push('City cannot be empty');
+		}
 	}
 
-	if (!general_email) {
-		errors.push('Email address is required');
-	} else if (!isValidEmail(general_email)) {
-		errors.push('Please enter a valid email address');
+	if (data.phone !== undefined) {
+		const phone = typeof data.phone === 'string' ? data.phone : '';
+		if (phone && !isValidTelephone(phone)) {
+			errors.push('Please enter a valid telephone number');
+		}
+		if (isPartial && !phone) {
+			errors.push('Telephone number cannot be empty');
+		}
 	}
 
-	// Check field lengths
-	if (name && name.length > 100) {
-		errors.push('Bar name must be 100 characters or less');
+	if (data.general_email !== undefined) {
+		const email = typeof data.general_email === 'string' ? data.general_email : '';
+		if (email && !isValidEmail(email)) {
+			errors.push('Please enter a valid email address');
+		}
+		if (isPartial && !email) {
+			errors.push('Email address cannot be empty');
+		}
 	}
 
-	if (address && address.length > 255) {
-		errors.push('Address must be 255 characters or less');
-	}
-
-	if (city && city.length > 100) {
-		errors.push('City must be 100 characters or less');
-	}
-
-	if (description && description.length > 1000) {
-		errors.push('Description must be 1000 characters or less');
+	if (data.description !== undefined) {
+		const description = typeof data.description === 'string' ? data.description : '';
+		if (description.length > 1000) {
+			errors.push('Description must be 1000 characters or less');
+		}
 	}
 
 	return errors;
