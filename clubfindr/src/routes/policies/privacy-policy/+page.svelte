@@ -128,6 +128,7 @@
 			time; Event genres; Event image.
 		</li>
 		<li><strong>Location Data</strong>: City; Geographic position; Precise location.</li>
+		<li><strong>Camera Usage</strong>: Access to device camera for QR code scanning (processed locally).</li>
 		<li>
 			<strong>Usage Data and Cookies</strong>: Trackers; Usage Data; number of Users; session
 			statistics.
@@ -253,6 +254,16 @@
 		<a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> –
 		<a href="https://tools.google.com/dlpage/gaoptout" target="_blank">Opt Out</a>.
 	</p>
+
+	<h3>Device Permissions</h3>
+
+	<h4>Camera Access</h4>
+	<p>
+		This Application requests access to your device's camera to enable QR code scanning features for event check-ins and venue verification.
+		This process happens in real-time on your device. We do not record or store video footage or images from your camera on our servers
+		unless you explicitly choose to upload an image (e.g., for an event cover).
+	</p>
+	<p><strong>Personal Data processed</strong>: Camera sensor data (processed locally).</p>
 
 	<h3>Location-based Interactions</h3>
 

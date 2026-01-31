@@ -375,7 +375,12 @@ const BarRegistrationScreen = () => {
                                 >
                                     <Picker.Item label="Select a city" value="" color="#999999" />
                                     {cityOptions.map((city) => (
-                                        <Picker.Item key={city} label={city} value={city} color="#FFFFFF" />
+                                        <Picker.Item 
+                                            key={city} 
+                                            label={city} 
+                                            value={city} 
+                                            color={Platform.OS === 'android' ? "#000000" : "#FFFFFF"} 
+                                        />
                                     ))}
                                 </Picker>
                             </View>
@@ -416,7 +421,7 @@ const BarRegistrationScreen = () => {
                                             key={option.value}
                                             label={option.label}
                                             value={option.value}
-                                            color={option.disabled ? '#999999' : '#FFFFFF'}
+                                            color={option.disabled ? '#999999' : (Platform.OS === 'android' ? '#000000' : '#FFFFFF')}
                                             enabled={!option.disabled}
                                         />
                                     ))}

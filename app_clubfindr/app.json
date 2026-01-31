@@ -28,6 +28,7 @@
       }
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/tilki-fox-logo.png",
         "backgroundColor": "#ffffff"
@@ -57,7 +58,8 @@
     "owner": "adminclubfindr",
     "plugins": [
       "expo-web-browser",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-router"
     ]
   }
 }
