@@ -228,23 +228,29 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 
 			// Send a confirmation email to the bar owner (critical - log error but don't throw)
+			const confirmationLink = `https://clubfindr.com/confirm-bar?email=${encodeURIComponent(
+				email
+			)}&code=${confirmationCode}`;
 			try {
 				await sendEmail(
 					email,
 					'Registration Confirmation Code',
-					`Thank you for registering your bar with ClubFindr!\n
-        We have received the following information:\n
-        Business Name: ${businessName}\n
-        Contact Person: ${contactPerson}\n
-        City: ${cityName}\n
-        ${musicService === 'spotify' ? 'Music Service: Spotify\n' : ''}
-        \n
-        \n
-        Please enter your confirmation code on the open page. It will expire in 30 minutes. \n
-        Your confirmation code is ${confirmationCode}.\n
-        \n
-        \n
-        Welcome to the Tilki/Clubfindr community! We're excited to have you here. `
+					`Thank you for registering your bar with ClubFindr!
+
+We have received the following information:
+Business Name: ${businessName}
+Contact Person: ${contactPerson}
+City: ${cityName}
+${musicService === 'spotify' ? 'Music Service: Spotify\n' : ''}
+Your confirmation code is: ${confirmationCode}
+
+Click the link below to confirm your registration:
+${confirmationLink}
+
+Or enter the code manually in the Tilki app.
+This code will expire in 30 minutes.
+
+Welcome to the Tilki/Clubfindr community! We're excited to have you here.`
 				);
 			} catch (confirmEmailError) {
 				console.error('Error sending confirmation email to bar:', confirmEmailError);
