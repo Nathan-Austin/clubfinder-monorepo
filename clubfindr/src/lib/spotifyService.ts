@@ -5,7 +5,7 @@ const SPOTIFY_SERVICE_URL = 'http://127.0.0.1:5000';
 
 export async function addUserToSpotifyApp(userId: string, spotifyEmail: string) {
 	try {
-		const response = await fetch(`${SPOTIFY_SERVICE_URL}/add_user`, {
+		const response = await fetch(`${SPOTIFY_SERVICE_URL}/api/add_user`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -29,7 +29,7 @@ export async function addUserToSpotifyApp(userId: string, spotifyEmail: string) 
 
 export async function getSpotifyCredentials(appName: string) {
 	try {
-		const response = await fetch(`${SPOTIFY_SERVICE_URL}/get_credentials/${appName}`);
+		const response = await fetch(`${SPOTIFY_SERVICE_URL}/api/get_credentials/${appName}`);
 
 		if (!response.ok) {
 			throw error(response.status, 'Failed to get Spotify credentials');
@@ -46,7 +46,7 @@ export async function getSpotifyCredentials(appName: string) {
 
 export async function addBarToSpotifyApp(barId: string, spotifyEmail: string) {
 	try {
-		const response = await fetch(`${SPOTIFY_SERVICE_URL}/add_bar`, {
+		const response = await fetch(`${SPOTIFY_SERVICE_URL}/api/add_bar`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'

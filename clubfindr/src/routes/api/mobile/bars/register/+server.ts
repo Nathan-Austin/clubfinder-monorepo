@@ -210,24 +210,29 @@ export const POST: RequestHandler = async ({ request }) => {
 			// Delay emails by 20 seconds to allow music service to complete
 			await new Promise((resolve) => setTimeout(resolve, 20000));
 
-			// Send a notification to admin
-			await sendEmail(
-				'admin@clubfindr.com',
-				'New Bar Registration',
-				`New bar has registered:\n
+			// Send a notification to admin (wrapped in try-catch so it doesn't block confirmation email)
+			try {
+				await sendEmail(
+					'admin@clubfindr.com',
+					'New Bar Registration',
+					`New bar has registered:\n
         Business Name: ${businessName}\n
         Contact Person: ${contactPerson}\n
         Email: ${email}\n
         City: ${cityName}\n
         Music Service: ${musicService}\n
         ${musicServiceEmail ? `Spotify Email: ${musicServiceEmail}` : ''}`
-			);
+				);
+			} catch (adminEmailError) {
+				console.error('Error sending admin notification email:', adminEmailError);
+			}
 
-			// Send a confirmation email to the bar owner
-			await sendEmail(
-				email,
-				'Registration Confirmation Code',
-				`Thank you for registering your bar with ClubFindr!\n
+			// Send a confirmation email to the bar owner (critical - log error but don't throw)
+			try {
+				await sendEmail(
+					email,
+					'Registration Confirmation Code',
+					`Thank you for registering your bar with ClubFindr!\n
         We have received the following information:\n
         Business Name: ${businessName}\n
         Contact Person: ${contactPerson}\n
@@ -235,12 +240,32 @@ export const POST: RequestHandler = async ({ request }) => {
         ${musicService === 'spotify' ? 'Music Service: Spotify\n' : ''}
         \n
         \n
-        Please enter your confirmation code on the open page. It will expire in 30 minutes. \n 
+        Please enter your confirmation code on the open page. It will expire in 30 minutes. \n
         Your confirmation code is ${confirmationCode}.\n
         \n
         \n
         Welcome to the Tilki/Clubfindr community! We're excited to have you here. `
-			);
+				);
+			} catch (confirmEmailError) {
+				console.error('Error sending confirmation email to bar:', confirmEmailError);
+				// Send alert to admin about failed confirmation email
+				try {
+					await sendEmail(
+						'admin@clubfindr.com',
+						'ALERT: Bar Confirmation Email Failed',
+						`Failed to send confirmation email to bar.\n
+        Bar ID: ${barId}\n
+        Business Name: ${businessName}\n
+        Email: ${email}\n
+        Confirmation Code: ${confirmationCode}\n
+        Error: ${
+					confirmEmailError instanceof Error ? confirmEmailError.message : String(confirmEmailError)
+				}`
+					);
+				} catch {
+					console.error('Failed to send alert email about confirmation failure');
+				}
+			}
 		})().catch((error) => {
 			console.error('Error in background tasks:', error);
 		});
