@@ -138,6 +138,9 @@ const EmailVerificationScreen = ({ navigation, route }: EmailVerificationScreenP
                         placeholder="Verification code"
                         keyboardType="default"
                         autoCapitalize="characters"
+                        autoComplete="one-time-code"
+                        textContentType="oneTimeCode"
+                        importantForAutofill="yes"
                         editable={!loading}
                         testID="code-input"
                     />

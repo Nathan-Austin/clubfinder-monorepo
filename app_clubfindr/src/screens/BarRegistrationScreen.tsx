@@ -273,10 +273,12 @@ const BarRegistrationScreen = () => {
                                 value={businessName}
                                 onChangeText={(text) => {
                                     setBusinessName(text);
-                                    validateBusinessName(text);
+                                    if (businessNameError) validateBusinessName(text);
                                 }}
                                 placeholder="Enter your bar or club name"
                                 placeholderTextColor="#999"
+                                autoComplete="organization"
+                                textContentType="organizationName"
                             />
                             {businessNameError ? <Text style={styles.errorText}>{businessNameError}</Text> : null}
                         </View>
@@ -289,6 +291,8 @@ const BarRegistrationScreen = () => {
                                 onChangeText={setContactPerson}
                                 placeholder="Full name of contact person"
                                 placeholderTextColor="#999"
+                                autoComplete="name"
+                                textContentType="name"
                             />
                         </View>
                     </>
@@ -306,12 +310,14 @@ const BarRegistrationScreen = () => {
                                 value={email}
                                 onChangeText={(text) => {
                                     setEmail(text);
-                                    validateEmail(text);
+                                    if (emailError) validateEmail(text);
                                 }}
                                 placeholder="youremail@example.com"
                                 placeholderTextColor="#999"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
+                                autoComplete="email"
+                                textContentType="emailAddress"
                             />
                             {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
                         </View>
@@ -323,11 +329,13 @@ const BarRegistrationScreen = () => {
                                 value={phone}
                                 onChangeText={(text) => {
                                     setPhone(text);
-                                    validatePhone(text);
+                                    if (phoneError) validatePhone(text);
                                 }}
                                 placeholder="+1 123 456 7890"
                                 placeholderTextColor="#999"
                                 keyboardType="phone-pad"
+                                autoComplete="tel"
+                                textContentType="telephoneNumber"
                             />
                             {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
                         </View>
@@ -347,6 +355,8 @@ const BarRegistrationScreen = () => {
                                 onChangeText={setAddress}
                                 placeholder="Street name and number"
                                 placeholderTextColor="#999"
+                                autoComplete="address-line1"
+                                textContentType="streetAddressLine1"
                             />
                         </View>
 
@@ -358,6 +368,8 @@ const BarRegistrationScreen = () => {
                                 onChangeText={setPostcode}
                                 placeholder="Postal/Zip code"
                                 placeholderTextColor="#999"
+                                autoComplete="postal-code"
+                                textContentType="postalCode"
                             />
                         </View>
 
@@ -397,6 +409,8 @@ const BarRegistrationScreen = () => {
                                 placeholderTextColor="#999"
                                 keyboardType="url"
                                 autoCapitalize="none"
+                                autoComplete="url"
+                                textContentType="URL"
                             />
                         </View>
                     </>
@@ -437,12 +451,14 @@ const BarRegistrationScreen = () => {
                                     value={musicServiceEmail}
                                     onChangeText={(text) => {
                                         setMusicServiceEmail(text);
-                                        validateEmail(text);
+                                        if (emailError) validateEmail(text);
                                     }}
                                     placeholder="Your Spotify account email"
                                     placeholderTextColor="#999"
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    autoComplete="email"
+                                    textContentType="emailAddress"
                                 />
                                 {emailError && musicServiceEmail ? <Text style={styles.errorText}>{emailError}</Text> : null}
                             </View>
@@ -464,13 +480,13 @@ const BarRegistrationScreen = () => {
                             <TextInput
                                 style={[styles.input, passwordErrors.length > 0 ? styles.inputError : null]}
                                 value={password}
-                                onChangeText={(text) => {
-                                    setPassword(text);
-                                    validatePassword(text);
-                                }}
+                                onChangeText={setPassword}
                                 placeholder="Create a strong password"
                                 placeholderTextColor="#999"
                                 secureTextEntry
+                                autoCapitalize="none"
+                                autoComplete="password-new"
+                                textContentType="newPassword"
                             />
                         </View>
 
@@ -479,13 +495,13 @@ const BarRegistrationScreen = () => {
                             <TextInput
                                 style={[styles.input, passwordErrors.length > 0 ? styles.inputError : null]}
                                 value={confirmPassword}
-                                onChangeText={(text) => {
-                                    setConfirmPassword(text);
-                                    validatePassword(password);
-                                }}
+                                onChangeText={setConfirmPassword}
                                 placeholder="Enter the same password again"
                                 placeholderTextColor="#999"
                                 secureTextEntry
+                                autoCapitalize="none"
+                                autoComplete="password-new"
+                                textContentType="newPassword"
                             />
                         </View>
 

@@ -224,6 +224,9 @@ const EditBarProfileScreen = () => {
                             onChangeText={(value) => updateField('name', value)}
                             placeholder="Your bar's name"
                             placeholderTextColor="#888"
+                            autoComplete="organization"
+                            textContentType="organizationName"
+                            importantForAutofill="yes"
                         />
                         {errors.name ? (
                             <Text style={styles.errorText}>{errors.name}</Text>
@@ -239,6 +242,9 @@ const EditBarProfileScreen = () => {
                             onChangeText={(value) => updateField('address', value)}
                             placeholder="Street address"
                             placeholderTextColor="#888"
+                            autoComplete="address-line1"
+                            textContentType="streetAddressLine1"
+                            importantForAutofill="yes"
                         />
                         {errors.address ? (
                             <Text style={styles.errorText}>{errors.address}</Text>
@@ -254,6 +260,9 @@ const EditBarProfileScreen = () => {
                             onChangeText={(value) => updateField('city', value)}
                             placeholder="City"
                             placeholderTextColor="#888"
+                            autoComplete="address-level2"
+                            textContentType="addressCity"
+                            importantForAutofill="yes"
                         />
                         {errors.city ? (
                             <Text style={styles.errorText}>{errors.city}</Text>
@@ -270,6 +279,9 @@ const EditBarProfileScreen = () => {
                             placeholder="Phone number"
                             placeholderTextColor="#888"
                             keyboardType="phone-pad"
+                            autoComplete="tel"
+                            textContentType="telephoneNumber"
+                            importantForAutofill="yes"
                         />
                         {errors.phone ? (
                             <Text style={styles.errorText}>{errors.phone}</Text>
@@ -287,6 +299,9 @@ const EditBarProfileScreen = () => {
                             placeholderTextColor="#888"
                             keyboardType="email-address"
                             autoCapitalize="none"
+                            autoComplete="email"
+                            textContentType="emailAddress"
+                            importantForAutofill="yes"
                         />
                         {errors.general_email ? (
                             <Text style={styles.errorText}>{errors.general_email}</Text>
@@ -305,6 +320,8 @@ const EditBarProfileScreen = () => {
                             multiline
                             numberOfLines={6}
                             textAlignVertical="top"
+                            autoComplete="off"
+                            textContentType="none"
                         />
                     </View>
 
