@@ -258,6 +258,67 @@ const nativeFetch = {
     },
 
     /**
+     * Make a PATCH request
+     */
+    async patch<T>(endpoint: string, data?: any): Promise<T> {
+        const performance = measureNetworkTiming();
+        try {
+            const url = `${API_URL}${endpoint}`;
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'User-Agent': `ClubFindr-Mobile/${Platform.OS}-${Platform.Version}`
+            };
+
+            // Add auth token if available
+            const token = await AsyncStorage.getItem('authToken');
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Prepare request body
+            const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
+
+            // Log request (minimal)
+            console.log(`[NativeFetch] PATCH ${endpoint}`);
+
+            // DNS resolution and connection management
+            performance.mark('dnsStart');
+            const urlObj = new URL(url);
+            await NetworkCache.resolveDNS(urlObj.hostname);
+            performance.mark('dnsEnd');
+            performance.measure('dns', 'dnsStart', 'dnsEnd');
+
+            // Make request
+            performance.mark('networkStart');
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers,
+                body
+            });
+            performance.mark('networkEnd');
+            performance.measure('network', 'networkStart', 'networkEnd');
+
+            const result = await response.json();
+            if (!response.ok) {
+                const error: any = new Error(`HTTP error ${response.status}`);
+                error.response = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    data: result
+                };
+                throw error;
+            }
+
+            return result as T;
+        } catch (error: any) {
+            console.error(`[NativeFetch] PATCH ${endpoint} failed:`, error.message);
+            throw error;
+        }
+    },
+
+    /**
      * Make a DELETE request
      */
     async delete<T>(endpoint: string, data?: any): Promise<T> {
