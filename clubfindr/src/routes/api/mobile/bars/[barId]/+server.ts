@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ params }) => {
         b.website,
         b.description,
         b.phone,
-		b.general_email,
+                b.general_email,
         bgp.current_track_name as current_track,
         bgp.current_track_id as current_track_id,
         bgp.track_counts,
@@ -126,6 +126,96 @@ export const GET: RequestHandler = async ({ params }) => {
 			{
 				success: false,
 				message: 'Failed to fetch bar details',
+				error: error instanceof Error ? error.message : 'Unknown error'
+			},
+			{ status: 500 }
+		);
+	}
+};
+
+/**
+ * Update details for a specific bar
+ * Endpoint: PATCH /api/mobile/bars/:id
+ */
+export const PATCH: RequestHandler = async ({ params, request }) => {
+	try {
+		const { barId } = params;
+		const updates = await request.json();
+
+		if (!barId) {
+			return json(
+				{
+					success: false,
+					message: 'Bar ID is required'
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Build dynamic update query
+		const allowedFields = [
+			'name',
+			'address',
+			'city',
+			'phone',
+			'general_email',
+			'description',
+			'website'
+		];
+		const values: any[] = [];
+		const setClauses: string[] = [];
+
+		// Start parameter index at 2 because $1 is barId
+		let paramIndex = 2;
+
+		for (const [key, value] of Object.entries(updates)) {
+			if (allowedFields.includes(key)) {
+				setClauses.push(`${key} = $${paramIndex}`);
+				values.push(value);
+				paramIndex++;
+			}
+		}
+
+		if (setClauses.length === 0) {
+			return json(
+				{
+					success: false,
+					message: 'No valid fields to update'
+				},
+				{ status: 400 }
+			);
+		}
+
+		const query = `
+            UPDATE clubfindr.bars 
+            SET ${setClauses.join(', ')} 
+            WHERE id = $1 
+            RETURNING id, name, address, city, phone, general_email, description, website;
+        `;
+
+		const result = await pool.query(query, [barId, ...values]);
+
+		if (result.rowCount === 0) {
+			return json(
+				{
+					success: false,
+					message: 'Bar not found'
+				},
+				{ status: 404 }
+			);
+		}
+
+		return json({
+			success: true,
+			message: 'Profile updated successfully',
+			bar: result.rows[0]
+		});
+	} catch (error) {
+		console.error('Error updating bar profile:', error);
+		return json(
+			{
+				success: false,
+				message: 'Failed to update bar profile',
 				error: error instanceof Error ? error.message : 'Unknown error'
 			},
 			{ status: 500 }
