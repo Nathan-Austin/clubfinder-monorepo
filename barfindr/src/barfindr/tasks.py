@@ -35,12 +35,12 @@ def process_bar_batch(bar_ids):
             # Fetch details only for this batch
             # We need the JOIN to get app credentials
             batch_query = text("""
-                SELECT b.id, b.spotify_access_token, b.spotify_refresh_token, 
+                SELECT b.id, b.spotify_access_token, b.spotify_refresh_token,
                        b.spotify_app_name, b.music_service,
                        a.client_id, a.client_secret
                 FROM clubfindr.bars b
                 JOIN clubfindr.spotify_apps a ON b.spotify_app_name = a.app_name
-                WHERE b.id = ANY(:bar_ids)
+                WHERE b.id = ANY(CAST(:bar_ids AS uuid[]))
             """)
 
             # Convert UUID strings back to UUID objects if needed,

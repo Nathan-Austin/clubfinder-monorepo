@@ -59,13 +59,21 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 
 		// Send the new confirmation code
+		const confirmationLink = `https://clubfindr.com/confirm-bar?email=${encodeURIComponent(
+			email
+		)}&code=${confirmationCode}`;
 		await sendEmail(
 			email,
 			'New Confirmation Code',
 			`Hello from ClubFindr!
 
 A new confirmation code has been requested for your bar registration.
-Your new confirmation code is ${confirmationCode}.
+Your new confirmation code is: ${confirmationCode}
+
+Click the link below to confirm your registration:
+${confirmationLink}
+
+Or enter the code manually in the Tilki app.
 This code will expire in 30 minutes.
 
 If you did not request this code, please ignore this email.`
