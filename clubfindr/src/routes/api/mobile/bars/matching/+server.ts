@@ -129,7 +129,9 @@ const findGenreClusters = (genres: string[] | { [key: string]: number }): Cluste
 					(g: string) =>
 						g === normalizedInputGenre ||
 						(g.includes('house') && normalizedInputGenre.includes('house')) ||
-						(g.includes('techno') && normalizedInputGenre.includes('techno'))
+						(g.includes('techno') && normalizedInputGenre.includes('techno')) ||
+						(g.includes('rock') && normalizedInputGenre.includes('rock')) ||
+						(g.includes('metal') && normalizedInputGenre.includes('metal'))
 				)
 			) {
 				clusters.push({
@@ -165,7 +167,29 @@ const findGenreClusters = (genres: string[] | { [key: string]: number }): Cluste
 
 		let found = false;
 
-		for (const cluster of genreClusters.clusters) {
+		for (const cluster of genreClusters.clusters as Array<{ name: string; genres?: string[]; sub_clusters: SubCluster[] }>) {
+			// First check cluster-level genres (e.g., "Rock" at top level of "Rock Music" cluster)
+			if (cluster.genres) {
+				const normalizedClusterGenres = cluster.genres.map((g: string) => normalizeGenre(g));
+				if (
+					normalizedClusterGenres.some(
+						(g: string) =>
+							g === normalizedGenre ||
+							(g.includes('rock') && normalizedGenre.includes('rock')) ||
+							(g.includes('metal') && normalizedGenre.includes('metal'))
+					)
+				) {
+					clusters.push({
+						genre,
+						cluster: cluster.name,
+						subCluster: cluster.name // Use cluster name as subCluster for top-level genres
+					});
+					found = true;
+					break;
+				}
+			}
+
+			// Then check sub_clusters
 			if (matchGenreInSubClusters(cluster.sub_clusters, normalizedGenre, cluster.name)) {
 				found = true;
 				break;
