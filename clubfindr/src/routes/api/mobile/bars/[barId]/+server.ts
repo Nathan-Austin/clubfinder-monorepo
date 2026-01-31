@@ -3,6 +3,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
+import { validateBarUpdate } from '$lib/validators/barValidators';
 
 /**
  * Get details for a specific bar
@@ -147,6 +148,19 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 				{
 					success: false,
 					message: 'Bar ID is required'
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Validate updates
+		const validationErrors = validateBarUpdate(updates, true);
+		if (validationErrors.length > 0) {
+			return json(
+				{
+					success: false,
+					message: validationErrors[0], // Return the first error
+					errors: validationErrors
 				},
 				{ status: 400 }
 			);
