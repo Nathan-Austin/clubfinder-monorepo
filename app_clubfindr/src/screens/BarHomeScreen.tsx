@@ -162,12 +162,20 @@ const BarHomeScreen = () => {
 
             // Fetch top genres
             const genresResponse = await axiosClient.get('/api/mobile/bars/genres');
-            if (genresResponse.data.success && genresResponse.data.bars && genresResponse.data.bars.length > 0) {
-                const barGenres = genresResponse.data.bars[0].genres.map((g: any) => ({
-                    genre: g.genre,
-                    count: Math.round(g.percentage * 100) // Convert percentage to a 0-100 scale
-                }));
-                setTopGenres(barGenres);
+            if (genresResponse.data.success && genresResponse.data.bars) {
+                // Find the current bar's genres from the list
+                const currentBarGenres = genresResponse.data.bars.find((b: any) => b.barId === barId);
+
+                if (currentBarGenres && currentBarGenres.genres) {
+                    const barGenres = currentBarGenres.genres.map((g: any) => ({
+                        genre: g.genre,
+                        count: Math.round(g.percentage * 100) // Convert percentage to a 0-100 scale
+                    }));
+                    setTopGenres(barGenres);
+                } else {
+                    // No genres found for this specific bar
+                    setTopGenres([]);
+                }
             }
 
             // Fetch recently played tracks if Spotify is connected
