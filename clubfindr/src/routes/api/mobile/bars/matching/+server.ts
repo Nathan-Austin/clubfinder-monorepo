@@ -302,7 +302,7 @@ export const POST: RequestHandler = async ({ request }) => {
         ) as artists
       FROM clubfindr.bars b
       LEFT JOIN LatestProfiles p ON b.id = p.bar_id AND p.rn = 1
-      WHERE b.city = $1
+      WHERE LOWER(b.city) = LOWER($1)
       ORDER BY b.name ASC;
     `;
 
