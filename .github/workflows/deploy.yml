@@ -82,8 +82,8 @@ jobs:
             # Restart clubfindr (PM2) only if it changed
             if [ "${{ steps.changes.outputs.clubfindr }}" == "true" ]; then
               echo "Restarting clubfindr via PM2..."
-              pm2 restart clubfindr || pm2 start /home/nathan/clubfinder/clubfindr/ecosystem.config.cjs
-              pm2 save
+              /home/nathan/.local/share/pnpm/pm2 restart clubfindr || /home/nathan/.local/share/pnpm/pm2 start /home/nathan/clubfinder/clubfindr/ecosystem.config.cjs
+              /home/nathan/.local/share/pnpm/pm2 save
             fi
 
             # Restart barfindr services (systemd) only if it changed
