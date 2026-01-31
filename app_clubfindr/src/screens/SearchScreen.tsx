@@ -462,6 +462,9 @@ const SearchScreen = () => {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             onSubmitEditing={handleSearch}
+                            autoComplete="off"
+                            textContentType="none"
+                            importantForAutofill="no"
                         />
                         <TouchableOpacity
                             style={styles.searchButton}

@@ -167,6 +167,9 @@ const BarConfirmationScreen = () => {
                             placeholderTextColor="#999"
                             keyboardType="email-address"
                             autoCapitalize="none"
+                            autoComplete="email"
+                            textContentType="emailAddress"
+                            importantForAutofill="yes"
                             editable={!loading}
                         />
                     </View>
@@ -180,6 +183,9 @@ const BarConfirmationScreen = () => {
                             placeholder="Enter the code from your email"
                             placeholderTextColor="#999"
                             autoCapitalize="characters"
+                            autoComplete="one-time-code"
+                            textContentType="oneTimeCode"
+                            importantForAutofill="yes"
                             maxLength={6}
                             editable={!loading && attempts < 3}
                         />

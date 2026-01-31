@@ -204,6 +204,9 @@ const SignupScreen = () => {
                             }
                         }}
                         autoCapitalize="words"
+                        autoComplete="name"
+                        textContentType="name"
+                        importantForAutofill="yes"
                         testID="name-input"
                     />
                     {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
@@ -220,6 +223,9 @@ const SignupScreen = () => {
                         }}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        autoComplete="email"
+                        textContentType="emailAddress"
+                        importantForAutofill="yes"
                         testID="email-input"
                     />
                     {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
@@ -235,6 +241,10 @@ const SignupScreen = () => {
                             }
                         }}
                         secureTextEntry
+                        autoCapitalize="none"
+                        autoComplete="password-new"
+                        textContentType="newPassword"
+                        importantForAutofill="yes"
                         testID="password-input"
                     />
 
@@ -300,6 +310,9 @@ const SignupScreen = () => {
                                 }}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
+                                autoComplete="email"
+                                textContentType="emailAddress"
+                                importantForAutofill="yes"
                                 testID="spotify-email-input"
                             />
                             {errors.spotifyEmail ? <Text style={styles.errorText}>{errors.spotifyEmail}</Text> : null}

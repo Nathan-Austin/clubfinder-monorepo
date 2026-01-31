@@ -296,6 +296,9 @@ const LoginScreen = () => {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            importantForAutofill="yes"
             testID="email-input"
             returnKeyType="next"
             onSubmitEditing={() => passwordInputRef.current?.focus()}
@@ -309,6 +312,10 @@ const LoginScreen = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password"
+            textContentType="password"
+            importantForAutofill="yes"
             testID="password-input"
             returnKeyType="done"
             onSubmitEditing={handleLogin}
