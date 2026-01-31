@@ -118,34 +118,41 @@ const EditBarProfileScreen = () => {
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
-        if (!profile.name.trim()) {
+        // Ensure we are working with strings
+        const name = profile.name || '';
+        const address = profile.address || '';
+        const city = profile.city || '';
+        const phone = profile.phone || '';
+        const email = profile.general_email || '';
+
+        if (!name.trim()) {
             newErrors.name = 'Bar name is required';
         }
 
-        if (!profile.address.trim()) {
+        if (!address.trim()) {
             newErrors.address = 'Address is required';
         }
 
-        if (!profile.city.trim()) {
+        if (!city.trim()) {
             newErrors.city = 'City is required';
         }
 
-        if (!profile.phone.trim()) {
+        if (!phone.trim()) {
             newErrors.phone = 'Phone number is required';
         } else {
             // Simple validation for phone
             const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
-            if (!phoneRegex.test(profile.phone.trim())) {
+            if (!phoneRegex.test(phone.trim())) {
                 newErrors.phone = 'Invalid phone number format';
             }
         }
 
-        if (!profile.general_email.trim()) {
+        if (!email.trim()) {
             newErrors.general_email = 'Email is required';
         } else {
             // Simple validation for email
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(profile.general_email.trim())) {
+            if (!emailRegex.test(email.trim())) {
                 newErrors.general_email = 'Invalid email format';
             }
         }
