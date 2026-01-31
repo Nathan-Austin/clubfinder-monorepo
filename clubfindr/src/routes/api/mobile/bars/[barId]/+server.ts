@@ -140,7 +140,7 @@ export const GET: RequestHandler = async ({ params }) => {
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	try {
 		const { barId } = params;
-		const updates = await request.json();
+		const updates = (await request.json()) as Record<string, unknown>;
 
 		if (!barId) {
 			return json(
@@ -162,7 +162,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 			'description',
 			'website'
 		];
-		const values: any[] = [];
+		const values: unknown[] = [];
 		const setClauses: string[] = [];
 
 		// Start parameter index at 2 because $1 is barId
