@@ -167,7 +167,11 @@ const findGenreClusters = (genres: string[] | { [key: string]: number }): Cluste
 
 		let found = false;
 
-		for (const cluster of genreClusters.clusters as Array<{ name: string; genres?: string[]; sub_clusters: SubCluster[] }>) {
+		for (const cluster of genreClusters.clusters as Array<{
+			name: string;
+			genres?: string[];
+			sub_clusters: SubCluster[];
+		}>) {
 			// First check cluster-level genres (e.g., "Rock" at top level of "Rock Music" cluster)
 			if (cluster.genres) {
 				const normalizedClusterGenres = cluster.genres.map((g: string) => normalizeGenre(g));
