@@ -34,6 +34,8 @@ export const GET: RequestHandler = async ({ url }) => {
                 b.phone, 
                 b.description, 
                 b.opening_hours,
+                b.smoking_allowed,
+                b.bar_types,
                 lp.rolling_genre_profile,
                 lp.current_track_name,
                 lp.current_genres
@@ -72,7 +74,9 @@ export const GET: RequestHandler = async ({ url }) => {
 					  }
 					: null,
 				// Add a random similarity score - you can calculate a real one later
-				similarity: Math.random().toFixed(2)
+				similarity: Math.random().toFixed(2),
+				smoking_allowed: bar.smoking_allowed || false,
+				bar_types: bar.bar_types || []
 			};
 		});
 
@@ -142,6 +146,8 @@ export const POST: RequestHandler = async ({ request }) => {
                 b.phone, 
                 b.description, 
                 b.opening_hours,
+                b.smoking_allowed,
+                b.bar_types,
                 lp.rolling_genre_profile,
                 lp.current_track_name,
                 lp.current_genres
@@ -194,7 +200,9 @@ export const POST: RequestHandler = async ({ request }) => {
 				similarity: Math.random().toFixed(2),
 				description: bar.description,
 				openingHours: bar.opening_hours,
-				phone: bar.phone
+				phone: bar.phone,
+				smoking_allowed: bar.smoking_allowed || false,
+				bar_types: bar.bar_types || []
 			};
 		});
 
