@@ -27,7 +27,7 @@ class Bar(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     confirmed = Column(Boolean, default=False)
-    
+
     # New fields
     smoking_allowed = Column(Boolean, default=False, nullable=False)
     bar_types = Column(ARRAY(String), default=[], nullable=False)
