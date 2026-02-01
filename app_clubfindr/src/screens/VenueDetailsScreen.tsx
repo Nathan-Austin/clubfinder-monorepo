@@ -294,6 +294,21 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
                         <Text style={styles.typeBadgeText}>{isClub ? 'Club' : 'Bar'}</Text>
                     </View>
                 </View>
+
+                {/* New Attributes Row */}
+                <View style={styles.attributeRow}>
+                    {venue.smoking_allowed && (
+                        <View style={styles.attributeBadge}>
+                            <Text style={styles.attributeText}>🚬 Smoking Allowed</Text>
+                        </View>
+                    )}
+                    {venue.bar_types && venue.bar_types.map((type, index) => (
+                        <View key={index} style={styles.attributeBadge}>
+                            <Text style={styles.attributeText}>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+                        </View>
+                    ))}
+                </View>
+
                 <Text style={styles.address}>{venue.address}</Text>
 
                 {loading ? (
@@ -452,6 +467,23 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: 'bold',
         fontSize: 12,
+    },
+    attributeRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 8,
+    },
+    attributeBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+    },
+    attributeText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '500',
     },
     address: {
         fontSize: 16,

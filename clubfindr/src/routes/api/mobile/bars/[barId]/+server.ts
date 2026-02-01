@@ -34,6 +34,8 @@ export const GET: RequestHandler = async ({ params }) => {
         b.description,
         b.phone,
                 b.general_email,
+        b.smoking_allowed,
+        b.bar_types,
         bgp.current_track_name as current_track,
         bgp.current_track_id as current_track_id,
         bgp.track_counts,
@@ -174,7 +176,9 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 			'phone',
 			'general_email',
 			'description',
-			'website'
+			'website',
+			'smoking_allowed',
+			'bar_types'
 		];
 		const values: unknown[] = [];
 		const setClauses: string[] = [];
@@ -204,7 +208,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
             UPDATE clubfindr.bars 
             SET ${setClauses.join(', ')} 
             WHERE id = $1 
-            RETURNING id, name, address, city, phone, general_email, description, website;
+            RETURNING id, name, address, city, phone, general_email, description, website, smoking_allowed, bar_types;
         `;
 
 		const result = await pool.query(query, [barId, ...values]);

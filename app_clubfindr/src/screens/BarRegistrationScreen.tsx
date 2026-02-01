@@ -25,9 +25,10 @@ enum RegistrationStep {
     BusinessInfo = 0,
     ContactInfo = 1,
     LocationInfo = 2,
-    MusicService = 3,
-    CreatePassword = 4,
-    Review = 5
+    BarDetails = 3,
+    MusicService = 4,
+    CreatePassword = 5,
+    Review = 6
 }
 
 const BarRegistrationScreen = () => {
@@ -49,6 +50,22 @@ const BarRegistrationScreen = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [agreeToTerms, setAgreeToTerms] = useState(false);
     const [agreeToPrivacyPolicy, setAgreeToPrivacyPolicy] = useState(false);
+    
+    const [smokingAllowed, setSmokingAllowed] = useState(false);
+    const [barTypes, setBarTypes] = useState<string[]>([]);
+
+    const BAR_TYPES = [
+        { value: 'cocktail', label: 'Cocktail Bar' },
+        { value: 'pub', label: 'Pub' },
+        { value: 'club', label: 'Nightclub' },
+        { value: 'dive', label: 'Dive Bar' },
+        { value: 'wine', label: 'Wine Bar' },
+        { value: 'beer', label: 'Beer Garden/Hall' },
+        { value: 'lounge', label: 'Lounge' },
+        { value: 'sports', label: 'Sports Bar' },
+        { value: 'music', label: 'Live Music Venue' },
+        { value: 'speakeasy', label: 'Speakeasy' }
+    ];
 
     // Error states
     const [businessNameError, setBusinessNameError] = useState('');
@@ -169,6 +186,9 @@ const BarRegistrationScreen = () => {
             case RegistrationStep.LocationInfo:
                 return validateCity(cityName);
 
+            case RegistrationStep.BarDetails:
+                return true; // Optional fields
+
             case RegistrationStep.MusicService:
                 if (!musicService) {
                     Alert.alert('Required Field', 'Please select a music service');
@@ -218,7 +238,9 @@ const BarRegistrationScreen = () => {
                 website,
                 musicService,
                 musicServiceEmail,
-                password
+                password,
+                smokingAllowed,
+                barTypes
             });
 
             if (response.data.success) {
@@ -416,6 +438,57 @@ const BarRegistrationScreen = () => {
                     </>
                 );
 
+            case RegistrationStep.BarDetails:
+                return (
+                    <>
+                        <Text style={styles.stepTitle}>Bar Details</Text>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Smoking Allowed Inside?</Text>
+                            <View style={styles.switchContainer}>
+                                <Text style={styles.switchLabel}>{smokingAllowed ? 'Yes' : 'No'}</Text>
+                                <Switch
+                                    trackColor={{ false: "#767577", true: "#D35400" }}
+                                    thumbColor={smokingAllowed ? "#FFFFFF" : "#f4f3f4"}
+                                    ios_backgroundColor="#3e3e3e"
+                                    onValueChange={setSmokingAllowed}
+                                    value={smokingAllowed}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Bar Type (Select up to 3)</Text>
+                            <View style={styles.chipsContainer}>
+                                {BAR_TYPES.map((type) => (
+                                    <TouchableOpacity
+                                        key={type.value}
+                                        style={[
+                                            styles.chip,
+                                            barTypes.includes(type.value) && styles.chipSelected
+                                        ]}
+                                        onPress={() => {
+                                            if (barTypes.includes(type.value)) {
+                                                setBarTypes(barTypes.filter(t => t !== type.value));
+                                            } else if (barTypes.length < 3) {
+                                                setBarTypes([...barTypes, type.value]);
+                                            }
+                                        }}
+                                        disabled={!barTypes.includes(type.value) && barTypes.length >= 3}
+                                    >
+                                        <Text style={[
+                                            styles.chipText,
+                                            barTypes.includes(type.value) && styles.chipTextSelected
+                                        ]}>
+                                            {type.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    </>
+                );
+
             case RegistrationStep.MusicService:
                 return (
                     <>
@@ -568,6 +641,20 @@ const BarRegistrationScreen = () => {
                         </View>
 
                         <View style={styles.reviewSection}>
+                            <Text style={styles.reviewTitle}>Details</Text>
+                            <Text style={styles.reviewItem}>
+                                <Text style={styles.reviewLabel}>Smoking Allowed: </Text>
+                                {smokingAllowed ? 'Yes' : 'No'}
+                            </Text>
+                            {barTypes.length > 0 && (
+                                <Text style={styles.reviewItem}>
+                                    <Text style={styles.reviewLabel}>Bar Types: </Text>
+                                    {barTypes.map(t => BAR_TYPES.find(bt => bt.value === t)?.label).join(', ')}
+                                </Text>
+                            )}
+                        </View>
+
+                        <View style={styles.reviewSection}>
                             <Text style={styles.reviewTitle}>Music Service</Text>
                             <Text style={styles.reviewItem}>
                                 <Text style={styles.reviewLabel}>Service: </Text>
@@ -630,7 +717,7 @@ const BarRegistrationScreen = () => {
         >
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.stepIndicatorContainer}>
-                    {[...Array(6)].map((_, index) => (
+                    {[...Array(7)].map((_, index) => (
                         <View
                             key={index}
                             style={[
@@ -848,6 +935,43 @@ const styles = StyleSheet.create({
     linkText: {
         color: '#D35400',
         textDecorationLine: 'underline',
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#333333',
+        padding: 15,
+        borderRadius: 5,
+    },
+    switchLabel: {
+        color: '#FFFFFF',
+        fontSize: 16,
+    },
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    chip: {
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#333333',
+        borderWidth: 1,
+        borderColor: '#555',
+        marginBottom: 8,
+    },
+    chipSelected: {
+        backgroundColor: '#D35400',
+        borderColor: '#D35400',
+    },
+    chipText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+    },
+    chipTextSelected: {
+        fontWeight: 'bold',
     },
 });
 

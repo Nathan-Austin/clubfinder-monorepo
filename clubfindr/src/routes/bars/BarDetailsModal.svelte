@@ -11,8 +11,23 @@
 		phone: '',
 		email: '',
 		openingHours: '',
-		description: ''
+		description: '',
+		smoking_allowed: false,
+		bar_types: [] as string[]
 	};
+
+	const BAR_TYPES = [
+		{ value: 'cocktail', label: 'Cocktail Bar' },
+		{ value: 'pub', label: 'Pub' },
+		{ value: 'club', label: 'Nightclub' },
+		{ value: 'dive', label: 'Dive Bar' },
+		{ value: 'wine', label: 'Wine Bar' },
+		{ value: 'beer', label: 'Beer Garden/Hall' },
+		{ value: 'lounge', label: 'Lounge' },
+		{ value: 'sports', label: 'Sports Bar' },
+		{ value: 'music', label: 'Live Music Venue' },
+		{ value: 'speakeasy', label: 'Speakeasy' }
+	];
 
 	export let isLoading = false;
 	export let errorMessage = '';
@@ -78,6 +93,33 @@
 			<div class="form-group">
 				<label for="openingHours">Opening Hours</label>
 				<textarea id="openingHours" bind:value={barDetails.openingHours} rows="3" />
+			</div>
+
+			<div class="form-group checkbox-container">
+				<label for="smoking_allowed" class="checkbox-label">
+					<input type="checkbox" id="smoking_allowed" bind:checked={barDetails.smoking_allowed} />
+					Smoking Allowed Inside?
+				</label>
+			</div>
+
+			<div class="form-group">
+				<label for="bar_types">Bar Type (Select up to 3):</label>
+				<div class="bar-types-grid">
+					{#each BAR_TYPES as type}
+						<label
+							class="bar-type-chip {barDetails.bar_types?.includes(type.value) ? 'selected' : ''}"
+						>
+							<input
+								type="checkbox"
+								value={type.value}
+								bind:group={barDetails.bar_types}
+								disabled={barDetails.bar_types?.length >= 3 &&
+									!barDetails.bar_types?.includes(type.value)}
+							/>
+							{type.label}
+						</label>
+					{/each}
+				</div>
 			</div>
 
 			<div class="form-group">
@@ -290,5 +332,53 @@
 		padding: 0.75rem;
 		margin-bottom: 1rem;
 		border-radius: 4px;
+	}
+
+	.checkbox-container {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+		font-weight: normal;
+	}
+
+	.checkbox-label input[type='checkbox'] {
+		width: auto;
+		margin: 0;
+	}
+
+	.bar-types-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.bar-type-chip {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5rem 1rem;
+		background-color: white;
+		border: 1px solid #ddd;
+		border-radius: 20px;
+		cursor: pointer;
+		color: #333;
+		font-weight: normal;
+		transition: all 0.2s;
+	}
+
+	.bar-type-chip.selected {
+		background-color: #1db954;
+		color: white;
+		border-color: #1db954;
+	}
+
+	.bar-type-chip input {
+		display: none;
 	}
 </style>

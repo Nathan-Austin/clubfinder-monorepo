@@ -9,7 +9,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
-    Alert
+    Alert,
+    Switch
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -29,7 +30,22 @@ interface BarProfile {
     general_email: string;
     opening_hours: string;
     description: string;
+    smoking_allowed: boolean;
+    bar_types: string[];
 }
+
+const BAR_TYPES = [
+    { value: 'cocktail', label: 'Cocktail Bar' },
+    { value: 'pub', label: 'Pub' },
+    { value: 'club', label: 'Nightclub' },
+    { value: 'dive', label: 'Dive Bar' },
+    { value: 'wine', label: 'Wine Bar' },
+    { value: 'beer', label: 'Beer Garden/Hall' },
+    { value: 'lounge', label: 'Lounge' },
+    { value: 'sports', label: 'Sports Bar' },
+    { value: 'music', label: 'Live Music Venue' },
+    { value: 'speakeasy', label: 'Speakeasy' }
+];
 
 const EditBarProfileScreen = () => {
     const navigation = useNavigation<EditBarProfileScreenNavigationProp>();
@@ -43,7 +59,9 @@ const EditBarProfileScreen = () => {
         phone: '',
         general_email: '',
         opening_hours: '',
-        description: ''
+        description: '',
+        smoking_allowed: false,
+        bar_types: []
     });
 
     // UI state
@@ -83,7 +101,9 @@ const EditBarProfileScreen = () => {
                 phone: profileData.phone || '',
                 general_email: profileData.general_email || '',
                 opening_hours: '', // This field might come from a different endpoint
-                description: profileData.description || ''
+                description: profileData.description || '',
+                smoking_allowed: profileData.smoking_allowed || false,
+                bar_types: profileData.bar_types || []
             };
 
             console.log('Mapped profile data:', mappedProfile);
@@ -98,7 +118,7 @@ const EditBarProfileScreen = () => {
     };
 
     // Update profile field
-    const updateField = (field: keyof BarProfile, value: string) => {
+    const updateField = (field: keyof BarProfile, value: any) => {
         setProfile(prev => ({
             ...prev,
             [field]: value
@@ -176,7 +196,9 @@ const EditBarProfileScreen = () => {
                 city: profile.city,
                 phone: profile.phone,
                 general_email: profile.general_email,
-                description: profile.description
+                description: profile.description,
+                smoking_allowed: profile.smoking_allowed,
+                bar_types: profile.bar_types
             });
 
             // Update bar name in storage if it changed
@@ -332,6 +354,53 @@ const EditBarProfileScreen = () => {
                         />
                     </View>
 
+                    {/* Smoking Allowed */}
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Smoking Allowed Inside?</Text>
+                        <View style={styles.switchContainer}>
+                            <Text style={styles.switchLabel}>{profile.smoking_allowed ? 'Yes' : 'No'}</Text>
+                            <Switch
+                                trackColor={{ false: "#767577", true: "#D35400" }}
+                                thumbColor={profile.smoking_allowed ? "#FFFFFF" : "#f4f3f4"}
+                                ios_backgroundColor="#3e3e3e"
+                                onValueChange={(value) => updateField('smoking_allowed', value)}
+                                value={profile.smoking_allowed}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Bar Types */}
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Bar Type (Select up to 3)</Text>
+                        <View style={styles.chipsContainer}>
+                            {BAR_TYPES.map((type) => (
+                                <TouchableOpacity
+                                    key={type.value}
+                                    style={[
+                                        styles.chip,
+                                        profile.bar_types.includes(type.value) && styles.chipSelected
+                                    ]}
+                                    onPress={() => {
+                                        const currentTypes = profile.bar_types;
+                                        if (currentTypes.includes(type.value)) {
+                                            updateField('bar_types', currentTypes.filter(t => t !== type.value));
+                                        } else if (currentTypes.length < 3) {
+                                            updateField('bar_types', [...currentTypes, type.value]);
+                                        }
+                                    }}
+                                    disabled={!profile.bar_types.includes(type.value) && profile.bar_types.length >= 3}
+                                >
+                                    <Text style={[
+                                        styles.chipText,
+                                        profile.bar_types.includes(type.value) && styles.chipTextSelected
+                                    ]}>
+                                        {type.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
                     {/* Submit and Cancel Buttons */}
                     <View style={styles.buttonGroup}>
                         <TouchableOpacity
@@ -458,6 +527,43 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '500',
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#2A2A2A',
+        padding: 15,
+        borderRadius: 6,
+    },
+    switchLabel: {
+        color: '#FFFFFF',
+        fontSize: 16,
+    },
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    chip: {
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#2A2A2A',
+        borderWidth: 1,
+        borderColor: '#555',
+        marginBottom: 8,
+    },
+    chipSelected: {
+        backgroundColor: '#D35400',
+        borderColor: '#D35400',
+    },
+    chipText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+    },
+    chipTextSelected: {
+        fontWeight: 'bold',
     },
 });
 

@@ -39,7 +39,9 @@
 		phone: '',
 		email: '',
 		openingHours: '',
-		description: ''
+		description: '',
+		smoking_allowed: false,
+		bar_types: [] as string[]
 	};
 
 	let barDetailsLoading = false;
@@ -186,7 +188,9 @@
 						phone: barData.phone || '',
 						email: barData.general_email || '',
 						openingHours: barData.opening_hours || '',
-						description: barData.description || ''
+						description: barData.description || '',
+						smoking_allowed: barData.smoking_allowed || false,
+						bar_types: barData.bar_types || []
 					};
 				} else {
 					console.error('Failed to fetch bar details, status:', response.status);
@@ -271,7 +275,9 @@
 				phone: updatedDetails.phone,
 				general_email: updatedDetails.email,
 				opening_hours: updatedDetails.openingHours,
-				description: updatedDetails.description
+				description: updatedDetails.description,
+				smoking_allowed: updatedDetails.smoking_allowed,
+				bar_types: updatedDetails.bar_types
 			});
 
 			const response = await fetch(`/api/bars/${submissionBarId}`, {
@@ -286,7 +292,9 @@
 					phone: updatedDetails.phone,
 					general_email: updatedDetails.email,
 					opening_hours: updatedDetails.openingHours,
-					description: updatedDetails.description
+					description: updatedDetails.description,
+					smoking_allowed: updatedDetails.smoking_allowed,
+					bar_types: updatedDetails.bar_types
 				})
 			});
 
@@ -383,6 +391,18 @@
 	</a>
 	<header class="dashboard-header">
 		<h1>{barName}'s Music Insights</h1>
+
+		<div class="bar-attributes">
+			{#if barDetails.smoking_allowed}
+				<span class="attribute-badge smoking">🚬 Smoking Allowed</span>
+			{/if}
+			{#if barDetails.bar_types && barDetails.bar_types.length > 0}
+				{#each barDetails.bar_types as type}
+					<span class="attribute-badge type">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+				{/each}
+			{/if}
+		</div>
+
 		<p>Explore how your music choices are shaping the vibe at your bar.</p>
 
 		<div class="dashboard-actions">
@@ -552,6 +572,35 @@
 		justify-content: center;
 		gap: 1rem;
 		margin-top: 1rem;
+	}
+
+	.bar-attributes {
+		display: flex;
+		justify-content: center;
+		gap: 0.5rem;
+		margin: 0.5rem 0;
+		flex-wrap: wrap;
+	}
+
+	.attribute-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.25rem 0.75rem;
+		border-radius: 12px;
+		font-size: 0.8rem;
+		font-weight: 500;
+	}
+
+	.attribute-badge.smoking {
+		background-color: #ffebee;
+		color: #c62828;
+		border: 1px solid #ffcdd2;
+	}
+
+	.attribute-badge.type {
+		background-color: #e3f2fd;
+		color: #1565c0;
+		border: 1px solid #bbdefb;
 	}
 
 	/* Currently Playing and Upcoming Tracks Container */
