@@ -25,7 +25,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		website,
 		musicService,
 		password,
-		musicServiceEmail // Optional parameter for Spotify integration
+		musicServiceEmail, // Optional parameter for Spotify integration
+		smokingAllowed = false,
+		barTypes = []
 	} = await request.json();
 
 	// Generate a random confirmation code
@@ -104,7 +106,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				     confirmation_code = $10,
 				     expires_at = $11,
 				     password_hash = $12,
-				     spotify_email = $13
+				     spotify_email = $13,
+				     smoking_allowed = $15,
+				     bar_types = $16
 				 WHERE general_email = $14 
 				 RETURNING id`,
 				[
@@ -121,7 +125,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					expiresAt,
 					hashedPassword,
 					spotifyEmail || null, // Use provided spotifyEmail or null
-					email
+					email,
+					smokingAllowed,
+					barTypes
 				]
 			);
 		} else {
@@ -141,8 +147,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					confirmation_code, 
 					expires_at,
 					password_hash,
-					spotify_email
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+					spotify_email,
+					smoking_allowed,
+					bar_types
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 				RETURNING id`,
 				[
 					userId,
@@ -158,7 +166,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					confirmationCode,
 					expiresAt,
 					hashedPassword,
-					spotifyEmail || null // Use provided spotifyEmail or null
+					spotifyEmail || null, // Use provided spotifyEmail or null
+					smokingAllowed,
+					barTypes
 				]
 			);
 

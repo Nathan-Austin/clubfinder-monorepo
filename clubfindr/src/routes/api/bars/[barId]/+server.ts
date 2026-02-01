@@ -52,7 +52,9 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 				phone, 
 				general_email,  
 				description, 
-				updated_at 
+				updated_at,
+				smoking_allowed,
+				bar_types 
 			FROM clubfindr.bars 
 			WHERE id = $1`,
 			[barId]
@@ -139,7 +141,16 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 		}
 
 		// Prepare the update query
-		const updateFields = ['name', 'address', 'city', 'phone', 'general_email', 'description'];
+		const updateFields = [
+			'name',
+			'address',
+			'city',
+			'phone',
+			'general_email',
+			'description',
+			'smoking_allowed',
+			'bar_types'
+		];
 
 		// Create a filtered object with only valid fields
 		const updateData: Record<string, unknown> = {};

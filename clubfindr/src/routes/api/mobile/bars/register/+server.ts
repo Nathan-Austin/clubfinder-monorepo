@@ -20,7 +20,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		website,
 		musicService,
 		password,
-		musicServiceEmail
+		musicServiceEmail,
+		smokingAllowed = false,
+		barTypes = []
 	} = await request.json();
 
 	// Generate confirmation code
@@ -97,7 +99,9 @@ export const POST: RequestHandler = async ({ request }) => {
                  confirmation_code = $10,
                  expires_at = $11,
                  password_hash = $12,
-                 spotify_email = $13
+                 spotify_email = $13,
+                 smoking_allowed = $15,
+                 bar_types = $16
              WHERE general_email = $14 
              RETURNING id`,
 				[
@@ -114,7 +118,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					expiresAt,
 					hashedPassword,
 					musicServiceEmail || null, // Use provided musicServiceEmail or null
-					email
+					email,
+					smokingAllowed,
+					barTypes
 				]
 			);
 		} else {
@@ -134,8 +140,10 @@ export const POST: RequestHandler = async ({ request }) => {
                 confirmation_code, 
                 expires_at,
                 password_hash,
-                spotify_email
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                spotify_email,
+                smoking_allowed,
+                bar_types
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING id`,
 				[
 					userId,
@@ -151,7 +159,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					confirmationCode,
 					expiresAt,
 					hashedPassword,
-					musicServiceEmail || null // Use provided musicServiceEmail or null
+					musicServiceEmail || null, // Use provided musicServiceEmail or null
+					smokingAllowed,
+					barTypes
 				]
 			);
 

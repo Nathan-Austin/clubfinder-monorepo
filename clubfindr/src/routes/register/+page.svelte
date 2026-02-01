@@ -37,6 +37,22 @@
 	let businessNameError = '';
 	let musicServiceEmail = '';
 
+	let smokingAllowed = false;
+	let barTypes: string[] = [];
+
+	const BAR_TYPES = [
+		{ value: 'cocktail', label: 'Cocktail Bar' },
+		{ value: 'pub', label: 'Pub' },
+		{ value: 'club', label: 'Nightclub' },
+		{ value: 'dive', label: 'Dive Bar' },
+		{ value: 'wine', label: 'Wine Bar' },
+		{ value: 'beer', label: 'Beer Garden/Hall' },
+		{ value: 'lounge', label: 'Lounge' },
+		{ value: 'sports', label: 'Sports Bar' },
+		{ value: 'music', label: 'Live Music Venue' },
+		{ value: 'speakeasy', label: 'Speakeasy' }
+	];
+
 	const clientId = PUBLIC_SPOTIFY_CLIENT_ID;
 	const mapsApiKey = import.meta.env.VITE_MAPS_API_KEY;
 
@@ -251,7 +267,9 @@
 					website,
 					musicService,
 					password,
-					musicServiceEmail
+					musicServiceEmail,
+					smokingAllowed,
+					barTypes
 				})
 			});
 
@@ -470,6 +488,30 @@
 			</label>
 		</div>
 
+		<div class="form-group checkbox-container">
+			<label for="smokingAllowed" class="checkbox-label">
+				<input type="checkbox" id="smokingAllowed" bind:checked={smokingAllowed} />
+				Smoking Allowed Inside?
+			</label>
+		</div>
+
+		<div class="form-group">
+			<label for="barTypes">Bar Type (Select up to 3):</label>
+			<div class="bar-types-grid">
+				{#each BAR_TYPES as type}
+					<label class="bar-type-chip {barTypes.includes(type.value) ? 'selected' : ''}">
+						<input
+							type="checkbox"
+							value={type.value}
+							bind:group={barTypes}
+							disabled={barTypes.length >= 3 && !barTypes.includes(type.value)}
+						/>
+						{type.label}
+					</label>
+				{/each}
+			</div>
+		</div>
+
 		<div class="form-group">
 			<label for="password">
 				Password:
@@ -644,6 +686,34 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	.bar-types-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.bar-type-chip {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5rem 1rem;
+		background-color: white;
+		border: 1px solid #ccc;
+		border-radius: 20px;
+		cursor: pointer;
+		color: black;
+		transition: all 0.2s;
+	}
+
+	.bar-type-chip.selected {
+		background-color: #4caf50;
+		color: white;
+		border-color: #4caf50;
+	}
+
+	.bar-type-chip input {
+		display: none;
 	}
 
 	.checkbox-label input[type='checkbox'] {

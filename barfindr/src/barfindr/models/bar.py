@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import UUID, Boolean, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 
 from ..database import Base
@@ -26,6 +27,11 @@ class Bar(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     confirmed = Column(Boolean, default=False)
+    
+    # New fields
+    smoking_allowed = Column(Boolean, default=False, nullable=False)
+    bar_types = Column(ARRAY(String), default=[], nullable=False)
+
     genre_profiles = relationship(
         "BarGenreProfile", back_populates="bar", cascade="all, delete-orphan"
     )

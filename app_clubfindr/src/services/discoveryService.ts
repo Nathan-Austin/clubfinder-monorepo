@@ -49,6 +49,8 @@ export type Venue = {
     event_image?: string;
     // New events field
     events?: Event[];
+    smoking_allowed?: boolean;
+    bar_types?: string[];
 };
 
 // Cache constants
