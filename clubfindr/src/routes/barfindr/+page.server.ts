@@ -98,8 +98,51 @@ function findClusters(
 
 	significantGenres.forEach((genre) => {
 		let clusterMatch = null;
+		const normalizedInputGenre = normalizeGenre(genre);
 
 		genreClusters.clusters.forEach((cluster) => {
+			// First check top-level cluster genres (e.g., "Rock" in Rock Music cluster)
+			const normalizedClusterGenres =
+				cluster.genres?.map((g: string) => normalizeGenre(g)) || [];
+			if (normalizedClusterGenres.some((g: string) => g === normalizedInputGenre)) {
+				clusterMatch = {
+					genre,
+					cluster: cluster.name,
+					subCluster: cluster.name
+				};
+				clusters.push(clusterMatch);
+				return;
+			}
+
+			// Check if genre matches a sub_cluster name (e.g., "classic rock", "heavy metal")
+			const matchSubClusterName = (
+				subClusters: SubCluster[],
+				clusterName: string
+			): { genre: string; cluster: string; subCluster: string } | null => {
+				for (const subCluster of subClusters) {
+					if (normalizeGenre(subCluster.name) === normalizedInputGenre) {
+						return {
+							genre,
+							cluster: clusterName,
+							subCluster: subCluster.name
+						};
+					}
+					if (subCluster.sub_clusters) {
+						const nestedMatch = matchSubClusterName(subCluster.sub_clusters, clusterName);
+						if (nestedMatch) return nestedMatch;
+					}
+				}
+				return null;
+			};
+
+			const subClusterNameMatch = matchSubClusterName(cluster.sub_clusters, cluster.name);
+			if (subClusterNameMatch) {
+				clusterMatch = subClusterNameMatch;
+				clusters.push(clusterMatch);
+				return;
+			}
+
+			// Then check genres within sub_clusters
 			const match = matchGenreInSubClusters(cluster.sub_clusters, genre, cluster.name);
 			if (match) {
 				clusterMatch = match;
@@ -341,9 +384,9 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	console.log('Expanded genres list:', expandedGenresList);
 
 	try {
-		// First, get all bars in the city
+		// First, get all bars in the city (case-insensitive match)
 		const barsQuery = `
-      SELECT 
+      SELECT
         id AS bar_id,
         name AS bar_name,
         address AS bar_address,
@@ -351,11 +394,11 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
         opening_hours,
         phone,
         website
-      FROM 
+      FROM
         clubfindr.bars
-      WHERE 
-        city = $1
-      ORDER BY 
+      WHERE
+        LOWER(city) = LOWER($1)
+      ORDER BY
         name
       LIMIT 50;
     `;
