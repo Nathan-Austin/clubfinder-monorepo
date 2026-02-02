@@ -26,6 +26,66 @@ const shouldIgnoreGenre = (genre: string): boolean => {
 	return ignoredGenres.some((ignored) => genre.toLowerCase().includes(ignored.toLowerCase()));
 };
 
+// Function to expand subsubgenre group names to their individual genres
+const expandGenreGroups = (genres: string[]): string[] => {
+	const expandedGenres: string[] = [];
+
+	interface SubCluster {
+		name: string;
+		genres?: string[];
+		sub_clusters?: SubCluster[];
+	}
+
+	// Recursive function to find and expand a group name
+	const findAndExpandGroup = (groupName: string, subClusters: SubCluster[]): string[] | null => {
+		const normalizedGroupName = normalizeGenre(groupName);
+
+		for (const subCluster of subClusters) {
+			const normalizedSubClusterName = normalizeGenre(subCluster.name);
+
+			// If this subCluster name matches the group name, return its genres
+			if (normalizedSubClusterName === normalizedGroupName) {
+				return subCluster.genres || [];
+			}
+
+			// Recursively search in nested sub_clusters
+			if (subCluster.sub_clusters) {
+				const found = findAndExpandGroup(groupName, subCluster.sub_clusters);
+				if (found) return found;
+			}
+		}
+
+		return null;
+	};
+
+	// Process each genre
+	for (const genre of genres) {
+		let expanded = false;
+
+		// Check if this genre is actually a group name in any cluster
+		for (const cluster of genreClusters.clusters as Array<{
+			name: string;
+			sub_clusters: SubCluster[];
+		}>) {
+			const groupGenres = findAndExpandGroup(genre, cluster.sub_clusters);
+			if (groupGenres && groupGenres.length > 0) {
+				// This is a group name - add all its individual genres
+				expandedGenres.push(...groupGenres);
+				expanded = true;
+				console.log(`Expanded genre group "${genre}" to ${groupGenres.length} individual genres`);
+				break;
+			}
+		}
+
+		// If not a group name, keep the genre as-is
+		if (!expanded) {
+			expandedGenres.push(genre);
+		}
+	}
+
+	return expandedGenres;
+};
+
 interface ClusterResult {
 	genre: string;
 	cluster: string;
@@ -213,8 +273,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const normalizedCity = normalizeCityName(city);
 
+		// Expand any genre group names to their individual genres
+		// e.g., "Reggaeton and Dembow" -> ["Reggaeton", "Dembow", "Trap Latino", ...]
+		const expandedGenres = expandGenreGroups(genres);
+
 		console.log(
-			`Finding matching events in ${normalizedCity} for date ${date} with ${genres.length} genres`
+			`Finding matching events in ${normalizedCity} for date ${date} with ${genres.length} genres (expanded to ${expandedGenres.length})`
 		);
 
 		// Get all events for the specified city and date
@@ -248,8 +312,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		const events = eventsResult.rows;
 		console.log(`Found ${events.length} events, now calculating genre matches`);
 
-		// Find genre clusters for user genres
-		const userClusters = findGenreClusters(genres);
+		// Find genre clusters for expanded user genres
+		const userClusters = findGenreClusters(expandedGenres);
 
 		if (userClusters.length === 0) {
 			console.log('No clusters found for user genres, returning all events without matching');
