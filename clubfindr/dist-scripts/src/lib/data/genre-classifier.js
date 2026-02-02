@@ -96,7 +96,6 @@ const normalizeGenre = (genre) => {
 		.replace(/[&']/g, '') // Remove & and '
 		.replace(/\s+/g, ' '); // Normalize spaces
 };
-// Find best matching cluster for a genre using similarity
 const findBestClusterMatch = (genre, genreClusters) => {
 	let bestMatch = { cluster: '', subCluster: '', confidence: 0 };
 	const normalizedGenre = normalizeGenre(genre);
