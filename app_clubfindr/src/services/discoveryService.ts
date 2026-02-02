@@ -17,6 +17,7 @@ export type Event = {
     special_genres?: string[];
     latitude?: number;
     longitude?: number;
+    artists?: { id: string; name: string }[];
 };
 
 export type Venue = {
@@ -51,6 +52,7 @@ export type Venue = {
     events?: Event[];
     smoking_allowed?: boolean;
     bar_types?: string[];
+    artists?: { id: string; name: string }[];
 };
 
 // Cache constants
