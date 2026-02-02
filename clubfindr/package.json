@@ -14,7 +14,8 @@
 		"format": "prettier --plugin-search-dir . --write .",
 		"start": "node build/index.js",
 		"build-scripts": "tsc -p scripts/tsconfig.json",
-		"genre-maintenance": "pnpm build-scripts && node dist-scripts/scripts/genre-maintenance.js"
+		"genre-maintenance": "pnpm build-scripts && node dist-scripts/scripts/genre-maintenance.js",
+		"convert-genres": "pnpm build-scripts && node dist-scripts/scripts/convert-clusters-to-unified.js"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.46.1",
