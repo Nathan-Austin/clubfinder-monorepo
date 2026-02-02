@@ -46,6 +46,7 @@ const SafeVenueCard = ({ venue, onPress }: SafeVenueCardProps) => {
     const sanitizedVenue: Venue = {
         id: String(venue.id || Math.random()),
         name: typeof venue.name === 'string' ? venue.name : String(venue.name || ''),
+        club_name: typeof venue.club_name === 'string' ? venue.club_name : undefined,
         address: typeof venue.address === 'string' ? venue.address : String(venue.address || ''),
         venueType: venue.venueType === 'club' ? 'club' : 'bar',
         distance: typeof venue.distance === 'number' && !isNaN(venue.distance) ? venue.distance : undefined,

@@ -32,6 +32,7 @@ export type Venue = {
     topGenres?: string[];
     similarity?: number;
     city?: string;
+    club_name?: string;
     description?: string;
     openingHours?: string;
     phone?: string;
@@ -223,7 +224,7 @@ const getFromCache = async (venueType: 'bar' | 'club', ignoreExpiry = false): Pr
  * @param venueType The type of venue ('bar' or 'club')
  * @returns Array of Event objects
  */
-export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club', venueName?: string): Promise<Event[]> => {
+export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club', venueName?: string, clubName?: string): Promise<Event[]> => {
     try {
         console.log(`Fetching events for ${venueType} ID: ${venueId}`);
 
@@ -253,9 +254,34 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
         } else {
             // For clubs, we need to get all events from the club
             
-            // First, try to get events for this club using the ID (Most reliable)
+            // 1. Try using club_name if available (Most reliable for our API structure)
+            if (clubName) {
+                try {
+                    console.log(`Attempting to fetch club events for club_name: ${clubName}`);
+                    const response = await axiosClient.get(`/api/mobile/clubs/${encodeURIComponent(clubName)}`);
+
+                    if (response.data && Array.isArray(response.data)) {
+                        console.log(`Received ${response.data.length} events for club ${clubName}`);
+                        return response.data.map((event: any) => ({
+                            id: event.id || `event-${Math.random()}`,
+                            theme_name: event.name || event.event_name || 'Event',
+                            description: event.description || '',
+                            event_date: event.date || event.event_date || new Date().toISOString().split('T')[0],
+                            start_time: event.start_time || null,
+                            end_time: event.end_time || null,
+                            recurring: false,
+                            recurrence_pattern: null,
+                            special_genres: Array.isArray(event.genres) ? event.genres : [],
+                            artists: Array.isArray(event.artists) ? event.artists : []
+                        }));
+                    }
+                } catch (clubError) {
+                    console.error(`Error fetching club events by club_name:`, clubError);
+                }
+            }
+
+            // 2. Try to get events for this club using the ID (might be event ID, so might fail if API expects club name)
             // Using /clubs/ endpoint as /events/ might be incorrect for fetching club specific events list
-            let eventsFound = false;
             
             try {
                 console.log(`Attempting to fetch club events from /api/mobile/clubs/${venueId}`);
