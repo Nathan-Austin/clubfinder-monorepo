@@ -102,8 +102,7 @@ function findClusters(
 
 		genreClusters.clusters.forEach((cluster) => {
 			// First check top-level cluster genres (e.g., "Rock" in Rock Music cluster)
-			const normalizedClusterGenres =
-				cluster.genres?.map((g: string) => normalizeGenre(g)) || [];
+			const normalizedClusterGenres = cluster.genres?.map((g: string) => normalizeGenre(g)) || [];
 			if (normalizedClusterGenres.some((g: string) => g === normalizedInputGenre)) {
 				clusterMatch = {
 					genre,
