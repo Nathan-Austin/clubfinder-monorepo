@@ -21,7 +21,13 @@ const sanitizeEvent = (event: Record<string, any>): Event => {
         recurrence_pattern: typeof event.recurrence_pattern === 'string' ? event.recurrence_pattern : undefined,
         special_genres: Array.isArray(event.special_genres)
             ? event.special_genres.map((g: any) => typeof g === 'string' ? g : String(g || ''))
-            : []
+            : [],
+        artists: Array.isArray(event.artists)
+            ? event.artists.map((a: any) => ({
+                id: String(a.id || ''),
+                name: String(a.name || '')
+            }))
+            : undefined
     };
 };
 
@@ -58,6 +64,14 @@ const SafeVenueCard = ({ venue, onPress }: SafeVenueCardProps) => {
         end_time: typeof venue.end_time === 'string' ? venue.end_time : undefined,
         price: typeof venue.price === 'string' ? venue.price : undefined,
         popularity: typeof venue.popularity === 'string' ? venue.popularity : undefined,
+        
+        // Artists for clubs
+        artists: Array.isArray(venue.artists)
+            ? venue.artists.map((a: any) => ({
+                id: String(a.id || ''),
+                name: String(a.name || '')
+            }))
+            : undefined,
 
         // Current track for bars
         currentTrack: venue.currentTrack ? {

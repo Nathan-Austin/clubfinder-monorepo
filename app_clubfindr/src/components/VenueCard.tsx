@@ -172,6 +172,16 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
                 </View>
             )}
 
+            {/* Artists section for clubs */}
+            {isClub && venue.artists && venue.artists.length > 0 && (
+                <View style={styles.artistsContainer}>
+                    <Text style={styles.artistsLabel}>Lineup: </Text>
+                    <Text style={styles.artistsList} numberOfLines={2}>
+                        {venue.artists.map(a => a.name).join(', ')}
+                    </Text>
+                </View>
+            )}
+
             {/* Event badge if venue has events */}
             {venue.events && venue.events.length > 0 && (
                 <View style={styles.eventBadge}>
@@ -271,6 +281,22 @@ const styles = StyleSheet.create({
         color: '#1db954',
         fontSize: 12,
         fontWeight: '500',
+    },
+    artistsContainer: {
+        flexDirection: 'row',
+        marginTop: 8,
+        alignItems: 'center',
+    },
+    artistsLabel: {
+        color: '#CCCCCC',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginRight: 5,
+    },
+    artistsList: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        flex: 1,
     },
     eventBadge: {
         position: 'absolute',

@@ -296,7 +296,14 @@ export const POST: RequestHandler = async ({ request }) => {
         e.price,
         e.event_image,
         e.city,
-        e.event_genres as genres
+        e.event_genres as genres,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', a.id, 'name', a.artist_name))
+           FROM clubfindr.event_artists ea
+           JOIN clubfindr.artists a ON ea.artist_id = a.id
+           WHERE ea.event_id = e.id),
+          '[]'::json
+        ) as artists
       FROM clubfindr.events e
       WHERE e.city = $1 AND e.event_date = $2::date
       ORDER BY e.start_time ASC;
