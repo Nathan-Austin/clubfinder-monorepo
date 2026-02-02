@@ -276,7 +276,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Get all bars for the specified city with their most recent genre profiles
 		const barsQuery = `
       WITH LatestProfiles AS (
-        SELECT 
+        SELECT
           bar_id,
           current_track_name,
           current_track_id,
@@ -284,13 +284,13 @@ export const POST: RequestHandler = async ({ request }) => {
           rolling_genre_profile,
           timestamp,
           ROW_NUMBER() OVER (PARTITION BY bar_id ORDER BY timestamp DESC) as rn
-        FROM 
+        FROM
           clubfindr.bar_genre_profiles
       )
-      SELECT 
-        b.id, 
-        b.name, 
-        b.address, 
+      SELECT
+        b.id,
+        b.name,
+        b.address,
         b.postcode,
         b.city,
         b.website,
@@ -299,6 +299,7 @@ export const POST: RequestHandler = async ({ request }) => {
         p.current_track_id as current_track_id,
         p.current_genres,
         p.rolling_genre_profile,
+        p.timestamp,
         (
           SELECT json_agg(json_build_object('name', a.artist_name, 'id', a.id))
           FROM clubfindr.artists a
@@ -422,23 +423,27 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 			console.log(` - Similarity: ${similarity}, Matching genres: ${matchingGenres.join(', ')}`);
 
-			// Format current track information
+			// Format current track information - only show if recent (within last 10 minutes)
 			let currentTrack = null;
-			if (bar.current_track) {
-				// Try to extract artist from the track name
-				let artist = '';
-				const trackParts = bar.current_track.split(' - ');
-				if (trackParts.length > 1) {
-					artist = trackParts[0];
-					currentTrack = {
-						name: trackParts[1],
-						artist: artist
-					};
-				} else {
-					currentTrack = {
-						name: bar.current_track,
-						artist: 'Unknown Artist'
-					};
+			if (bar.current_track && bar.timestamp) {
+				const trackAge = Date.now() - new Date(bar.timestamp).getTime();
+				const tenMinutesInMs = 10 * 60 * 1000;
+				if (trackAge < tenMinutesInMs) {
+					// Try to extract artist from the track name
+					let artist = '';
+					const trackParts = bar.current_track.split(' - ');
+					if (trackParts.length > 1) {
+						artist = trackParts[0];
+						currentTrack = {
+							name: trackParts[1],
+							artist: artist
+						};
+					} else {
+						currentTrack = {
+							name: bar.current_track,
+							artist: 'Unknown Artist'
+						};
+					}
 				}
 			}
 
