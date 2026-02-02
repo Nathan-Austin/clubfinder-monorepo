@@ -113,8 +113,9 @@ const calculateClusterSimilarity = (
 	userClusters: ClusterResult[],
 	eventClusters: ClusterResult[]
 ): { similarity: number; matchingGenres: string[] } => {
-	const userClusterNames = userClusters.map((c) => c.cluster + c.subCluster);
-	const eventClusterNames = eventClusters.map((c) => c.cluster + c.subCluster);
+	// Deduplicate cluster names using Sets to prevent similarity scores > 1.0
+	const userClusterNames = [...new Set(userClusters.map((c) => c.cluster + c.subCluster))];
+	const eventClusterNames = [...new Set(eventClusters.map((c) => c.cluster + c.subCluster))];
 
 	const intersection = userClusterNames.filter((value) => eventClusterNames.includes(value));
 	const union = new Set([...userClusterNames, ...eventClusterNames]);
