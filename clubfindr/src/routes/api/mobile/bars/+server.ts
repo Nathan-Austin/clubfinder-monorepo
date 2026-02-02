@@ -17,8 +17,8 @@ export const GET: RequestHandler = async ({ url }) => {
 		// Query to get bars and their latest rolling genre profile
 		const bar_result = await query(
 			`WITH latest_profiles AS (
-                SELECT DISTINCT ON (bar_id) 
-                    bar_id, 
+                SELECT DISTINCT ON (bar_id)
+                    bar_id,
                     rolling_genre_profile,
                     current_track_name,
                     current_genres,
@@ -26,19 +26,20 @@ export const GET: RequestHandler = async ({ url }) => {
                 FROM clubfindr.bar_genre_profiles
                 ORDER BY bar_id, "timestamp" DESC
             )
-            SELECT 
-                b.id, 
-                b.name, 
-                b.address, 
-                b.city, 
-                b.phone, 
-                b.description, 
+            SELECT
+                b.id,
+                b.name,
+                b.address,
+                b.city,
+                b.phone,
+                b.description,
                 b.opening_hours,
                 b.smoking_allowed,
                 b.bar_types,
                 lp.rolling_genre_profile,
                 lp.current_track_name,
-                lp.current_genres
+                lp.current_genres,
+                lp.timestamp
             FROM clubfindr.bars b
             LEFT JOIN latest_profiles lp ON b.id = lp.bar_id
             WHERE LOWER(b.city) = $1`,
@@ -61,18 +62,25 @@ export const GET: RequestHandler = async ({ url }) => {
 					.map((entry) => entry[0]); // Get just the genre names
 			}
 
+			// Only show current track if it's recent (within last 10 minutes)
+			let currentTrack = null;
+			if (bar.current_track_name && bar.timestamp) {
+				const trackAge = Date.now() - new Date(bar.timestamp).getTime();
+				const tenMinutesInMs = 10 * 60 * 1000;
+				if (trackAge < tenMinutesInMs) {
+					currentTrack = {
+						name: bar.current_track_name,
+						artist: 'Various Artists' // Placeholder for artist
+					};
+				}
+			}
+
 			return {
 				id: bar.id,
 				name: bar.name,
 				address: bar.address,
 				genres: genres,
-				// Add current track if available
-				currentTrack: bar.current_track_name
-					? {
-							name: bar.current_track_name,
-							artist: 'Various Artists' // Placeholder for artist
-					  }
-					: null,
+				currentTrack: currentTrack,
 				// Add a random similarity score - you can calculate a real one later
 				similarity: Math.random().toFixed(2),
 				smoking_allowed: bar.smoking_allowed || false,
@@ -129,8 +137,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		const dbStart = Date.now();
 		const bar_result = await query(
 			`WITH latest_profiles AS (
-                SELECT DISTINCT ON (bar_id) 
-                    bar_id, 
+                SELECT DISTINCT ON (bar_id)
+                    bar_id,
                     rolling_genre_profile,
                     current_track_name,
                     current_genres,
@@ -138,19 +146,20 @@ export const POST: RequestHandler = async ({ request }) => {
                 FROM clubfindr.bar_genre_profiles
                 ORDER BY bar_id, "timestamp" DESC
             )
-            SELECT 
-                b.id, 
-                b.name, 
-                b.address, 
-                b.city, 
-                b.phone, 
-                b.description, 
+            SELECT
+                b.id,
+                b.name,
+                b.address,
+                b.city,
+                b.phone,
+                b.description,
                 b.opening_hours,
                 b.smoking_allowed,
                 b.bar_types,
                 lp.rolling_genre_profile,
                 lp.current_track_name,
-                lp.current_genres
+                lp.current_genres,
+                lp.timestamp
             FROM clubfindr.bars b
             LEFT JOIN latest_profiles lp ON b.id = lp.bar_id
             WHERE LOWER(b.city) = $1`,
@@ -183,19 +192,26 @@ export const POST: RequestHandler = async ({ request }) => {
 					.map((entry) => entry[0]); // Get just the genre names
 			}
 
+			// Only show current track if it's recent (within last 10 minutes)
+			let currentTrack = null;
+			if (bar.current_track_name && bar.timestamp) {
+				const trackAge = Date.now() - new Date(bar.timestamp).getTime();
+				const tenMinutesInMs = 10 * 60 * 1000;
+				if (trackAge < tenMinutesInMs) {
+					currentTrack = {
+						name: bar.current_track_name,
+						artist: 'Various Artists' // Placeholder for artist
+					};
+				}
+			}
+
 			return {
 				id: bar.id,
 				name: bar.name,
 				address: bar.address,
 				city: bar.city,
 				genres: genres,
-				// Add current track if available
-				currentTrack: bar.current_track_name
-					? {
-							name: bar.current_track_name,
-							artist: 'Various Artists' // Placeholder for artist
-					  }
-					: null,
+				currentTrack: currentTrack,
 				// Add a random similarity score - you can calculate a real one later
 				similarity: Math.random().toFixed(2),
 				description: bar.description,
