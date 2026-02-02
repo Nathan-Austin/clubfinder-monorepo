@@ -1461,6 +1461,405 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "Latin/Latino Music",
+			"genres": ["Latin", "Latino", "Música Latina"],
+			"sub_clusters": [
+				{
+					"name": "Traditional and Folk Latin",
+					"sub_clusters": [
+						{
+							"name": "Classic Latin",
+							"genres": [
+								"Bolero",
+								"Son Cubano",
+								"Trova",
+								"Canción",
+								"Balada",
+								"Bossa Nova",
+								"Samba",
+								"Fado",
+								"Tango",
+								"Milonga",
+								"Vals Criollo",
+								"Pasillo",
+								"Huayno",
+								"Cueca"
+							]
+						},
+						{
+							"name": "Mariachi and Traditional Mexican",
+							"genres": [
+								"Mariachi",
+								"Son Mexicano",
+								"Huapango",
+								"Son Jarocho",
+								"Son Huasteco",
+								"Música Ranchera",
+								"Canción Ranchera",
+								"Canción Mexicana",
+								"Música de Cuerda",
+								"Trio Romántico"
+							]
+						},
+						{
+							"name": "Andean and South American Folk",
+							"genres": [
+								"Andean Folk",
+								"Música Andina",
+								"Folclore Argentino",
+								"Chacarera",
+								"Zamba",
+								"Chamamé",
+								"Carnavalito",
+								"Música Llanera",
+								"Joropo",
+								"Vallenato Tradicional"
+							]
+						}
+					]
+				},
+				{
+					"name": "Regional Mexican",
+					"sub_clusters": [
+						{
+							"name": "Banda and Sinaloan Styles",
+							"genres": [
+								"Banda",
+								"Banda Sinaloense",
+								"Banda Romántica",
+								"Banda MS",
+								"Quebradita",
+								"Tecnobanda",
+								"Banda Norteña",
+								"Banda Pop",
+								"Banda Tradicional"
+							]
+						},
+						{
+							"name": "Norteño and Conjunto",
+							"genres": [
+								"Norteño",
+								"Norteño-Banda",
+								"Conjunto",
+								"Tejano",
+								"Tex-Mex",
+								"Música Norteña",
+								"Sax",
+								"Accordion Music",
+								"Norteño-Sax",
+								"Norteño Romántico"
+							]
+						},
+						{
+							"name": "Corridos and Narrative",
+							"genres": [
+								"Corridos",
+								"Corridos Tumbados",
+								"Corridos Bélicos",
+								"Corrido Alterado",
+								"Movimiento Alterado",
+								"Corrido Prohibido",
+								"Narco Corridos",
+								"Corrido Progresivo",
+								"Sierreño"
+							]
+						},
+						{
+							"name": "Duranguense and Contemporary Regional",
+							"genres": [
+								"Duranguense",
+								"Pasito Duranguense",
+								"Grupero",
+								"Grupo",
+								"Cumbia Norteña",
+								"Ranchera Moderna",
+								"Regional Mexicano Moderno",
+								"Huapango Norteño"
+							]
+						}
+					]
+				},
+				{
+					"name": "Tropical and Caribbean",
+					"sub_clusters": [
+						{
+							"name": "Salsa Styles",
+							"genres": [
+								"Salsa",
+								"Salsa Dura",
+								"Salsa Romántica",
+								"Salsa Cubana",
+								"Salsa Puertorriqueña",
+								"Salsa Colombiana",
+								"Salsa Choke",
+								"Salsa Brava",
+								"Timba",
+								"Salsa Casino",
+								"Afro-Cuban Salsa",
+								"NY Salsa",
+								"Salsa Gorda"
+							]
+						},
+						{
+							"name": "Bachata Variations",
+							"genres": [
+								"Bachata",
+								"Bachata Tradicional",
+								"Bachata Moderna",
+								"Bachata Sensual",
+								"Bachata Rosa",
+								"Bachata Urbana",
+								"Bachatón",
+								"Dominican Bachata",
+								"Bachata Romántica",
+								"Neo-Bachata"
+							]
+						},
+						{
+							"name": "Merengue and Dominican Styles",
+							"genres": [
+								"Merengue",
+								"Merengue Típico",
+								"Merengue de Calle",
+								"Merengue Urbano",
+								"Mambo de Calle",
+								"Perico Ripiao",
+								"Merengue Electrónico",
+								"Merengue Hip Hop",
+								"Mambo"
+							]
+						},
+						{
+							"name": "Cumbia Variants",
+							"genres": [
+								"Cumbia",
+								"Cumbia Colombiana",
+								"Cumbia Mexicana",
+								"Cumbia Sonidera",
+								"Cumbia Villera",
+								"Cumbia Santafesina",
+								"Cumbia Peruana",
+								"Chicha",
+								"Cumbia Andina",
+								"Cumbia Norteña",
+								"Cumbia Pop",
+								"Cumbia Moderna",
+								"Cumbia Rebajada"
+							]
+						},
+						{
+							"name": "Other Tropical Styles",
+							"genres": [
+								"Champeta",
+								"Punta",
+								"Palo de Mayo",
+								"Soca Latino",
+								"Chutney Latino",
+								"Bomba",
+								"Plena",
+								"Guaguancó",
+								"Rumba Cubana",
+								"Cha-Cha-Chá",
+								"Danzón",
+								"Son Montuno"
+							]
+						}
+					]
+				},
+				{
+					"name": "Urban Latino",
+					"sub_clusters": [
+						{
+							"name": "Reggaeton",
+							"genres": [
+								"Reggaeton",
+								"Reggaeton Clásico",
+								"Reggaeton Romántico",
+								"Reggaeton Old School",
+								"Perreo",
+								"Perreo Viejo",
+								"Cubatón",
+								"Reggaeton Underground",
+								"Reggaeton Cristiano",
+								"Reggaeton Pop"
+							]
+						},
+						{
+							"name": "Trap Latino and Urban",
+							"genres": [
+								"Trap Latino",
+								"Latin Trap",
+								"Spanish Trap",
+								"Trapeton",
+								"Trap en Español",
+								"Trap Argentino",
+								"Trap Chileno",
+								"Trap Mexicano",
+								"Neo-Perreo",
+								"Trap Tumbado"
+							]
+						},
+						{
+							"name": "Dembow and Caribbean Urban",
+							"genres": [
+								"Dembow",
+								"Dembow Dominicano",
+								"Mambo",
+								"Mambo Dominicano",
+								"Dembowseo",
+								"Electro Mambo",
+								"Dominican Urban",
+								"Corporación Latina"
+							]
+						},
+						{
+							"name": "Urbano Latino Fusion",
+							"genres": [
+								"Urbano Latino",
+								"Latin Urban",
+								"Música Urbana",
+								"R&B Latino",
+								"Urban Bachata",
+								"Urban Salsa",
+								"Afrobeat Latino",
+								"Afro-Latino Urban",
+								"Moombahton Latino",
+								"Jersey Club Latino"
+							]
+						}
+					]
+				},
+				{
+					"name": "Latin Pop and Rock",
+					"sub_clusters": [
+						{
+							"name": "Latin Pop",
+							"genres": [
+								"Latin Pop",
+								"Pop Latino",
+								"Pop en Español",
+								"Balada Pop",
+								"Latin Dance Pop",
+								"Europop Latino",
+								"Teen Pop Latino",
+								"Adult Contemporary Latino",
+								"Romantic Pop"
+							]
+						},
+						{
+							"name": "Rock en Español",
+							"genres": [
+								"Rock en Español",
+								"Rock Latino",
+								"Rock Alternativo Latino",
+								"Ska Latino",
+								"Punk Latino",
+								"Metal Latino",
+								"Rock Urbano",
+								"Rock Mexicano",
+								"Rock Argentino",
+								"Rock Chileno",
+								"Rock Colombiano"
+							]
+						},
+						{
+							"name": "Alternative and Indie Latino",
+							"genres": [
+								"Indie Latino",
+								"Indie en Español",
+								"Alternative Latino",
+								"Folk Latino",
+								"Singer-Songwriter Latino",
+								"Nueva Canción",
+								"Latin Indie Pop",
+								"Bedroom Pop Latino",
+								"Lo-fi Latino"
+							]
+						}
+					]
+				},
+				{
+					"name": "Electronic Latin and Fusion",
+					"sub_clusters": [
+						{
+							"name": "Electronic Cumbia and Tropical",
+							"genres": [
+								"Cumbia Electrónica",
+								"Digital Cumbia",
+								"Electrocumbia",
+								"Cumbia Digital",
+								"Tribal Guarachero",
+								"3Ball",
+								"Electro Merengue",
+								"Electro Salsa",
+								"Tropical Bass"
+							]
+						},
+						{
+							"name": "Latin House and Club",
+							"genres": [
+								"Latin House",
+								"Tribal House Latino",
+								"Afro-Latin House",
+								"Brazilian Bass",
+								"Baile Funk",
+								"Funk Carioca",
+								"Latin Tech House",
+								"Guaracha",
+								"Aleteo",
+								"Zapateo"
+							]
+						},
+						{
+							"name": "Experimental Latin Electronic",
+							"genres": [
+								"Folktronica Latina",
+								"Electro-Folklore",
+								"Nu-Cumbia",
+								"Psychedelic Cumbia",
+								"Bass Latino",
+								"Global Bass Latino",
+								"Latin IDM",
+								"Andean Electronic",
+								"Digital Folklore"
+							]
+						}
+					]
+				},
+				{
+					"name": "Latin Jazz and Fusion",
+					"sub_clusters": [
+						{
+							"name": "Latin Jazz",
+							"genres": [
+								"Latin Jazz",
+								"Afro-Cuban Jazz",
+								"Brazilian Jazz",
+								"Jazz Latino",
+								"Bebop Latino",
+								"Latin Fusion Jazz",
+								"Smooth Latin Jazz",
+								"Contemporary Latin Jazz"
+							]
+						},
+						{
+							"name": "Afro-Latin Rhythms",
+							"genres": [
+								"Afro-Cuban",
+								"Afro-Caribbean",
+								"Afro-Latino",
+								"Latin Percussion",
+								"Conga",
+								"Bongo Jazz",
+								"Timbales",
+								"Batucada"
+							]
+						}
+					]
+				}
+			]
 		}
 	]
 }
