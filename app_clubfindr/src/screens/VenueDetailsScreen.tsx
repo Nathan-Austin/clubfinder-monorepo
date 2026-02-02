@@ -54,7 +54,12 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
             setLoadingEvents(true);
 
             // Use the discoveryService function to get venue events
-            const venueEvents = await discoveryService.getVenueEvents(venue.id, venue.venueType || 'bar', venue.name);
+            const venueEvents = await discoveryService.getVenueEvents(
+                venue.id, 
+                venue.venueType || 'bar', 
+                venue.name,
+                venue.club_name
+            );
 
             console.log(`Fetched ${venueEvents.length} events for ${venue.name}`);
 
@@ -217,6 +222,11 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
         } catch (e) {
             return false;
         }
+    };
+
+    // Helper to capitalize words
+    const capitalizeWords = (str: string): string => {
+        return str.replace(/\b\w/g, l => l.toUpperCase());
     };
 
     // Sort events by date
@@ -388,6 +398,22 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
                                     </Text>
                                 </View>
                             )}
+                        </View>
+                    )}
+
+                    {venue.artists && venue.artists.length > 0 && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Lineup</Text>
+                            <View style={styles.artistsContainer}>
+                                {venue.artists.map((artist, index) => (
+                                    <View key={index} style={styles.artistRow}>
+                                        <Text style={styles.artistBullet}>•</Text>
+                                        <Text style={styles.artistNameDetail}>
+                                            {capitalizeWords(artist.name)}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
                     )}
                 </>
@@ -641,6 +667,26 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 12,
         fontWeight: 'bold',
+    },
+    // Artist/Lineup styles
+    artistsContainer: {
+        marginTop: 5,
+    },
+    artistRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    artistBullet: {
+        color: '#D35400',
+        fontSize: 18,
+        marginRight: 10,
+        lineHeight: 20,
+    },
+    artistNameDetail: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '500',
     },
     // Genre styles
     genreContainer: {

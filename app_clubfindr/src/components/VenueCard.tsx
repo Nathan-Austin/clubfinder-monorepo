@@ -177,7 +177,7 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
                 <View style={styles.artistsContainer}>
                     <Text style={styles.artistsLabel}>Lineup: </Text>
                     <Text style={styles.artistsList} numberOfLines={2}>
-                        {venue.artists.map(a => a.name).join(', ')}
+                        {venue.artists.map(a => a.name.replace(/\b\w/g, l => l.toUpperCase())).join(', ')}
                     </Text>
                 </View>
             )}
