@@ -14,17 +14,40 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
     const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
+    const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
     const [loadingEvents, setLoadingEvents] = useState(true);
     const [events, setEvents] = useState<discoveryService.Event[]>([]);
     const isClub = venue.venueType === 'club';
 
     useEffect(() => {
-        // Get location and calculate distance
-        getUserLocation();
+        // Check permissions and get location
+        checkPermissionsAndGetLocation();
 
         // Fetch events for this venue
         fetchVenueEvents();
     }, []);
+
+    const checkPermissionsAndGetLocation = async () => {
+        try {
+            setLoading(true);
+
+            // Check permission status first
+            const permissionStatus = await discoveryService.checkLocationPermission();
+
+            if (permissionStatus === 'denied') {
+                // Permission was previously denied
+                setLocationPermissionDenied(true);
+                setLoading(false);
+                return;
+            }
+
+            // Try to get location (this will request permission if undetermined)
+            await getUserLocation();
+        } catch (error) {
+            console.error('Error checking permissions:', error);
+            setLoading(false);
+        }
+    };
 
     const fetchVenueEvents = async () => {
         try {
@@ -70,7 +93,6 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
 
     const getUserLocation = async () => {
         try {
-            setLoading(true);
             const location = await discoveryService.getCurrentLocation();
             if (location) {
                 setUserLocation(location);
@@ -101,9 +123,13 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
                         console.error('Error geocoding address:', geocodeError);
                     }
                 }
+            } else {
+                // Location permission was denied
+                setLocationPermissionDenied(true);
             }
         } catch (error) {
             console.error('Error getting user location:', error);
+            setLocationPermissionDenied(true);
         } finally {
             setLoading(false);
         }
@@ -313,6 +339,15 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
 
                 {loading ? (
                     <ActivityIndicator size="small" color="#FFFFFF" style={styles.distanceLoader} />
+                ) : locationPermissionDenied ? (
+                    <View style={styles.permissionDeniedContainer}>
+                        <Text style={styles.permissionDeniedText}>
+                            <Text style={styles.redX}>✗</Text> Distance - Location permissions not granted
+                        </Text>
+                        <Text style={styles.permissionSubtext}>
+                            Enable location permissions to see {isClub ? 'clubs' : 'bars'} close to you
+                        </Text>
+                    </View>
                 ) : distance ? (
                     <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
                 ) : null}
@@ -499,6 +534,25 @@ const styles = StyleSheet.create({
     },
     distanceLoader: {
         marginTop: 5,
+    },
+    permissionDeniedContainer: {
+        marginTop: 8,
+    },
+    permissionDeniedText: {
+        fontSize: 13,
+        color: '#FFFFFF',
+        fontWeight: '500',
+    },
+    redX: {
+        color: '#FF4444',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    permissionSubtext: {
+        fontSize: 11,
+        color: '#FFFFFF',
+        opacity: 0.7,
+        marginTop: 2,
     },
     section: {
         padding: 20,

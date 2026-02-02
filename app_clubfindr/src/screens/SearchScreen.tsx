@@ -250,8 +250,13 @@ const SearchScreen = () => {
             // Fetch both bars and clubs
             await fetchVenuesWithGenres(selectedGenres);
 
-            // Navigate to Tilki tab
-            navigation.navigate('Main', { screen: 'Tilki' });
+            // Navigate to Tilki tab with refresh key
+            navigation.navigate('Main', { 
+                screen: 'Tilki',
+                params: {
+                    refreshKey: Date.now()
+                }
+            });
         } catch (error) {
             console.error('Error processing selection:', error);
             Alert.alert('Error', 'Failed to process your selection. Please try again.');
@@ -370,13 +375,32 @@ const SearchScreen = () => {
                     <Text style={styles.headerText}>{subgenre?.name}</Text>
                     <ScrollView>
                         {subgenre?.subsubgenres?.map(subsubgenre => (
-                            <TouchableOpacity
+                            <View
                                 key={subsubgenre.name}
-                                style={styles.genreItem}
-                                onPress={() => setSelectedSubSubgenre(subsubgenre.name)}
+                                style={[
+                                    styles.genreItem,
+                                    selectedGenres.includes(subsubgenre.name) && styles.selectedGenre
+                                ]}
                             >
-                                <Text style={styles.genreText}>{subsubgenre.name} →</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.genreItemLeft}
+                                    onPress={() => toggleGenreSelection(subsubgenre.name)}
+                                >
+                                    {selectedGenres.includes(subsubgenre.name) && (
+                                        <Text style={styles.checkmark}>✓</Text>
+                                    )}
+                                    <View>
+                                        <Text style={styles.genreText}>{subsubgenre.name}</Text>
+                                        <Text style={styles.subGenreHint}>Select full set</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.genreItemRight}
+                                    onPress={() => setSelectedSubSubgenre(subsubgenre.name)}
+                                >
+                                    <Text style={styles.genreText}>→</Text>
+                                </TouchableOpacity>
+                            </View>
                         ))}
                     </ScrollView>
                 </View>
@@ -438,8 +462,13 @@ const SearchScreen = () => {
             // Fetch both bars and clubs with the selected genres
             await fetchVenuesWithGenres(selectedGenres);
 
-            // Navigate to Tilki tab
-            navigation.navigate('Tilki');
+            // Navigate to Tilki tab with refresh key
+            navigation.navigate('Main', { 
+                screen: 'Tilki',
+                params: {
+                    refreshKey: Date.now()
+                }
+            });
         } catch (error) {
             console.error('Error storing genres:', error);
             Alert.alert('Error', 'Failed to process your genre selection.');
@@ -764,6 +793,9 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
     },
+    selectedGenresContainer: {
+        marginBottom: 16,
+    },
     selectedGenresHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -934,10 +966,30 @@ const styles = StyleSheet.create({
         color: '#ffffff',
     },
     genreItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#333333', // Darker border
+    },
+    genreItemLeft: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    genreItemRight: {
+        paddingLeft: 16,
+        paddingVertical: 8,
+        borderLeftWidth: 1,
+        borderLeftColor: '#333333',
+        marginLeft: 8,
+    },
+    subGenreHint: {
+        fontSize: 12,
+        color: '#D35400',
+        marginTop: 2,
     },
     selectedGenre: {
         backgroundColor: 'rgba(29, 185, 84, 0.2)', // Transparent Spotify green

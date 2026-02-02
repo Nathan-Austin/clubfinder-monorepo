@@ -250,57 +250,76 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
             }));
         } else {
             // For clubs, we need to get all events from the club
-            // The endpoint from the server file you shared is for a single event
-            // So we'll need to make a separate call to get all events for the club
-
-            // First, try to get events for this club using the name
+            
+            // First, try to get events for this club using the ID (Most reliable)
+            // Using /clubs/ endpoint as /events/ might be incorrect for fetching club specific events list
+            let eventsFound = false;
+            
             try {
-                const response = await axiosClient.get(`/api/mobile/clubs/${encodeURIComponent(venueName || '')}`);
-
-                if (response.data && Array.isArray(response.data)) {
-                    console.log(`Received ${response.data.length} events for club ${venueName || venueId}`);
-
-                    // Format the club events
-                    return response.data.map((event: any) => ({
-                        id: event.id || `event-${Math.random()}`,
-                        theme_name: event.name || event.event_name || 'Event',
-                        description: event.description || '',
-                        event_date: event.date || event.event_date || new Date().toISOString().split('T')[0],
-                        start_time: event.start_time || null,
-                        end_time: event.end_time || null,
-                        recurring: false, // Clubs typically don't have recurring events in the same way as bars
-                        recurrence_pattern: null,
-                        special_genres: Array.isArray(event.genres) ? event.genres : []
-                    }));
-                }
-            } catch (clubError) {
-                console.error(`Error fetching club events from endpoint:`, clubError);
-                // Fall through to the next approach if this fails
-            }
-
-            // If we couldn't get events from the club endpoint by name, try using the ID
-            try {
-                const response = await axiosClient.get(`/api/mobile/events/${venueId}`);
+                console.log(`Attempting to fetch club events from /api/mobile/clubs/${venueId}`);
+                const response = await axiosClient.get(`/api/mobile/clubs/${venueId}`);
 
                 if (response.data) {
-                    // Handle both array and single event responses
-                    const eventsData = Array.isArray(response.data) ? response.data : [response.data];
-                    console.log(`Retrieved ${eventsData.length} events for club ${venueId}`);
+                    let eventsData: any[] = [];
+                    
+                    if (Array.isArray(response.data)) {
+                        eventsData = response.data;
+                    } else if (response.data.events && Array.isArray(response.data.events)) {
+                        eventsData = response.data.events;
+                    } else {
+                        // If it's a single object without events array, treat it as the event itself
+                        eventsData = [response.data];
+                    }
 
-                    return eventsData.map((event: any) => ({
-                        id: event.id || `event-${Math.random()}`,
-                        theme_name: event.name || event.event_name || 'Event',
-                        description: event.description || '',
-                        event_date: event.date || event.event_date || new Date().toISOString().split('T')[0],
-                        start_time: event.start_time || null,
-                        end_time: event.end_time || null,
-                        recurring: false,
-                        recurrence_pattern: null,
-                        special_genres: Array.isArray(event.genres) ? event.genres : []
-                    }));
+                    console.log(`Retrieved ${eventsData.length} events for club ${venueId} from /clubs/ endpoint`);
+
+                    if (eventsData.length > 0) {
+                        return eventsData.map((event: any) => ({
+                            id: event.id || `event-${Math.random()}`,
+                            theme_name: event.name || event.event_name || 'Event',
+                            description: event.description || '',
+                            event_date: event.date || event.event_date || new Date().toISOString().split('T')[0],
+                            start_time: event.start_time || null,
+                            end_time: event.end_time || null,
+                            recurring: false,
+                            recurrence_pattern: null,
+                            special_genres: Array.isArray(event.genres) ? event.genres : []
+                        }));
+                    } else {
+                         console.log('ID fetch returned empty array, falling back to other methods');
+                    }
+                } else {
+                    console.log('ID fetch returned no data');
                 }
             } catch (eventError) {
-                console.error(`Error fetching club events by ID:`, eventError);
+                console.log(`Fetching club events by ID failed, trying by name... Error: ${eventError}`);
+            }
+
+            // If we couldn't get events from the events endpoint by ID, try using the club name
+            if (venueName) {
+                try {
+                    const response = await axiosClient.get(`/api/mobile/clubs/${encodeURIComponent(venueName)}`);
+
+                    if (response.data && Array.isArray(response.data)) {
+                        console.log(`Received ${response.data.length} events for club ${venueName}`);
+
+                        // Format the club events
+                        return response.data.map((event: any) => ({
+                            id: event.id || `event-${Math.random()}`,
+                            theme_name: event.name || event.event_name || 'Event',
+                            description: event.description || '',
+                            event_date: event.date || event.event_date || new Date().toISOString().split('T')[0],
+                            start_time: event.start_time || null,
+                            end_time: event.end_time || null,
+                            recurring: false, // Clubs typically don't have recurring events in the same way as bars
+                            recurrence_pattern: null,
+                            special_genres: Array.isArray(event.genres) ? event.genres : []
+                        }));
+                    }
+                } catch (clubError) {
+                    console.error(`Error fetching club events from endpoint:`, clubError);
+                    // Fall through to the next approach if this fails
+                }
             }
 
             // If everything else failed, use the current event from the venue object if available
@@ -337,6 +356,19 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
 */
 export const getClubEvents = async (clubId: string, clubName?: string): Promise<Event[]> => {
     return getVenueEvents(clubId, 'club', clubName);
+};
+
+// Function to check location permission status without requesting
+export const checkLocationPermission = async (): Promise<'granted' | 'denied' | 'undetermined'> => {
+    try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') return 'granted';
+        if (status === 'denied') return 'denied';
+        return 'undetermined';
+    } catch (error) {
+        console.error('Error checking location permission:', error);
+        return 'denied';
+    }
 };
 
 // Function to request location permission and get current location
