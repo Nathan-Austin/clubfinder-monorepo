@@ -67,7 +67,8 @@ interface GenreCluster {
 
 interface SubCluster {
 	name: string;
-	genres: string[];
+	genres?: string[];
+	sub_clusters?: SubCluster[]; // For nested structure like Latin music
 }
 
 interface GenreClustersData {
@@ -97,17 +98,43 @@ interface UnifiedGenresData {
 const convertToUnifiedFormat = (clustersData: GenreClustersData): UnifiedGenresData => {
 	const categories: UnifiedCategory[] = clustersData.clusters.map((cluster) => {
 		const subgenres: UnifiedSubgenre[] = cluster.sub_clusters.map((subCluster) => {
-			// For the unified format, we put the genres at the subgenre level
-			// and don't add subsubgenres unless there are many genres to organize
-			const subgenre: UnifiedSubgenre = {
-				name: subCluster.name,
-				genres: subCluster.genres
-			};
+			// Check if this subCluster has nested sub_clusters (like Latin music)
+			// or direct genres (like most other clusters)
 
-			// If there are more than 15 genres, we could optionally split them
-			// into subsubgenres for better UI organization, but for now we keep
-			// the simpler structure
-			return subgenre;
+			if (subCluster.sub_clusters && subCluster.sub_clusters.length > 0) {
+				// Nested structure: sub_clusters contain more sub_clusters with genres
+				// Map these to subsubgenres
+				const subsubgenres: UnifiedSubSubgenre[] = subCluster.sub_clusters.map((nestedCluster) => ({
+					name: nestedCluster.name,
+					genres: nestedCluster.genres || []
+				}));
+
+				// Collect all genres from nested clusters for preview
+				const allGenres = subCluster.sub_clusters.flatMap((nc) => nc.genres || []);
+				const previewGenres = allGenres.slice(0, 3);
+
+				return {
+					name: subCluster.name,
+					genres: previewGenres,
+					subsubgenres
+				};
+			} else {
+				// Flat structure: genres are directly in the subCluster
+				const genresList = subCluster.genres || [];
+				const previewGenres = genresList.slice(0, 3);
+
+				return {
+					name: subCluster.name,
+					genres: previewGenres,
+					// Create a single subsubgenre group containing all the specific genres
+					subsubgenres: [
+						{
+							name: subCluster.name,
+							genres: genresList
+						}
+					]
+				};
+			}
 		});
 
 		return {
