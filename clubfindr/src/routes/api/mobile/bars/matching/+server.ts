@@ -95,6 +95,66 @@ interface ClusterResult {
 	subCluster: string;
 }
 
+// Function to expand subsubgenre group names to their individual genres
+const expandGenreGroups = (genres: string[]): string[] => {
+	const expandedGenres: string[] = [];
+
+	interface SubCluster {
+		name: string;
+		genres?: string[];
+		sub_clusters?: SubCluster[];
+	}
+
+	// Recursive function to find and expand a group name
+	const findAndExpandGroup = (groupName: string, subClusters: SubCluster[]): string[] | null => {
+		const normalizedGroupName = normalizeGenre(groupName);
+
+		for (const subCluster of subClusters) {
+			const normalizedSubClusterName = normalizeGenre(subCluster.name);
+
+			// If this subCluster name matches the group name, return its genres
+			if (normalizedSubClusterName === normalizedGroupName) {
+				return subCluster.genres || [];
+			}
+
+			// Recursively search in nested sub_clusters
+			if (subCluster.sub_clusters) {
+				const found = findAndExpandGroup(groupName, subCluster.sub_clusters);
+				if (found) return found;
+			}
+		}
+
+		return null;
+	};
+
+	// Process each genre
+	for (const genre of genres) {
+		let expanded = false;
+
+		// Check if this genre is actually a group name in any cluster
+		for (const cluster of genreClusters.clusters as Array<{
+			name: string;
+			sub_clusters: SubCluster[];
+		}>) {
+			const groupGenres = findAndExpandGroup(genre, cluster.sub_clusters);
+			if (groupGenres && groupGenres.length > 0) {
+				// This is a group name - add all its individual genres
+				expandedGenres.push(...groupGenres);
+				expanded = true;
+				console.log(`Expanded genre group "${genre}" to ${groupGenres.length} individual genres`);
+				break;
+			}
+		}
+
+		// If not a group name, keep the genre as-is
+		if (!expanded) {
+			expandedGenres.push(genre);
+		}
+	}
+
+	return expandedGenres;
+};
+
 const findGenreClusters = (genres: string[] | { [key: string]: number }): ClusterResult[] => {
 	const clusters: ClusterResult[] = [];
 	const missingGenres = new Set<string>();
@@ -269,8 +329,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		const today = new Date().toISOString().split('T')[0];
 		const date = requestedDate || today;
 
+		// Expand any genre group names to their individual genres
+		// e.g., "Reggaeton and Dembow" -> ["Reggaeton", "Dembow", "Trap Latino", ...]
+		const expandedGenres = expandGenreGroups(genres);
+
 		console.log(
-			`Finding matching bars in ${normalizedCity} for date ${date} with ${genres.length} genres`
+			`Finding matching bars in ${normalizedCity} for date ${date} with ${genres.length} genres (expanded to ${expandedGenres.length})`
 		);
 
 		// Get all bars for the specified city with their most recent genre profiles
@@ -394,12 +458,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		console.log(`Found ${bars.length} bars, now calculating genre matches`);
 
-		// Expand user genres for better matching
-		const expandedGenres = expandCompoundGenres(genres);
-		console.log('Expanded user genres:', expandedGenres);
+		// Further expand compound genres (e.g., "deep/tech house" -> ["deep house", "tech house"])
+		const fullyExpandedGenres = expandCompoundGenres(expandedGenres);
+		console.log('Fully expanded user genres:', fullyExpandedGenres);
 
 		// Find genre clusters for expanded user genres
-		const userClusters = findGenreClusters(expandedGenres);
+		const userClusters = findGenreClusters(fullyExpandedGenres);
 
 		if (userClusters.length === 0) {
 			console.log('No clusters found for user genres, returning all bars without matching');
