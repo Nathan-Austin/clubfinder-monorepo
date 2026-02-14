@@ -19,7 +19,6 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 	const redirect_uri = `${protocol}//${host}/api/soundcloud/callback`;
 
 	const savedState = cookieManager.get(cookies, 'sc_auth_state');
-	const codeVerifier = cookieManager.get(cookies, 'sc_code_verifier');
 
 	if (!state || state !== savedState) {
 		console.error('State mismatch or missing');
@@ -29,11 +28,6 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 	if (!code) {
 		console.error('No authorization code received');
 		throw redirect(303, '/?error=missing_code');
-	}
-
-	if (!codeVerifier) {
-		console.error('No code verifier found');
-		throw redirect(303, '/?error=missing_verifier');
 	}
 
 	try {
@@ -48,8 +42,7 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 				client_secret,
 				redirect_uri,
 				grant_type: 'authorization_code',
-				code,
-				code_verifier: codeVerifier
+				code
 			}).toString()
 		});
 
@@ -74,7 +67,12 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 		}
 
 		// Success logging
-		console.info('Token exchange successful');
+		console.info('Token exchange successful:', {
+			tokenFormat: data.access_token?.substring(0, 10) + '...',
+			tokenType: data.token_type,
+			scope: data.scope || 'none',
+			expiresIn: data.expires_in
+		});
 
 		// Check for return_to URL
 		const returnTo = cookieManager.get(cookies, 'sc_return_to');
@@ -82,7 +80,6 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 
 		// Cleanup auth cookies
 		cookieManager.delete(cookies, 'sc_auth_state');
-		cookieManager.delete(cookies, 'sc_code_verifier');
 
 		// Set the access token cookie
 		cookieManager.set(cookies, 'soundcloud_access_token', data.access_token, {
