@@ -18,15 +18,19 @@ export class SoundCloudClient {
 	}
 
 	private getHeaders(): HeadersInit {
-		// OAuth 2.0 PKCE tokens are JWTs that require Bearer prefix
+		// V2 API expects OAuth prefix, mimicking the SoundCloud website
 		const authHeader =
 			this.accessToken.startsWith('OAuth') || this.accessToken.startsWith('Bearer')
 				? this.accessToken
-				: `Bearer ${this.accessToken}`;
+				: `OAuth ${this.accessToken}`;
 
 		return {
 			Authorization: authHeader,
-			Accept: 'application/json'
+			Accept: 'application/json, text/javascript, */*; q=0.01',
+			'User-Agent':
+				'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0',
+			Origin: 'https://soundcloud.com',
+			Referer: 'https://soundcloud.com/'
 		};
 	}
 
