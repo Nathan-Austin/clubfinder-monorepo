@@ -70,6 +70,11 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 		// 1. Get user profile first to get the ID
 		const userMe = await client.getMe();
 
+		if (!userMe?.id) {
+			console.error('[SoundCloud] Failed to get user profile - token may be invalid');
+			throw redirect(303, '/api/soundcloud/auth');
+		}
+
 		// 2. Fetch comprehensive data in parallel
 		const [historyResult, activitiesResult, playlistsResult, likesResult] =
 			await Promise.allSettled([
