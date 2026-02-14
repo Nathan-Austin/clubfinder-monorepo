@@ -3,7 +3,7 @@
 	import type { spPlaylist, spTrack, spActivity } from '$lib/$types';
 
 	export let data: {
-		topTracks: (spTrack & { playCount: number })[];
+		topTracks: spTrack[];
 		topArtists: {
 			username: string;
 			avatar_url: string | null;
@@ -11,13 +11,15 @@
 			artistId: number;
 			selected?: boolean;
 			tags?: string[];
-			genre?: string[] | null;
+			genre?: string | null;
+			tag_list?: string;
+			description?: string;
 		}[];
 		topPlaylists: spPlaylist[];
 		recentTracks: spActivity[];
 		debug: {
 			likedTracksCount: number;
-			recentTracksCount: number;
+			topTracksCount: number;
 			playlistsCount: number;
 		};
 	};
@@ -250,9 +252,9 @@
 											Tags: {artist.tags.join(', ')}
 										</p>
 									{/if}
-									{#if Array.isArray(artist.genre) && artist.genre.length > 0}
+									{#if artist.genre}
 										<p class="text-xs opacity-75 truncate text-white">
-											Genres: {artist.genre.join(', ')}
+											Genre: {artist.genre}
 										</p>
 									{/if}
 								</div>
@@ -264,7 +266,7 @@
 
 			<!-- Tracks Section -->
 			<section class="tracks-section {view !== 'tracks' ? 'hidden lg:block' : ''}">
-				<h2 class="text-2xl font-bold mb-4">Recently Played Tracks</h2>
+				<h2 class="text-2xl font-bold mb-4">Recent Activity</h2>
 				<div class="grid gap-4">
 					{#each data.recentTracks as activity}
 						{#if activity.origin}
@@ -309,9 +311,7 @@
 										{/if}
 										{#if activity.origin.genre}
 											<p class="text-xs opacity-75 truncate text-white">
-												Genres: {Array.isArray(activity.origin.genre)
-													? activity.origin.genre.join(', ')
-													: activity.origin.genre}
+												Genre: {activity.origin.genre}
 											</p>
 										{/if}
 									</div>

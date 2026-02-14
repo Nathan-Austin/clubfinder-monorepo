@@ -1,31 +1,31 @@
 import type { spTrack, spPlaylist, spUser, spActivity } from '$lib/$types';
 
-export interface PlayHistoryResponse {
-	collection: Array<{
-		played_at: string;
-		track: spTrack;
-	}>;
-	next_href?: string;
-}
+type ApiTarget = 'v2-auth' | 'v2-public';
 
 export class SoundCloudClient {
-	private readonly baseUrl = 'https://api-v2.soundcloud.com';
-	private readonly officialBaseUrl = 'https://api.soundcloud.com';
-	private readonly defaultClientId = 'EnTrn2ZjaZXfOU7iRsFicZvTOi1Pl3rK';
+	private readonly v2BaseUrl = 'https://api-v2.soundcloud.com';
+	// Web-extracted client_id that works with v2 public API
+	private readonly webClientId = 'EnTrn2ZjaZXfOU7iRsFicZvTOi1Pl3rK';
+	// OAuth app client_id for authenticated requests
+	private readonly appClientId: string;
 
-	constructor(private accessToken: string, private clientId?: string) {
-		this.clientId = clientId || this.defaultClientId;
+	constructor(private accessToken: string, clientId?: string) {
+		this.appClientId = clientId || this.webClientId;
 	}
 
-	private getHeaders(): HeadersInit {
-		// V2 API expects OAuth prefix, mimicking the SoundCloud website
-		const authHeader =
-			this.accessToken.startsWith('OAuth') || this.accessToken.startsWith('Bearer')
-				? this.accessToken
-				: `OAuth ${this.accessToken}`;
-
+	private getV2AuthHeaders(): HeadersInit {
 		return {
-			Authorization: authHeader,
+			Authorization: `OAuth ${this.accessToken}`,
+			Accept: 'application/json, text/javascript, */*; q=0.01',
+			'User-Agent':
+				'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0',
+			Origin: 'https://soundcloud.com',
+			Referer: 'https://soundcloud.com/'
+		};
+	}
+
+	private getV2PublicHeaders(): HeadersInit {
+		return {
 			Accept: 'application/json, text/javascript, */*; q=0.01',
 			'User-Agent':
 				'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0',
@@ -37,23 +37,26 @@ export class SoundCloudClient {
 	private async request<T>(
 		path: string,
 		options: RequestInit = {},
-		useOfficial: boolean = false,
+		target: ApiTarget = 'v2-auth',
 		gracefulErrors: boolean = true
 	): Promise<T> {
-		const base = useOfficial ? this.officialBaseUrl : this.baseUrl;
+		const headers = target === 'v2-auth' ? this.getV2AuthHeaders() : this.getV2PublicHeaders();
+		// Use OAuth app client_id for auth requests, web client_id for public requests
+		const clientId = target === 'v2-auth' ? this.appClientId : this.webClientId;
 
-		// Add client_id to all requests as it's often required for V2
 		const separator = path.includes('?') ? '&' : '?';
 		const urlWithId = path.startsWith('http')
 			? path
-			: `${base}${path.startsWith('/') ? '' : '/'}${path}${separator}client_id=${this.clientId}`;
+			: `${this.v2BaseUrl}${
+					path.startsWith('/') ? '' : '/'
+			  }${path}${separator}client_id=${clientId}`;
 
-		console.log(`[SoundCloudClient] Requesting: ${urlWithId}`);
+		console.log(`[SoundCloudClient] ${target} → ${urlWithId}`);
 
 		const response = await fetch(urlWithId, {
 			...options,
 			headers: {
-				...this.getHeaders(),
+				...headers,
 				...options.headers
 			}
 		});
@@ -62,7 +65,6 @@ export class SoundCloudClient {
 			const errorBody = await response.text();
 			console.error(`[SoundCloudClient] Error ${response.status} for ${urlWithId}:`, errorBody);
 
-			// Return empty collections for common errors to keep the UI functional
 			if (gracefulErrors && (response.status === 404 || response.status === 403)) {
 				return { collection: [] } as T;
 			}
@@ -74,59 +76,116 @@ export class SoundCloudClient {
 		return response.json();
 	}
 
+	// --- Authenticated user endpoints (try v2 with OAuth JWT, fallback to JWT decode) ---
+
 	async getMe(): Promise<spUser> {
-		return this.request<spUser>('/me', {}, false, false);
+		// Try v2 with OAuth token first
+		try {
+			const result = await this.request<spUser>('/me', {}, 'v2-auth', false);
+			if (result?.id) return result;
+		} catch (err) {
+			console.log('[SoundCloudClient] /me failed with auth, trying JWT decode fallback');
+		}
+
+		// Fallback: decode user ID from JWT and fetch public profile
+		const userId = SoundCloudClient.decodeJwtUserId(this.accessToken);
+		if (userId) {
+			console.log(`[SoundCloudClient] Decoded user ID from JWT: ${userId}`);
+			return this.request<spUser>(`/users/${userId}`, {}, 'v2-public', false);
+		}
+
+		throw new Error('Cannot determine user identity: /me failed and JWT decode failed');
 	}
 
-	async getPlayHistory(limit: number = 25, offset: number = 0): Promise<PlayHistoryResponse> {
-		return this.request<PlayHistoryResponse>(
-			`/me/play-history/tracks?limit=${limit}&offset=${offset}&linked_partitioning=1`
-		);
-	}
-
-	async getUserTracks(
-		userId: number,
-		limit: number = 50
-	): Promise<{ collection: spTrack[]; next_href?: string }> {
-		return this.request(`/users/${userId}/tracks?limit=${limit}&linked_partitioning=1`);
+	async getLikedTracks(limit: number = 30): Promise<{ collection: spTrack[]; next_href?: string }> {
+		// Try authenticated first, fall back to public endpoint with user ID
+		try {
+			return await this.request(
+				`/me/track_likes?limit=${limit}&linked_partitioning=1`,
+				{},
+				'v2-auth'
+			);
+		} catch {
+			// Will return empty via graceful error handling
+			return { collection: [] };
+		}
 	}
 
 	async getUserPlaylists(
 		userId: number,
 		limit: number = 50
 	): Promise<{ collection: spPlaylist[]; next_href?: string }> {
-		return this.request(`/users/${userId}/playlists?limit=${limit}&linked_partitioning=1`);
-	}
-
-	async getUserLikes(
-		userId: number,
-		limit: number = 50
-	): Promise<{ collection: (spTrack | spPlaylist)[]; next_href?: string }> {
-		return this.request(`/users/${userId}/likes?limit=${limit}&linked_partitioning=1`);
+		// Use public endpoint — works without auth
+		return this.request(
+			`/users/${userId}/playlists?limit=${limit}&linked_partitioning=1`,
+			{},
+			'v2-public'
+		);
 	}
 
 	async getRecentActivities(
 		limit: number = 25
 	): Promise<{ collection: spActivity[]; next_href?: string }> {
-		return this.request(`/activities?limit=${limit}&linked_partitioning=1`);
+		return this.request(`/me/activities?limit=${limit}&linked_partitioning=1`, {}, 'v2-auth');
+	}
+
+	async getUserLikes(
+		userId: number,
+		limit: number = 50
+	): Promise<{ collection: spTrack[]; next_href?: string }> {
+		return this.request(
+			`/users/${userId}/likes?limit=${limit}&linked_partitioning=1`,
+			{},
+			'v2-public'
+		);
+	}
+
+	// --- V2 Public API (unauthenticated, client_id only) ---
+
+	async getArtist(userId: number): Promise<spUser & { description?: string; tag_list?: string }> {
+		return this.request(`/users/${userId}`, {}, 'v2-public');
+	}
+
+	async getUserTracks(
+		userId: number,
+		limit: number = 50
+	): Promise<{ collection: spTrack[]; next_href?: string }> {
+		return this.request(
+			`/users/${userId}/tracks?limit=${limit}&linked_partitioning=1`,
+			{},
+			'v2-public'
+		);
 	}
 
 	async resolve(url: string): Promise<spTrack | spPlaylist | spUser> {
-		return this.request(`/resolve?url=${encodeURIComponent(url)}`);
+		return this.request(`/resolve?url=${encodeURIComponent(url)}`, {}, 'v2-public');
 	}
 
-	// For fetching artist details including tags/genres
-	async getArtist(userId: number): Promise<spUser & { description?: string; tag_list?: string }> {
-		return this.request(`/users/${userId}`);
+	// --- Utilities ---
+
+	static parseTagList(tagList: string): string[] {
+		if (!tagList) return [];
+		const matches = tagList.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+		return matches.map((t) => t.replace(/"/g, '').trim()).filter(Boolean);
 	}
 
-	async getLikedTracks(limit: number = 30): Promise<{ collection: spTrack[]; next_href?: string }> {
-		return this.request(`/me/track_likes?limit=${limit}&linked_partitioning=1`);
-	}
-
-	async getLibraryTracks(
-		limit: number = 30
-	): Promise<{ collection: (spTrack | spPlaylist)[]; next_href?: string }> {
-		return this.request(`/me/library/all?limit=${limit}&linked_partitioning=1`);
+	static decodeJwtUserId(token: string): number | null {
+		try {
+			const parts = token.split('.');
+			if (parts.length !== 3) return null;
+			const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+			console.log('[SoundCloudClient] JWT claims:', Object.keys(payload).join(', '));
+			// SoundCloud JWT uses 'sub' for user URN like "soundcloud:users:123456"
+			const sub = payload.sub || payload.user_id || payload.uid;
+			if (typeof sub === 'number') return sub;
+			if (typeof sub === 'string') {
+				const match = sub.match(/(\d+)$/);
+				if (match) return parseInt(match[1], 10);
+			}
+			return null;
+		} catch (err) {
+			console.error('[SoundCloudClient] JWT decode failed:', err);
+			return null;
+		}
 	}
 }

@@ -2,6 +2,7 @@ import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { SoundCloudClient } from '$lib/soundcloud/client';
 import { cookieManager } from '$lib/cookieManager';
+import type { spTrack, spUser } from '$lib/$types';
 
 interface SCTokenResponse {
 	access_token: string;
@@ -75,35 +76,38 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 			throw redirect(303, '/api/soundcloud/auth');
 		}
 
-		// 2. Fetch comprehensive data in parallel
-		const [historyResult, activitiesResult, playlistsResult, likesResult] =
-			await Promise.allSettled([
-				client.getPlayHistory(50),
-				client.getRecentActivities(50),
-				client.getUserPlaylists(userMe.id, 20),
-				client.getLikedTracks(50)
-			]);
+		// 2. Fetch data in parallel: likes (public), activities (auth), playlists (public)
+		const [likesResult, activitiesResult, playlistsResult] = await Promise.allSettled([
+			client.getUserLikes(userMe.id, 50),
+			client.getRecentActivities(50),
+			client.getUserPlaylists(userMe.id, 20)
+		]);
 
-		const playHistory =
-			historyResult.status === 'fulfilled' ? historyResult.value : { collection: [] };
+		const userLikes = likesResult.status === 'fulfilled' ? likesResult.value : { collection: [] };
 		const userActivities =
 			activitiesResult.status === 'fulfilled' ? activitiesResult.value : { collection: [] };
 		const userPlaylists =
 			playlistsResult.status === 'fulfilled' ? playlistsResult.value : { collection: [] };
-		const userLikes = likesResult.status === 'fulfilled' ? likesResult.value : { collection: [] };
 
-		// 3. Extract Recently Played Tracks
-		const recentTracks = (playHistory.collection || []).map((item) => item.track).filter(Boolean);
+		// 3. Top Tracks derived from liked tracks sorted by playback_count
+		// v2 /users/{id}/likes wraps items as { track: {...} } or bare tracks
+		const likedTracks = (userLikes.collection || [])
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			.map((item: any) => item.track || item)
+			.filter((item: spTrack) => item?.title && item?.user) as spTrack[];
+		const topTracks = [...likedTracks]
+			.sort((a, b) => (b.playback_count || 0) - (a.playback_count || 0))
+			.slice(0, 30);
 
 		interface ArtistCount extends spUser {
 			playCount: number;
 			artistId: number;
-			genre?: string | string[] | null;
+			genre?: string | null;
 			tag_list?: string;
 			description?: string;
 		}
 
-		// 4. Calculate \"Top Artists\" by aggregating across History, Activities, and Likes
+		// 4. Calculate "Top Artists" by aggregating across Likes and Activities
 		const artistCounts = new Map<number, ArtistCount>();
 
 		const processTrackForArtist = (track: spTrack, weight: number) => {
@@ -118,10 +122,11 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 				};
 				current.playCount += weight;
 
-				// Keep track of all genres/tags seen for this artist
+				// Accumulate genres (string, comma-separated)
 				if (track.genre && !current.genre?.includes(track.genre)) {
 					current.genre = current.genre ? `${current.genre}, ${track.genre}` : track.genre;
 				}
+				// Accumulate tag_list
 				if (track.tag_list && !current.tag_list?.includes(track.tag_list)) {
 					current.tag_list = current.tag_list
 						? `${current.tag_list} ${track.tag_list}`
@@ -132,9 +137,8 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 			}
 		};
 
-		// Weight history more heavily than likes for "Top" calculation
-		(playHistory.collection || []).forEach((item) => processTrackForArtist(item.track, 2));
-		(userLikes.collection || []).forEach((item) => processTrackForArtist(item as spTrack, 1));
+		// Weight likes more heavily — they represent intentional preference
+		likedTracks.forEach((track) => processTrackForArtist(track, 2));
 		(userActivities.collection || []).forEach((a) => {
 			if ((a.type === 'track' || a.type === 'track-sharing') && a.origin) {
 				processTrackForArtist(a.origin, 1);
@@ -145,15 +149,47 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 			.sort((a, b) => b.playCount - a.playCount)
 			.slice(0, 15);
 
-		// 5. Fetch FULL profiles for the top artists to get their real genres/tags
+		// 5. Enrich top artists: fetch profile + tracks to get genres/tags
 		const topArtists = await Promise.all(
 			topArtistsInitial.map(async (artist) => {
 				try {
-					const fullProfile = await client.getArtist(artist.artistId);
+					const [fullProfile, artistTracks] = await Promise.all([
+						client.getArtist(artist.artistId),
+						client.getUserTracks(artist.artistId, 10)
+					]);
+
+					// Collect genres and tags from the artist's tracks
+					const trackGenres = new Set<string>();
+					const trackTags: string[] = [];
+					(artistTracks.collection || []).forEach((track) => {
+						if (track.genre) trackGenres.add(track.genre);
+						if (track.tag_list) {
+							SoundCloudClient.parseTagList(track.tag_list).forEach((t) =>
+								trackTags.push(t)
+							);
+						}
+					});
+
+					// Merge: prefer track-derived data over empty profile fields
+					const genre =
+						fullProfile.genre || artist.genre || Array.from(trackGenres).join(', ');
+					const tagList =
+						fullProfile.tag_list || artist.tag_list || trackTags.join(' ');
+					const parsedTags = tagList
+						? SoundCloudClient.parseTagList(tagList)
+						: [];
+
+					console.log(
+						`[SoundCloud] Artist ${fullProfile.username}: genre="${genre}", tags=${parsedTags.length}, trackGenres=${trackGenres.size}`
+					);
+
 					return {
 						...artist,
 						...fullProfile,
-						// Ensure we keep our calculated playCount
+						genre: genre || null,
+						tag_list: tagList || null,
+						tags: parsedTags,
+						description: fullProfile.description || artist.description,
 						playCount: artist.playCount
 					};
 				} catch {
@@ -162,35 +198,36 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 			})
 		);
 
-		// 6. Aggregate tags/genres for debugging/model
-		const allGenres = new Set();
-		[...recentTracks, ...topArtists].forEach((item) => {
-			if (item.genre) allGenres.add(item.genre);
-			if (item.tags) {
-				const tags = Array.isArray(item.tags) ? item.tags : item.tags.split(' ');
-				tags.forEach((t: string) => allGenres.add(t));
+		// 6. Aggregate tags/genres for debugging
+		const allGenres = new Set<string>();
+		[...topTracks, ...topArtists].forEach((item) => {
+			if ('genre' in item && item.genre) allGenres.add(item.genre as string);
+			if ('tag_list' in item && item.tag_list) {
+				SoundCloudClient.parseTagList(item.tag_list as string).forEach((t) => allGenres.add(t));
 			}
 		});
 
 		console.log(
-			`[SoundCloud Load] Found ${recentTracks.length} recent tracks and ${topArtists.length} top artists.`
+			`[SoundCloud Load] Found ${topTracks.length} top tracks and ${topArtists.length} top artists.`
 		);
 
 		return {
-			topTracks: recentTracks.slice(0, 30),
+			topTracks,
 			topArtists,
 			topPlaylists: userPlaylists.collection || [],
 			recentTracks: userActivities.collection || [],
 			debug: {
-				likedTracksCount: userLikes.collection?.length || 0,
-				recentTracksCount: recentTracks.length,
+				likedTracksCount: likedTracks.length,
+				topTracksCount: topTracks.length,
 				playlistsCount: userPlaylists.collection?.length || 0,
 				detectedGenres: Array.from(allGenres).slice(0, 10)
 			}
 		};
 	} catch (err) {
 		console.error('SoundCloud load error:', err);
-		if (err instanceof Error && err.message.includes('401')) {
+		if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
+			// Clear stale cookies and redirect to re-auth
+			cookieManager.set(cookies, 'soundcloud_access_token', '', { maxAge: 0 });
 			throw redirect(303, '/api/soundcloud/auth');
 		}
 		throw error(
