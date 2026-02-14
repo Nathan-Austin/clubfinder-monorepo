@@ -63,6 +63,10 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 			throw redirect(303, '/?error=tidal_invalid_token_response');
 		}
 
+		// Check for return_to URL
+		const returnTo = cookieManager.get(cookies, 'tidal_return_to');
+		cookieManager.delete(cookies, 'tidal_return_to');
+
 		// Cleanup auth cookies
 		cookieManager.delete(cookies, 'tidal_auth_state');
 		cookieManager.delete(cookies, 'tidal_code_verifier');
@@ -78,10 +82,16 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 			});
 		}
 
+		const redirectUrl = returnTo
+			? returnTo.startsWith('/')
+				? returnTo
+				: `/${returnTo}`
+			: '/tidal';
+
 		return new Response(null, {
 			status: 303,
 			headers: {
-				Location: '/tidal'
+				Location: redirectUrl
 			}
 		});
 	} catch (error) {
