@@ -1,7 +1,6 @@
-// src/routes/api/soundcloud/auth.ts
 // src/routes/api/soundcloud/auth/+server.ts
 import { redirect } from '@sveltejs/kit';
-import { generateRandomString, generateCodeChallenge } from '$lib/soundcloud/pkce';
+import { generateRandomString } from '$lib/soundcloud/pkce';
 import { cookieManager } from '$lib/cookieManager';
 
 export const GET = async ({ cookies, url }) => {
@@ -11,8 +10,6 @@ export const GET = async ({ cookies, url }) => {
 	const redirect_uri = `${protocol}//${host}/api/soundcloud/callback`;
 
 	const state = generateRandomString(16);
-	const code_verifier = generateRandomString(64);
-	const code_challenge = await generateCodeChallenge(code_verifier);
 
 	console.log('--- SoundCloud Auth Start ---');
 	console.log('Host:', host);
@@ -25,9 +22,8 @@ export const GET = async ({ cookies, url }) => {
 		cookieManager.set(cookies, 'sc_return_to', returnTo, { maxAge: 600 });
 	}
 
-	// Store PKCE values in cookies for the callback
+	// Store state in cookie for the callback
 	cookieManager.set(cookies, 'sc_auth_state', state, { maxAge: 600 });
-	cookieManager.set(cookies, 'sc_code_verifier', code_verifier, { maxAge: 600 });
 
 	// Add all required scopes
 	const scopes = [
@@ -41,15 +37,14 @@ export const GET = async ({ cookies, url }) => {
 		'tracks'
 	].join(' ');
 
+	// Use standard authorization_code flow (no PKCE) to get V2-compatible tokens
 	const soundcloudAuthUrl =
 		`https://secure.soundcloud.com/authorize` +
 		`?client_id=${client_id}` +
 		`&response_type=code` +
 		`&redirect_uri=${encodeURIComponent(redirect_uri)}` +
 		`&scope=${encodeURIComponent(scopes)}` +
-		`&state=${state}` +
-		`&code_challenge=${code_challenge}` +
-		`&code_challenge_method=S256`;
+		`&state=${state}`;
 
 	throw redirect(302, soundcloudAuthUrl);
 };
