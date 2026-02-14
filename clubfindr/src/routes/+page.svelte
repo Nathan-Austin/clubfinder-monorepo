@@ -952,6 +952,54 @@
 		}
 	}
 
+	// Function for the landing page SoundCloud button click handler
+	async function handleSoundCloudButtonClick(event: Event) {
+		event.preventDefault();
+		let cityValue = '';
+		const unsubscribe = city1.subscribe((value) => {
+			cityValue = value;
+		});
+		unsubscribe();
+
+		if (!cityValue) {
+			isCitySelectionInvalid = true;
+			const citySelect = document.getElementById('city-select');
+			if (citySelect) {
+				citySelect.scrollIntoView({ behavior: 'smooth' });
+				citySelect.classList.add('flash');
+			}
+			return;
+		} else {
+			isCitySelectionInvalid = false;
+			const formData = new FormData(
+				document.getElementById('city-location') as HTMLFormElement
+			) as FormDataWithEntries;
+
+			if (!formData.has('city')) {
+				formData.append('city', cityValue || '');
+			}
+
+			const formDataObj = Object.fromEntries(formData.entries());
+			formDataObj.source = 'landing-page';
+
+			const formDataJson = JSON.stringify(formDataObj);
+			const stateKey = Date.now().toString();
+
+			try {
+				await fetch('/storestate', {
+					method: 'POST',
+					body: JSON.stringify({ key: stateKey, state: formDataJson }),
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include'
+				});
+			} catch (error) {
+				console.error('Error storing state:', error);
+			}
+
+			window.location.href = data.hasSoundCloudAccessToken ? '/soundcloud' : '/api/soundcloud/auth';
+		}
+	}
+
 	function handleLoginButtonClick() {
 		window.location.href = 'https://www.clubfindr.com/login/users';
 	}
@@ -1210,8 +1258,19 @@
 
 				<!-- SoundCloud button -->
 				<div class="center-button mt-4">
-					<a href="/api/soundcloud/auth">
-						<button class="soundcloud-button" aria-label="Login with SoundCloud" />
+					<a
+						href={data.hasSoundCloudAccessToken ? '/soundcloud' : '/api/soundcloud/auth'}
+						on:click={handleSoundCloudButtonClick}
+						role="button"
+						class="custom-soundcloud-button"
+						aria-label="Login with SoundCloud"
+					>
+						<span>Connect with</span>
+						<img
+							src="https://connect.soundcloud.com/2/btn-connect-sc-m.png"
+							alt="SoundCloud Logo"
+							class="soundcloud-logo-img"
+						/>
 					</a>
 				</div>
 			{:else}
@@ -1905,13 +1964,39 @@
 		opacity: 0.9;
 	}
 
-	.custom-spotify-button span {
+	.custom-soundcloud-button {
+		background-color: #ff5500; /* SoundCloud orange */
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 12px;
+		border-radius: 6px;
+		font-weight: bold;
+		text-decoration: none;
+		width: 100%;
+		max-width: 350px;
+		height: 50px;
+		cursor: pointer;
+	}
+
+	.custom-soundcloud-button:hover {
+		opacity: 0.9;
+	}
+
+	.custom-spotify-button span,
+	.custom-soundcloud-button span {
 		margin-right: 8px;
 		font-size: 24px;
 	}
 
 	.spotify-logo {
 		height: 34px; /* Adjust to scale the logo */
+		width: auto;
+	}
+
+	.soundcloud-logo-img {
+		height: 30px;
 		width: auto;
 	}
 	.center-button {
@@ -1922,17 +2007,6 @@
 		font-size: 20px; /* Explicit font size for the text */
 	}
 
-	.soundcloud-button {
-		background-image: url('https://connect.soundcloud.com/2/btn-connect-sc-m.png');
-		background-size: contain;
-		background-repeat: no-repeat; /* Prevents the image from repeating */
-		background-position: center;
-		width: 100%;
-		max-width: 350px; /* Adjust size as needed */
-		height: 50px; /* Adjust size as needed */
-		border: none;
-		cursor: pointer;
-	}
 	.search-results {
 		max-height: 300px;
 		overflow-y: auto;
