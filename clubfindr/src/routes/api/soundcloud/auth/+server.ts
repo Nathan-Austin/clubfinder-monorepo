@@ -10,14 +10,20 @@ export const GET = async ({ cookies, url }) => {
 	const host = url.host;
 	const redirect_uri = `${protocol}//${host}/api/soundcloud/callback`;
 
+	const state = generateRandomString(16);
+	const code_verifier = generateRandomString(64);
+	const code_challenge = await generateCodeChallenge(code_verifier);
+
 	console.log('--- SoundCloud Auth Start ---');
 	console.log('Host:', host);
 	console.log('Redirect URI:', redirect_uri);
 	console.log('State:', state);
 
-	const state = generateRandomString(16);
-	const code_verifier = generateRandomString(64);
-	const code_challenge = await generateCodeChallenge(code_verifier);
+	// Handle optional return_to parameter
+	const returnTo = url.searchParams.get('return_to') || url.searchParams.get('returnTo');
+	if (returnTo) {
+		cookieManager.set(cookies, 'sc_return_to', returnTo, { maxAge: 600 });
+	}
 
 	// Store PKCE values in cookies for the callback
 	cookieManager.set(cookies, 'sc_auth_state', state, { maxAge: 600 });

@@ -12,6 +12,12 @@ export const GET = async ({ cookies, url }) => {
 	const code_verifier = generateRandomString(64);
 	const code_challenge = await generateCodeChallenge(code_verifier);
 
+	// Handle optional return_to parameter
+	const returnTo = url.searchParams.get('return_to') || url.searchParams.get('returnTo');
+	if (returnTo) {
+		cookieManager.set(cookies, 'tidal_return_to', returnTo, { maxAge: 600 });
+	}
+
 	// Store PKCE values in cookies for the callback
 	cookieManager.set(cookies, 'tidal_auth_state', state, { maxAge: 600 });
 	cookieManager.set(cookies, 'tidal_code_verifier', code_verifier, { maxAge: 600 });

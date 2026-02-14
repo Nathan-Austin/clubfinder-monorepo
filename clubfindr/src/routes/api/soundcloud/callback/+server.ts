@@ -73,6 +73,10 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 		// Success logging
 		console.info('Token exchange successful');
 
+		// Check for return_to URL
+		const returnTo = cookieManager.get(cookies, 'sc_return_to');
+		cookieManager.delete(cookies, 'sc_return_to');
+
 		// Cleanup auth cookies
 		cookieManager.delete(cookies, 'sc_auth_state');
 		cookieManager.delete(cookies, 'sc_code_verifier');
@@ -88,10 +92,16 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 			});
 		}
 
+		const redirectUrl = returnTo
+			? returnTo.startsWith('/')
+				? returnTo
+				: `/${returnTo}`
+			: '/soundcloud';
+
 		return new Response(null, {
 			status: 303,
 			headers: {
-				Location: '/soundcloud'
+				Location: redirectUrl
 			}
 		});
 	} catch (error) {
