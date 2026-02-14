@@ -18,24 +18,23 @@ export class SoundCloudClient {
 	}
 
 	private getHeaders(): HeadersInit {
-		// Some endpoints prefer Bearer, some OAuth. OAuth is standard for V2.
+		// OAuth 2.0 PKCE tokens are JWTs that require Bearer prefix
 		const authHeader =
 			this.accessToken.startsWith('OAuth') || this.accessToken.startsWith('Bearer')
 				? this.accessToken
-				: `OAuth ${this.accessToken}`;
+				: `Bearer ${this.accessToken}`;
 
 		return {
 			Authorization: authHeader,
-			Accept: 'application/json',
-			'User-Agent':
-				'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+			Accept: 'application/json'
 		};
 	}
 
 	private async request<T>(
 		path: string,
 		options: RequestInit = {},
-		useOfficial: boolean = false
+		useOfficial: boolean = false,
+		gracefulErrors: boolean = true
 	): Promise<T> {
 		const base = useOfficial ? this.officialBaseUrl : this.baseUrl;
 
@@ -60,7 +59,7 @@ export class SoundCloudClient {
 			console.error(`[SoundCloudClient] Error ${response.status} for ${urlWithId}:`, errorBody);
 
 			// Return empty collections for common errors to keep the UI functional
-			if (response.status === 404 || response.status === 403) {
+			if (gracefulErrors && (response.status === 404 || response.status === 403)) {
 				return { collection: [] } as T;
 			}
 
@@ -72,7 +71,7 @@ export class SoundCloudClient {
 	}
 
 	async getMe(): Promise<spUser> {
-		return this.request<spUser>('/me');
+		return this.request<spUser>('/me', {}, false, false);
 	}
 
 	async getPlayHistory(limit: number = 25, offset: number = 0): Promise<PlayHistoryResponse> {
