@@ -248,7 +248,8 @@ export type spTrack = {
 	artwork_url: string | null;
 	playback_count: number;
 	user: spUser;
-	genre: string[] | null;
+	genre: string | null;
+	tag_list: string | null;
 	tags: string[];
 	duration: number;
 	permalink_url: string;
@@ -302,23 +303,4 @@ export type Performer = {
 	website: string;
 	primary_city: string;
 	top_tracks: PerformerTrack[];
-};
-// src/lib/types.ts or wherever your types are
-export type PlayHistoryItem = {
-	played_at: string;
-	track: {
-		id: number;
-		title: string;
-		user: {
-			id: number;
-			username: string;
-			avatar_url: string;
-		};
-		artwork_url: string;
-		permalink_url: string;
-	};
-};
-
-export type PlayHistoryResponse = {
-	collection: PlayHistoryItem[];
 };
