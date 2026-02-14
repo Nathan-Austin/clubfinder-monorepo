@@ -3,11 +3,20 @@ import type { PageServerLoad } from './$types';
 import { TidalClient } from '$lib/tidal/client';
 import { cookieManager } from '$lib/cookieManager';
 
-async function refreshTidalToken(refreshToken: string, fetch: any) {
+interface TidalTokenResponse {
+	access_token: string;
+	expires_in: number;
+	refresh_token?: string;
+}
+
+async function refreshTidalToken(
+	refreshToken: string,
+	fetchFunc: typeof fetch
+): Promise<TidalTokenResponse> {
 	const client_id = import.meta.env.VITE_TIDAL_CLIENT_ID;
 	const client_secret = import.meta.env.VITE_TIDAL_CLIENT_SECRET;
 
-	const response = await fetch('https://login.tidal.com/oauth2/token', {
+	const response = await fetchFunc('https://login.tidal.com/oauth2/token', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
@@ -28,16 +37,16 @@ async function refreshTidalToken(refreshToken: string, fetch: any) {
 	return response.json();
 }
 
-export const load: PageServerLoad = async ({ cookies, fetch }) => {
+export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 	let accessToken = cookieManager.get(cookies, 'tidal_access_token');
 	const refreshToken = cookieManager.get(cookies, 'tidal_refresh_token');
 
 	if (!accessToken && refreshToken) {
 		try {
-			const data = await refreshTidalToken(refreshToken, fetch);
+			const data = await refreshTidalToken(refreshToken, fetchFunc);
 			accessToken = data.access_token;
 			cookieManager.set(cookies, 'tidal_access_token', accessToken, {
-				maxAge: data.expires_in ? parseInt(data.expires_in) : 3600
+				maxAge: data.expires_in
 			});
 			if (data.refresh_token) {
 				cookieManager.set(cookies, 'tidal_refresh_token', data.refresh_token, {
@@ -63,35 +72,41 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 			client.getFavoritePlaylists(10)
 		]);
 
-		const artists = artistsRes.status === 'fulfilled' ? (artistsRes.value as any).data : [];
-		const tracks = tracksRes.status === 'fulfilled' ? (tracksRes.value as any).data : [];
-		const playlists = playlistsRes.status === 'fulfilled' ? (playlistsRes.value as any).data : [];
+		const artists = artistsRes.status === 'fulfilled' ? artistsRes.value.data : [];
+		const tracks = tracksRes.status === 'fulfilled' ? tracksRes.value.data : [];
+		const playlists = playlistsRes.status === 'fulfilled' ? playlistsRes.value.data : [];
 
 		// Map Tidal data to a common format for the UI
-		const topArtists = (artists || []).map((item: any) => ({
+		const topArtists = (artists || []).map((item) => ({
 			id: item.id,
-			username: item.attributes?.name || 'Unknown Artist',
-			avatar_url: item.attributes?.imageLinks?.find((img: any) => img.width >= 320)?.href || null,
+			username: (item.attributes as Record<string, any>).name || 'Unknown Artist',
+			avatar_url:
+				(item.attributes as Record<string, any>).imageLinks?.find((img: any) => img.width >= 320)
+					?.href || null,
 			artistId: item.id,
-			genre: item.attributes?.genres || [],
+			genre: (item.attributes as Record<string, any>).genres || [],
 			tags: []
 		}));
 
-		const topTracks = (tracks || []).map((item: any) => ({
+		const topTracks = (tracks || []).map((item) => ({
 			id: item.id,
-			title: item.attributes?.title || 'Unknown Track',
-			artwork_url: item.attributes?.imageLinks?.find((img: any) => img.width >= 320)?.href || null,
+			title: (item.attributes as Record<string, any>).title || 'Unknown Track',
+			artwork_url:
+				(item.attributes as Record<string, any>).imageLinks?.find((img: any) => img.width >= 320)
+					?.href || null,
 			user: {
-				username: item.attributes?.artistName || 'Unknown Artist'
+				username: (item.attributes as Record<string, any>).artistName || 'Unknown Artist'
 			},
 			genre: [],
 			tags: []
 		}));
 
-		const topPlaylists = (playlists || []).map((item: any) => ({
+		const topPlaylists = (playlists || []).map((item) => ({
 			id: item.id,
-			title: item.attributes?.title || 'Unknown Playlist',
-			artwork_url: item.attributes?.imageLinks?.find((img: any) => img.width >= 320)?.href || null,
+			title: (item.attributes as Record<string, any>).title || 'Unknown Playlist',
+			artwork_url:
+				(item.attributes as Record<string, any>).imageLinks?.find((img: any) => img.width >= 320)
+					?.href || null,
 			user: {
 				username: 'Tidal User'
 			}

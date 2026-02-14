@@ -1,4 +1,4 @@
-import { redirect, error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { cookieManager } from '$lib/cookieManager';
 

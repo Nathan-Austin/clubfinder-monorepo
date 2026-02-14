@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			const genreSource = attributes.genre || attributes.genres;
 			if (genreSource) {
 				const genres = Array.isArray(genreSource) ? genreSource : [genreSource];
-				genres.forEach((g: any) => {
+				genres.forEach((g: string | { name: string }) => {
 					// Tidal genres can be objects with 'name'
 					const genreName = typeof g === 'object' ? g.name : String(g);
 					if (genreName) genresList.add(normalizeGenre(genreName.replace(/["]/g, '')));
