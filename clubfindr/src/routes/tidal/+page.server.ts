@@ -79,23 +79,33 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 		// Map Tidal data to a common format for the UI
 		const topArtists = (artists || []).map((item) => ({
 			id: item.id,
-			username: (item.attributes as Record<string, any>).name || 'Unknown Artist',
-			avatar_url:
-				(item.attributes as Record<string, any>).imageLinks?.find((img: any) => img.width >= 320)
-					?.href || null,
+			username: (item.attributes as Record<string, unknown>).name || 'Unknown Artist',
+			avatar_url: (item.attributes as Record<string, unknown>).imageLinks
+				? (
+						(item.attributes as Record<string, unknown>).imageLinks as Array<{
+							width: number;
+							href: string;
+						}>
+				  ).find((img) => img.width >= 320)?.href || null
+				: null,
 			artistId: item.id,
-			genre: (item.attributes as Record<string, any>).genres || [],
+			genre: (item.attributes as Record<string, unknown>).genres || [],
 			tags: []
 		}));
 
 		const topTracks = (tracks || []).map((item) => ({
 			id: item.id,
-			title: (item.attributes as Record<string, any>).title || 'Unknown Track',
-			artwork_url:
-				(item.attributes as Record<string, any>).imageLinks?.find((img: any) => img.width >= 320)
-					?.href || null,
+			title: (item.attributes as Record<string, unknown>).title || 'Unknown Track',
+			artwork_url: (item.attributes as Record<string, unknown>).imageLinks
+				? (
+						(item.attributes as Record<string, unknown>).imageLinks as Array<{
+							width: number;
+							href: string;
+						}>
+				  ).find((img) => img.width >= 320)?.href || null
+				: null,
 			user: {
-				username: (item.attributes as Record<string, any>).artistName || 'Unknown Artist'
+				username: (item.attributes as Record<string, unknown>).artistName || 'Unknown Artist'
 			},
 			genre: [],
 			tags: []
@@ -103,10 +113,15 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 
 		const topPlaylists = (playlists || []).map((item) => ({
 			id: item.id,
-			title: (item.attributes as Record<string, any>).title || 'Unknown Playlist',
-			artwork_url:
-				(item.attributes as Record<string, any>).imageLinks?.find((img: any) => img.width >= 320)
-					?.href || null,
+			title: (item.attributes as Record<string, unknown>).title || 'Unknown Playlist',
+			artwork_url: (item.attributes as Record<string, unknown>).imageLinks
+				? (
+						(item.attributes as Record<string, unknown>).imageLinks as Array<{
+							width: number;
+							href: string;
+						}>
+				  ).find((img) => img.width >= 320)?.href || null
+				: null,
 			user: {
 				username: 'Tidal User'
 			}

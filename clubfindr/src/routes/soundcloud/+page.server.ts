@@ -90,8 +90,16 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 		// 3. Extract Recently Played Tracks
 		const recentTracks = (playHistory.collection || []).map((item) => item.track).filter(Boolean);
 
-		// 4. Calculate "Top Artists" by aggregating across History, Activities, and Likes
-		const artistCounts = new Map<number, any>();
+		interface ArtistCount extends spUser {
+			playCount: number;
+			artistId: number;
+			genre?: string | string[] | null;
+			tag_list?: string;
+			description?: string;
+		}
+
+		// 4. Calculate \"Top Artists\" by aggregating across History, Activities, and Likes
+		const artistCounts = new Map<number, ArtistCount>();
 
 		const processTrackForArtist = (track: spTrack, weight: number) => {
 			if (track?.user) {

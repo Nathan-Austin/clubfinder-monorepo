@@ -1,11 +1,24 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	interface TidalItem {
+		id: string;
+		title?: string;
+		username?: string;
+		avatar_url: string | null;
+		artwork_url: string | null;
+		selected?: boolean;
+		user?: { username: string };
+		genre?: string[];
+	}
 
 	export let data: {
-		topTracks: any[];
-		topArtists: any[];
-		topPlaylists: any[];
-		debug: any;
+		topTracks: TidalItem[];
+		topArtists: TidalItem[];
+		topPlaylists: TidalItem[];
+		debug: {
+			artistsCount: number;
+			tracksCount: number;
+			playlistsCount: number;
+		};
 	};
 
 	let view: 'playlists' | 'artists' | 'tracks' = 'artists';
