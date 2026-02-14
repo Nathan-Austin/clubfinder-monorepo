@@ -57,7 +57,7 @@ export class SoundCloudClient {
 
 		if (!response.ok) {
 			const errorBody = await response.text();
-			console.error(`[SoundCloudClient] Error ${response.status} for ${url}:`, errorBody);
+			console.error(`[SoundCloudClient] Error ${response.status} for ${urlWithId}:`, errorBody);
 
 			// Return empty collections for common errors to keep the UI functional
 			if (response.status === 404 || response.status === 403) {
