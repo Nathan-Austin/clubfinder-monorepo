@@ -22,6 +22,7 @@ interface _Event {
 interface _ConnectedServices {
 	spotify: boolean;
 	soundcloud: boolean;
+	tidal: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -39,7 +40,8 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	// Initialize connected services status
 	const connectedServices = {
 		spotify: false,
-		soundcloud: false
+		soundcloud: !!cookieManager.get(cookies, 'soundcloud_access_token'),
+		tidal: !!cookieManager.get(cookies, 'tidal_access_token')
 	};
 
 	if (!user_id && !sessionId) {
