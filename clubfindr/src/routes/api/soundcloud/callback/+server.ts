@@ -3,6 +3,9 @@ import type { RequestHandler } from './$types';
 import { cookieManager } from '$lib/cookieManager';
 
 export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
+	const client_id = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
+	const client_secret = import.meta.env.VITE_SOUNDCLOUD_CLIENT_SECRET;
+
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');
 
