@@ -113,7 +113,12 @@
 				throw new Error('Failed to analyze selections');
 			}
 
-			return await response.json();
+			const result = await response.json();
+			if (result.success) {
+				// Redirect to the clubs page to see the recommendations
+				window.location.href = '/clubs';
+			}
+			return result;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'An error occurred';
 			throw err;

@@ -1,25 +1,40 @@
-import { redirect } from '@sveltejs/kit';
+import { redirect, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { cookieManager } from '$lib/cookieManager';
 
 export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 	const code = url.searchParams.get('code');
-	const client_id = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
-	const client_secret = import.meta.env.VITE_SOUNDCLOUD_CLIENT_SECRET;
-	const redirect_uri = 'https://www.clubfindr.com/api/soundcloud/callback';
+	const state = url.searchParams.get('state');
 
-	// Validate required environment variables
-	//if (!client_id || !client_secret) {
-	//	console.error('Missing required environment variables');
-	//	throw error(500, 'Server configuration error');
-	//}
+	console.log('--- SoundCloud Callback Received ---');
+	console.log('Full URL:', url.toString());
+	console.log('Code present:', !!code);
+	console.log('State received:', state);
+
+	const protocol = url.protocol;
+	const host = url.host;
+	const redirect_uri = `${protocol}//${host}/api/soundcloud/callback`;
+
+	const savedState = cookieManager.get(cookies, 'sc_auth_state');
+	const codeVerifier = cookieManager.get(cookies, 'sc_code_verifier');
+
+	if (!state || state !== savedState) {
+		console.error('State mismatch or missing');
+		throw redirect(303, '/?error=state_mismatch');
+	}
 
 	if (!code) {
 		console.error('No authorization code received');
 		throw redirect(303, '/?error=missing_code');
 	}
 
+	if (!codeVerifier) {
+		console.error('No code verifier found');
+		throw redirect(303, '/?error=missing_verifier');
+	}
+
 	try {
-		const tokenResponse = await fetch('https://api.soundcloud.com/oauth2/token', {
+		const tokenResponse = await fetch('https://secure.soundcloud.com/oauth/token', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -30,7 +45,8 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 				client_secret,
 				redirect_uri,
 				grant_type: 'authorization_code',
-				code
+				code,
+				code_verifier: codeVerifier
 			}).toString()
 		});
 
@@ -49,62 +65,26 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 
 		const data = await tokenResponse.json();
 
-		console.log('Token response data:', data);
-
 		if (!data.access_token) {
 			console.error('No access token in response');
 			throw redirect(303, '/?error=invalid_token_response');
 		}
 
 		// Success logging
-		console.info('Token exchange successful:', {
-			hasAccessToken: true,
-			scope: data.scope || 'default',
-			expiresIn: data.expires_in
-		});
+		console.info('Token exchange successful');
+
+		// Cleanup auth cookies
+		cookieManager.delete(cookies, 'sc_auth_state');
+		cookieManager.delete(cookies, 'sc_code_verifier');
 
 		// Set the access token cookie
-		cookies.set('soundcloud_access_token', data.access_token, {
-			path: '/',
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax',
-			maxAge: data.expires_in ? parseInt(data.expires_in) : 365 * 24 * 60 * 60
-		});
-		cookies.set('soundcloud_app_client_id', client_id, {
-			path: '/',
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax',
-			maxAge: 365 * 24 * 60 * 60
-		});
-
-		cookies.set('soundcloud_oauth_client_id', data.client_id, {
-			// OAuth client ID
-			path: '/',
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax',
-			maxAge: data.expires_in ? parseInt(data.expires_in) : 365 * 24 * 60 * 60
+		cookieManager.set(cookies, 'soundcloud_access_token', data.access_token, {
+			maxAge: data.expires_in ? parseInt(data.expires_in) : 3600
 		});
 
 		if (data.refresh_token) {
-			cookies.set('soundcloud_refresh_token', data.refresh_token, {
-				path: '/',
-				httpOnly: true,
-				secure: true,
-				sameSite: 'lax',
+			cookieManager.set(cookies, 'soundcloud_refresh_token', data.refresh_token, {
 				maxAge: 365 * 24 * 60 * 60
-			});
-		}
-
-		if (data.scope) {
-			cookies.set('soundcloud_scope', data.scope, {
-				path: '/',
-				httpOnly: true,
-				secure: true,
-				sameSite: 'lax',
-				maxAge: data.expires_in ? parseInt(data.expires_in) : 365 * 24 * 60 * 60
 			});
 		}
 
