@@ -18,19 +18,30 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			const data = item.data;
 			if (!data) return;
 
-			console.log(`[Analyze] Processing ${item.type}: ${data.username || data.title}`);
+			// Handle both flat objects (Spotify/SoundCloud) and Tidal's nested attributes
+			const attributes = data.attributes || data;
+
+			console.log(
+				`[Analyze] Processing ${item.type}: ${
+					attributes.username || attributes.name || attributes.title
+				}`
+			);
 			console.log(`[Analyze] Data keys available:`, Object.keys(data));
 
 			// SoundCloud specific: check for 'genre' and 'tag_list'
-			if (data.genre) {
-				const genres = typeof data.genre === 'string' ? data.genre.split(/[,/]/) : [data.genre];
-				genres.forEach((g: string) => {
-					if (g) genresList.add(normalizeGenre(g.replace(/["]/g, '')));
+			// Tidal also uses 'genre' or 'genres' in attributes
+			const genreSource = attributes.genre || attributes.genres;
+			if (genreSource) {
+				const genres = Array.isArray(genreSource) ? genreSource : [genreSource];
+				genres.forEach((g: any) => {
+					// Tidal genres can be objects with 'name'
+					const genreName = typeof g === 'object' ? g.name : String(g);
+					if (genreName) genresList.add(normalizeGenre(genreName.replace(/["]/g, '')));
 				});
 			}
 
 			// SoundCloud stores many tags in 'tag_list' (quoted for multi-word)
-			const tagSource = data.tag_list || data.tags;
+			const tagSource = attributes.tag_list || attributes.tags;
 			if (tagSource && typeof tagSource === 'string') {
 				// Regex to match words or words inside quotes
 				const tags = tagSource.match(/(?:[^\s"]+|"[^"]*")+/g) || [];

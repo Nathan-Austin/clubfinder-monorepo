@@ -1000,6 +1000,54 @@
 		}
 	}
 
+	// Function for the landing page Tidal button click handler
+	async function handleTidalButtonClick(event: Event) {
+		event.preventDefault();
+		let cityValue = '';
+		const unsubscribe = city1.subscribe((value) => {
+			cityValue = value;
+		});
+		unsubscribe();
+
+		if (!cityValue) {
+			isCitySelectionInvalid = true;
+			const citySelect = document.getElementById('city-select');
+			if (citySelect) {
+				citySelect.scrollIntoView({ behavior: 'smooth' });
+				citySelect.classList.add('flash');
+			}
+			return;
+		} else {
+			isCitySelectionInvalid = false;
+			const formData = new FormData(
+				document.getElementById('city-location') as HTMLFormElement
+			) as FormDataWithEntries;
+
+			if (!formData.has('city')) {
+				formData.append('city', cityValue || '');
+			}
+
+			const formDataObj = Object.fromEntries(formData.entries());
+			formDataObj.source = 'landing-page';
+
+			const formDataJson = JSON.stringify(formDataObj);
+			const stateKey = Date.now().toString();
+
+			try {
+				await fetch('/storestate', {
+					method: 'POST',
+					body: JSON.stringify({ key: stateKey, state: formDataJson }),
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include'
+				});
+			} catch (error) {
+				console.error('Error storing state:', error);
+			}
+
+			window.location.href = data.hasTidalAccessToken ? '/tidal' : '/api/tidal/auth';
+		}
+	}
+
 	function handleLoginButtonClick() {
 		window.location.href = 'https://www.clubfindr.com/login/users';
 	}
@@ -1270,6 +1318,24 @@
 							src="https://connect.soundcloud.com/2/btn-connect-sc-m.png"
 							alt="SoundCloud Logo"
 							class="soundcloud-logo-img"
+						/>
+					</a>
+				</div>
+
+				<!-- Tidal button -->
+				<div class="center-button mt-4">
+					<a
+						href={data.hasTidalAccessToken ? '/tidal' : '/api/tidal/auth'}
+						on:click={handleTidalButtonClick}
+						role="button"
+						class="custom-tidal-button"
+						aria-label="Login with Tidal"
+					>
+						<span>Connect with</span>
+						<img
+							src="https://tidal.com/browse/assets/images/tidal-logo.png"
+							alt="Tidal Logo"
+							class="tidal-logo-img"
 						/>
 					</a>
 				</div>
@@ -1984,8 +2050,31 @@
 		opacity: 0.9;
 	}
 
+	.custom-tidal-button {
+		background-color: #000000; /* Black */
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 12px;
+		border-radius: 6px;
+		font-weight: bold;
+		text-decoration: none;
+		width: 100%;
+		max-width: 350px;
+		height: 50px;
+		cursor: pointer;
+		border: 1px solid #00ffff; /* Cyan border for Tidal feel */
+	}
+
+	.custom-tidal-button:hover {
+		background-color: #111111;
+		box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+	}
+
 	.custom-spotify-button span,
-	.custom-soundcloud-button span {
+	.custom-soundcloud-button span,
+	.custom-tidal-button span {
 		margin-right: 8px;
 		font-size: 24px;
 	}
@@ -1997,6 +2086,11 @@
 
 	.soundcloud-logo-img {
 		height: 30px;
+		width: auto;
+	}
+
+	.tidal-logo-img {
+		height: 24px;
 		width: auto;
 	}
 	.center-button {
