@@ -98,7 +98,7 @@ export class SoundCloudClient {
 	async getUserLikes(
 		userId: number,
 		limit: number = 50
-	): Promise<{ collection: any[]; next_href?: string }> {
+	): Promise<{ collection: (spTrack | spPlaylist)[]; next_href?: string }> {
 		return this.request(`/users/${userId}/likes?limit=${limit}&linked_partitioning=1`);
 	}
 
@@ -108,20 +108,22 @@ export class SoundCloudClient {
 		return this.request(`/activities?limit=${limit}&linked_partitioning=1`);
 	}
 
-	async resolve(url: string): Promise<any> {
+	async resolve(url: string): Promise<spTrack | spPlaylist | spUser> {
 		return this.request(`/resolve?url=${encodeURIComponent(url)}`);
 	}
 
 	// For fetching artist details including tags/genres
-	async getArtist(userId: number): Promise<spUser & { description?: string }> {
+	async getArtist(userId: number): Promise<spUser & { description?: string; tag_list?: string }> {
 		return this.request(`/users/${userId}`);
 	}
 
-	async getLikedTracks(limit: number = 30): Promise<{ collection: any[]; next_href?: string }> {
+	async getLikedTracks(limit: number = 30): Promise<{ collection: spTrack[]; next_href?: string }> {
 		return this.request(`/me/track_likes?limit=${limit}&linked_partitioning=1`);
 	}
 
-	async getLibraryTracks(limit: number = 30): Promise<{ collection: any[]; next_href?: string }> {
+	async getLibraryTracks(
+		limit: number = 30
+	): Promise<{ collection: (spTrack | spPlaylist)[]; next_href?: string }> {
 		return this.request(`/me/library/all?limit=${limit}&linked_partitioning=1`);
 	}
 }

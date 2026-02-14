@@ -1,3 +1,16 @@
+interface TidalResource {
+	id: string;
+	type: string;
+	attributes: Record<string, any>;
+	relationships?: Record<string, any>;
+}
+
+interface TidalCollection<T> {
+	data: T[];
+	links?: Record<string, string>;
+	meta?: Record<string, any>;
+}
+
 export class TidalClient {
 	private readonly baseUrl = 'https://openapi.tidal.com/v1';
 
@@ -31,7 +44,7 @@ export class TidalClient {
 			console.error(`[TidalClient] Error ${response.status} for ${url}:`, errorBody);
 
 			if (response.status === 404 || response.status === 403) {
-				return { data: [] } as any;
+				return { data: [] } as unknown as T;
 			}
 
 			throw new Error(`Tidal API error: ${response.status} ${errorBody}`);
@@ -41,27 +54,27 @@ export class TidalClient {
 		return response.json();
 	}
 
-	async getMe(): Promise<any> {
+	async getMe(): Promise<{ userId: string; countryCode: string }> {
 		return this.request('/sessions');
 	}
 
-	async getFavoriteArtists(limit: number = 50): Promise<any> {
+	async getFavoriteArtists(limit: number = 50): Promise<TidalCollection<TidalResource>> {
 		return this.request(`/my-collection/artists?page[size]=${limit}`);
 	}
 
-	async getFavoriteTracks(limit: number = 50): Promise<any> {
+	async getFavoriteTracks(limit: number = 50): Promise<TidalCollection<TidalResource>> {
 		return this.request(`/my-collection/tracks?page[size]=${limit}`);
 	}
 
-	async getFavoritePlaylists(limit: number = 50): Promise<any> {
+	async getFavoritePlaylists(limit: number = 50): Promise<TidalCollection<TidalResource>> {
 		return this.request(`/my-collection/playlists?page[size]=${limit}`);
 	}
 
-	async getArtist(artistId: string): Promise<any> {
+	async getArtist(artistId: string): Promise<TidalResource> {
 		return this.request(`/artists/${artistId}`);
 	}
 
-	async getArtistAlbums(artistId: string): Promise<any> {
+	async getArtistAlbums(artistId: string): Promise<TidalCollection<TidalResource>> {
 		return this.request(`/artists/${artistId}/albums`);
 	}
 }

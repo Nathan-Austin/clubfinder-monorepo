@@ -3,11 +3,20 @@ import type { PageServerLoad } from './$types';
 import { SoundCloudClient } from '$lib/soundcloud/client';
 import { cookieManager } from '$lib/cookieManager';
 
-async function refreshSCtoken(refreshToken: string, fetch: any) {
+interface SCTokenResponse {
+	access_token: string;
+	expires_in: number;
+	refresh_token?: string;
+}
+
+async function refreshSCtoken(
+	refreshToken: string,
+	fetchFunc: typeof fetch
+): Promise<SCTokenResponse> {
 	const client_id = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
 	const client_secret = import.meta.env.VITE_SOUNDCLOUD_CLIENT_SECRET;
 
-	const response = await fetch('https://secure.soundcloud.com/oauth/token', {
+	const response = await fetchFunc('https://secure.soundcloud.com/oauth/token', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
@@ -28,17 +37,17 @@ async function refreshSCtoken(refreshToken: string, fetch: any) {
 	return response.json();
 }
 
-export const load: PageServerLoad = async ({ cookies, fetch }) => {
+export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 	let accessToken = cookieManager.get(cookies, 'soundcloud_access_token');
 	const refreshToken = cookieManager.get(cookies, 'soundcloud_refresh_token');
 	const clientId = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
 
 	if (!accessToken && refreshToken) {
 		try {
-			const data = await refreshSCtoken(refreshToken, fetch);
+			const data = await refreshSCtoken(refreshToken, fetchFunc);
 			accessToken = data.access_token;
 			cookieManager.set(cookies, 'soundcloud_access_token', accessToken, {
-				maxAge: data.expires_in ? parseInt(data.expires_in) : 3600
+				maxAge: data.expires_in
 			});
 			if (data.refresh_token) {
 				cookieManager.set(cookies, 'soundcloud_refresh_token', data.refresh_token, {
@@ -82,9 +91,9 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		const recentTracks = (playHistory.collection || []).map((item) => item.track).filter(Boolean);
 
 		// 4. Calculate "Top Artists" by aggregating across History, Activities, and Likes
-		const artistCounts = new Map();
+		const artistCounts = new Map<number, any>();
 
-		const processTrackForArtist = (track: any, weight: number) => {
+		const processTrackForArtist = (track: spTrack, weight: number) => {
 			if (track?.user) {
 				const artistId = track.user.id;
 				const current = artistCounts.get(artistId) || {
@@ -112,9 +121,9 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 
 		// Weight history more heavily than likes for "Top" calculation
 		(playHistory.collection || []).forEach((item) => processTrackForArtist(item.track, 2));
-		(userLikes.collection || []).forEach((item) => processTrackForArtist(item.track || item, 1));
+		(userLikes.collection || []).forEach((item) => processTrackForArtist(item as spTrack, 1));
 		(userActivities.collection || []).forEach((a) => {
-			if (a.type === 'track' || a.type === 'track-sharing') {
+			if ((a.type === 'track' || a.type === 'track-sharing') && a.origin) {
 				processTrackForArtist(a.origin, 1);
 			}
 		});
@@ -134,7 +143,7 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 						// Ensure we keep our calculated playCount
 						playCount: artist.playCount
 					};
-				} catch (e) {
+				} catch {
 					return artist;
 				}
 			})
