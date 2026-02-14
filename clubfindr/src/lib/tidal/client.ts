@@ -1,14 +1,14 @@
 interface TidalResource {
 	id: string;
 	type: string;
-	attributes: Record<string, any>;
-	relationships?: Record<string, any>;
+	attributes: Record<string, unknown>;
+	relationships?: Record<string, unknown>;
 }
 
 interface TidalCollection<T> {
 	data: T[];
 	links?: Record<string, string>;
-	meta?: Record<string, any>;
+	meta?: Record<string, unknown>;
 }
 
 export class TidalClient {
