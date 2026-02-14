@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 7,
+      "versionCode": 8,
       "adaptiveIcon": {
         "foregroundImage": "./assets/tilki-fox-logo.png",
         "backgroundColor": "#ffffff"

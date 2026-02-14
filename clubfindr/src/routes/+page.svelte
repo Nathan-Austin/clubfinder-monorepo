@@ -1332,11 +1332,7 @@
 						aria-label="Login with Tidal"
 					>
 						<span>Connect with</span>
-						<img
-							src="https://tidal.com/browse/assets/images/tidal-logo.png"
-							alt="Tidal Logo"
-							class="tidal-logo-img"
-						/>
+						<img src="/lib/tidal_logo.png" alt="Tidal Logo" class="tidal-logo-img" />
 					</a>
 				</div>
 			{:else}

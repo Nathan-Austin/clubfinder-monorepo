@@ -30,6 +30,7 @@
 			connectedServices: {
 				spotify: boolean;
 				soundcloud: boolean;
+				tidal: boolean;
 			};
 		};
 	};
@@ -38,7 +39,11 @@
 	const preferences: Array<{ genre: string; search_count: number }> =
 		data.props.topPreferences || [];
 	let interestedEvents = data.props.interestedEvents || [];
-	const connectedServices = data.props.connectedServices || { spotify: false, soundcloud: false };
+	const connectedServices = data.props.connectedServices || {
+		spotify: false,
+		soundcloud: false,
+		tidal: false
+	};
 
 	// Keep track of the maximum visible events
 	const maxVisibleEvents = 5;
@@ -373,6 +378,64 @@
 			alert('Failed to connect to Spotify: ' + errorMessage);
 		}
 	}
+
+	async function handleSoundCloudButtonClick(event: MouseEvent) {
+		event.preventDefault();
+		try {
+			const stateKey = Date.now().toString();
+			let cityValue = '';
+			const unsubscribe = city1.subscribe((v) => (cityValue = v));
+			unsubscribe();
+
+			const formData = {
+				city: cityValue || 'berlin',
+				formattedDate: formattedDate.toISOString().substring(0, 10),
+				source: 'user-home'
+			};
+
+			await fetch('/storestate', {
+				method: 'POST',
+				body: JSON.stringify({ key: stateKey, state: JSON.stringify(formData) }),
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include'
+			});
+
+			window.location.href = connectedServices.soundcloud
+				? '/soundcloud'
+				: `/api/soundcloud/auth?return_to=users-home&state=${stateKey}`;
+		} catch (e) {
+			console.error(e);
+		}
+	}
+
+	async function handleTidalButtonClick(event: MouseEvent) {
+		event.preventDefault();
+		try {
+			const stateKey = Date.now().toString();
+			let cityValue = '';
+			const unsubscribe = city1.subscribe((v) => (cityValue = v));
+			unsubscribe();
+
+			const formData = {
+				city: cityValue || 'berlin',
+				formattedDate: formattedDate.toISOString().substring(0, 10),
+				source: 'user-home'
+			};
+
+			await fetch('/storestate', {
+				method: 'POST',
+				body: JSON.stringify({ key: stateKey, state: JSON.stringify(formData) }),
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include'
+			});
+
+			window.location.href = connectedServices.tidal
+				? '/tidal'
+				: `/api/tidal/auth?return_to=users-home&state=${stateKey}`;
+		} catch (e) {
+			console.error(e);
+		}
+	}
 	// Function to toggle dropdown visibility
 	function toggleDropdown() {
 		dropdownVisible = !dropdownVisible;
@@ -684,21 +747,48 @@
 			</div>
 		</div>
 
-		<!-- SoundCloud: Only show if not connected -->
-		{#if !connectedServices.soundcloud}
-			<div class="connection-card">
-				<div class="card-content">
-					<h3>SoundCloud</h3>
-					<p>Connect your SoundCloud account to discover clubs playing your favorite tracks.</p>
-					<a
-						href="/api/soundcloud/auth?return_to=users-home"
-						class="connect-button soundcloud-button"
-					>
-						Connect with SoundCloud
-					</a>
-				</div>
+		<div class="connection-card">
+			<div class="card-content">
+				<h3>SoundCloud</h3>
+				<p>
+					{#if connectedServices.soundcloud}
+						Your SoundCloud account is connected. Click below to browse your music preferences.
+					{:else}
+						Connect your SoundCloud account to discover clubs playing your favorite tracks.
+					{/if}
+				</p>
+				<button
+					type="button"
+					on:click={handleSoundCloudButtonClick}
+					class="connect-button soundcloud-button"
+					aria-label="Login with SoundCloud"
+				>
+					{connectedServices.soundcloud ? 'Go to' : 'Connect with'} SoundCloud
+				</button>
 			</div>
-		{/if}
+		</div>
+
+		<div class="connection-card">
+			<div class="card-content">
+				<h3>Tidal</h3>
+				<p>
+					{#if connectedServices.tidal}
+						Your Tidal account is connected. Click below to browse your music preferences.
+					{:else}
+						Connect your Tidal account to discover clubs matching your high-fidelity taste.
+					{/if}
+				</p>
+				<button
+					type="button"
+					on:click={handleTidalButtonClick}
+					class="connect-button tidal-button"
+					aria-label="Login with Tidal"
+				>
+					<span>{connectedServices.tidal ? 'Go to' : 'Connect with'}</span>
+					<img src="/lib/tidal_logo.png" alt="Tidal Logo" class="tidal-logo-img" />
+				</button>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -1052,6 +1142,22 @@
 	.soundcloud-button {
 		background-color: #ff5500;
 		color: white;
+	}
+
+	.tidal-button {
+		background-color: #000000;
+		color: white;
+		border: 1px solid #00ffff !important;
+	}
+
+	.tidal-button:hover {
+		box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+	}
+
+	.tidal-logo-img {
+		height: 20px;
+		width: auto;
+		margin-left: 8px;
 	}
 
 	/* Date Picker styling overrides */
