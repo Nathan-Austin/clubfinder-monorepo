@@ -24,9 +24,8 @@ class Config:
     SPOTIFY_PASSWORD = os.getenv("SPOTIFY_PASSWORD")
 
     # Database
-    DATABASE_URL = os.getenv(
-        "DATABASE_URL", "postgresql://nathan:nathan@localhost:5432/clubfindr"
-    )
+    # Required; checked when the database connection is created
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
     # Celery
     # Using database 1 for spotify_automation to separate from barfindr (db 0)
