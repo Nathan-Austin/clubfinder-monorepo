@@ -23,38 +23,24 @@ class DatabaseManager:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
         return cls._instance
 
-    def __init__(
-        self,
-        host: str = None,
-        port: int = None,
-        database: str = None,
-        user: str = None,
-        password: str = None,
-    ):
+    def __init__(self):
         if not hasattr(self, "initialized"):
-            # Check for database URL in environment variable first
             db_url = os.getenv("DATABASE_URL")
+            if not db_url:
+                raise RuntimeError(
+                    "DATABASE_URL is not set; add it to barfindr/.env "
+                    "(see .env.example)"
+                )
 
-            if db_url:
-                # Use environment variable if available
-                self.connection_string = db_url
-                # Extract host for logging
-                # Simple parsing, assumes format postgresql://user:pass@host:port/db
-                try:
-                    self.host = db_url.split("@")[1].split(":")[0]
-                    self.database = db_url.split("/")[-1]
-                except (IndexError, ValueError):
-                    self.host = "unknown"
-                    self.database = "unknown"
-            else:
-                # Fallback to parameters or defaults
-                self.host = host or "localhost"
-                self.port = port or 5432
-                self.database = database or "clubfindr"
-                self.user = user or "nathan"
-                self.password = password or "nathan"
-
-                self.connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+            self.connection_string = db_url
+            # Extract host for logging
+            # Simple parsing, assumes format postgresql://user:pass@host:port/db
+            try:
+                self.host = db_url.split("@")[1].split(":")[0]
+                self.database = db_url.split("/")[-1]
+            except (IndexError, ValueError):
+                self.host = "unknown"
+                self.database = "unknown"
 
             try:
                 self.engine = create_engine(
