@@ -101,8 +101,27 @@ gitignored `.env` in its own directory (see the `.env.example` next to it).
 | Redis 7 | 6379 (localhost) | system package `redis-server` | `redis-server.service`; Celery broker for both Python services |
 | Cron | – | user `nathan` crontab | lines in `deploy/cron/clubfinder.crontab` |
 
-nginx routes `/api/user/` to the spotify_service API on :5000 and everything
-else (including `/api/spotify/`) to clubfindr on :3000.
+nginx sends everything (including `/api/spotify/`) to clubfindr on :3000.
+clubfindr calls the spotify_service API directly on `127.0.0.1:5000`, whose
+routes all live under `/api/<name>` (e.g. `/api/add_user`). The nginx
+`location /api/user/` block also proxies to :5000, but no Flask route sits under
+that prefix and nothing calls it, so it is unused.
+
+### Firewall
+
+ufw denies incoming traffic by default. `deploy/ufw-rules.sh` recreates the
+rules (order matters; ufw uses the first match):
+
+| Port | Rule |
+|---|---|
+| 22 | open |
+| 80, 443 | Cloudflare IP ranges only; the site is only reachable through Cloudflare |
+| 3000 | open to anyone, so node can be reached directly, bypassing nginx and Cloudflare |
+| 5000 | no rule (default deny); local callers only |
+| 5432 | 127.0.0.1 and the Docker networks 172.17.0.0/16 and 172.30.0.0/16; denied otherwise |
+
+Postgres itself (`pg_hba.conf`) also accepts md5 logins for any user and database
+from those two Docker networks.
 
 Toolchain: Node 18.19.1 via nvm (`~/.nvm/versions/node/v18.19.1`), PM2 5.4.2
 installed globally with pnpm (`~/.local/share/pnpm`). PM2 is not on the
@@ -133,6 +152,9 @@ pm2 start ecosystem.config.cjs && pm2 save
 sudo systemctl enable pm2-nathan   # or: pm2 startup systemd
 
 # cron: merge deploy/cron/clubfinder.crontab into `crontab -e`
+
+# firewall
+sudo bash deploy/ufw-rules.sh
 ```
 
 The spotify_service venv lives outside the repo at `~/spotify_service_env`

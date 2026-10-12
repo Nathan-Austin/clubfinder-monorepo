@@ -281,9 +281,10 @@ Production setup (services, ports, restarts, logs) is documented in the
 README "Production" section; the live systemd units, nginx site and cron lines
 are copied in `deploy/`. Summary:
 - clubfindr: `node build/index.js` on :3000 under PM2 (`clubfindr/ecosystem.config.cjs`, resurrected at boot by `pm2-nathan.service`)
-- spotify_service: `spotify-automation-api` (Flask, :5000, nginx `/api/user/`), `-worker-browser`, `-beat`; venv `~/spotify_service_env`
+- spotify_service: `spotify-automation-api` (Flask, :5000, called by clubfindr on 127.0.0.1; routes under `/api/<name>`), `-worker-browser`, `-beat`; venv `~/spotify_service_env`
 - barfindr: `barfindr`, `barfindr-celery-worker`, `barfindr-celery-beat`; conda `base`
-- Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com)
+- Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com) proxies to :3000 (its `/api/user/` → :5000 block matches no Flask route and is unused)
+- Firewall: ufw rules in `deploy/ufw-rules.sh` (80/443 Cloudflare-only)
 
 ## GitHub Actions CI/CD
 
