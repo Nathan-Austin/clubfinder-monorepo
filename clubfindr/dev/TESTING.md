@@ -39,16 +39,27 @@ It is safe to re-run; each run resets the data to the seed. It never overwrites 
 it did not write; use `dev/setup.sh --force` to replace one (the old file is kept as
 `.env.bak`). `dev/setup.sh --stop` stops the Postgres it started.
 
-Settings can be changed with `DEV_PG_HOST`, `DEV_PG_PORT`, `DEV_PG_DB`, `DEV_PG_USER`,
-`DEV_PG_PASSWORD` and `DEV_PG_IMAGE`.
+Settings can be changed with `DEV_PG_HOST`, `DEV_PG_USER`, `DEV_PG_PASSWORD` and
+`DEV_PG_IMAGE`.
+
+### Seed guard
+
+`seed.sql` empties every `clubfindr` table, so it is guarded twice:
+
+- `dev/setup.sh` only seeds a database named `clubfindr_dev` on port 54329. It refuses to start
+  if `DEV_PG_DB` or `DEV_PG_PORT` say otherwise, and before loading it prints the target and
+  checks the database name on the live connection.
+- `seed.sql` itself aborts unless `current_database()` is `clubfindr_dev`. The check runs inside
+  the seed's transaction, so even a client that carries on after errors changes nothing.
 
 ### Using an existing Postgres
 
-Either point the `DEV_PG_*` variables at a role that can create databases, or give setup a
+The server must listen on port 54329 (see the seed guard). Either point `DEV_PG_HOST`,
+`DEV_PG_USER` and `DEV_PG_PASSWORD` at a role that can create databases, or give setup a
 superuser URL and let it create the role:
 
 ```bash
-DEV_PG_PORT=5432 DEV_PG_ADMIN_URL=postgres://postgres:secret@127.0.0.1:5432/postgres dev/setup.sh
+DEV_PG_ADMIN_URL=postgres://postgres:secret@127.0.0.1:54329/postgres dev/setup.sh
 ```
 
 ### Resetting the schema
