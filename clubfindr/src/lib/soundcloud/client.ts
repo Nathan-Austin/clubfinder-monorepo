@@ -83,7 +83,7 @@ export class SoundCloudClient {
 		try {
 			const result = await this.request<spUser>('/me', {}, 'v2-auth', false);
 			if (result?.id) return result;
-		} catch (err) {
+		} catch {
 			console.log('[SoundCloudClient] /me failed with auth, trying JWT decode fallback');
 		}
 

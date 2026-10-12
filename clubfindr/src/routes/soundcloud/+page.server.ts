@@ -164,20 +164,14 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 					(artistTracks.collection || []).forEach((track) => {
 						if (track.genre) trackGenres.add(track.genre);
 						if (track.tag_list) {
-							SoundCloudClient.parseTagList(track.tag_list).forEach((t) =>
-								trackTags.push(t)
-							);
+							SoundCloudClient.parseTagList(track.tag_list).forEach((t) => trackTags.push(t));
 						}
 					});
 
 					// Merge: prefer track-derived data over empty profile fields
-					const genre =
-						fullProfile.genre || artist.genre || Array.from(trackGenres).join(', ');
-					const tagList =
-						fullProfile.tag_list || artist.tag_list || trackTags.join(' ');
-					const parsedTags = tagList
-						? SoundCloudClient.parseTagList(tagList)
-						: [];
+					const genre = fullProfile.genre || artist.genre || Array.from(trackGenres).join(', ');
+					const tagList = fullProfile.tag_list || artist.tag_list || trackTags.join(' ');
+					const parsedTags = tagList ? SoundCloudClient.parseTagList(tagList) : [];
 
 					console.log(
 						`[SoundCloud] Artist ${fullProfile.username}: genre="${genre}", tags=${parsedTags.length}, trackGenres=${trackGenres.size}`

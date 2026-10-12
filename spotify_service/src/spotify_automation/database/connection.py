@@ -25,9 +25,7 @@ class DatabaseManager:
                     "DATABASE_URL is not set; add it to spotify_service/.env "
                     "(see .env.example)"
                 )
-            if self.connection_string.startswith(
-                "postgres://"
-            ):
+            if self.connection_string.startswith("postgres://"):
                 self.connection_string = self.connection_string.replace(
                     "postgres://", "postgresql://", 1
                 )
