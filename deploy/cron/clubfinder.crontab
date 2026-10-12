@@ -1,0 +1,8 @@
+# Clubfinder entries from user nathan's crontab (crontab -e).
+# Install by merging these lines into the user crontab; do not replace it wholesale.
+
+# Event scraping. DISABLED: the event fetcher has been broken since Aug 2025.
+# 0 4 * * * /home/nathan/clubfinder/data_collection/run_data_collection.sh >> /home/nathan/cron.log 2>&1
+
+# Weekly log cleanup (Sunday 00:00). cleanup_logs.sh is a Python script despite the name.
+0 0 * * 0  /home/nathan/clubfinder/data_collection/cleanup_logs.sh

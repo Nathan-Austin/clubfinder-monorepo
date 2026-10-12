@@ -1,0 +1,22 @@
+[Unit]
+Description=PM2 process manager
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=nathan
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Environment=PATH=/home/nathan/.local/share/pnpm:/home/nathan/.nvm/versions/node/v18.19.1/bin:/home/nathan/anaconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PM2_HOME=/home/nathan/.pm2
+PIDFile=/home/nathan/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/home/nathan/.local/share/pnpm/global/5/.pnpm/pm2@5.4.2/node_modules/pm2/bin/pm2 resurrect
+ExecReload=/home/nathan/.local/share/pnpm/global/5/.pnpm/pm2@5.4.2/node_modules/pm2/bin/pm2 reload all
+ExecStop=/home/nathan/.local/share/pnpm/global/5/.pnpm/pm2@5.4.2/node_modules/pm2/bin/pm2 kill
+
+[Install]
+WantedBy=multi-user.target

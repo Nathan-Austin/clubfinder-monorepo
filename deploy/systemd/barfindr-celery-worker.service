@@ -1,0 +1,13 @@
+[Unit]
+Description=BarFindr Celery Worker
+After=network.target postgresql.service redis.service
+
+[Service]
+User=nathan
+WorkingDirectory=/home/nathan/clubfinder/barfindr
+EnvironmentFile=/home/nathan/clubfinder/barfindr/.env
+ExecStart=/home/nathan/clubfinder/barfindr/run_celery_worker.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

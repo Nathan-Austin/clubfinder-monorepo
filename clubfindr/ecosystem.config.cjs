@@ -14,8 +14,9 @@ module.exports = {
 				...process.env
 			},
 			// Logging
-			error_file: '/home/nathan/.pm2/logs/clubfindr-error.log',
-			out_file: '/home/nathan/.pm2/logs/clubfindr-out.log',
+			error_file: '/home/nathan/.pm2/logs/clubfindr-error-0.log',
+			out_file: '/home/nathan/.pm2/logs/clubfindr-out-0.log',
+			merge_logs: true,
 			log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
 			// Restart behavior
 			max_restarts: 10,
