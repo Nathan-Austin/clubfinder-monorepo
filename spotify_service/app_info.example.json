@@ -1,0 +1,23 @@
+{
+    "user_apps": [
+        {
+            "name": "clubfindr-user-app-1",
+            "client_id": "your-spotify-client-id",
+            "client_secret": "your-spotify-client-secret",
+            "app_id": "your-spotify-app-id",
+            "user_count": 0,
+            "is_active": true
+        }
+    ],
+    "bar_apps": [
+        {
+            "name": "clubfindr-bar-app-1",
+            "client_id": "your-spotify-client-id",
+            "client_secret": "your-spotify-client-secret",
+            "app_id": "your-spotify-app-id",
+            "user_count": 0,
+            "is_active": true
+        }
+    ],
+    "last_updated": "1970-01-01T00:00:00"
+}

@@ -28,7 +28,7 @@ clubfindr/build/
 clubfindr/dist/
 clubfindr/.env
 clubfindr/.env.*
-clubfindr/!.env.example
+!clubfindr/.env.example
 
 # Test results
 clubfindr/test-results/
@@ -47,7 +47,7 @@ barfindr/.coverage
 barfindr/htmlcov/
 barfindr/.env
 barfindr/.env.*
-barfindr/!.env.example
+!barfindr/.env.example
 
 # Celery
 barfindr/celerybeat-schedule*
@@ -73,7 +73,7 @@ data_collection/*.py[cod]
 data_collection/*$py.class
 data_collection/.env
 data_collection/.env.*
-data_collection/!.env.example
+!data_collection/.env.example
 data_collection/venv/
 data_collection/env/
 data_collection/.venv/
@@ -110,6 +110,14 @@ spotify_service/screenshots/*.jpg
 spotify_service/pending_queue/*.json
 spotify_service/.env
 spotify_service/.env.*
+!spotify_service/.env.example
+
+# Runtime state (holds Spotify app credentials; see app_info.example.json)
+spotify_service/app_info.json
+
+# Per-run browser data created by the automation workers
+spotify_service/chrome_cache_*/
+spotify_service/chrome_profile_*/
 
 # ===========================
 # app_clubfindr (Expo/React Native)
@@ -121,7 +129,7 @@ app_clubfindr/dist/
 app_clubfindr/build/
 app_clubfindr/.env
 app_clubfindr/.env.*
-app_clubfindr/!.env.example
+!app_clubfindr/.env.example
 
 # Expo
 app_clubfindr/web-build/

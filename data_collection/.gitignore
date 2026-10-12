@@ -25,7 +25,6 @@ build/
 
 # Ignore specific files
 config/*.local.js
-tests/
 # Python pickle files
 *.pkl
 
