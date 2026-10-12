@@ -155,6 +155,10 @@ sudo systemctl enable pm2-nathan   # or: pm2 startup systemd
 
 # firewall
 sudo bash deploy/ufw-rules.sh
+
+# let the deploy workflow restart the six services (and nothing else)
+sudo install -m 0440 -o root -g root deploy/sudoers/clubfinder-deploy /etc/sudoers.d/clubfinder-deploy
+sudo visudo -cf /etc/sudoers.d/clubfinder-deploy
 ```
 
 The spotify_service venv lives outside the repo at `~/spotify_service_env`
@@ -177,6 +181,35 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 Status: `pm2 ls`, `systemctl status <unit>`.
+
+### Deploys
+
+**Pushing to `main` deploys to production** once Main CI passes for that commit
+(`.github/workflows/deploy.yml`). The workflow SSHes in as `nathan` and runs
+`deploy/deploy.sh <sha>` from the commit being deployed. That script:
+
+1. Refuses to run if the checkout is not on `main`, has uncommitted changes to
+   tracked files, or the commit is not a fast-forward.
+2. **Fails before changing anything if a `requirements*.txt` changed** in
+   barfindr, data_collection or spotify_service. Python packages are installed
+   by hand; the error message lists the commands.
+3. Checks it can restart the units it will need (passwordless sudo from
+   `deploy/sudoers/clubfinder-deploy`), then fast-forwards the checkout.
+4. Redeploys only components whose code changed (changes to `*.md`,
+   `.env.example` and `docs/` are ignored):
+   - clubfindr: `pnpm install --frozen-lockfile`, `pnpm build`,
+     `pm2 startOrReload ecosystem.config.cjs --update-env`, `pm2 save`, then
+     `GET 127.0.0.1:3000/` must return 200.
+   - barfindr / spotify_service: restart the three units, then each must be
+     active and not restarted again 10 s later; the spotify API must answer.
+   - data_collection: nothing to restart (cron).
+5. Never applies `deploy/` files (units, nginx, cron, ufw, sudoers); it lists
+   changed ones so you can install them by hand.
+
+Deploys run one at a time. If one fails, the job fails with a `DEPLOY FAILED:`
+line; the log prints the previous commit for rollback
+(`git reset --hard <prev>` on the server, then rebuild/restart as above).
+Test locally with `DRY_RUN=1 deploy/deploy.sh <sha>`.
 
 ### Logs
 
@@ -243,6 +276,7 @@ Each component has its own CI workflow:
 - **spotify-service-ci.yml**: Validates and lints the automation service
 - **app-clubfindr-ci.yml**: Builds and tests the mobile app
 - **main-ci.yml**: Orchestrates all workflows with path filtering
+- **deploy.yml**: Deploys `main` to production after Main CI passes (see Production → Deploys)
 
 Workflows only run when files in their respective directories change, optimizing CI time and resources.
 

@@ -285,6 +285,7 @@ are copied in `deploy/`. Summary:
 - barfindr: `barfindr`, `barfindr-celery-worker`, `barfindr-celery-beat`; conda `base`
 - Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com) proxies to :3000 (its `/api/user/` → :5000 block matches no Flask route and is unused)
 - Firewall: ufw rules in `deploy/ufw-rules.sh` (80/443 Cloudflare-only)
+- Pushing to `main` deploys to production after Main CI passes (`deploy.yml` runs `deploy/deploy.sh`); Python requirements and `deploy/` files are applied by hand
 
 ## GitHub Actions CI/CD
 

@@ -1,131 +1,43 @@
 name: Deploy to Server
 
+# Deploys main to production after Main CI has passed for that commit.
+# The server-side logic lives in deploy/deploy.sh (taken from the commit being
+# deployed): preflight checks, fast-forward, rebuild/restart only what changed,
+# health checks. Python requirements and deploy/ files are applied by hand.
+
 on:
-  push:
+  workflow_run:
+    workflows: ["Main CI"]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'clubfindr/**'
-      - 'barfindr/**'
-      - 'data_collection/**'
-      - 'spotify_service/**'
-      # Explicitly exclude app_clubfindr - it only goes to GitHub, not server
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect changed components
-        id: changes
-        uses: dorny/paths-filter@v2
-        with:
-          filters: |
-            clubfindr:
-              - 'clubfindr/**'
-            barfindr:
-              - 'barfindr/**'
-            data_collection:
-              - 'data_collection/**'
-            spotify_service:
-              - 'spotify_service/**'
-
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          envs: DEPLOY_SHA
+          command_timeout: 15m
           script: |
+            set -euo pipefail
             cd /home/nathan/clubfinder
-
-            echo "=== Pulling latest changes ==="
-            git pull origin main
-
-            # Install/build for changed components
-            if [ "${{ steps.changes.outputs.clubfindr }}" == "true" ]; then
-              echo "=== Building clubfindr ==="
-              cd /home/nathan/clubfinder/clubfindr
-              pnpm install --frozen-lockfile
-              pnpm build
-              cd /home/nathan/clubfinder
-            fi
-
-            if [ "${{ steps.changes.outputs.barfindr }}" == "true" ]; then
-              echo "=== Installing barfindr dependencies ==="
-              cd /home/nathan/clubfinder/barfindr
-              pip install -r requirements.txt
-              cd /home/nathan/clubfinder
-            fi
-
-            if [ "${{ steps.changes.outputs.data_collection }}" == "true" ]; then
-              echo "=== Installing data_collection dependencies ==="
-              cd /home/nathan/clubfinder/data_collection
-              pip install -r requirements.txt
-              cd /home/nathan/clubfinder
-            fi
-
-            if [ "${{ steps.changes.outputs.spotify_service }}" == "true" ]; then
-              echo "=== Installing spotify_service dependencies ==="
-              cd /home/nathan/clubfinder/spotify_service
-              pip install -r requirements.txt
-              cd /home/nathan/clubfinder
-            fi
-
-            echo "=== Restarting services ==="
-
-            # Restart clubfindr (PM2) only if it changed
-            if [ "${{ steps.changes.outputs.clubfindr }}" == "true" ]; then
-              echo "Restarting clubfindr via PM2..."
-              /home/nathan/.local/share/pnpm/pm2 restart clubfindr || /home/nathan/.local/share/pnpm/pm2 start /home/nathan/clubfinder/clubfindr/ecosystem.config.cjs
-              /home/nathan/.local/share/pnpm/pm2 save
-            fi
-
-            # Restart barfindr services (systemd) only if it changed
-            if [ "${{ steps.changes.outputs.barfindr }}" == "true" ]; then
-              echo "=== Updating barfindr systemd services ==="
-              sudo cp /home/nathan/clubfinder/barfindr/systemd/barfindr.service /etc/systemd/system/
-              sudo cp /home/nathan/clubfinder/barfindr/systemd/barfindr-celery-worker.service /etc/systemd/system/
-              sudo cp /home/nathan/clubfinder/barfindr/systemd/barfindr-celery-beat.service /etc/systemd/system/
-              sudo systemctl daemon-reload
-
-              echo "Restarting barfindr services..."
-              sudo systemctl restart barfindr.service
-              sudo systemctl restart barfindr-celery-worker.service
-              sudo systemctl restart barfindr-celery-beat.service
-
-              echo "Verifying barfindr deployment..."
-              sleep 5
-              if ! systemctl is-active --quiet barfindr.service; then echo "❌ barfindr.service failed"; exit 1; fi
-              if ! systemctl is-active --quiet barfindr-celery-worker.service; then echo "❌ barfindr-celery-worker.service failed"; exit 1; fi
-              if ! systemctl is-active --quiet barfindr-celery-beat.service; then echo "❌ barfindr-celery-beat.service failed"; exit 1; fi
-              echo "✅ All barfindr services are active."
-            fi
-
-            # Restart spotify_service (systemd) only if it changed
-            if [ "${{ steps.changes.outputs.spotify_service }}" == "true" ]; then
-              echo "=== Updating spotify_service systemd services ==="
-              sudo cp /home/nathan/clubfinder/spotify_service/systemd/spotify-automation-api.service /etc/systemd/system/
-              sudo cp /home/nathan/clubfinder/spotify_service/systemd/spotify-automation-beat.service /etc/systemd/system/
-              sudo cp /home/nathan/clubfinder/spotify_service/systemd/spotify-automation-worker-browser.service /etc/systemd/system/
-              sudo systemctl daemon-reload
-
-              echo "Restarting spotify_service services..."
-              sudo systemctl restart spotify-automation-api.service
-              sudo systemctl restart spotify-automation-beat.service
-              sudo systemctl restart spotify-automation-worker-browser.service
-
-              echo "Verifying spotify_service deployment..."
-              sleep 5
-              if ! systemctl is-active --quiet spotify-automation-api.service; then echo "❌ spotify-automation-api.service failed"; exit 1; fi
-              if ! systemctl is-active --quiet spotify-automation-beat.service; then echo "❌ spotify-automation-beat.service failed"; exit 1; fi
-              if ! systemctl is-active --quiet spotify-automation-worker-browser.service; then echo "❌ spotify-automation-worker-browser.service failed"; exit 1; fi
-              echo "✅ All spotify_service services are active."
-            fi
-
-            echo "=== Deployment complete ==="
+            git fetch --quiet origin main
+            script=$(mktemp)
+            trap 'rm -f "$script"' EXIT
+            git show "${DEPLOY_SHA}:deploy/deploy.sh" > "$script"
+            bash "$script" "$DEPLOY_SHA"
