@@ -72,7 +72,7 @@ The service reads from and writes to the shared PostgreSQL database used by the 
 - **Isolation**: Each poll operation instantiates a fresh `SpotifyService` context to prevent token leakage between venues.
 
 ## Configuration
-Configuration is managed via `config/config.yaml` and environment variables:
+Configuration is managed via environment variables (`barfindr/.env`, see `.env.example`):
 - **Active Hours**: Polling is restricted to specific hours (e.g., 18:00 - 03:00) to optimize API usage and server resources.
 - **Workers**: Scalable Celery worker count.
 
