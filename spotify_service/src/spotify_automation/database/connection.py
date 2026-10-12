@@ -20,7 +20,12 @@ class DatabaseManager:
     def __init__(self):
         if not hasattr(self, "initialized"):
             self.connection_string = config.DATABASE_URL
-            if self.connection_string and self.connection_string.startswith(
+            if not self.connection_string:
+                raise RuntimeError(
+                    "DATABASE_URL is not set; add it to spotify_service/.env "
+                    "(see .env.example)"
+                )
+            if self.connection_string.startswith(
                 "postgres://"
             ):
                 self.connection_string = self.connection_string.replace(
