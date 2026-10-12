@@ -1,0 +1,16 @@
+[Unit]
+Description=BarFindr Celery Beat
+After=network.target postgresql.service redis.service
+
+[Service]
+User=nathan
+WorkingDirectory=/home/nathan/clubfinder/barfindr
+EnvironmentFile=/home/nathan/clubfinder/barfindr/.env
+
+# Conda activation - adjust paths and environment name
+ExecStart=/bin/bash -c 'source /home/nathan/anaconda3/etc/profile.d/conda.sh && conda activate base && PYTHONPATH=/home/nathan/clubfinder/barfindr/src celery -A src.barfindr.celery:app beat --loglevel=info'
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

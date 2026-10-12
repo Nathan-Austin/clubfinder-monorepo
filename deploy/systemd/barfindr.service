@@ -1,0 +1,16 @@
+[Unit]
+Description=BarFindr Service
+After=network.target postgresql.service redis.service
+
+[Service]
+User=nathan
+WorkingDirectory=/home/nathan/clubfinder/barfindr
+EnvironmentFile=/home/nathan/clubfinder/barfindr/.env
+
+# Conda activation - adjust paths and environment name
+ExecStart=/bin/bash -c 'source /home/nathan/anaconda3/etc/profile.d/conda.sh && conda activate base && PYTHONPATH=/home/nathan/clubfinder/barfindr/src python -m src.barfindr.main'
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
