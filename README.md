@@ -368,7 +368,9 @@ Git history from individual repos is backed up in `.git-backups/` (ignored by gi
 
 ## License
 
-[Add your license here]
+MIT, see [LICENSE](LICENSE). The Spotify logo files in
+`clubfindr/static/lib/2024-spotify-full-logo/` are Spotify's brand assets: they
+are not covered by this license and are subject to Spotify's brand guidelines.
 
 ## Support
 
