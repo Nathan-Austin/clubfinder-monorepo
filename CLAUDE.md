@@ -27,7 +27,9 @@ The project uses PostgreSQL 16 (system package, cluster `16-main`, port 5432), d
 DATABASE_URL=postgres://<user>:<password>@localhost:5432/clubfindr
 ```
 
-Main tables include: `users`, `events`, `artists`, `venues`, `user_sessions`, `genres`
+Main tables include: `events`, `event_artists`, `artists`, `users`, `user_sessions`, `bars`, `spotify_apps`, `venues`
+
+There is no genres or cities table: genres come from the JSON files in `clubfindr/src/lib/data/` (see Genre Classification System below), and the scraped cities from `data_collection/live_cities.txt`.
 
 ## Development Commands
 
