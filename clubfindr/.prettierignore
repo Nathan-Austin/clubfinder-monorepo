@@ -13,3 +13,6 @@ vite.config.js.timestamp*
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+# Private Postgres cluster created by dev/setup.sh
+/dev/.pgdata
