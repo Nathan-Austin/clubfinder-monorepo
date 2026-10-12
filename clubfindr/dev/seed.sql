@@ -14,7 +14,21 @@
 -- Password hashes are bcrypt with 10 rounds, as made by hashPassword() in
 -- src/lib/passwordUtils.ts.
 
+\set ON_ERROR_STOP on
+
 BEGIN;
+
+-- Guard: only ever seed the local dev database. Inside the transaction on
+-- purpose: if this fails, every later statement fails too and COMMIT rolls
+-- back, even when the client keeps going after errors.
+DO $$
+BEGIN
+	IF current_database() <> 'clubfindr_dev' THEN
+		RAISE EXCEPTION 'seed.sql refuses to run in database "%": it only loads into clubfindr_dev',
+			current_database();
+	END IF;
+END
+$$;
 
 TRUNCATE
 	clubfindr.event_artists,
