@@ -1,0 +1,17 @@
+# Lets the deploy workflow (deploy/deploy.sh, running as nathan over SSH)
+# restart the clubfinder services without a password, and nothing else.
+#
+# Install:
+#   sudo install -m 0440 -o root -g root deploy/sudoers/clubfinder-deploy /etc/sudoers.d/clubfinder-deploy
+#   sudo visudo -cf /etc/sudoers.d/clubfinder-deploy
+#
+# The file name must not contain a dot, or sudo ignores it.
+
+# Commands are listed literally (no Cmnd_Alias) so `sudo -l` shows them as
+# deploy/deploy.sh expects.
+nathan ALL=(root) NOPASSWD: /usr/bin/systemctl restart barfindr.service, \
+	/usr/bin/systemctl restart barfindr-celery-worker.service, \
+	/usr/bin/systemctl restart barfindr-celery-beat.service, \
+	/usr/bin/systemctl restart spotify-automation-api.service, \
+	/usr/bin/systemctl restart spotify-automation-worker-browser.service, \
+	/usr/bin/systemctl restart spotify-automation-beat.service
