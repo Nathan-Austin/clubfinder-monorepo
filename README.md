@@ -9,10 +9,11 @@ This is a monorepo containing all Clubfinder components:
 ```
 clubfinder/
 ├── clubfindr/           # Main SvelteKit web application
-├── barfindr/           # Python FastAPI backend for venue management
+├── barfindr/           # Python venue backend (Celery workers + Spotify sync)
 ├── data_collection/    # Python scripts for event data scraping
 ├── spotify_service/    # Automated Spotify app management service
 ├── app_clubfindr/      # React Native/Expo mobile application
+├── deploy/             # Production systemd units, nginx site, cron lines
 ├── .github/            # GitHub Actions CI/CD workflows
 └── CLAUDE.md          # Development guide for Claude Code
 ```
@@ -32,8 +33,8 @@ clubfinder/
 # Create PostgreSQL database
 createdb clubfindr
 
-# Set up environment variables (see individual component READMEs)
-export DATABASE_URL="postgres://roh_user:REDACTED@localhost:5432/roh_db_dev"
+# Set up environment variables: copy each component's .env.example to .env
+export DATABASE_URL="postgres://your-db-user:your-db-password@localhost:5432/clubfindr"
 ```
 
 ### Running Components
@@ -51,8 +52,9 @@ pnpm dev  # Runs on http://localhost:3000
 ```bash
 cd barfindr
 pip install -r requirements.txt
-alembic upgrade head
-uvicorn src.barfindr.main:app --reload
+alembic upgrade head   # needs DATABASE_URL set
+PYTHONPATH=src python -m src.barfindr.main        # service init loop (no HTTP port)
+./run_celery_worker.sh                            # Celery worker
 ```
 
 #### data_collection (Event Scraping)
@@ -75,6 +77,101 @@ cd app_clubfindr
 npm install
 npx expo start
 ```
+
+## Production
+
+Production runs on a single Ubuntu 24.04 server from a checkout at
+`/home/nathan/clubfinder`, as user `nathan`. All paths in `deploy/` are
+hardcoded to that location. Every component reads its secrets from a
+gitignored `.env` in its own directory (see the `.env.example` next to it).
+
+### Services
+
+| Service | Port | Runs as | Started by |
+|---|---|---|---|
+| nginx | 80, 443 | system package | `nginx.service`; site `deploy/nginx/sveltekit.config` → `/etc/nginx/sites-available/`, symlinked in `sites-enabled/`. TLS via certbot (`/etc/letsencrypt/live/clubfindr.com/`) |
+| clubfindr (SvelteKit) | 3000 | `node build/index.js` under PM2 | `pm2-nathan.service` runs `pm2 resurrect` at boot; process defined in `clubfindr/ecosystem.config.cjs` |
+| spotify_service API (Flask) | 5000 | `~/spotify_service_env` venv | `spotify-automation-api.service` |
+| spotify_service Celery worker | – | `~/spotify_service_env` venv | `spotify-automation-worker-browser.service` (queues `spotify_browser,spotify_fast,spotify_maintenance`, concurrency 1) |
+| spotify_service Celery beat | – | `~/spotify_service_env` venv | `spotify-automation-beat.service` |
+| barfindr | – | conda `base` (`~/anaconda3`) | `barfindr.service` (`python -m src.barfindr.main`: initialises services, then idles; no HTTP port) |
+| barfindr Celery worker | – | conda `base` | `barfindr-celery-worker.service` → `barfindr/run_celery_worker.sh` (queues `celery,spotify,maintenance`) |
+| barfindr Celery beat | – | conda `base` | `barfindr-celery-beat.service` |
+| PostgreSQL 16 | 5432 | system package `postgresql-16`, cluster `16-main` | `postgresql@16-main.service`; database `clubfindr`, schema `clubfindr` |
+| Redis 7 | 6379 (localhost) | system package `redis-server` | `redis-server.service`; Celery broker for both Python services |
+| Cron | – | user `nathan` crontab | lines in `deploy/cron/clubfinder.crontab` |
+
+nginx routes `/api/user/` to the spotify_service API on :5000 and everything
+else (including `/api/spotify/`) to clubfindr on :3000.
+
+Toolchain: Node 18.19.1 via nvm (`~/.nvm/versions/node/v18.19.1`), PM2 5.4.2
+installed globally with pnpm (`~/.local/share/pnpm`). PM2 is not on the
+default PATH:
+
+```bash
+export PATH=/home/nathan/.local/share/pnpm:/home/nathan/.nvm/versions/node/v18.19.1/bin:$PATH
+```
+
+### Installing from the repo
+
+```bash
+# systemd units
+sudo cp deploy/systemd/*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now spotify-automation-api spotify-automation-beat \
+  spotify-automation-worker-browser barfindr barfindr-celery-worker barfindr-celery-beat
+
+# nginx
+sudo cp deploy/nginx/sveltekit.config /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/sveltekit.config /etc/nginx/sites-enabled/
+sudo certbot --nginx -d clubfindr.com -d www.clubfindr.com
+sudo nginx -t && sudo systemctl reload nginx
+
+# clubfindr under PM2
+cd clubfindr && pnpm install && pnpm build
+pm2 start ecosystem.config.cjs && pm2 save
+sudo systemctl enable pm2-nathan   # or: pm2 startup systemd
+
+# cron: merge deploy/cron/clubfinder.crontab into `crontab -e`
+```
+
+The spotify_service venv lives outside the repo at `~/spotify_service_env`
+(`python -m venv ~/spotify_service_env && ~/spotify_service_env/bin/pip install -r spotify_service/requirements.txt`).
+barfindr uses the conda `base` environment with `barfindr/requirements.txt`.
+spotify_service also needs `spotify_service/app_info.json` (see `app_info.example.json`).
+
+### Restarting
+
+```bash
+# clubfindr: env vars are baked in at build time, so rebuild after changing .env
+cd clubfindr && pnpm build && pm2 restart clubfindr
+
+# Python services
+sudo systemctl restart barfindr barfindr-celery-worker barfindr-celery-beat
+sudo systemctl restart spotify-automation-api spotify-automation-worker-browser spotify-automation-beat
+
+# nginx
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Status: `pm2 ls`, `systemctl status <unit>`.
+
+### Logs
+
+| Component | Location |
+|---|---|
+| clubfindr | `~/.pm2/logs/clubfindr-out-0.log`, `~/.pm2/logs/clubfindr-error-0.log` (`pm2 logs clubfindr`) |
+| systemd services | journald: `sudo journalctl -u <unit> -f` (`nathan` is not in `adm`/`systemd-journal`, so sudo is needed) |
+| spotify_service | also files in `spotify_service/`: `cleanup.log`, `stream_errors.log`, `spotify_service.log` (rotating) |
+| data_collection | `data_collection/logs/`; cron output in `~/cron.log`. `cleanup_logs.sh` clears logs older than 14 days or over 10 MB weekly |
+| nginx | `/var/log/nginx/` |
+| PostgreSQL | `/var/log/postgresql/postgresql-16-main.log` |
+
+### Scheduled jobs
+
+- `data_collection/run_data_collection.sh`: daily 04:00, **currently disabled**
+  (commented out) because the event fetcher has been broken since Aug 2025.
+- `data_collection/cleanup_logs.sh`: Sundays 00:00.
 
 ## Development Workflow
 
@@ -119,7 +216,7 @@ Components: `clubfindr`, `barfindr`, `data_collection`, `spotify_service`, `app_
 Each component has its own CI workflow:
 
 - **clubfindr-ci.yml**: Builds, tests, and lints the web app
-- **barfindr-ci.yml**: Tests and lints the FastAPI backend
+- **barfindr-ci.yml**: Tests and lints the barfindr backend
 - **data-collection-ci.yml**: Validates and lints scraping scripts
 - **spotify-service-ci.yml**: Validates and lints the automation service
 - **app-clubfindr-ci.yml**: Builds and tests the mobile app
@@ -175,9 +272,9 @@ cd spotify_service && black --check . && flake8 .
 - **Features**: Event discovery, artist profiles, venue listings, user authentication
 
 ### barfindr (Backend)
-- **Tech**: FastAPI, SQLAlchemy, Celery, Redis
+- **Tech**: SQLAlchemy, Celery, Redis (FastAPI is in requirements.txt but no HTTP server runs)
 - **Purpose**: Venue management and background task processing
-- **Features**: Venue APIs, async task queue, Spotify integration
+- **Features**: Async task queue, Spotify integration
 
 ### data_collection (Data Pipeline)
 - **Tech**: Python, Selenium, Beautiful Soup

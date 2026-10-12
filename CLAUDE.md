@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Clubfinder is a **monorepo** containing a multi-component platform for discovering music events and connecting artists with venues. The system consists of:
 
 1. **clubfindr** (Main SvelteKit web application)
-2. **barfindr** (Python FastAPI backend for venue management)
+2. **barfindr** (Python venue backend: Celery workers and Spotify sync; no HTTP server)
 3. **data_collection** (Python scripts for scraping event data)
 4. **spotify_service** (Automated Spotify application management)
 5. **app_clubfindr** (React Native/Expo mobile app)
@@ -21,10 +21,10 @@ This repository was migrated from individual repos to a monorepo structure:
 
 ## Database Configuration
 
-The project uses PostgreSQL with the schema `clubfindr`. Connection details are stored in environment variables:
+The project uses PostgreSQL 16 (system package, cluster `16-main`, port 5432), database `clubfindr`, schema `clubfindr`. Connection details are stored in each component's gitignored `.env` (see its `.env.example`):
 
 ```
-DATABASE_URL=postgres://roh_user:REDACTED@localhost:5432/roh_db_dev
+DATABASE_URL=postgres://<user>:<password>@localhost:5432/clubfindr
 ```
 
 Main tables include: `users`, `events`, `artists`, `venues`, `user_sessions`, `genres`
@@ -73,8 +73,8 @@ Directory: `/home/nathan/clubfinder/barfindr`
 # Install dependencies
 pip install -r requirements.txt
 
-# Run FastAPI server
-uvicorn src.barfindr.main:app --reload
+# Run the service (initialises services, then idles; no HTTP port)
+PYTHONPATH=src python -m src.barfindr.main
 
 # Database migrations
 alembic upgrade head
@@ -154,15 +154,15 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 
 **Adapter:** Uses `@sveltejs/adapter-node` for Node.js deployment
 
-### barfindr (FastAPI Backend)
+### barfindr (Venue Backend)
 
-**Tech Stack:** FastAPI, SQLAlchemy, Celery, Redis, Alembic
+**Tech Stack:** SQLAlchemy, Celery, Redis, Alembic (FastAPI is in requirements.txt but unused)
 
 **Purpose:** Handles venue-specific operations and background tasks
 
 **Key Components:**
-- `src/barfindr/main.py` - FastAPI app entry point
-- `src/barfindr/database.py` - SQLAlchemy database setup
+- `src/barfindr/main.py` - Service entry point (initialises services, then sleeps in a loop)
+- `src/barfindr/database.py` - SQLAlchemy database setup (requires `DATABASE_URL`)
 - `src/barfindr/tasks.py` - Celery tasks for async operations
 - `src/barfindr/spotify_service.py` - Spotify API integration
 - `src/barfindr/encryption.py` - Credential encryption/decryption
@@ -217,10 +217,11 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 - Spotify and SoundCloud API credentials
 - Email credentials for notifications
 
-**barfindr requires:**
-- PostgreSQL connection string
-- Redis URL for Celery
-- Spotify API credentials (encrypted)
+**barfindr requires** (`barfindr/.env`, loaded by the systemd units):
+- `DATABASE_URL` - PostgreSQL connection string (required; no fallback)
+- `REDIS_URL` - Celery broker
+- `ENCRYPTION_KEY` - for stored Spotify credentials
+- `SPOTIFY_REDIRECT_URI`
 
 ### Testing
 
@@ -275,6 +276,14 @@ The clubfindr web app builds to a Node.js server:
 - Output directory: `build/`
 - Uses `@sveltejs/adapter-node` with precompression enabled
 - Preview server runs on port 3000
+
+Production setup (services, ports, restarts, logs) is documented in the
+README "Production" section; the live systemd units, nginx site and cron lines
+are copied in `deploy/`. Summary:
+- clubfindr: `node build/index.js` on :3000 under PM2 (`clubfindr/ecosystem.config.cjs`, resurrected at boot by `pm2-nathan.service`)
+- spotify_service: `spotify-automation-api` (Flask, :5000, nginx `/api/user/`), `-worker-browser`, `-beat`; venv `~/spotify_service_env`
+- barfindr: `barfindr`, `barfindr-celery-worker`, `barfindr-celery-beat`; conda `base`
+- Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com)
 
 ## GitHub Actions CI/CD
 
