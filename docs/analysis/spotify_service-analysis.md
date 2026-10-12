@@ -85,13 +85,12 @@ These steps are required to deploy the recent changes to the production server.
     ```
 
 ### 2. Service Restart
-- [ ] **Reload Systemd**:
+- [ ] **Restart the services** (the old single `spotify-service` unit has been removed):
     ```bash
-    sudo systemctl daemon-reload
-    sudo systemctl restart spotify-service
+    sudo systemctl restart spotify-automation-api spotify-automation-worker-browser spotify-automation-beat
     ```
 - [ ] **Verify Logs**:
-    Check `journalctl -u spotify-service -f` to ensure configuration is loaded correctly from environment variables (logs should *not* show "Missing required Spotify credentials").
+    Check `sudo journalctl -u spotify-automation-api -u spotify-automation-worker-browser -f` to ensure configuration is loaded correctly from environment variables (logs should *not* show "Missing required Spotify credentials").
 
 ### 3. Cleanup Verification
 - [ ] **Test Cleanup**:
