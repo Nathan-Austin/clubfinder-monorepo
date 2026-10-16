@@ -8,10 +8,42 @@ the current date, so there are always upcoming events (from 3 days ago to 21 day
 
 ## Requirements
 
-- Node 20 (see `.nvmrc`). The build crashes on Node 26 (`buffer-equal-constant-time`, used by
-  `jsonwebtoken`).
-- pnpm 9 or 10. pnpm 11 also works, but exits 1 on install until the dependency build scripts
-  are approved; run scripts with `pnpm --config.verify-deps-before-run=false <script>`.
+- Node 24 (see `.nvmrc`). `package.json` `engines` plus `engine-strict` in `.npmrc` make
+  `pnpm install` refuse any other major, so you cannot build on the wrong Node by accident.
+  The build crashes on Node 26 (`buffer-equal-constant-time`, used by `jsonwebtoken`, needs
+  the removed `SlowBuffer`). To get Node 24:
+  - nvm: `nvm install` in this directory reads `.nvmrc`; `nvm use` afterwards.
+  - fnm / volta / mise: also read `.nvmrc`.
+  - Debian/Ubuntu without a version manager: NodeSource `setup_24.x`, then
+    `apt install nodejs`.
+- pnpm 10.34.6, pinned in the `packageManager` field of `package.json`. Any of these gives
+  you exactly that version:
+  - `corepack enable` (Corepack ships with Node), then just run `pnpm`.
+  - an already installed pnpm 10 or newer: it reads `packageManager` and switches to 10.34.6
+    on first use (downloaded once, verified against the npm registry signature). Set
+    `manage-package-manager-versions=false` in `.npmrc` if you need to stop that.
+  - `npm i -g pnpm@10.34.6`.
+- Sandboxes and registry proxies: pnpm's version switch verifies the downloaded pnpm against
+  the npm registry's signatures. Behind a proxy that strips them (the case in the sandbox this
+  upgrade was done in) every `pnpm` call fails with "its npm registry signature could not be
+  verified". The fix is to install 10.34.6 directly and turn the switch off for the shell:
+
+  ```bash
+  export PATH=/home/model/tools/node24/bin:$PATH        # wherever Node 24 lives
+  rm /home/model/tools/node24/bin/pnpm /home/model/tools/node24/bin/pnpx 2>/dev/null
+  npm i -g pnpm@10.34.6 && hash -r
+  export npm_config_manage_package_manager_versions=false
+  cd /workspace/clubfindr && ./dev/setup.sh
+  pnpm lint && pnpm check && pnpm exec vitest run && pnpm build && pnpm test
+  ```
+
+  Run the checks one after another: `pnpm test` builds into `build/` itself, so running it
+  alongside `pnpm build` makes the two overwrite each other.
+
+- No dependency has install scripts, so `pnpm install --frozen-lockfile` is clean and needs no
+  `pnpm approve-builds`. Dependency updates that add one will show up as a warning (pnpm 10)
+  or an error (pnpm 11+): add the package to `pnpm.onlyBuiltDependencies` in `package.json`
+  if the script is needed, or to `pnpm.ignoredBuiltDependencies` if not.
 - Postgres 13 or later, one of:
   - Postgres server binaries (`initdb`, `pg_ctl`): setup creates a private cluster in
     `dev/.pgdata`
@@ -33,11 +65,13 @@ dev/setup.sh
 3. Loads `dev/schema.sql` if the `clubfindr` schema does not exist yet.
 4. Loads `dev/seed.sql`, which empties every `clubfindr` table and inserts the test data.
 5. Writes `.env` from `.env.example` with the local database settings and random
-   `VITE_CRYPTO_KEY` and `JWT_SECRET` values. All other keys keep their placeholder values.
+   `CRYPTO_KEY` and `JWT_SECRET` values. All other keys keep their placeholder values.
 
 It is safe to re-run; each run resets the data to the seed. It never overwrites a `.env` that
 it did not write; use `dev/setup.sh --force` to replace one (the old file is kept as
-`.env.bak`). `dev/setup.sh --stop` stops the Postgres it started.
+`.env.bak`). A `.env` from before the upgrade uses the old `VITE_*` names: `--force`
+rewrites it with the current ones (see `docs/PRODUCTION_HANDOVER.md` for the rename table).
+`dev/setup.sh --stop` stops the Postgres it started.
 
 Settings can be changed with `DEV_PG_HOST`, `DEV_PG_USER`, `DEV_PG_PASSWORD` and
 `DEV_PG_IMAGE`.
@@ -76,33 +110,100 @@ dev/setup.sh
 
 ```bash
 pnpm lint          # Prettier + ESLint
-pnpm check         # svelte-check: 3 known type errors (see below)
+pnpm check         # svelte-check: 0 errors, 0 warnings
 pnpm exec vitest run
 pnpm build
+pnpm test          # Playwright end-to-end tests, see "End-to-end tests" below
 ```
 
-None of these needs the database or network. `pnpm build` needs every key in `.env` to be
+None of the first four needs the database or network. `pnpm build` needs every key in `.env` to be
 defined (placeholders are fine), which `dev/setup.sh` takes care of. Use `vitest run`:
 `pnpm test:unit` starts Vitest in watch mode.
 
-Known baseline: `pnpm check` reports 3 errors, 0 warnings, in
-`src/routes/soundcloud/+page.server.ts` (2) and `src/routes/tidal/+page.svelte` (1). All other
-checks pass. `pnpm test` (Playwright) cannot pass: there is no `tests/` directory, and its web
-server listens on port 3000 while Playwright waits on 4173.
+All components use Svelte 5 runes; `svelte.config.js` forces runes mode for every component
+outside `node_modules`, so any legacy syntax (`export let`, `$:`, `on:click`, stores in
+components) is a compile error rather than a silent fallback.
+
+Styling is Tailwind 4 through `@tailwindcss/vite`: the theme lives in `src/app.css` (`@theme`),
+there is no `tailwind.config` or PostCSS config. The palette is deliberately limited to the
+colours the old config defined (`--color-*: initial` first), built on the `--rgb-*` triplets.
+Component `<style>` blocks that use `@apply` start with `@reference '../../app.css'`.
+
+What works on Node 24 / pnpm 10.34.6 with the Svelte 5, SvelteKit 2.70, Vite 8, Tailwind 4,
+TypeScript 6, ESLint 10 (flat config), Prettier 3 and Playwright stack:
+
+| Command                               | Status                                               |
+| ------------------------------------- | ---------------------------------------------------- |
+| `pnpm install --frozen-lockfile`      | clean, no build scripts, no warnings                 |
+| `pnpm lint`                           | passes, no warnings                                  |
+| `pnpm check`                          | 0 errors, 0 warnings                                 |
+| `pnpm exec vitest run`                | 4 files, 62 tests pass                               |
+| `pnpm build`                          | passes                                               |
+| `node --env-file=.env build/index.js` | production server on :3000                           |
+| `pnpm dev`                            | Vite 8 dev server on :3000                           |
+| `pnpm preview`                        | serves the build on :3000                            |
+| `pnpm build-scripts`                  | compiles `scripts/` to `dist-scripts/`               |
+| `pnpm test`                           | 44 Playwright tests pass against the seeded database |
+| `pnpm format`                         | Prettier 3 with prettier-plugin-svelte 4             |
+
+Baseline (re-checked 2026-10-16 in a clean Node 24 container): every command above passes
+with no errors or warnings. Treat any new `pnpm check` or lint output as a regression.
+
+## End-to-end tests
+
+`pnpm test` runs the Playwright suite in `tests/` against the production build, served by
+`vite preview` on port 4173 and backed by the seeded database. It needs:
+
+- `dev/setup.sh` run once (database on 54329 and `.env`; re-run it to reset the data),
+- the browser: `pnpm exec playwright install chromium` once per machine (CI: `--with-deps`),
+- nothing else: every request that does not go to `localhost:4173` is blocked, so the tests
+  pass with no Google, Spotify, SoundCloud, Tidal or e-mail access.
+
+```bash
+pnpm test                                  # builds, starts the preview server, runs everything
+PW_SKIP_BUILD=1 pnpm test                  # reuse the existing build/ (after a manual pnpm build)
+pnpm exec playwright test tests/auth.spec.ts       # one file
+pnpm exec playwright test -g "genre picker"        # by title
+pnpm exec playwright test --ui                     # interactive
+pnpm exec playwright show-report                   # after a CI run (html reporter)
+```
+
+What is covered (`tests/*.spec.ts`):
+
+| File               | Flows                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages.spec.ts`    | every public page renders and hydrates without JS errors; cookie banner and preferences; desktop dropdown and mobile menu; logged-out protection; `robots.txt`    |
+| `auth.spec.ts`     | the three seeded logins land on `/users-home`, `/promoter-home`, `/bars`; wrong password; logout                                                                  |
+| `search.spec.ts`   | city + genre search to `/clubs` and `/barfindr`; marking interest when logged in; `/clubs` without a search; the genre picker (browse, select all, search, clear) |
+| `bars.spec.ts`     | bar manager: bar details modal (pre-fill, edit chips, cancel) and event modal (fields, preset and custom genres, recurring, failed save, cancel, close)           |
+| `promoter.spec.ts` | promoter: venue search and selection, `GenreSelector` (expand, search, select, remove), performer form with artist and track search                               |
+| `forms.spec.ts`    | password reset (both pages), update-info validation, custom genres on `/selectedGenres`, delete-confirmation, registration code resend, users-home feedback/city  |
+
+`tests/fixtures.ts` holds the shared pieces: the offline route blocking, a distinct
+`x-forwarded-for` per test (the app rate-limits 60 requests/minute per address, which a
+parallel run would hit otherwise), `login()`, and the `pageErrors` fixture that fails a test
+on any uncaught error in the page.
+
+The suite does not change the seed: nothing it submits is persisted (saves that need Spotify,
+a bar id or e-mail fail offline, and the validation cases never reach the server). The one
+exception is "mark interest" on `/clubs`, which writes a row that the seed reloads.
 
 ## Running the app
 
 ```bash
 pnpm build
-node --env-file=.env build/index.js     # http://localhost:3000
+ORIGIN=http://localhost:3000 node --env-file=.env build/index.js     # http://localhost:3000
 ```
+
+`ORIGIN` tells adapter-node the public origin (it assumes `https://` otherwise), which the
+CSRF check compares form posts against; `pnpm dev` and `pnpm preview` do not need it.
 
 `pnpm dev` (development server, also port 3000) and `pnpm preview` read `.env` themselves.
 
-- The database settings (`VITE_PG_*`) are compiled in at build time: rebuild after changing
-  them.
-- Open the app at `http://localhost:3000`. Login cookies are marked `Secure`, which browsers
-  accept on `localhost` but not on other plain-HTTP hosts.
+- The database settings (`PG_*`) are compiled in at build time: rebuild after changing them.
+- Open the app at `http://localhost:3000`. Cookies are marked `Secure` in every build (only
+  `pnpm dev` drops the flag), which browsers accept on `localhost` but not on other
+  plain-HTTP hosts.
 - The app rate-limits to 60 requests per minute per IP, read from `X-Forwarded-For`. Without a
   proxy every local client shares one bucket, so a scripted crawl faster than that gets
   `429 Too Many Requests` (restart the app to reset it).

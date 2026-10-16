@@ -8,6 +8,7 @@ import { decryptToken, encryptToken } from '$lib/encryptionUtils';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
 import { SPOTIFY_SERVICE_URL } from '$env/static/private';
+import { PUBLIC_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('=== Starting login process ===');
@@ -387,8 +388,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 							// Build the authorization URL
 							const redirectUri = encodeURIComponent(
-								process.env.VITE_SPOTIFY_REDIRECT_BAR_URI ||
-									'https://www.clubfindr.com/spotify/login'
+								PUBLIC_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
 							);
 
 							const scopes = [

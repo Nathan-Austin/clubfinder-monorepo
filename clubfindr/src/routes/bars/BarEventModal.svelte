@@ -1,26 +1,39 @@
 <!-- BarEventModal.svelte -->
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import type { EventDetails } from '$lib/types/events';
 
-	export let eventDetails: EventDetails = {
-		id: '',
-		theme_name: '',
-		description: '',
-		event_date: new Date().toISOString().split('T')[0],
-		start_time: null,
-		end_time: null,
-		recurring: false,
-		recurrence_pattern: null,
-		special_genres: []
-	};
+	interface Props {
+		eventDetails?: EventDetails;
+		isLoading?: boolean;
+		errorMessage?: string;
+		validationErrors?: string[];
+		successMessage?: string;
+		barId?: string;
+		onclose: () => void;
+		onsubmit: (event: EventDetails & { bar_id: string }) => void;
+	}
 
-	export let isLoading = false;
-	export let errorMessage = '';
-	export let validationErrors: string[] = [];
-	export let successMessage = '';
-	export let barId = '';
+	let {
+		eventDetails = $bindable({
+			id: '',
+			theme_name: '',
+			description: '',
+			event_date: new Date().toISOString().split('T')[0],
+			start_time: null,
+			end_time: null,
+			recurring: false,
+			recurrence_pattern: null,
+			special_genres: []
+		}),
+		isLoading = false,
+		errorMessage = '',
+		validationErrors = [],
+		successMessage = '',
+		barId = '',
+		onclose,
+		onsubmit
+	}: Props = $props();
 
 	// For genre selection
 	let availableGenres = [
@@ -43,13 +56,11 @@
 		'Soul',
 		'Funk'
 	];
-	let selectedGenres: string[] = eventDetails.special_genres || [];
-	let newGenre = '';
-
-	const dispatch = createEventDispatcher();
+	let selectedGenres: string[] = $state(eventDetails.special_genres || []);
+	let newGenre = $state('');
 
 	function closeModal() {
-		dispatch('close');
+		onclose();
 	}
 
 	function handleSubmit() {
@@ -71,7 +82,7 @@
 		};
 
 		// Dispatch the submit event with the formatted event details
-		dispatch('submit', formattedEvent);
+		onsubmit(formattedEvent);
 	}
 
 	// Function to add a custom genre
@@ -101,10 +112,16 @@
 	<div class="modal" transition:slide={{ duration: 300 }}>
 		<div class="modal-header">
 			<h2>{eventDetails.id ? 'Update Event' : 'Create New Event'}</h2>
-			<button class="close-button" on:click={closeModal}>×</button>
+			<button class="close-button" onclick={closeModal}>×</button>
 		</div>
 
-		<form id="event-details-form" on:submit|preventDefault={handleSubmit}>
+		<form
+			id="event-details-form"
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleSubmit();
+			}}
+		>
 			<!-- Hidden field to store event ID if editing -->
 			<input type="hidden" id="eventId" name="eventId" value={eventDetails.id || ''} />
 
@@ -142,8 +159,7 @@
 					id="description"
 					bind:value={eventDetails.description}
 					placeholder="Describe your event, special offers, featured performers, etc."
-					rows="4"
-				/>
+					rows="4"></textarea>
 			</div>
 
 			<div class="form-group checkbox-group">
@@ -168,13 +184,13 @@
 			<div class="form-group">
 				<div class="form-label">Music Genres for this Event</div>
 				<div class="genres-grid">
-					{#each availableGenres as genre}
+					{#each availableGenres as genre (genre)}
 						<label class="genre-tag">
 							<input
 								type="checkbox"
 								value={genre}
 								checked={selectedGenres.includes(genre)}
-								on:change={() => toggleGenre(genre)}
+								onchange={() => toggleGenre(genre)}
 							/>
 							{genre}
 						</label>
@@ -194,7 +210,7 @@
 					<button
 						type="button"
 						class="add-genre-button"
-						on:click={addCustomGenre}
+						onclick={addCustomGenre}
 						disabled={!newGenre}
 					>
 						Add
@@ -206,10 +222,10 @@
 				<div class="selected-genres">
 					<p>Selected Genres:</p>
 					<div class="selected-genres-list">
-						{#each selectedGenres as genre}
+						{#each selectedGenres as genre (genre)}
 							<span class="selected-genre">
 								{genre}
-								<button type="button" class="remove-genre" on:click={() => removeGenre(genre)}
+								<button type="button" class="remove-genre" onclick={() => removeGenre(genre)}
 									>×</button
 								>
 							</span>
@@ -228,7 +244,7 @@
 				<div class="validation-errors">
 					<p>Please fix the following issues:</p>
 					<ul>
-						{#each validationErrors as error}
+						{#each validationErrors as error, i (i)}
 							<li class="error-message">{error}</li>
 						{/each}
 					</ul>
@@ -242,7 +258,7 @@
 			{/if}
 
 			<div class="button-group">
-				<button type="button" class="cancel-button" on:click={closeModal}>Cancel</button>
+				<button type="button" class="cancel-button" onclick={closeModal}>Cancel</button>
 				<button type="submit" class="submit-button" disabled={isLoading}>
 					{isLoading ? 'Saving...' : eventDetails.id ? 'Update Event' : 'Create Event'}
 				</button>

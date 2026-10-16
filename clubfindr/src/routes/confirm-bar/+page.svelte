@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
-	let status: 'loading' | 'success' | 'error' = 'loading';
-	let message = 'Confirming your registration...';
-	let barName = '';
+	let status: 'loading' | 'success' | 'error' = $state('loading');
+	let message = $state('Confirming your registration...');
+	let barName = $state('');
 
 	onMount(async () => {
-		const email = $page.url.searchParams.get('email');
-		const code = $page.url.searchParams.get('code');
+		const email = page.url.searchParams.get('email');
+		const code = page.url.searchParams.get('code');
 
 		if (!email || !code) {
 			status = 'error';
@@ -51,13 +51,13 @@
 </svelte:head>
 
 <div
-	class="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center px-4"
+	class="min-h-screen bg-linear-to-b from-gray-900 to-black flex items-center justify-center px-4"
 >
 	<div class="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 text-center">
 		{#if status === 'loading'}
 			<div
 				class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500 mx-auto mb-6"
-			/>
+			></div>
 			<p class="text-gray-300 text-lg">{message}</p>
 		{:else if status === 'success'}
 			<div class="mb-6">

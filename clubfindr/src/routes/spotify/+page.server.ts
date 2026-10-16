@@ -1,13 +1,13 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from '../$types';
 import { withAccessToken } from '$lib/spotifyUtils';
-import { VITE_SPOTIFY_CLIENT_SECRET } from '$env/static/private';
+import { SPOTIFY_CLIENT_SECRET } from '$env/static/private';
 import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 import { Buffer } from 'buffer';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
 const client_id = PUBLIC_SPOTIFY_CLIENT_ID;
-const client_secret = VITE_SPOTIFY_CLIENT_SECRET;
+const client_secret = SPOTIFY_CLIENT_SECRET;
 
 const token_endpoint = `https://accounts.spotify.com/api/token`;
 

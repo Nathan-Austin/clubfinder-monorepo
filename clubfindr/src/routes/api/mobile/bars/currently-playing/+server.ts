@@ -139,7 +139,7 @@ export const GET: RequestHandler = async ({ request }) => {
 						duration: currentPlaying.item.duration_ms,
 						progress: currentPlaying.progress_ms,
 						isPlaying: currentPlaying.is_playing
-				  }
+					}
 				: null,
 			queue: queueData?.queue
 				? queueData.queue.slice(0, 5).map((track: SpotifyTrack) => ({
@@ -147,7 +147,7 @@ export const GET: RequestHandler = async ({ request }) => {
 						artists: track.artists.map((artist: SpotifyArtist) => artist.name),
 						album: track.album?.name,
 						duration: track.duration_ms
-				  }))
+					}))
 				: []
 		};
 

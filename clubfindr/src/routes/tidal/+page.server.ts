@@ -2,6 +2,7 @@ import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { TidalClient } from '$lib/tidal/client';
 import { cookieManager } from '$lib/cookieManager';
+import { TIDAL_CLIENT_ID, TIDAL_CLIENT_SECRET } from '$env/static/private';
 
 interface TidalTokenResponse {
 	access_token: string;
@@ -13,8 +14,8 @@ async function refreshTidalToken(
 	refreshToken: string,
 	fetchFunc: typeof fetch
 ): Promise<TidalTokenResponse> {
-	const client_id = import.meta.env.VITE_TIDAL_CLIENT_ID;
-	const client_secret = import.meta.env.VITE_TIDAL_CLIENT_SECRET;
+	const client_id = TIDAL_CLIENT_ID;
+	const client_secret = TIDAL_CLIENT_SECRET;
 
 	const response = await fetchFunc('https://login.tidal.com/oauth2/token', {
 		method: 'POST',
@@ -86,7 +87,7 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 							width: number;
 							href: string;
 						}>
-				  ).find((img) => img.width >= 320)?.href || null
+					).find((img) => img.width >= 320)?.href || null
 				: null,
 			artistId: item.id,
 			genre: (item.attributes as Record<string, unknown>).genres || [],
@@ -102,7 +103,7 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 							width: number;
 							href: string;
 						}>
-				  ).find((img) => img.width >= 320)?.href || null
+					).find((img) => img.width >= 320)?.href || null
 				: null,
 			user: {
 				username: (item.attributes as Record<string, unknown>).artistName || 'Unknown Artist'
@@ -120,7 +121,7 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 							width: number;
 							href: string;
 						}>
-				  ).find((img) => img.width >= 320)?.href || null
+					).find((img) => img.width >= 320)?.href || null
 				: null,
 			user: {
 				username: 'Tidal User'

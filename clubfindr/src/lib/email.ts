@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { SPACEMAIL_USER, SPACEMAIL_PASSWORD } from '$env/static/private';
 
 // Reusable transporter configuration
 const transporter = nodemailer.createTransport({
@@ -6,8 +7,8 @@ const transporter = nodemailer.createTransport({
 	port: 465,
 	secure: true, // Use true for port 465
 	auth: {
-		user: process.env.SPACEMAIL_USER,
-		pass: process.env.SPACEMAIL_PASSWORD
+		user: SPACEMAIL_USER,
+		pass: SPACEMAIL_PASSWORD
 	},
 	tls: {
 		rejectUnauthorized: false // Only if needed for self-signed certificates

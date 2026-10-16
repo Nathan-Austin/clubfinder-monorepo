@@ -9,7 +9,10 @@ export class SoundCloudClient {
 	// OAuth app client_id for authenticated requests
 	private readonly appClientId: string;
 
-	constructor(private accessToken: string, clientId?: string) {
+	constructor(
+		private accessToken: string,
+		clientId?: string
+	) {
 		this.appClientId = clientId || this.webClientId;
 	}
 
@@ -49,7 +52,7 @@ export class SoundCloudClient {
 			? path
 			: `${this.v2BaseUrl}${
 					path.startsWith('/') ? '' : '/'
-			  }${path}${separator}client_id=${clientId}`;
+				}${path}${separator}client_id=${clientId}`;
 
 		console.log(`[SoundCloudClient] ${target} → ${urlWithId}`);
 
@@ -142,7 +145,9 @@ export class SoundCloudClient {
 
 	// --- V2 Public API (unauthenticated, client_id only) ---
 
-	async getArtist(userId: number): Promise<spUser & { description?: string; tag_list?: string }> {
+	async getArtist(
+		userId: number
+	): Promise<spUser & { description?: string; tag_list?: string; genre?: string | null }> {
 		return this.request(`/users/${userId}`, {}, 'v2-public');
 	}
 

@@ -1,13 +1,18 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
+	import { SvelteSet } from 'svelte/reactivity';
 
-	export let data: PageData;
-	let { genresList } = data;
-	let selectedGenres = new Set<string>();
-	let customGenre = '';
-	let customGenres = new Set<string>();
-	let errorMessage = '';
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
+	let genresList = $derived(data.genresList);
+	const selectedGenres = new SvelteSet<string>();
+	let customGenre = $state('');
+	const customGenres = new SvelteSet<string>();
+	let errorMessage = $state('');
 
 	function toggleGenre(genre: string) {
 		if (selectedGenres.has(genre)) {
@@ -15,7 +20,6 @@
 		} else {
 			selectedGenres.add(genre);
 		}
-		selectedGenres = selectedGenres; // Force Svelte reactivity
 	}
 
 	function addCustomGenre() {
@@ -30,7 +34,6 @@
 		}
 
 		customGenres.add(trimmedGenre);
-		customGenres = customGenres; // Force Svelte reactivity
 		customGenre = ''; // Clear input
 		errorMessage = '';
 	}
@@ -38,8 +41,6 @@
 	function removeCustomGenre(genre: string) {
 		customGenres.delete(genre);
 		selectedGenres.delete(genre);
-		customGenres = customGenres; // Force Svelte reactivity
-		selectedGenres = selectedGenres;
 	}
 
 	async function handleSubmit() {
@@ -72,7 +73,7 @@
 
 <div class="container">
 	<!-- Back Button -->
-	<button class="back-button" on:click={goBack}>
+	<button class="back-button" onclick={goBack}>
 		<span class="back-arrow">←</span> Back to Spotify
 	</button>
 
@@ -87,9 +88,9 @@
 				bind:value={customGenre}
 				placeholder="Enter a custom genre"
 				class="custom-genre-input"
-				on:keydown={(e) => e.key === 'Enter' && addCustomGenre()}
+				onkeydown={(e) => e.key === 'Enter' && addCustomGenre()}
 			/>
-			<button class="add-button" on:click={addCustomGenre}>Add</button>
+			<button class="add-button" onclick={addCustomGenre}>Add</button>
 		</div>
 		{#if errorMessage}
 			<p class="error-message">{errorMessage}</p>
@@ -98,17 +99,17 @@
 		<!-- Custom Genres List -->
 		{#if customGenres.size > 0}
 			<div class="custom-genres-list">
-				{#each Array.from(customGenres) as genre}
+				{#each Array.from(customGenres) as genre (genre)}
 					<div class="genre-tag">
 						<label class="genre-label">
 							<input
 								type="checkbox"
 								checked={selectedGenres.has(genre)}
-								on:change={() => toggleGenre(genre)}
+								onchange={() => toggleGenre(genre)}
 							/>
 							{genre}
 						</label>
-						<button class="remove-button" on:click={() => removeCustomGenre(genre)}>×</button>
+						<button class="remove-button" onclick={() => removeCustomGenre(genre)}>×</button>
 					</div>
 				{/each}
 			</div>
@@ -119,13 +120,13 @@
 	<div class="genres-section">
 		<h2 class="subtitle">Spotify Genres</h2>
 		<div class="genres-grid">
-			{#each genresList as genre}
+			{#each genresList as genre, i (i)}
 				<div class="genre-item">
 					<label class="genre-label">
 						<input
 							type="checkbox"
 							checked={selectedGenres.has(genre)}
-							on:change={() => toggleGenre(genre)}
+							onchange={() => toggleGenre(genre)}
 						/>
 						{genre}
 					</label>
@@ -136,13 +137,13 @@
 
 	<!-- Submit Button -->
 	<div class="submit-section">
-		<button class="submit-button" on:click={handleSubmit} disabled={selectedGenres.size === 0}>
+		<button class="submit-button" onclick={handleSubmit} disabled={selectedGenres.size === 0}>
 			Find Clubs
 		</button>
 		<span class="separator">or</span>
 		<button
 			class="submit-button-bars"
-			on:click={handleSubmitBars}
+			onclick={handleSubmitBars}
 			disabled={selectedGenres.size === 0}
 		>
 			Find Bars

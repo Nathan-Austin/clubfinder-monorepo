@@ -1,9 +1,10 @@
 import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
-import { VITE_SPOTIFY_CLIENT_SECRET } from '$env/static/private';
+import { SPOTIFY_CLIENT_SECRET } from '$env/static/private';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { v4 as uuidv4 } from 'uuid';
 import { createSession } from '$lib/session';
+import { dev } from '$app/environment';
 
 import { cookieManager } from '$lib/cookieManager';
 
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				method: 'POST',
 				headers: {
 					Authorization: `Basic ${Buffer.from(
-						`${PUBLIC_SPOTIFY_CLIENT_ID}:${VITE_SPOTIFY_CLIENT_SECRET}`,
+						`${PUBLIC_SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`,
 						'utf-8'
 					).toString('base64')}`,
 					'Content-Type': 'application/x-www-form-urlencoded'
@@ -48,14 +49,14 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			cookieManager.set(cookies, 'spotifyAccessToken', access_token, {
 				path: '/',
 				httpOnly: true,
-				secure: true, //process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
 			cookieManager.set(cookies, 'spotifyRefreshToken', refresh_token, {
 				path: '/',
 				httpOnly: true,
-				secure: true, //process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 15552000 // 6 months in seconds
 			});
@@ -75,7 +76,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			cookieManager.set(cookies, 'sessionId', sessionId, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});

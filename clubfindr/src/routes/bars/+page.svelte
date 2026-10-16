@@ -5,35 +5,41 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { RecentlyPlayedTrack } from '$lib/$types';
-	import { onMount, afterUpdate } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import Chart from 'chart.js/auto';
 	import { goto } from '$app/navigation';
-	import BarDetailsModal from './BarDetailsModal.svelte';
+	import BarDetailsModal, { type BarDetails } from './BarDetailsModal.svelte';
 	import BarEventsSection from './BarEventsSection.svelte';
-	export let data: PageData;
-	export let currentRole = 'bar';
+	interface Props {
+		data: PageData;
+	}
 
-	let currentlyPlaying = data.currentlyPlaying || null;
-	let nextTracks = data.nextTracks || [];
-	let recentlyPlayedTracks: RecentlyPlayedTrack[] = data.recentlyPlayedTracks || [];
-	let topArtists = data.topArtists || [];
-	let topPlaylists = data.playlists || [];
-	let commonGenres = data.commonGenres || [];
-	let barName = data.barName || null;
-	let loggedOut: boolean = data.loggedOut ?? false;
-	let showModal = false;
-	let showBarDetailsModal = false;
-	let genreChart: Chart | undefined;
-	let hasDualRole = false;
-	let error: string | null = data.error ?? null;
+	let { data }: Props = $props();
+	const currentRole = 'bar';
+
+	let currentlyPlaying = $derived(data.currentlyPlaying || null);
+	let nextTracks = $derived(data.nextTracks || []);
+	let recentlyPlayedTracks: RecentlyPlayedTrack[] = $derived(data.recentlyPlayedTracks || []);
+	let topArtists = $derived(data.topArtists || []);
+	let topPlaylists = $derived(data.playlists || []);
+	let commonGenres = $derived(data.commonGenres || []);
+	// Editable copy of the name (updated after the details form is saved)
+	// svelte-ignore state_referenced_locally
+	let barName = $state(data.barName || null);
+	let loggedOut: boolean = $derived(data.loggedOut ?? false);
+	let showModal = $state(false);
+	let showBarDetailsModal = $state(false);
+	let genreChart: Chart | undefined = $state.raw();
+	let hasDualRole = $state(false);
+	let error: string | null = $derived(data.error ?? null);
 
 	// Check if we can access the barId directly from data
-	let barId: string = data.barId ?? '';
+	let barId: string = $derived(data.barId ?? '');
 
 	// Initial bar details state
-	let barDetails = {
+	let barDetails = $state({
 		id: '', // Add id field to store it if we can get it from the API
-		name: barName || '',
+		name: untrack(() => barName) || '', // initial value only; the form edits its own copy
 		address: '',
 		city: '',
 		phone: '',
@@ -42,15 +48,15 @@
 		description: '',
 		smoking_allowed: false,
 		bar_types: [] as string[]
-	};
+	});
 
-	let barDetailsLoading = false;
-	let barDetailsError = '';
-	let barDetailsSuccess = '';
-	let barDetailsValidationErrors: string[] = [];
+	let barDetailsLoading = $state(false);
+	let barDetailsError = $state('');
+	let barDetailsSuccess = $state('');
+	let barDetailsValidationErrors: string[] = $state([]);
 
-	let showDebugInfo = false;
-	let manualBarId = '';
+	let showDebugInfo = $state(false);
+	let manualBarId = $state('');
 
 	function toggleDebugInfo() {
 		showDebugInfo = !showDebugInfo;
@@ -230,8 +236,7 @@
 		barDetailsValidationErrors = [];
 	}
 
-	async function handleBarDetailsSubmit(event: CustomEvent) {
-		const updatedDetails = event.detail;
+	async function handleBarDetailsSubmit(updatedDetails: BarDetails) {
 		barDetailsLoading = true;
 		barDetailsError = '';
 		barDetailsSuccess = '';
@@ -240,7 +245,7 @@
 		try {
 			// Try different methods to get the barId
 			// 1. Try to get barId from event data (from modal)
-			let submissionBarId = updatedDetails.id;
+			let submissionBarId: string | null | undefined = updatedDetails.id;
 
 			// 2. Try to get barId from cookie
 			if (!submissionBarId) {
@@ -329,7 +334,8 @@
 		}
 	}
 
-	afterUpdate(() => {
+	// Keep the chart in sync with the genre data (was afterUpdate)
+	$effect(() => {
 		if (genreChart && commonGenres?.length) {
 			genreChart.data.labels = commonGenres.map((g) => g.genre);
 			genreChart.data.datasets[0].data = commonGenres.map((g) => g.count);
@@ -357,7 +363,7 @@
 		<div class="modal">
 			<h2>Spotify Authentication Required</h2>
 			<p>Your Spotify session has expired. Please reconnect to continue using the dashboard.</p>
-			<button on:click={closeModal}>Reconnect Spotify</button>
+			<button onclick={closeModal}>Reconnect Spotify</button>
 		</div>
 	</div>
 {/if}
@@ -369,15 +375,15 @@
 		errorMessage={barDetailsError}
 		validationErrors={barDetailsValidationErrors}
 		successMessage={barDetailsSuccess}
-		on:close={closeBarDetailsModal}
-		on:submit={handleBarDetailsSubmit}
+		onclose={closeBarDetailsModal}
+		onsubmit={handleBarDetailsSubmit}
 	/>
 {/if}
 
 {#if error}
 	<div class="error-message">
 		<p>{error}</p>
-		<button on:click={reconnectSpotify} class="reconnect-button"> Reconnect Spotify </button>
+		<button onclick={reconnectSpotify} class="reconnect-button"> Reconnect Spotify </button>
 	</div>
 {/if}
 
@@ -397,7 +403,7 @@
 				<span class="attribute-badge smoking">🚬 Smoking Allowed</span>
 			{/if}
 			{#if barDetails.bar_types && barDetails.bar_types.length > 0}
-				{#each barDetails.bar_types as type}
+				{#each barDetails.bar_types as type (type)}
 					<span class="attribute-badge type">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
 				{/each}
 			{/if}
@@ -406,14 +412,14 @@
 		<p>Explore how your music choices are shaping the vibe at your bar.</p>
 
 		<div class="dashboard-actions">
-			<button on:click={reconnectSpotify} class="spotify-reconnect-btn"> Reconnect Spotify </button>
-			<button on:click={openBarDetailsModal} class="bar-details-btn"> Update Bar Details </button>
+			<button onclick={reconnectSpotify} class="spotify-reconnect-btn"> Reconnect Spotify </button>
+			<button onclick={openBarDetailsModal} class="bar-details-btn"> Update Bar Details </button>
 		</div>
 	</header>
 
 	{#if hasDualRole}
 		<div class="role-switcher">
-			<button on:click={switchRole} class="switcher-button">
+			<button onclick={switchRole} class="switcher-button">
 				Switch to {currentRole === 'bar' ? 'Promoter' : 'Bar Manager'} Dashboard
 			</button>
 		</div>
@@ -442,7 +448,7 @@
 			<h2>Next Up</h2>
 			<ul class="next-tracks">
 				{#if nextTracks && nextTracks.length > 0}
-					{#each nextTracks as track}
+					{#each nextTracks as track, i (i)}
 						<li class="queue-track">
 							<!-- Add the album image -->
 							{#if track.album?.images && track.album.images.length > 0}
@@ -470,7 +476,7 @@
 			<div class="top-artists">
 				<h2>Top Artists</h2>
 				<ul>
-					{#each topArtists.slice(0, 10) as artist}
+					{#each topArtists.slice(0, 10) as artist (artist.id)}
 						<li>{artist.name}</li>
 					{/each}
 				</ul>
@@ -478,7 +484,7 @@
 			<div class="top-playlists">
 				<h2>Top Playlists</h2>
 				<ul>
-					{#each topPlaylists.slice(0, 5) as playlist}
+					{#each topPlaylists.slice(0, 5) as playlist (playlist.id)}
 						<li>{playlist.name}</li>
 					{/each}
 				</ul>
@@ -488,7 +494,7 @@
 		<div class="recently-played">
 			<h2>Recently Played</h2>
 			<ul>
-				{#each recentlyPlayedTracks.slice(0, 5) as track}
+				{#each recentlyPlayedTracks.slice(0, 5) as track, i (i)}
 					<li>
 						<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
 						<div>
@@ -503,7 +509,7 @@
 	<section class="inline-graphs">
 		<section class="genre-insights">
 			<h2>Genre Insights</h2>
-			<canvas id="genreChart" />
+			<canvas id="genreChart"></canvas>
 		</section>
 
 		<section class="placeholder-section">
@@ -516,7 +522,7 @@
 	<BarEventsSection {barId} />
 </main>
 
-<button on:click={toggleDebugInfo} class="debug-button">
+<button onclick={toggleDebugInfo} class="debug-button">
 	{showDebugInfo ? 'Hide Debug Info' : 'Show Debug Info'}
 </button>
 
@@ -531,7 +537,7 @@
 				placeholder="Enter bar ID manually"
 				class="manual-id-input"
 			/>
-			<button on:click={setManualBarId} class="manual-id-button">Set ID</button>
+			<button onclick={setManualBarId} class="manual-id-button">Set ID</button>
 		</div>
 
 		<ul>

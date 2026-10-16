@@ -10,64 +10,70 @@
 		genre?: string[];
 	}
 
-	export let data: {
-		topTracks: TidalItem[];
-		topArtists: TidalItem[];
-		topPlaylists: TidalItem[];
-		debug: {
-			artistsCount: number;
-			tracksCount: number;
-			playlistsCount: number;
+	interface Props {
+		data: {
+			topTracks: TidalItem[];
+			topArtists: TidalItem[];
+			topPlaylists: TidalItem[];
 		};
-	};
+	}
 
-	let view: 'playlists' | 'artists' | 'tracks' = 'artists';
+	let { data }: Props = $props();
+
+	// Local reactive copies of the lists: selection toggles mutate these (the page `data`
+	// prop is a plain object in runes mode, so writing to it would not update the view).
+	// svelte-ignore state_referenced_locally
+	let topTracks = $state(data.topTracks);
+	// svelte-ignore state_referenced_locally
+	let topPlaylists = $state(data.topPlaylists);
+	// svelte-ignore state_referenced_locally
+	let topArtists = $state(data.topArtists);
+
+	let view: 'playlists' | 'artists' | 'tracks' = $state('artists');
 	const viewOptions = ['playlists', 'artists', 'tracks'] as const;
 	const setView = (newView: typeof view) => {
 		view = newView;
 	};
-	let isLoading = false;
-	let error: string | null = null;
+	let isLoading = $state(false);
+	let error: string | null = $state(null);
 
 	const getHighResImage = (url: string | null): string => {
 		return url || '/images/static_ella.jpg';
 	};
 
-	$: selectedItems = {
-		tracks: data.topTracks
-			.filter((t) => t.selected)
-			.map((t) => ({ id: t.id, type: 'track' as const })),
-		playlists: data.topPlaylists
+	let selectedItems = $derived({
+		tracks: topTracks.filter((t) => t.selected).map((t) => ({ id: t.id, type: 'track' as const })),
+		playlists: topPlaylists
 			.filter((p) => p.selected)
 			.map((p) => ({ id: p.id, type: 'playlist' as const })),
-		artists: data.topArtists
+		artists: topArtists
 			.filter((a) => a.selected)
 			.map((a) => ({ id: a.id, type: 'artist' as const }))
-	};
+	});
 
-	$: selectedItemsArray = [
+	let selectedItemsArray = $derived([
 		...selectedItems.tracks,
 		...selectedItems.playlists,
 		...selectedItems.artists
-	];
+	]);
 
-	$: selectedCount = selectedItemsArray.length;
+	let selectedCount = $derived(selectedItemsArray.length);
 
 	const onSelect = async (id: string, type: 'track' | 'playlist' | 'artist') => {
 		try {
 			switch (type) {
 				case 'track':
-					data.topTracks = data.topTracks.map((track) =>
+					topTracks = topTracks.map((track) =>
 						track.id === id ? { ...track, selected: !track.selected } : track
 					);
 					break;
 				case 'playlist':
-					data.topPlaylists = data.topPlaylists.map((playlist) =>
+					topPlaylists = topPlaylists.map((playlist) =>
 						playlist.id === id ? { ...playlist, selected: !playlist.selected } : playlist
 					);
 					break;
 				case 'artist':
-					data.topArtists = data.topArtists.map((artist) =>
+					topArtists = topArtists.map((artist) =>
 						artist.id === id ? { ...artist, selected: !artist.selected } : artist
 					);
 					break;
@@ -89,11 +95,11 @@
 				data: (() => {
 					switch (item.type) {
 						case 'track':
-							return data.topTracks.find((t) => t.id === item.id);
+							return topTracks.find((t) => t.id === item.id);
 						case 'playlist':
-							return data.topPlaylists.find((p) => p.id === item.id);
+							return topPlaylists.find((p) => p.id === item.id);
 						case 'artist':
-							return data.topArtists.find((a) => a.id === item.id);
+							return topArtists.find((a) => a.id === item.id);
 					}
 				})()
 			}));
@@ -130,16 +136,16 @@
 
 		{#if error}
 			<div
-				class="error-banner bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+				class="error-banner bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-sm relative mb-4"
 			>
 				{error}
 			</div>
 		{/if}
 
 		<div class="toggle-buttons flex gap-2 lg:hidden mb-4">
-			{#each viewOptions as viewOption}
+			{#each viewOptions as viewOption (viewOption)}
 				<button
-					on:click={() => setView(viewOption)}
+					onclick={() => setView(viewOption)}
 					class="px-4 py-2 rounded {view === viewOption
 						? 'bg-secondary text-white'
 						: 'bg-gray-200 text-black'}"
@@ -156,13 +162,13 @@
 				<h2 class="text-2xl font-bold mb-4">Favorite Artists</h2>
 
 				<div class="grid gap-4">
-					{#each data.topArtists as artist}
+					{#each topArtists as artist (artist.id)}
 						<div
 							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 {artist.selected
 								? 'ring-4 ring-green-500'
 								: ''}"
-							on:click={() => onSelect(artist.id, 'artist')}
-							on:keydown={(e) => e.key === 'Enter' && onSelect(artist.id, 'artist')}
+							onclick={() => onSelect(artist.id, 'artist')}
+							onkeydown={(e) => e.key === 'Enter' && onSelect(artist.id, 'artist')}
 							role="button"
 							tabindex="0"
 						>
@@ -192,13 +198,13 @@
 				<h2 class="text-2xl font-bold mb-4">Favorite Tracks</h2>
 
 				<div class="grid gap-4">
-					{#each data.topTracks as track}
+					{#each topTracks as track (track.id)}
 						<div
 							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 {track.selected
 								? 'ring-4 ring-green-500'
 								: ''}"
-							on:click={() => onSelect(track.id, 'track')}
-							on:keydown={(e) => e.key === 'Enter' && onSelect(track.id, 'track')}
+							onclick={() => onSelect(track.id, 'track')}
+							onkeydown={(e) => e.key === 'Enter' && onSelect(track.id, 'track')}
 							role="button"
 							tabindex="0"
 						>
@@ -211,7 +217,7 @@
 							<div class="p-4 bg-bgdark">
 								<h3 class="font-semibold truncate text-white">{track.title}</h3>
 
-								<p class="text-sm opacity-75 truncate text-white">{track.user.username}</p>
+								<p class="text-sm opacity-75 truncate text-white">{track.user?.username}</p>
 							</div>
 						</div>
 					{/each}
@@ -224,13 +230,13 @@
 				<h2 class="text-2xl font-bold mb-4">Favorite Playlists</h2>
 
 				<div class="grid gap-4">
-					{#each data.topPlaylists as playlist}
+					{#each topPlaylists as playlist (playlist.id)}
 						<div
 							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105 {playlist.selected
 								? 'ring-4 ring-green-500'
 								: ''}"
-							on:click={() => onSelect(playlist.id, 'playlist')}
-							on:keydown={(e) => e.key === 'Enter' && onSelect(playlist.id, 'playlist')}
+							onclick={() => onSelect(playlist.id, 'playlist')}
+							onkeydown={(e) => e.key === 'Enter' && onSelect(playlist.id, 'playlist')}
 							role="button"
 							tabindex="0"
 						>
@@ -260,7 +266,7 @@
 				</p>
 
 				<button
-					on:click={handleSubmitSelection}
+					onclick={handleSubmitSelection}
 					disabled={isLoading}
 					class="px-6 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
@@ -272,12 +278,15 @@
 </div>
 
 <style lang="postcss">
+	/* Tailwind 4 processes each style block on its own: @apply needs the theme */
+	@reference '../../app.css';
+
 	.item {
 		@apply relative overflow-hidden shadow-md;
 	}
 
 	.item:focus-visible {
-		@apply outline-none ring-2 ring-secondary ring-offset-2;
+		@apply outline-hidden ring-2 ring-secondary ring-offset-2;
 	}
 
 	.error-banner {

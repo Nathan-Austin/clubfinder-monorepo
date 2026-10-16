@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PUBLIC_MAPS_API_KEY, PUBLIC_SPOTIFY_REDIRECT_USER_URI } from '$env/static/public';
 	// Import necessary modules and types
 	import { Loader } from '@googlemaps/js-api-loader';
 	import type { PageData } from './$types';
@@ -6,12 +7,11 @@
 	import { DatePicker } from 'date-picker-svelte';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { goto } from '$app/navigation';
-	import { writable } from 'svelte/store';
 	import { getDistance } from 'geolib';
 	import type { City } from '$lib/types/city';
 
 	const redirectUri = encodeURIComponent(
-		import.meta.env.VITE_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
+		PUBLIC_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
 	);
 
 	// Define genre data structure interfaces
@@ -47,24 +47,28 @@
 	let geocoder: google.maps.Geocoder;
 
 	// Initialize variables
-	let city1 = writable('');
+	let city1 = $state('');
 	let closestCity = '';
-	let cities: City[] = [];
-	let userDeniedLocation = false;
+	let cities: City[] = $state([]);
+	let userDeniedLocation = $state(false);
 	let location: Position | null = null;
-	let address = '';
-	let isCitySelectionInvalid = false;
+	let address = $state('');
+	let isCitySelectionInvalid = $state(false);
 	let unifiedGenres: UnifiedGenres | null = null;
 	let genresLoaded = false;
 	let locationLoaded = false;
 	///////////////////// SPOTIFY LOGIN //////////////////////
 	// Define constants for client ID and data
 	const clientId = PUBLIC_SPOTIFY_CLIENT_ID;
-	export let data: PageData;
-	let loggedIn = data.hasAccessToken;
-	let userClientId = clientId;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
+	let loggedIn = $derived(data.hasAccessToken);
+	let userClientId = $state(clientId);
 	// Check if user is logged in via cookie
-	let isUserLoggedIn = false;
+	let isUserLoggedIn = $state(false);
 
 	function getCookie(name: string): string | null {
 		const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -72,13 +76,7 @@
 	}
 
 	///////////////////// DATE PICKER ///////////////////////
-	let formattedDate: Date = new Date();
-
-	function handleDateChange(event: CustomEvent) {
-		const date = event.detail;
-		formattedDate = new Date(date);
-		formattedDate.setHours(0, 0, 0, 0);
-	}
+	let formattedDate: Date = $state(new Date());
 
 	////////////////// Location //////////////////////////////////
 	interface Position {
@@ -179,7 +177,7 @@
 		});
 
 		if (closestCity) {
-			city1.set(closestCity);
+			city1 = closestCity;
 			console.log(`Closest city is: ${closestCity}`);
 			document.cookie = `closestCity=${closestCity}; path=/`; // Set cookie with the closest city
 		}
@@ -345,7 +343,7 @@
 
 			// Initialize Google Maps Geocoding API
 			const loader = new Loader({
-				apiKey: import.meta.env.VITE_MAPS_API_KEY,
+				apiKey: PUBLIC_MAPS_API_KEY,
 				version: 'weekly',
 				libraries: ['places']
 			});
@@ -367,7 +365,7 @@
 					if (address) {
 						const city = await extractCity(address);
 						if (city) {
-							city1.set(city);
+							city1 = city;
 							console.log(`City from extractCity: ${city}`);
 						} else {
 							console.log('No city extracted from address');
@@ -435,7 +433,7 @@
 		const target = event.target as HTMLSelectElement;
 		const selectedCity = target.value;
 		if (selectedCity) {
-			city1.set(selectedCity);
+			city1 = selectedCity;
 			isCitySelectionInvalid = false;
 			//document.cookie = `closestCity=${selectedCity}; path=/`; // Set cookie with the selected city
 			console.log(`User selected city: ${selectedCity}`);
@@ -443,20 +441,19 @@
 	}
 	///////////////////////// User selects Genres ////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	let selectedCategory: string | null = null;
-	let selectedSubgenre: string | null = null;
-	let selectedSubSubgenre: string | null = null;
-	let showDropdown = false;
-	let UserSelectedGenres: string[] = [];
-	let selectedGenres: string;
-	let genreSearchQuery = '';
-	let genres: GenresStructure = {};
+	let selectedCategory: string | null = $state(null);
+	let selectedSubgenre: string | null = $state(null);
+	let selectedSubSubgenre: string | null = $state(null);
+	let showDropdown = $state(false);
+	let UserSelectedGenres: string[] = $state([]);
+	let selectedGenres: string = $derived(UserSelectedGenres.join(','));
+	let genreSearchQuery = $state('');
+	let genres: GenresStructure = $state({});
 
 	// Computed property to update selected genres string
-	$: {
-		selectedGenres = UserSelectedGenres.join(',');
+	$effect(() => {
 		console.log(`Updated selectedGenres: ${selectedGenres}`);
-	}
+	});
 
 	function toggleDropdown() {
 		showDropdown = !showDropdown;
@@ -691,8 +688,8 @@
 			const level = selectedSubSubgenre
 				? 'subsubgenres'
 				: selectedSubgenre
-				? 'subgenres'
-				: 'categories';
+					? 'subgenres'
+					: 'categories';
 			const allSelected = checkAllSelected(level);
 			selectAllButton.textContent = allSelected ? 'Deselect All' : 'Select All';
 		}
@@ -728,10 +725,6 @@
 		showDropdown = false;
 	}
 
-	interface FormDataWithEntries extends FormData {
-		entries(): IterableIterator<[string, string | File]>;
-	}
-
 	async function handleGenresSearch(event: Event) {
 		console.log(`Searching for ${selectedGenres}`);
 		event.preventDefault();
@@ -741,12 +734,8 @@
 			console.log('No genres selected. Please select at least one genre.');
 			return; // Prevent form submission if no genres are selected
 		}
-		let cityValue = '';
-		const unsubscribe = city1.subscribe((value) => {
-			cityValue = value;
-			console.log('City value store for form:', cityValue);
-		});
-		unsubscribe();
+		const cityValue = city1;
+		console.log('City value store for form:', cityValue);
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
@@ -764,7 +753,7 @@
 				return;
 			}
 
-			const formData = new FormData(formElement) as FormDataWithEntries;
+			const formData = new FormData(formElement);
 			formData.set('selectedGenre', selectedGenres ?? '');
 
 			if (!formData.has('city')) {
@@ -814,12 +803,8 @@
 			console.log('No genres selected. Please select at least one genre.');
 			return; // Prevent form submission if no genres are selected
 		}
-		let cityValue = '';
-		const unsubscribe = city1.subscribe((value) => {
-			cityValue = value;
-			console.log('City value store for form:', cityValue);
-		});
-		unsubscribe();
+		const cityValue = city1;
+		console.log('City value store for form:', cityValue);
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
@@ -837,7 +822,7 @@
 				return;
 			}
 
-			const formData = new FormData(formElement) as FormDataWithEntries;
+			const formData = new FormData(formElement);
 			formData.set('selectedGenre', selectedGenres ?? '');
 
 			if (!formData.has('city')) {
@@ -883,12 +868,8 @@
 	// Function for the landing page Spotify button click handler
 	async function handleSpotifyButtonClick(event: Event) {
 		event.preventDefault();
-		let cityValue = '';
-		const unsubscribe = city1.subscribe((value) => {
-			cityValue = value;
-			console.log('cityvalue store for form', cityValue);
-		});
-		unsubscribe();
+		const cityValue = city1;
+		console.log('cityvalue store for form', cityValue);
 
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
@@ -901,9 +882,7 @@
 			return; // Prevent form submission
 		} else {
 			isCitySelectionInvalid = false;
-			const formData = new FormData(
-				document.getElementById('city-location') as HTMLFormElement
-			) as FormDataWithEntries;
+			const formData = new FormData(document.getElementById('city-location') as HTMLFormElement);
 
 			if (!formData.has('city')) {
 				formData.append('city', cityValue || '');
@@ -955,11 +934,7 @@
 	// Function for the landing page SoundCloud button click handler
 	async function handleSoundCloudButtonClick(event: Event) {
 		event.preventDefault();
-		let cityValue = '';
-		const unsubscribe = city1.subscribe((value) => {
-			cityValue = value;
-		});
-		unsubscribe();
+		const cityValue = city1;
 
 		if (!cityValue) {
 			isCitySelectionInvalid = true;
@@ -971,9 +946,7 @@
 			return;
 		} else {
 			isCitySelectionInvalid = false;
-			const formData = new FormData(
-				document.getElementById('city-location') as HTMLFormElement
-			) as FormDataWithEntries;
+			const formData = new FormData(document.getElementById('city-location') as HTMLFormElement);
 
 			if (!formData.has('city')) {
 				formData.append('city', cityValue || '');
@@ -1003,11 +976,7 @@
 	// Function for the landing page Tidal button click handler
 	async function handleTidalButtonClick(event: Event) {
 		event.preventDefault();
-		let cityValue = '';
-		const unsubscribe = city1.subscribe((value) => {
-			cityValue = value;
-		});
-		unsubscribe();
+		const cityValue = city1;
 
 		if (!cityValue) {
 			isCitySelectionInvalid = true;
@@ -1019,9 +988,7 @@
 			return;
 		} else {
 			isCitySelectionInvalid = false;
-			const formData = new FormData(
-				document.getElementById('city-location') as HTMLFormElement
-			) as FormDataWithEntries;
+			const formData = new FormData(document.getElementById('city-location') as HTMLFormElement);
 
 			if (!formData.has('city')) {
 				formData.append('city', cityValue || '');
@@ -1055,16 +1022,12 @@
 	////////////////////// Search a song or artist ////////////////////////
 	//////////////////////////////////////////////////////////////////////
 
-	let searchQuery: string;
+	let searchQuery: string = $state('');
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
-		let cityValue = '';
-		const unsubscribe = city1.subscribe((value) => {
-			cityValue = value;
-			console.log('cityvalue store for form', cityValue);
-		});
-		unsubscribe();
+		const cityValue = city1;
+		console.log('cityvalue store for form', cityValue);
 		if (!cityValue) {
 			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
 			const citySelect = document.getElementById('city-select');
@@ -1076,9 +1039,7 @@
 			return; // Prevent form submission
 		} else {
 			isCitySelectionInvalid = false;
-			const formData = new FormData(
-				document.getElementById('search-form') as HTMLFormElement
-			) as FormDataWithEntries;
+			const formData = new FormData(document.getElementById('search-form') as HTMLFormElement);
 
 			if (!formData.has('search')) {
 				formData.append('search', searchQuery ?? '');
@@ -1144,7 +1105,7 @@
 </svelte:head>
 
 <form id="city-location" action="/storestate" method="POST">
-	<input type="hidden" bind:value={$city1} name="city" />
+	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" bind:value={address} name="address" />
 	<input
 		type="hidden"
@@ -1154,8 +1115,8 @@
 	<button type="button" id="form-submit-button" class="hidden">Submit</button>
 </form>
 <form id="genres" action="/storestate" method="POST">
-	<input type="hidden" bind:value={$city1} name="city" />
-	<input type="hidden" bind:value={selectedGenres} name="selectedGenre" />
+	<input type="hidden" bind:value={city1} name="city" />
+	<input type="hidden" value={selectedGenres} name="selectedGenre" />
 	<input type="hidden" bind:value={address} name="address" />
 	<input
 		type="hidden"
@@ -1167,7 +1128,7 @@
 
 <form id="search-form" action="/spotify/search" method="POST">
 	<input type="hidden" bind:value={searchQuery} name="search" />
-	<input type="hidden" bind:value={$city1} name="city" />
+	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" bind:value={address} name="address" />
 	<input
 		type="hidden"
@@ -1235,7 +1196,7 @@
 	<div class="main-content">
 		<div>
 			<h1
-				class="text-[2.1rem] md:text-[5.7rem] font-bold my-1 md:my-2 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
+				class="text-[2.1rem] md:text-[5.7rem] font-bold my-1 md:my-2 text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
 			>
 				CLUBFINDR
 			</h1>
@@ -1250,7 +1211,7 @@
 					Choose what day then login to find the bar or club playing what you love
 				</p>
 				<div>
-					<DatePicker bind:value={formattedDate} on:change={handleDateChange} />
+					<DatePicker bind:value={formattedDate} />
 				</div>
 				<p>
 					{new Intl.DateTimeFormat('en-GB', {
@@ -1268,11 +1229,11 @@
 			<select
 				id="city-select"
 				class:isInvalid={isCitySelectionInvalid}
-				on:change={handleCitySelection}
+				onchange={handleCitySelection}
 				style="color: black;"
 			>
 				<option value="" selected disabled>Select a city</option>
-				{#each cities as city}
+				{#each cities as city (city.name)}
 					<option value={city.name} style="color: black;">{city.name}</option>
 				{/each}
 			</select>
@@ -1290,7 +1251,7 @@
 						href={loggedIn
 							? '/spotify'
 							: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`}
-						on:click={handleSpotifyButtonClick}
+						onclick={handleSpotifyButtonClick}
 						role="button"
 						class="custom-spotify-button"
 						aria-label="Login with Spotify"
@@ -1308,7 +1269,7 @@
 				<div class="center-button mt-4">
 					<a
 						href={data.hasSoundCloudAccessToken ? '/soundcloud' : '/api/soundcloud/auth'}
-						on:click={handleSoundCloudButtonClick}
+						onclick={handleSoundCloudButtonClick}
 						role="button"
 						class="custom-soundcloud-button"
 						aria-label="Login with SoundCloud"
@@ -1326,7 +1287,7 @@
 				<div class="center-button mt-4">
 					<a
 						href={data.hasTidalAccessToken ? '/tidal' : '/api/tidal/auth'}
-						on:click={handleTidalButtonClick}
+						onclick={handleTidalButtonClick}
 						role="button"
 						class="custom-tidal-button"
 						aria-label="Login with Tidal"
@@ -1339,7 +1300,7 @@
 				<!-- Login/Signup button -->
 				<div class="center-button mt">
 					<button
-						on:click={handleLoginButtonClick}
+						onclick={handleLoginButtonClick}
 						class="login-button"
 						aria-label="Login or Sign Up"
 					>
@@ -1366,9 +1327,9 @@
 		</div>
 		<!-- Divider between 'login' and 'guest' options -->
 		<div class="relative flex items-center">
-			<div class="flex-grow border-t border-light rounded" />
-			<span class="flex-shrink mx-2">or continue as a guest</span>
-			<div class="flex-grow border-t border-light rounded" />
+			<div class="grow border-t border-light rounded-sm"></div>
+			<span class="shrink mx-2">or continue as a guest</span>
+			<div class="grow border-t border-light rounded-sm"></div>
 		</div>
 
 		<!-- Main search section -->
@@ -1382,7 +1343,7 @@
 					<input
 						type="search"
 						bind:value={searchQuery}
-						class="h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow focus:outline-none"
+						class="h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow-sm focus:outline-hidden"
 						placeholder="Artist or song..."
 					/>
 					<!-- Search button -->
@@ -1390,7 +1351,7 @@
 						<a
 							href="/search"
 							class="flex justify-center items-center h-10 w-20 text-white rounded-lg bg-secondary hover:opacity-90"
-							on:click={(e) => handleSubmit(e)}
+							onclick={(e) => handleSubmit(e)}
 						>
 							Search
 						</a>
@@ -1402,27 +1363,27 @@
 					<!-- Input field triggering the dropdown -->
 					<input
 						type="text"
-						class="custom-genre-input h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow focus:outline-none"
+						class="custom-genre-input h-14 w-80 pl-10 pr-2 z-0 text-black rounded-lg focus:shadow-sm focus:outline-hidden"
 						placeholder="Select Genre..."
 						readonly
-						on:click={() => toggleDropdown()}
+						onclick={() => toggleDropdown()}
 					/>
 					{#if showDropdown}
 						<div class="dropdown-menu">
-							<!-- svelte-ignore a11y-click-events-have-key-events -->
-							<!-- svelte-ignore a11y-no-static-element-interactions -->
-							<div class="dropdown-menu-close" on:click={() => toggleDropdown()}>✖</div>
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div class="dropdown-menu-close" onclick={() => toggleDropdown()}>✖</div>
 							<!-- Buttons at the top of the dropdown -->
 							<div class="p-2 text-black flex justify-between">
 								<div class="clear-selection-container">
-									<button class="clear-selection-button" on:click={() => clearSelection()}>
+									<button class="clear-selection-button" onclick={() => clearSelection()}>
 										Clear Selection
 									</button>
 								</div>
 								<div class="submit-selection-container">
 									<button
 										class="submit-selection-button"
-										on:click={(event) => handleGenresSearch(event)}
+										onclick={(event) => handleGenresSearch(event)}
 									>
 										Find A club
 									</button>
@@ -1430,7 +1391,7 @@
 								<div class="submit-selection-container">
 									<button
 										class="submit-selection-button"
-										on:click={(event) => handleGenresSearchbar(event)}
+										onclick={(event) => handleGenresSearchbar(event)}
 									>
 										Find A Bar
 									</button>
@@ -1455,13 +1416,13 @@
 										<!-- Category matches -->
 										{#each Object.keys(genres).filter((category) => category
 												.toLowerCase()
-												.includes(genreSearchQuery.toLowerCase())) as category}
+												.includes(genreSearchQuery.toLowerCase())) as category (category)}
 											<li class="clickable-area">
 												<button
 													class="{UserSelectedGenres.includes(category)
 														? 'selected'
 														: ''} full-clickable search-result category-result"
-													on:click={() => handleCategoryClick(category)}
+													onclick={() => handleCategoryClick(category)}
 												>
 													<span class="result-type">Category:</span>
 													{category}
@@ -1470,11 +1431,11 @@
 										{/each}
 
 										<!-- Subgenre matches -->
-										{#each Object.keys(genres) as category}
+										{#each Object.keys(genres) as category (category)}
 											{#each genres[category].subgenres.filter((subgenre) => {
 												const name = typeof subgenre === 'object' ? subgenre.name : subgenre;
 												return name.toLowerCase().includes(genreSearchQuery.toLowerCase());
-											}) as subgenre}
+											}) as subgenre (subgenre.name)}
 												<li class="clickable-area">
 													<button
 														class="{UserSelectedGenres.includes(
@@ -1482,7 +1443,7 @@
 														)
 															? 'selected'
 															: ''} full-clickable search-result subgenre-result"
-														on:click={() => {
+														onclick={() => {
 															selectedCategory = category;
 															handleSubgenreClick(subgenre);
 														}}
@@ -1496,13 +1457,13 @@
 										{/each}
 
 										<!-- Subsubgenre matches -->
-										{#each Object.keys(genres) as category}
-											{#each genres[category].subgenres as subgenre}
+										{#each Object.keys(genres) as category (category)}
+											{#each genres[category].subgenres as subgenre (subgenre.name)}
 												{#if typeof subgenre === 'object' && subgenre.subsubgenres}
 													{#each subgenre.subsubgenres.filter((subsub) => {
 														const name = typeof subsub === 'object' ? subsub.name : subsub;
 														return name.toLowerCase().includes(genreSearchQuery.toLowerCase());
-													}) as subsubgenre}
+													}) as subsubgenre (typeof subsubgenre === 'string' ? subsubgenre : subsubgenre.name)}
 														<li class="clickable-area">
 															<button
 																class="{UserSelectedGenres.includes(
@@ -1510,7 +1471,7 @@
 																)
 																	? 'selected'
 																	: ''} full-clickable search-result subsubgenre-result"
-																on:click={() => {
+																onclick={() => {
 																	selectedCategory = category;
 																	selectedSubgenre = subgenre.name;
 																	handleSubSubgenreClick(subsubgenre);
@@ -1528,7 +1489,7 @@
 									</ul>
 
 									<div class="search-footer">
-										<button on:click={() => (genreSearchQuery = '')} class="clear-search-button">
+										<button onclick={() => (genreSearchQuery = '')} class="clear-search-button">
 											Clear Search
 										</button>
 									</div>
@@ -1538,13 +1499,13 @@
 								{#if selectedCategory === null}
 									<!-- Category selection view -->
 									<ul class="dropdown-list">
-										{#each Object.keys(genres) as category}
+										{#each Object.keys(genres) as category (category)}
 											<li class="clickable-area">
 												<button
 													class="{UserSelectedGenres.includes(category)
 														? 'selected'
 														: ''} full-clickable"
-													on:click={() => handleCategoryClick(category)}
+													onclick={() => handleCategoryClick(category)}
 												>
 													{category}
 												</button>
@@ -1557,7 +1518,7 @@
 										<li>
 											<button
 												class="back-button full-clickable"
-												on:click={() => handleBack('category')}
+												onclick={() => handleBack('category')}
 											>
 												← Back to Categories
 											</button>
@@ -1565,19 +1526,19 @@
 										<li class="select-all-area">
 											<button
 												class="select-all-button"
-												on:click={() => handleSelectAll('subgenres')}
+												onclick={() => handleSelectAll('subgenres')}
 											>
 												Select All
 											</button>
 										</li>
 
-										{#each genres[selectedCategory].subgenres as subgenre}
+										{#each genres[selectedCategory].subgenres as subgenre (subgenre.name)}
 											<li class="clickable-area">
 												<button
 													class="{UserSelectedGenres.includes(subgenre.name)
 														? 'selected'
 														: ''} full-clickable"
-													on:click={() => handleSubgenreClick(subgenre)}
+													onclick={() => handleSubgenreClick(subgenre)}
 												>
 													{subgenre.name}
 													{subgenre.subsubgenres && subgenre.subsubgenres.length > 0 ? ' ➔' : ''}
@@ -1591,7 +1552,7 @@
 										<li>
 											<button
 												class="back-button full-clickable"
-												on:click={() => handleBack('subgenre')}
+												onclick={() => handleBack('subgenre')}
 											>
 												← Back to {selectedCategory}
 											</button>
@@ -1599,7 +1560,7 @@
 										<li class="select-all-area">
 											<button
 												class="select-all-button"
-												on:click={() => handleSelectAll('subsubgenres')}
+												onclick={() => handleSelectAll('subsubgenres')}
 											>
 												Select All
 											</button>
@@ -1607,13 +1568,13 @@
 
 										{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)}
 											{#if genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres}
-												{#each genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres || [] as subsubgenreGroup}
+												{#each genres[selectedCategory].subgenres.find((s) => s.name === selectedSubgenre)?.subsubgenres || [] as subsubgenreGroup (typeof subsubgenreGroup === 'object' ? subsubgenreGroup.name : subsubgenreGroup)}
 													<li class="clickable-area">
 														<button
 															class="{UserSelectedGenres.includes(subsubgenreGroup.name)
 																? 'selected'
 																: ''} full-clickable"
-															on:click={() => handleSubSubgenreGroupClick(subsubgenreGroup)}
+															onclick={() => handleSubSubgenreGroupClick(subsubgenreGroup)}
 														>
 															{subsubgenreGroup.name}
 															{subsubgenreGroup.genres && subsubgenreGroup.genres.length > 0
@@ -1637,7 +1598,7 @@
 										<li>
 											<button
 												class="back-button full-clickable"
-												on:click={() => handleBack('subsubgenre')}
+												onclick={() => handleBack('subsubgenre')}
 											>
 												← Back to {selectedSubgenre}
 											</button>
@@ -1645,7 +1606,7 @@
 										<li class="select-all-area">
 											<button
 												class="select-all-button"
-												on:click={() => handleSelectAll('specificGenres')}
+												onclick={() => handleSelectAll('specificGenres')}
 											>
 												Select All
 											</button>
@@ -1658,13 +1619,13 @@
 													?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)}
 													{#each genres[selectedCategory].subgenres
 														.find((s) => s.name === selectedSubgenre)
-														?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)?.genres || [] as specificGenre}
+														?.subsubgenres?.find((g) => g.name === selectedSubSubgenre)?.genres || [] as specificGenre (specificGenre)}
 														<li class="clickable-area">
 															<button
 																class="{UserSelectedGenres.includes(specificGenre)
 																	? 'selected'
 																	: ''} full-clickable"
-																on:click={() => handleSpecificGenreClick(specificGenre)}
+																onclick={() => handleSpecificGenreClick(specificGenre)}
 															>
 																{specificGenre}
 															</button>
@@ -1778,7 +1739,9 @@
 		border-radius: 12px;
 		padding: 1.5rem;
 		margin-bottom: 1.5rem;
-		transition: transform 0.2s, border-color 0.2s;
+		transition:
+			transform 0.2s,
+			border-color 0.2s;
 	}
 
 	.feature-card:hover {
@@ -1787,7 +1750,9 @@
 	}
 
 	.feature-icon {
-		color: var(--color-secondary, #1db954);
+		/* `color: var(--color-secondary, #1db954)` was ignored under Tailwind 3 (the variable
+		   held an RGB triplet, not a colour), so the icons inherit. Kept that way; use
+		   `color: rgb(var(--rgb-secondary))` to colour them. */
 		margin-bottom: 1rem;
 	}
 

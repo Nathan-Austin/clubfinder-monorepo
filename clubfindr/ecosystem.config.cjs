@@ -5,6 +5,9 @@ module.exports = {
 		{
 			name: 'clubfindr',
 			script: 'build/index.js',
+			// Pinned so the app runs on Node 24 whichever Node the PM2 daemon uses.
+			// ~/.local/node24 links to the nvm install (see deploy/deploy.sh).
+			interpreter: '/home/nathan/.local/node24/bin/node',
 			cwd: '/home/nathan/clubfinder/clubfindr',
 			instances: 1,
 			exec_mode: 'fork',

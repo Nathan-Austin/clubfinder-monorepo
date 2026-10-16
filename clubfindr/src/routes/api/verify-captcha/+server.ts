@@ -1,9 +1,10 @@
 // src/routes/api/verify-captcha/+server.js
 import { json } from '@sveltejs/kit';
+import { RECAPTCHA_SECRET_KEY } from '$env/static/private';
 
 export async function POST({ request }) {
 	const { recaptchaResponse } = await request.json();
-	const secretKey = import.meta.env.VITE_reCAPTCHA_SECRET_KEY;
+	const secretKey = RECAPTCHA_SECRET_KEY;
 
 	const res = await fetch(
 		`https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`,

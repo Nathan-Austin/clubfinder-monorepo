@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { VITE_SPOTIFY_CLIENT_SECRET } from '$env/static/private';
+import { SPOTIFY_CLIENT_SECRET } from '$env/static/private';
 import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 import { Buffer } from 'buffer';
 import type { Artist_search, Track } from '$lib/$types';
 import { cookieManager } from '$lib/cookieManager';
 
 const client_id = PUBLIC_SPOTIFY_CLIENT_ID;
-const client_secret = VITE_SPOTIFY_CLIENT_SECRET;
+const client_secret = SPOTIFY_CLIENT_SECRET;
 
 const token_endpoint = `https://accounts.spotify.com/api/token`;
 //let accessToken: string;
@@ -51,7 +51,7 @@ export const load = async ({ cookies }) => {
 
 	// Decrypt the tokens
 	let accessToken: string | null = encryptedAccessToken || null;
-	let tokenExpiry = encryptedTokenExpiry ? parseInt(encryptedTokenExpiry, 10) : 0;
+	const tokenExpiry = encryptedTokenExpiry ? parseInt(encryptedTokenExpiry, 10) : 0;
 
 	console.log('Decrypted Access Token:', accessToken);
 	console.log('Decrypted Token Expiry (timestamp):', tokenExpiry);
@@ -88,8 +88,9 @@ export const load = async ({ cookies }) => {
 
 		// Set the new access token and its expiry time
 		accessToken = data.access_token;
-		// Token expires in `expires_in` seconds (convert to milliseconds and add to current time)
-		tokenExpiry = now + data.expires_in * 1000;
+		// NOTE: the refreshed token's expiry is not written back to the spotifyTokenExpiry
+		// cookie, so the next request refreshes again (pre-existing; the value was computed
+		// here and never used).
 
 		if (accessToken) {
 			cookieManager.set(cookies, 'spotifyAccessToken', accessToken, {

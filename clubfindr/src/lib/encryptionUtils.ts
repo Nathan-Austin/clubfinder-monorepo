@@ -1,11 +1,12 @@
 // src/lib/encryptionUtils.ts
 import crypto from 'crypto';
 import { error } from '@sveltejs/kit';
+import { CRYPTO_KEY } from '$env/static/private';
 
 // Get encryption key from environment variable
 // Should be at least 32 bytes (256 bits) for AES-256
 const getEncryptionKey = (): Buffer => {
-	const key = process.env.VITE_CRYPTO_KEY;
+	const key = CRYPTO_KEY;
 
 	if (!key || key.length < 32) {
 		console.error('Encryption key is missing or too short');
@@ -55,7 +56,7 @@ export const encryptToken = (text: string): string => {
 		return `${iv.toString('base64')}.${authTag}.${encryptedData}`;
 	} catch (err) {
 		console.error('Encryption error:', err);
-		throw new Error('Failed to encrypt data');
+		throw new Error('Failed to encrypt data', { cause: err });
 	}
 };
 
@@ -94,6 +95,6 @@ export const decryptToken = (encryptedText: string): string => {
 		return decrypted;
 	} catch (err) {
 		console.error('Decryption error:', err);
-		throw new Error('Failed to decrypt data');
+		throw new Error('Failed to decrypt data', { cause: err });
 	}
 };

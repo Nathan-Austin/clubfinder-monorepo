@@ -1,20 +1,21 @@
 <!-- BarDetailsModal.svelte -->
-<script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { slide } from 'svelte/transition';
+<script module lang="ts">
+	export interface BarDetails {
+		id: string;
+		name: string;
+		address: string;
+		city: string;
+		phone: string;
+		email: string;
+		openingHours: string;
+		description: string;
+		smoking_allowed: boolean;
+		bar_types: string[];
+	}
+</script>
 
-	export let barDetails = {
-		id: '',
-		name: '',
-		address: '',
-		city: '',
-		phone: '',
-		email: '',
-		openingHours: '',
-		description: '',
-		smoking_allowed: false,
-		bar_types: [] as string[]
-	};
+<script lang="ts">
+	import { slide } from 'svelte/transition';
 
 	const BAR_TYPES = [
 		{ value: 'cocktail', label: 'Cocktail Bar' },
@@ -29,15 +30,39 @@
 		{ value: 'speakeasy', label: 'Speakeasy' }
 	];
 
-	export let isLoading = false;
-	export let errorMessage = '';
-	export let validationErrors: string[] = [];
-	export let successMessage = '';
+	interface Props {
+		barDetails?: BarDetails;
+		onclose: () => void;
+		onsubmit: (details: BarDetails) => void;
+		isLoading?: boolean;
+		errorMessage?: string;
+		validationErrors?: string[];
+		successMessage?: string;
+	}
 
-	const dispatch = createEventDispatcher();
+	let {
+		barDetails = $bindable({
+			id: '',
+			name: '',
+			address: '',
+			city: '',
+			phone: '',
+			email: '',
+			openingHours: '',
+			description: '',
+			smoking_allowed: false,
+			bar_types: []
+		}),
+		isLoading = false,
+		errorMessage = '',
+		validationErrors = [],
+		successMessage = '',
+		onclose,
+		onsubmit
+	}: Props = $props();
 
 	function closeModal() {
-		dispatch('close');
+		onclose();
 	}
 
 	function handleSubmit() {
@@ -47,7 +72,7 @@
 		const barId = barIdField ? (barIdField as HTMLInputElement).value : barDetails.id || '';
 
 		// Include the barId in the submission
-		dispatch('submit', {
+		onsubmit({
 			...barDetails,
 			id: barId
 		});
@@ -58,10 +83,16 @@
 	<div class="modal" transition:slide={{ duration: 300 }}>
 		<div class="modal-header">
 			<h2>Update Bar Details</h2>
-			<button class="close-button" on:click={closeModal}>×</button>
+			<button class="close-button" onclick={closeModal}>×</button>
 		</div>
 
-		<form id="bar-details-form" on:submit|preventDefault={handleSubmit}>
+		<form
+			id="bar-details-form"
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleSubmit();
+			}}
+		>
 			<!-- Hidden field to store bar ID -->
 			<input type="hidden" id="barId" name="barId" value={barDetails.id || ''} />
 
@@ -92,7 +123,7 @@
 
 			<div class="form-group">
 				<label for="openingHours">Opening Hours</label>
-				<textarea id="openingHours" bind:value={barDetails.openingHours} rows="3" />
+				<textarea id="openingHours" bind:value={barDetails.openingHours} rows="3"></textarea>
 			</div>
 
 			<div class="form-group checkbox-container">
@@ -105,7 +136,7 @@
 			<div class="form-group">
 				<label for="bar_types">Bar Type (Select up to 3):</label>
 				<div class="bar-types-grid">
-					{#each BAR_TYPES as type}
+					{#each BAR_TYPES as type (type.value)}
 						<label
 							class="bar-type-chip {barDetails.bar_types?.includes(type.value) ? 'selected' : ''}"
 						>
@@ -127,7 +158,7 @@
 					>Description - add some details about your bar, such as general vibe, musical tastes, and
 					any other relevant information.</label
 				>
-				<textarea id="description" bind:value={barDetails.description} rows="4" />
+				<textarea id="description" bind:value={barDetails.description} rows="4"></textarea>
 			</div>
 
 			{#if errorMessage}
@@ -158,7 +189,7 @@
 				<div class="validation-errors">
 					<p>Please fix the following issues:</p>
 					<ul>
-						{#each validationErrors as error}
+						{#each validationErrors as error, i (i)}
 							<li>{error}</li>
 						{/each}
 					</ul>
@@ -172,7 +203,7 @@
 			{/if}
 
 			<div class="button-group">
-				<button type="button" class="cancel-button" on:click={closeModal}>Cancel</button>
+				<button type="button" class="cancel-button" onclick={closeModal}>Cancel</button>
 				<button type="submit" class="submit-button" disabled={isLoading}>
 					{isLoading ? 'Updating...' : 'Update Details'}
 				</button>

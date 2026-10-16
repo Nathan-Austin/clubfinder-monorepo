@@ -2,9 +2,10 @@
 import { redirect } from '@sveltejs/kit';
 import { generateRandomString } from '$lib/soundcloud/pkce';
 import { cookieManager } from '$lib/cookieManager';
+import { SOUNDCLOUD_CLIENT_ID } from '$env/static/private';
 
 export const GET = async ({ cookies, url }) => {
-	const client_id = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
+	const client_id = SOUNDCLOUD_CLIENT_ID;
 	const protocol = url.protocol;
 	const host = url.host;
 	const redirect_uri = `${protocol}//${host}/api/soundcloud/callback`;

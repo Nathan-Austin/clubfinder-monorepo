@@ -71,7 +71,7 @@
 	</div>
 
 	<div class="social-links">
-		{#each socialMediaLinks as social}
+		{#each socialMediaLinks as social (social.name)}
 			<div class="social-card">
 				<img src={social.icon} alt={social.name + ' logo'} />
 				<h3>{social.name}</h3>

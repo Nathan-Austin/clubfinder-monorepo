@@ -26,9 +26,14 @@ TARGET="${1:?usage: deploy.sh <commit-sha>}"
 DRY_RUN="${DRY_RUN:-0}"
 
 REPO="${DEPLOY_REPO:-/home/nathan/clubfinder}" # override only for testing
-# Same node that PM2 runs clubfindr with
-export PATH="/home/nathan/.nvm/versions/node/v18.19.1/bin:/usr/local/bin:/usr/bin:/bin"
-PNPM=/usr/local/bin/pnpm
+# Same node that PM2 runs clubfindr with (ecosystem.config.cjs `interpreter`).
+# ~/.local/node24 is a symlink to the nvm install, so a Node patch update only
+# re-points the link.
+NODE_DIR=/home/nathan/.local/node24
+export PATH="$NODE_DIR/bin:/usr/local/bin:/usr/bin:/bin"
+# Corepack shim: runs the pnpm pinned in clubfindr/package.json `packageManager`
+PNPM="$NODE_DIR/bin/pnpm"
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 PM2=/home/nathan/.local/share/pnpm/pm2
 SYSTEMCTL=/usr/bin/systemctl
 
@@ -99,6 +104,16 @@ DO_CLUBFINDR=0 DO_BARFINDR=0 DO_SPOTIFY=0
 changed clubfindr && DO_CLUBFINDR=1
 changed barfindr && DO_BARFINDR=1
 changed spotify_service && DO_SPOTIFY=1
+
+# Check the Node toolchain now, so a missing Node 24 fails before merging
+if [ $DO_CLUBFINDR = 1 ]; then
+	want=$(git show "$TARGET:clubfindr/.nvmrc" | tr -d '[:space:]')
+	[ -x "$NODE_DIR/bin/node" ] ||
+		fail "$NODE_DIR/bin/node not found; install Node $want and link it there (README \"Production\")"
+	have=$("$NODE_DIR/bin/node" -p 'process.versions.node.split(".")[0]')
+	[ "$have" = "$want" ] || fail "$NODE_DIR is Node $have, clubfindr/.nvmrc wants $want"
+	[ -x "$PNPM" ] || fail "$PNPM not found; run $NODE_DIR/bin/corepack enable"
+fi
 
 # Commands this user may run with sudo without a password, one per line.
 # (`sudo -l <cmd>` is not enough: it succeeds for commands that still need a

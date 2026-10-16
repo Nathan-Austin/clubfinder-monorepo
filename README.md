@@ -123,12 +123,16 @@ rules (order matters; ufw uses the first match):
 Postgres itself (`pg_hba.conf`) also accepts md5 logins for any user and database
 from those two Docker networks.
 
-Toolchain: Node 18.19.1 via nvm (`~/.nvm/versions/node/v18.19.1`), PM2 5.4.2
-installed globally with pnpm (`~/.local/share/pnpm`). PM2 is not on the
-default PATH:
+Toolchain: Node 24 via nvm, reached through the symlink `~/.local/node24` (clubfindr
+pins the major in `.nvmrc`/`engines`, and `ecosystem.config.cjs` pins the interpreter;
+see `clubfindr/docs/PRODUCTION_HANDOVER.md` for the move from 18.19.1, which stays
+installed for rollback). pnpm comes from Node 24's corepack (`~/.local/node24/bin/pnpm`,
+version from `packageManager`). PM2 5.4.2 is installed globally with pnpm
+(`~/.local/share/pnpm`). The server is ARM64, and the interactive shell defaults to
+nvm's Node 26, so neither PM2 nor the right pnpm is on the default PATH:
 
 ```bash
-export PATH=/home/nathan/.local/share/pnpm:/home/nathan/.nvm/versions/node/v18.19.1/bin:$PATH
+export PATH=/home/nathan/.local/share/pnpm:/home/nathan/.local/node24/bin:$PATH
 ```
 
 ### Installing from the repo
@@ -285,11 +289,8 @@ Workflows only run when files in their respective directories change, optimizing
 Set these in your GitHub repository settings (Settings → Secrets and variables → Actions):
 
 #### For clubfindr:
-- `VITE_PG_HOST`
-- `VITE_PG_PORT`
-- `VITE_PG_DB`
-- `VITE_PG_USERNAME`
-- `VITE_PG_PASSWORD`
+- None. CI runs a Postgres 16 service and `clubfindr/dev/setup.sh` writes a `.env` with
+  local values and placeholders (see `clubfindr/dev/TESTING.md`).
 
 #### For app_clubfindr:
 - `EXPO_TOKEN` (optional, for Expo builds)

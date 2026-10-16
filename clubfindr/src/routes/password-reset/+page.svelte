@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { validateEmail } from '$lib/passwordUtils';
-	let email = '';
-	let emailError = '';
-	let isSubmitting = false;
-	let successMessage = '';
-	let errorMessage = '';
+	let email = $state('');
+	let emailError = $state('');
+	let isSubmitting = $state(false);
+	let successMessage = $state('');
+	let errorMessage = $state('');
 
 	async function handlePasswordReset(event: Event) {
 		event.preventDefault();
@@ -67,7 +67,7 @@
 		</div>
 	{/if}
 
-	<form on:submit={handlePasswordReset} class="reset-form">
+	<form onsubmit={handlePasswordReset} class="reset-form">
 		<div class="form-group">
 			<label for="email">
 				Email Address:
@@ -75,7 +75,7 @@
 					type="email"
 					id="email"
 					bind:value={email}
-					on:input={() => {
+					oninput={() => {
 						emailError = '';
 						errorMessage = '';
 					}}

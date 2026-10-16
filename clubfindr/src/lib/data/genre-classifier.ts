@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const currentModule = fileURLToPath(import.meta.url);
 const isMainModule = process.argv[1] === currentModule;
 
-// Path constants
+// Path constants (relative to the working directory; the maintenance scripts pass their own)
 const FULL_GENRE_LIST_PATH = path.resolve('./src/lib/data/full_genre_list.csv');
 const GENRE_CLUSTERS_PATH = path.resolve('./src/lib/data/genreClusters.json');
 const BLACKLIST_PATH = path.resolve('./src/lib/data/genre-blacklist.txt');
@@ -42,14 +42,14 @@ const loadBlacklist = (): Set<string> => {
 };
 
 // Load full genre list
-const loadFullGenreList = (): string[] => {
+const loadFullGenreList = (listPath: string): string[] => {
 	try {
-		if (!fs.existsSync(FULL_GENRE_LIST_PATH)) {
-			console.error(`Full genre list not found at ${FULL_GENRE_LIST_PATH}`);
+		if (!fs.existsSync(listPath)) {
+			console.error(`Full genre list not found at ${listPath}`);
 			return [];
 		}
 
-		const csvContent = fs.readFileSync(FULL_GENRE_LIST_PATH, 'utf8');
+		const csvContent = fs.readFileSync(listPath, 'utf8');
 		const records = parse(csvContent, {
 			columns: true,
 			skip_empty_lines: true
@@ -239,10 +239,17 @@ const updateGenreClusters = (
 };
 
 // Main function to process and update genres
-export const processGenres = async () => {
+export interface ProcessGenresOptions {
+	/** Project root, for the unmatched-genres report (default: the working directory) */
+	appRoot?: string;
+	/** CSV of genres to process (default: src/lib/data/full_genre_list.csv) */
+	genreListPath?: string;
+}
+
+export const processGenres = async (options: ProcessGenresOptions = {}) => {
 	// Load necessary data
 	const blacklist = loadBlacklist();
-	const fullGenreList = loadFullGenreList();
+	const fullGenreList = loadFullGenreList(options.genreListPath ?? FULL_GENRE_LIST_PATH);
 	const genreClusters = loadGenreClusters();
 	const processedGenres = loadProcessedGenres();
 
@@ -281,7 +288,7 @@ export const processGenres = async () => {
 	// Report on unmatched genres for manual review
 	if (unmatchedGenres.length > 0) {
 		const unmatchedPath = path.resolve(
-			process.env.APP_ROOT || '.',
+			options.appRoot ?? '.',
 			'./src/lib/data/unmatched_genres.txt'
 		);
 		fs.writeFileSync(unmatchedPath, unmatchedGenres.join('\n'));

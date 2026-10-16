@@ -13,3 +13,7 @@ vite.config.ts.timestamp-*
 
 # Private Postgres cluster created by dev/setup.sh
 /dev/.pgdata
+
+# Playwright
+/test-results
+/playwright-report

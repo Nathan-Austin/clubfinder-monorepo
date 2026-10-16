@@ -46,6 +46,7 @@ TRUNCATE
 	clubfindr.bars,
 	clubfindr.promoters,
 	clubfindr.user_sessions,
+	clubfindr.password_resets,
 	clubfindr.oauth_states,
 	clubfindr.spotify_task_log,
 	clubfindr.spotify_apps,

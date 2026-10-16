@@ -23,11 +23,22 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<head>
-	<meta charset="UTF-8" />
-	<title>Terms and Conditions of Use for www.clubfindr.com</title>
+<div class="policy-body">
 	<style>
-		body {
+		/* This used to be a stray <body> element; it picked up the layout's body
+		   rules, which are kept here so the page looks the same. */
+		.policy-body {
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
+			background: linear-gradient(
+					180deg,
+					rgb(var(--rgb-dark-bg)) 0%,
+					rgb(var(--rgb-mid-bg)) 45%,
+					rgb(var(--rgb-bg)) 100%
+				)
+				no-repeat;
+			background-size: cover;
 			font-family: Arial, sans-serif;
 			line-height: 1.6;
 			color: #333;
@@ -79,8 +90,6 @@
 			font-style: italic;
 		}
 	</style>
-</head>
-<body>
 	<h1>Terms and Conditions of Use for www.clubfindr.com</h1>
 	<p class="effective-date"><em>Effective Date: 20 Sept 2024</em></p>
 
@@ -92,8 +101,8 @@
 		access to and use of our website
 		<a href="https://www.clubfindr.com">www.clubfindr.com</a> ("Website") and our application ("Application"),
 		including any content, functionality, and services offered on or through the Website and Application
-		(collectively, the "Service"). By accessing or using the Service, you agree to be bound by these
-		Terms. If you do not agree to these Terms, please do not use our Service.
+		(collectively, the "Service"). By accessing or using the Service, you agree to be bound by these Terms.
+		If you do not agree to these Terms, please do not use our Service.
 	</p>
 
 	<hr />
@@ -462,4 +471,4 @@
 	<hr />
 
 	<p><strong>Latest Update:</strong> Sep 16 2024</p>
-</body>
+</div>
