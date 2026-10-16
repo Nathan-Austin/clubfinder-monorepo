@@ -3,7 +3,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
-import { encryptToken } from '$lib/encryptionUtils';
+import { hashToken } from '$lib/encryptionUtils';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { email } = await request.json();
@@ -25,13 +25,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const userId = userResult.rows[0].id;
 
-		// Store the reset token in the database
+		// Store only a hash of the token; the e-mailed link carries the token itself
 		await query(
 			`INSERT INTO clubfindr.password_resets (user_id, reset_token, expires_at)
              VALUES ($1, $2, $3)
              ON CONFLICT (user_id) 
              DO UPDATE SET reset_token = $2, expires_at = $3, updated_at = NOW()`,
-			[userId, encryptToken(resetToken), tokenExpiry]
+			[userId, hashToken(resetToken), tokenExpiry]
 		);
 
 		// Send password reset email
