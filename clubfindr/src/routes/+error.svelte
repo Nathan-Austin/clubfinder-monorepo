@@ -1,11 +1,11 @@
 <!-- src/routes/+error.svelte -->
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 </script>
 
 <div class="error-container">
-	<h1>{$page.status} Error</h1>
-	<p>{$page.error?.message || 'Something went wrong'}</p>
+	<h1>{page.status} Error</h1>
+	<p>{page.error?.message || 'Something went wrong'}</p>
 	<a href="/">Go back home</a>
 </div>
 

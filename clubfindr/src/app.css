@@ -1,6 +1,68 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/*
+  Theme (was tailwind.config.cjs). `--color-*: initial` drops Tailwind's default palette
+  first: the v3 config replaced the palette too, so only these colours exist as utilities.
+  The colours are built on the RGB triplets (`--rgb-*`) defined on :root below, which the
+  rest of the CSS also uses directly.
+*/
+@theme {
+	--color-*: initial;
+	--color-black: black;
+	--color-white: white;
+	--color-dark_blue: #1a202c;
+	--color-transparent: transparent;
+	--color-primary: rgb(var(--rgb-primary));
+	--color-bg: rgb(var(--rgb-bg));
+	--color-bgdark: rgb(var(--rgb-dark-bg));
+	--color-secondary: rgb(var(--rgb-secondary));
+	--color-light: rgb(var(--rgb-light));
+	--color-spotify: rgb(var(--rgb-spotify));
+	--color-orange-500: #f97316;
+	--color-orange-600: #ea580c;
+	--color-red-100: #fee2e2;
+	--color-red-400: #f87171;
+	--color-red-700: #b91c1c;
+	--color-gray-200: #e5e7eb;
+	--color-gray-900: #111827;
+	--color-green-500: #22c55e;
+
+	/* Tailwind 3's default sans stack (4.3 switched to -apple-system/Segoe UI/Roboto/Arial) */
+	--font-sans:
+		ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+		'Noto Color Emoji';
+	--font-sen: 'Sen';
+
+	--animate-fade-in: fade-in 0.3s ease-out;
+	@keyframes fade-in {
+		0% {
+			opacity: 0;
+			transform: translateY(-1rem);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+}
 
 @layer base {
 	@font-face {
@@ -16,21 +78,21 @@
 		font-display: swap;
 	}
 	:root {
-		--color-primary: 253 95 0; /* rgb(253,95,0) */
-		--color-bg: 0 32 74; /* rgb(0,32,74)*/
-		--color-dark-bg: 2 0 36; /* rgb(2,0,36)*/
-		--color-mid-bg: 0 22 50; /* rgb(0,22,50)*/
-		--color-secondary: 0 87 146; /* rgb(0,87,146)*/
-		--color-light: 217 250 255; /* rgb(217,250,255)*/
-		--color-spotify: 30 215 96; /* rgb(30,215,96) */
-		--color-text-dark: 17 24 39; /* rgb(17, 24, 39) - almost black */
+		--rgb-primary: 253 95 0; /* rgb(253,95,0) */
+		--rgb-bg: 0 32 74; /* rgb(0,32,74)*/
+		--rgb-dark-bg: 2 0 36; /* rgb(2,0,36)*/
+		--rgb-mid-bg: 0 22 50; /* rgb(0,22,50)*/
+		--rgb-secondary: 0 87 146; /* rgb(0,87,146)*/
+		--rgb-light: 217 250 255; /* rgb(217,250,255)*/
+		--rgb-spotify: 30 215 96; /* rgb(30,215,96) */
+		--rgb-text-dark: 17 24 39; /* rgb(17, 24, 39) - almost black */
 	}
 
 	/* Base dark theme styles */
 	html {
-		background: rgb(var(--color-bg));
+		background: rgb(var(--rgb-bg));
 		min-height: 100%;
-		color: rgb(var(--color-light));
+		color: rgb(var(--rgb-light));
 	}
 
 	body {
@@ -38,13 +100,13 @@
 		padding: 0;
 		background: linear-gradient(
 				180deg,
-				rgb(var(--color-dark-bg)) 0%,
-				rgb(var(--color-mid-bg)) 45%,
-				rgb(var(--color-bg)) 100%
+				rgb(var(--rgb-dark-bg)) 0%,
+				rgb(var(--rgb-mid-bg)) 45%,
+				rgb(var(--rgb-bg)) 100%
 			)
 			no-repeat;
 		background-size: cover;
-		color: rgb(var(--color-light));
+		color: rgb(var(--rgb-light));
 	}
 
 	/* Light background text color rules */
@@ -54,7 +116,7 @@
 	[class*='bg-neutral-'],
 	[class*='bg-zinc-'],
 	.bg-light {
-		color: rgb(var(--color-text-dark));
+		color: rgb(var(--rgb-text-dark));
 	}
 
 	/* Dark background text color rules */
@@ -65,7 +127,7 @@
 	[class*='bg-blue-'],
 	[class*='bg-indigo-'],
 	[class*='bg-purple-'] {
-		color: rgb(var(--color-light));
+		color: rgb(var(--rgb-light));
 	}
 
 	/* Form elements and containers with light backgrounds */
@@ -76,7 +138,7 @@
 	select,
 	textarea,
 	label:not(.text-white) {
-		color: rgb(var(--color-text-dark));
+		color: rgb(var(--rgb-text-dark));
 	}
 
 	/* Preserve specific text colors */
@@ -102,7 +164,7 @@
 	/* Dropdown specific styles */
 	.dropdown-content,
 	.dropdown-link {
-		color: rgb(var(--color-text-dark));
+		color: rgb(var(--rgb-text-dark));
 		background-color: white;
 	}
 
@@ -110,7 +172,7 @@
 	.bg-white a:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
 	[class*='bg-gray-'] a:not(.text-white, .text-primary, .text-inherit, [class*='text-']),
 	[class*='bg-slate-'] a:not(.text-white, .text-primary, .text-inherit, [class*='text-']) {
-		color: rgb(var(--color-secondary));
+		color: rgb(var(--rgb-secondary));
 	}
 }
 
@@ -150,7 +212,7 @@
 	width: 300px;
 	height: 56px;
 	margin-top: 16px;
-	color: rgb(var(--color-text-dark));
+	color: rgb(var(--rgb-text-dark));
 }
 
 .dropdown-content {
@@ -182,7 +244,7 @@
 }
 
 .dropdown-content a {
-	color: rgb(var(--color-text-dark));
+	color: rgb(var(--rgb-text-dark));
 	padding: 12px 16px;
 	text-decoration: none;
 	display: block;
@@ -199,7 +261,7 @@
 }
 
 .dropdown-content a:active {
-	color: rgb(var(--color-primary));
+	color: rgb(var(--rgb-primary));
 }
 
 .selected {
@@ -225,6 +287,6 @@
 }
 
 .dropdown-link.active {
-	color: rgb(var(--color-primary));
+	color: rgb(var(--rgb-primary));
 	background-color: #f3f4f6;
 }

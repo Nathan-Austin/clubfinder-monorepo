@@ -4,23 +4,28 @@
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 	import type { Artist, PlaylistWithArtists, RecentlyPlayedTrack } from '$lib/$types';
-	export let data: PageData;
 
 	import ConfirmPopup from '../ConfirmPopup.svelte';
-	let showConfirmationPopup = false;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
+	let email = $state('');
+	let showConfirmationPopup = $state(false);
+	// svelte-ignore state_referenced_locally
 	let profileComplete = data.profileComplete;
-	let showForm = !profileComplete;
-	export let email = '';
-	let password = '';
-	let confirmPassword = '';
-	let errorMessage = '';
+	let showForm = $state(!profileComplete);
+	let password = $state('');
+	let confirmPassword = $state('');
+	let errorMessage = $state('');
 
 	function toggleForm() {
 		showForm = !showForm;
 	}
 
 	// State to manage mobile view selection
-	let selectedView: 'playlists' | 'artists' | 'tracks' = 'playlists';
+	let selectedView: 'playlists' | 'artists' | 'tracks' = $state('playlists');
 
 	type RecentlyPlayedTrackWithLink = RecentlyPlayedTrack & { spotifyLink?: string };
 	type TrackItem = {
@@ -50,48 +55,59 @@
 		spotifyUrl?: string;
 	};
 
-	// Initialize data arrays
+	// Initialize the selectable lists from the page data (local state: selection is toggled here)
+	// svelte-ignore state_referenced_locally
 	const recentTracks = (data.recentlyPlayedTracks ?? []) as RecentlyPlayedTrackWithLink[];
-	let tracks: TrackItem[] = recentTracks.map((track) => ({
-		name: track.name,
-		id: track.id,
-		image:
-			track.album?.images?.find((image) => image.width === 300)?.url ||
-			track.album?.images?.[0]?.url,
-		artist: track.artists?.[0] ? track.artists[0] : undefined,
-		selected: false,
-		spotifyUrl: track.spotifyLink
-	}));
+	let tracks: TrackItem[] = $state(
+		recentTracks.map((track) => ({
+			name: track.name,
+			id: track.id,
+			image:
+				track.album?.images?.find((image) => image.width === 300)?.url ||
+				track.album?.images?.[0]?.url,
+			artist: track.artists?.[0] ? track.artists[0] : undefined,
+			selected: false,
+			spotifyUrl: track.spotifyLink
+		}))
+	);
 
+	// svelte-ignore state_referenced_locally
 	const playlistData = (data.playlists ?? []) as PlaylistWithArtists[];
-	let playlists: PlaylistItem[] = playlistData.map((playlist) => ({
-		id: playlist.id,
-		name: playlist.name,
-		image: playlist.images?.find((image) => image.width === 300)?.url || playlist.images?.[0]?.url,
-		selected: false,
-		artists: playlist.artistIds,
-		description: playlist.description,
-		followers: playlist.followers,
-		spotifyUrl: playlist.external_urls?.spotify
-	}));
+	let playlists: PlaylistItem[] = $state(
+		playlistData.map((playlist) => ({
+			id: playlist.id,
+			name: playlist.name,
+			image:
+				playlist.images?.find((image) => image.width === 300)?.url || playlist.images?.[0]?.url,
+			selected: false,
+			artists: playlist.artistIds,
+			description: playlist.description,
+			followers: playlist.followers,
+			spotifyUrl: playlist.external_urls?.spotify
+		}))
+	);
 
+	// svelte-ignore state_referenced_locally
 	const artistData = (data.topArtists ?? []) as Artist[];
-	let artists: ArtistItem[] = artistData.map((artist) => ({
-		id: artist.id,
-		name: artist.name,
-		image: artist.images?.find((image) => image.width === 300)?.url || artist.images?.[0]?.url,
-		selected: false,
-		genres: artist.genres,
-		spotifyUrl: artist.external_urls?.spotify
-	}));
+	let artists: ArtistItem[] = $state(
+		artistData.map((artist) => ({
+			id: artist.id,
+			name: artist.name,
+			image: artist.images?.find((image) => image.width === 300)?.url || artist.images?.[0]?.url,
+			selected: false,
+			genres: artist.genres,
+			spotifyUrl: artist.external_urls?.spotify
+		}))
+	);
 
 	// Compute selected count and IDs
-	$: selectedCount =
+	let selectedCount = $derived(
 		tracks.filter((t) => t.selected).length +
-		playlists.filter((p) => p.selected).length +
-		artists.filter((a) => a.selected).length;
+			playlists.filter((p) => p.selected).length +
+			artists.filter((a) => a.selected).length
+	);
 
-	$: selectedIds = [
+	let selectedIds = $derived([
 		...tracks
 			.filter((t) => t.selected)
 			.map((t) => t.artist?.id)
@@ -104,7 +120,7 @@
 			.filter((a) => a.selected)
 			.map((a) => a.id)
 			.filter(Boolean)
-	];
+	]);
 
 	// Selection handler
 	const onSelect = (id: string, type: 'track' | 'playlist' | 'artist') => {
@@ -259,7 +275,7 @@
 				<!-- Notification banner if profile is incomplete -->
 				<div class="notification-banner">
 					<p>Update your email and set a password to complete your profile.</p>
-					<button class="btn btn-primary" on:click={toggleForm}>
+					<button class="btn btn-primary" onclick={toggleForm}>
 						{#if showForm}Hide{/if}
 						{#if !showForm}Update Now{/if}
 					</button>
@@ -268,7 +284,12 @@
 				{#if showForm}
 					<!-- Update Form -->
 					<div class="form-card">
-						<form on:submit|preventDefault={submitForm}>
+						<form
+							onsubmit={(e) => {
+								e.preventDefault();
+								submitForm();
+							}}
+						>
 							<div class="form-group">
 								<label for="email">Email</label>
 								<input
@@ -319,14 +340,16 @@
 		{#if showConfirmationPopup}
 			<div
 				class="popup-overlay"
-				on:click|self={closePopup}
-				on:keydown={handleKeyDown}
+				onclick={(e) => {
+					if (e.target === e.currentTarget) closePopup();
+				}}
+				onkeydown={handleKeyDown}
 				role="button"
 				tabindex="0"
 				aria-label="Close popup"
 			>
 				<div class="popup">
-					<ConfirmPopup on:close={closePopup} />
+					<ConfirmPopup onclose={closePopup} />
 				</div>
 			</div>
 		{/if}
@@ -346,15 +369,15 @@
 			<div class="section playlists" class:hide-on-mobile={selectedView !== 'playlists'}>
 				<h2 class="section-title">Playlists</h2>
 				<div class="items-grid">
-					{#each playlists as playlist}
+					{#each playlists as playlist (playlist.id)}
 						<!-- The entire item box is clickable -->
-						<!-- svelte-ignore a11y-click-events-have-key-events -->
-						<!-- svelte-ignore a11y-no-static-element-interactions -->
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="item {playlist.selected ? 'selected' : ''}"
-							on:click={() => onSelect(playlist.id, 'playlist')}
+							onclick={() => onSelect(playlist.id, 'playlist')}
 						>
-							<img src={playlist.image} alt={playlist.name} on:load={onImageLoad} />
+							<img src={playlist.image} alt={playlist.name} onload={onImageLoad} />
 							<div class="overlay">
 								<span>{playlist.name}</span><br />
 								<a href={playlist.spotifyUrl} style="color: #1db954;" target="_blank"
@@ -370,14 +393,14 @@
 			<div class="section artists" class:hide-on-mobile={selectedView !== 'artists'}>
 				<h2 class="section-title">Top Artists</h2>
 				<div class="items-grid">
-					{#each artists as artist}
-						<!-- svelte-ignore a11y-click-events-have-key-events -->
-						<!-- svelte-ignore a11y-no-static-element-interactions -->
+					{#each artists as artist (artist.id)}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="item {artist.selected ? 'selected' : ''}"
-							on:click={() => onSelect(artist.id, 'artist')}
+							onclick={() => onSelect(artist.id, 'artist')}
 						>
-							<img src={artist.image} alt={artist.name} on:load={onImageLoad} />
+							<img src={artist.image} alt={artist.name} onload={onImageLoad} />
 							<div class="overlay">
 								<span>{artist.name}</span><br />
 								<a href={artist.spotifyUrl} style="color: #1db954;" target="_blank"
@@ -393,14 +416,14 @@
 			<div class="section tracks" class:hide-on-mobile={selectedView !== 'tracks'}>
 				<h2 class="section-title">Recently Played Tracks</h2>
 				<div class="items-grid">
-					{#each tracks as track}
-						<!-- svelte-ignore a11y-click-events-have-key-events -->
-						<!-- svelte-ignore a11y-no-static-element-interactions -->
+					{#each tracks as track, i (i)}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="item {track.selected ? 'selected' : ''}"
-							on:click={() => onSelect(track.id, 'track')}
+							onclick={() => onSelect(track.id, 'track')}
 						>
-							<img src={track.image} alt={track.name} on:load={onImageLoad} />
+							<img src={track.image} alt={track.name} onload={onImageLoad} />
 							<div class="overlay">
 								<span>{track.name}</span><br />
 
@@ -421,13 +444,13 @@
 	<!-- Footer Buttons -->
 	{#if selectedCount > 0}
 		<div class="fixed-footer">
-			<button type="button" class="action-button secondary" on:click={onSubmit}>
+			<button type="button" class="action-button secondary" onclick={onSubmit}>
 				Select Genres
 			</button>
 			<span class="separator">or</span>
-			<button type="button" class="action-button primary" on:click={onLetUsGo}> Find Clubs </button>
+			<button type="button" class="action-button primary" onclick={onLetUsGo}> Find Clubs </button>
 			<span class="separator">or</span>
-			<button type="button" class="action-button primary" on:click={onLetsGoBars}>
+			<button type="button" class="action-button primary" onclick={onLetsGoBars}>
 				Find Bars
 			</button>
 		</div>
@@ -547,7 +570,9 @@
 		height: 60px; /* Make sure it's a block element */
 		margin-top: 0px;
 		overflow: hidden; /* Hide overflow content by default */
-		transition: height 0.3s ease, overflow 0.3s ease;
+		transition:
+			height 0.3s ease,
+			overflow 0.3s ease;
 	}
 	.item:hover .overlay {
 		height: 140px; /* Expanded height on hover */

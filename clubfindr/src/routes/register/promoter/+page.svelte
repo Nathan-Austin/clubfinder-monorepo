@@ -1,24 +1,25 @@
 <!-- /register/promoter/+page.svelte -->
 <script lang="ts">
+	import { PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import type { CitiesData, City } from '$lib/types/city';
-	const siteKey = import.meta.env.VITE_reCAPTCHA_SITE_KEY;
-	let isVerified = false;
-	let citiesData: CitiesData = { cities: [] };
-	let selectedCityName = '';
-	let selectedCity: City | null = null;
-	let businessName = '';
-	let contactPerson = '';
-	let email = '';
-	let phone = '';
-	let address = '';
-	let postcode = '';
-	let website = '';
-	let agreeToTerms = false;
-	let agreeToPrivacyPolicy = false;
-	let password = '';
-	let confirmPassword = '';
-	let passwordError = '';
+	const siteKey = PUBLIC_RECAPTCHA_SITE_KEY;
+	let isVerified = $state(false);
+	let citiesData: CitiesData = $state({ cities: [] });
+	let selectedCityName = $state('');
+	let selectedCity: City | null = $state(null);
+	let businessName = $state('');
+	let contactPerson = $state('');
+	let email = $state('');
+	let phone = $state('');
+	let address = $state('');
+	let postcode = $state('');
+	let website = $state('');
+	let agreeToTerms = $state(false);
+	let agreeToPrivacyPolicy = $state(false);
+	let password = $state('');
+	let confirmPassword = $state('');
+	let passwordError = $state('');
 
 	// Function to validate passwords
 	function validatePasswords() {
@@ -131,13 +132,13 @@
 		<div class="recaptcha-container">
 			<h2>Please complete the reCAPTCHA</h2>
 			<!-- reCAPTCHA widget -->
-			<div class="g-recaptcha" data-sitekey={siteKey} />
-			<button on:click={submitForm}>Close</button>
+			<div class="g-recaptcha" data-sitekey={siteKey}></div>
+			<button onclick={submitForm}>Close</button>
 		</div>
 	</div>
 {/if}
 
-<form on:submit={register}>
+<form onsubmit={register}>
 	<label>
 		Business Name:
 		<input type="text" bind:value={businessName} required />
@@ -172,10 +173,10 @@
 		City:
 		<select
 			bind:value={selectedCityName}
-			on:change={() => (selectedCity = getCityDetails(selectedCityName))}
+			onchange={() => (selectedCity = getCityDetails(selectedCityName))}
 			required
 		>
-			{#each citiesData.cities as city}
+			{#each citiesData.cities as city (city.name)}
 				<option value={city.name}>{city.name}</option>
 			{/each}
 		</select>
@@ -197,7 +198,7 @@
 
 	<label>
 		Confirm Password:
-		<input type="password" bind:value={confirmPassword} required on:input={validatePasswords} />
+		<input type="password" bind:value={confirmPassword} required oninput={validatePasswords} />
 	</label>
 
 	{#if passwordError}

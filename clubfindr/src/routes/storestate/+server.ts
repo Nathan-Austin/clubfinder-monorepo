@@ -1,6 +1,7 @@
 // src/routes/storestate/store-state.ts
 import type { RequestHandler } from '@sveltejs/kit';
 import { setState } from '$lib/tempStore';
+import { dev } from '$app/environment';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -18,7 +19,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('city', stateData.city, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -27,7 +28,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('bar-city', stateData.cityName, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -36,7 +37,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('email', stateData.email, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -45,7 +46,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('business-name', stateData.businessName, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -54,7 +55,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('date', stateData.formattedDate, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -64,7 +65,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('address', stateData.address, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -74,7 +75,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('genre', stateData.selectedGenre, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -83,7 +84,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			cookies.set('search', stateData.search, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});

@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { cookieManager } from '$lib/cookieManager';
+import { TIDAL_CLIENT_ID, TIDAL_CLIENT_SECRET } from '$env/static/private';
 
 export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 	const code = url.searchParams.get('code');
@@ -9,8 +10,8 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 	const savedState = cookieManager.get(cookies, 'tidal_auth_state');
 	const codeVerifier = cookieManager.get(cookies, 'tidal_code_verifier');
 
-	const client_id = import.meta.env.VITE_TIDAL_CLIENT_ID;
-	const client_secret = import.meta.env.VITE_TIDAL_CLIENT_SECRET;
+	const client_id = TIDAL_CLIENT_ID;
+	const client_secret = TIDAL_CLIENT_SECRET;
 	const protocol = url.protocol;
 	const host = url.host;
 	const redirect_uri = `${protocol}//${host}/api/tidal/callback`;

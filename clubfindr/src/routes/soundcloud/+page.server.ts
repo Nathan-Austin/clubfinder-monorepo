@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import { SoundCloudClient } from '$lib/soundcloud/client';
 import { cookieManager } from '$lib/cookieManager';
 import type { spTrack, spUser } from '$lib/$types';
+import { SOUNDCLOUD_CLIENT_ID, SOUNDCLOUD_CLIENT_SECRET } from '$env/static/private';
 
 interface SCTokenResponse {
 	access_token: string;
@@ -14,8 +15,8 @@ async function refreshSCtoken(
 	refreshToken: string,
 	fetchFunc: typeof fetch
 ): Promise<SCTokenResponse> {
-	const client_id = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
-	const client_secret = import.meta.env.VITE_SOUNDCLOUD_CLIENT_SECRET;
+	const client_id = SOUNDCLOUD_CLIENT_ID;
+	const client_secret = SOUNDCLOUD_CLIENT_SECRET;
 
 	const response = await fetchFunc('https://secure.soundcloud.com/oauth/token', {
 		method: 'POST',
@@ -41,7 +42,7 @@ async function refreshSCtoken(
 export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 	let accessToken = cookieManager.get(cookies, 'soundcloud_access_token');
 	const refreshToken = cookieManager.get(cookies, 'soundcloud_refresh_token');
-	const clientId = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
+	const clientId = SOUNDCLOUD_CLIENT_ID;
 
 	if (!accessToken && refreshToken) {
 		try {
@@ -103,7 +104,7 @@ export const load: PageServerLoad = async ({ cookies, fetch: fetchFunc }) => {
 			playCount: number;
 			artistId: number;
 			genre?: string | null;
-			tag_list?: string;
+			tag_list?: string | null;
 			description?: string;
 		}
 

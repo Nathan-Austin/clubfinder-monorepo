@@ -9,7 +9,7 @@ User=nathan
 LimitNOFILE=infinity
 LimitNPROC=infinity
 LimitCORE=infinity
-Environment=PATH=/home/nathan/.local/share/pnpm:/home/nathan/.nvm/versions/node/v18.19.1/bin:/home/nathan/anaconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH=/home/nathan/.local/share/pnpm:/home/nathan/.local/node24/bin:/home/nathan/anaconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=PM2_HOME=/home/nathan/.pm2
 PIDFile=/home/nathan/.pm2/pm2.pid
 Restart=on-failure

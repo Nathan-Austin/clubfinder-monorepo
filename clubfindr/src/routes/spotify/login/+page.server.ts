@@ -1,9 +1,9 @@
 // src/routes/spotify/login/+page.server.ts
+import { SPOTIFY_CLIENT_SECRET } from '$env/static/private';
 import {
-	VITE_SPOTIFY_REDIRECT_USER_URI,
-	VITE_SPOTIFY_REDIRECT_BAR_URI,
-	VITE_SPOTIFY_CLIENT_SECRET
-} from '$env/static/private';
+	PUBLIC_SPOTIFY_REDIRECT_USER_URI,
+	PUBLIC_SPOTIFY_REDIRECT_BAR_URI
+} from '$env/static/public';
 import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 import { error, redirect, isHttpError, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -12,6 +12,7 @@ import { query } from '$lib/db';
 import { getStateAsync } from '$lib/tempStore';
 import { cookieManager } from '$lib/cookieManager';
 import { encryptToken } from '$lib/encryptionUtils';
+import { dev } from '$app/environment';
 
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const code = url.searchParams.get('code');
@@ -190,10 +191,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 							clientId = defaultAppResult.rows[0].client_id;
 							clientSecret = defaultAppResult.rows[0].client_secret;
 							console.log('Using default Spotify app');
-						} else if (PUBLIC_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+						} else if (PUBLIC_SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
 							console.log('No default app in database, falling back to environment variables');
 							clientId = PUBLIC_SPOTIFY_CLIENT_ID;
-							clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
+							clientSecret = SPOTIFY_CLIENT_SECRET;
 						} else {
 							throw error(500, 'No Spotify app credentials found');
 						}
@@ -210,10 +211,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 						clientId = defaultAppResult.rows[0].client_id;
 						clientSecret = defaultAppResult.rows[0].client_secret;
 						console.log('Using default Spotify app');
-					} else if (PUBLIC_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+					} else if (PUBLIC_SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
 						console.log('No default app in database, falling back to environment variables');
 						clientId = PUBLIC_SPOTIFY_CLIENT_ID;
-						clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
+						clientSecret = SPOTIFY_CLIENT_SECRET;
 					} else {
 						throw error(500, 'No Spotify app credentials found');
 					}
@@ -229,11 +230,11 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				if (defaultAppResult.rows.length > 0) {
 					clientId = defaultAppResult.rows[0].client_id;
 					clientSecret = defaultAppResult.rows[0].client_secret;
-				} else if (PUBLIC_SPOTIFY_CLIENT_ID && VITE_SPOTIFY_CLIENT_SECRET) {
+				} else if (PUBLIC_SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
 					// Fallback to environment variables if no default app in database
 					console.log('No default app in database, falling back to environment variables');
 					clientId = PUBLIC_SPOTIFY_CLIENT_ID;
-					clientSecret = VITE_SPOTIFY_CLIENT_SECRET;
+					clientSecret = SPOTIFY_CLIENT_SECRET;
 				} else {
 					throw error(500, 'No Spotify app credentials found');
 				}
@@ -242,8 +243,8 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 
 		// Determine correct redirect URI based on the source
 		const redirectUri = isFromBarLogin
-			? VITE_SPOTIFY_REDIRECT_BAR_URI
-			: VITE_SPOTIFY_REDIRECT_USER_URI;
+			? PUBLIC_SPOTIFY_REDIRECT_BAR_URI
+			: PUBLIC_SPOTIFY_REDIRECT_USER_URI;
 
 		console.log('Using redirect URI for token exchange:', redirectUri);
 
@@ -456,7 +457,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				cookieManager.set(cookies, 'sessionId', newSessionId, {
 					path: '/',
 					httpOnly: true,
-					secure: process.env.NODE_ENV === 'production',
+					secure: !dev,
 					sameSite: 'lax',
 					maxAge: 15552000 // 6 months, same as userId
 				});
@@ -465,7 +466,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			cookies.set('isLoggedIn', 'true', {
 				path: '/',
 				httpOnly: false, // Make it accessible to client-side JS
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 15552000 // 6 months
 			});
@@ -482,7 +483,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			cookies.set('profileComplete', isProfileComplete ? 'true' : 'false', {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 3600 // 1 hour
 			});
@@ -512,7 +513,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				cookies.set('city', stateData.city, {
 					path: '/',
 					httpOnly: true,
-					secure: process.env.NODE_ENV === 'production',
+					secure: !dev,
 					sameSite: 'lax',
 					maxAge: 3600 // 1 hour
 				});
@@ -523,7 +524,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				cookies.set('date', stateData.formattedDate, {
 					path: '/',
 					httpOnly: true,
-					secure: process.env.NODE_ENV === 'production',
+					secure: !dev,
 					sameSite: 'lax',
 					maxAge: 3600 // 1 hour
 				});
@@ -533,7 +534,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			cookieManager.set(cookies, 'usersId', userId, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'lax',
 				maxAge: 15552000 // 6 months
 			});

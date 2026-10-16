@@ -1,16 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { ChevronDown, X, ChevronRight } from 'lucide-svelte';
 
-	export let selectedGenres: string[] = [];
-	let genreData: GenreData = {};
-	let isOpen = false;
-	let searchTerm = '';
-	let expandedMainGenres: Set<string> = new Set();
-	let expandedSubGenres: Set<string> = new Set();
+	interface Props {
+		selectedGenres?: string[];
+	}
+
+	let { selectedGenres = $bindable([]) }: Props = $props();
+	let genreData: GenreData = $state({});
+	let isOpen = $state(false);
+	let searchTerm = $state('');
+	const expandedMainGenres = new SvelteSet<string>();
+	const expandedSubGenres = new SvelteSet<string>();
 
 	// Flatten genres for search functionality
-	let flatGenreList: string[] = [];
+	let flatGenreList: string[] = $state([]);
 
 	interface SubSubGenre {
 		name: string;
@@ -89,7 +94,6 @@
 			} else {
 				expandedMainGenres.add(mainGenre);
 			}
-			expandedMainGenres = expandedMainGenres;
 		}
 	}
 
@@ -106,26 +110,28 @@
 			} else {
 				expandedSubGenres.add(genreName);
 			}
-			expandedSubGenres = expandedSubGenres;
 		}
 	}
 
-	$: filteredGenres = searchTerm
-		? flatGenreList.filter(
-				(genre) =>
-					genre.toLowerCase().includes(searchTerm.toLowerCase()) && !selectedGenres.includes(genre)
-		  )
-		: [];
+	let filteredGenres = $derived(
+		searchTerm
+			? flatGenreList.filter(
+					(genre) =>
+						genre.toLowerCase().includes(searchTerm.toLowerCase()) &&
+						!selectedGenres.includes(genre)
+				)
+			: []
+	);
 </script>
 
 <div class="relative">
 	<div class="w-full">
 		<!-- Selected genres tags -->
 		<div class="min-h-[42px] w-full border rounded-md p-2 flex flex-wrap gap-2 bg-white">
-			{#each selectedGenres as genre}
+			{#each selectedGenres as genre (genre)}
 				<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center gap-1">
 					{genre}
-					<button type="button" class="hover:text-blue-600" on:click={() => removeGenre(genre)}>
+					<button type="button" class="hover:text-blue-600" onclick={() => removeGenre(genre)}>
 						<X size={16} />
 					</button>
 				</span>
@@ -133,7 +139,7 @@
 			<button
 				type="button"
 				class="flex items-center gap-1 text-gray-600 hover:text-gray-800"
-				on:click={() => (isOpen = !isOpen)}
+				onclick={() => (isOpen = !isOpen)}
 			>
 				{isOpen ? 'Close menu' : 'Select genres'}
 				<span class:rotate-180={isOpen} class="transition-transform duration-200">
@@ -157,11 +163,11 @@
 				<!-- Search results -->
 				{#if searchTerm}
 					<div class="max-h-60 overflow-y-auto">
-						{#each filteredGenres as genre}
+						{#each filteredGenres as genre, i (i)}
 							<button
 								type="button"
 								class="w-full text-left px-4 py-2 hover:bg-gray-100"
-								on:click={() => {
+								onclick={() => {
 									toggleGenre(genre);
 									searchTerm = '';
 								}}
@@ -173,12 +179,12 @@
 				{:else}
 					<!-- Hierarchical genre list -->
 					<div class="max-h-60 overflow-y-auto">
-						{#each Object.entries(genreData) as [mainGenre, data]}
+						{#each Object.entries(genreData) as [mainGenre, data] (mainGenre)}
 							<div class="border-b">
 								<button
 									type="button"
 									class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between font-semibold"
-									on:click={() => toggleMainGenre(mainGenre, data.subgenres.length > 0)}
+									onclick={() => toggleMainGenre(mainGenre, data.subgenres.length > 0)}
 								>
 									<span>{mainGenre}</span>
 									{#if data.subgenres.length > 0}
@@ -193,12 +199,12 @@
 
 								{#if expandedMainGenres.has(mainGenre) && data.subgenres}
 									<div class="pl-4">
-										{#each data.subgenres as subgenre}
+										{#each data.subgenres as subgenre (typeof subgenre === 'string' ? subgenre : subgenre.name)}
 											{#if typeof subgenre === 'string'}
 												<button
 													type="button"
 													class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between font-semibold"
-													on:click={() => toggleGenre(subgenre)}
+													onclick={() => toggleGenre(subgenre)}
 												>
 													<span>{subgenre}</span>
 												</button>
@@ -207,7 +213,7 @@
 													<button
 														type="button"
 														class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between font-semibold"
-														on:click={() => toggleSubGenre(subgenre)}
+														onclick={() => toggleSubGenre(subgenre)}
 													>
 														<span>{subgenre.name}</span>
 														{#if (subgenre.subsubgenres?.length ?? 0) > 0}
@@ -222,11 +228,11 @@
 
 													{#if expandedSubGenres.has(subgenre.name) && subgenre.subsubgenres}
 														<div class="pl-4">
-															{#each subgenre.subsubgenres as subsubgenre}
+															{#each subgenre.subsubgenres as subsubgenre (typeof subsubgenre === 'string' ? subsubgenre : subsubgenre.name)}
 																<button
 																	type="button"
 																	class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between font-semibold"
-																	on:click={() =>
+																	onclick={() =>
 																		toggleGenre(
 																			typeof subsubgenre === 'string'
 																				? subsubgenre

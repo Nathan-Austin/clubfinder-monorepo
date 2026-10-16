@@ -3,23 +3,26 @@
 	import '../app.css';
 	import { goto } from '$app/navigation';
 
-	import { page } from '$app/stores';
-	let isLoggedIn = false;
-	let isPartnerLoggedIn = false;
-	let isMenuOpen = false;
-	let currentSubmenu: string | null = null;
-	let isMobile = false;
-	let consentGiven = false;
-	let cookiePreferences = {
+	import { page } from '$app/state';
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
+
+	let { children }: Props = $props();
+	let isLoggedIn = $derived(page.data.isLoggedIn);
+	let isPartnerLoggedIn = $derived(page.data.isPartnerLoggedIn);
+	let isMenuOpen = $state(false);
+	let currentSubmenu: string | null = $state(null);
+	let isMobile = $state(false);
+	let consentGiven = $state(false);
+	let cookiePreferences = $state({
 		necessary: true,
 		analytics: false,
 		marketing: false,
 		performance: false
-	};
+	});
 	type CookiePreferences = typeof cookiePreferences;
-	let showModal = false;
-	$: isLoggedIn = $page.data.isLoggedIn;
-	$: isPartnerLoggedIn = $page.data.isPartnerLoggedIn;
+	let showModal = $state(false);
 	export function loadPreferences() {
 		const storedPreferences = localStorage.getItem('cookiePreferences');
 		if (storedPreferences) {
@@ -206,9 +209,9 @@
 			button to consent. Use the "Learn more and customize" button to customize or reject all
 			cookies.
 		</p>
-		<button on:click={acceptConsent}>Accept All</button>
+		<button onclick={acceptConsent}>Accept All</button>
 
-		<button on:click={openCustomModal}>Learn more and customize</button>
+		<button onclick={openCustomModal}>Learn more and customize</button>
 	</div>
 {/if}
 
@@ -228,28 +231,28 @@
 				<input type="checkbox" bind:checked={cookiePreferences.performance} />
 				Allow Performance Cookies
 			</label>
-			<button class="save-button" on:click={savePreferences}>Save Preferences</button>
-			<button class="decline-button" on:click={declineConsent}>Decline All</button>
-			<button class="cancel-button" on:click={() => (showModal = false)}>Cancel</button>
+			<button class="save-button" onclick={savePreferences}>Save Preferences</button>
+			<button class="decline-button" onclick={declineConsent}>Decline All</button>
+			<button class="cancel-button" onclick={() => (showModal = false)}>Cancel</button>
 		</div>
 	</div>
 {/if}
 
 <header class="header-bar">
 	<div class="logo">
-		<a href="/" on:click={handleLinkClick}>
+		<a href="/" onclick={handleLinkClick}>
 			<img src="/images/clubfindr.png" alt="ClubFindr Logo" />
 		</a>
 	</div>
 
 	<!-- Only show hamburger in mobile view -->
 	{#if isMobile}
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<div class="hamburger" on:click={toggleMenu}>
-			<div />
-			<div />
-			<div />
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="hamburger" onclick={toggleMenu}>
+			<div></div>
+			<div></div>
+			<div></div>
 		</div>
 	{/if}
 
@@ -261,11 +264,11 @@
 					<div class="nav-link dropdown">
 						<span>My Profile</span>
 						<div class="dropdown-content">
-							<a href="/users-home" on:click={handleLinkClick}>View Profile</a>
-							<!-- svelte-ignore a11y-invalid-attribute -->
+							<a href="/users-home" onclick={handleLinkClick}>View Profile</a>
+							<!-- svelte-ignore a11y_invalid_attribute -->
 							<a
 								href="#"
-								on:click={() => {
+								onclick={() => {
 									handleLinkClick();
 									logout();
 								}}>Log Out</a
@@ -276,10 +279,10 @@
 					<div class="nav-link dropdown">
 						<span>Partner Menu</span>
 						<div class="dropdown-content">
-							<!-- svelte-ignore a11y-invalid-attribute -->
+							<!-- svelte-ignore a11y_invalid_attribute -->
 							<a
 								href="#"
-								on:click={() => {
+								onclick={() => {
 									handleLinkClick();
 									logout();
 								}}>Log Out</a
@@ -290,7 +293,7 @@
 					<div class="nav-link dropdown">
 						<span>Login</span>
 						<div class="dropdown-content">
-							<a href="/login/users" on:click={handleLinkClick}>User Login</a>
+							<a href="/login/users" onclick={handleLinkClick}>User Login</a>
 						</div>
 					</div>
 				{/if}
@@ -299,9 +302,9 @@
 					<div class="nav-link dropdown">
 						<span>Partners</span>
 						<div class="dropdown-content">
-							<a href="/login/bars" on:click={handleLinkClick}>Partner Login</a>
-							<a href="/register" on:click={handleLinkClick}>Register Bar</a>
-							<a href="/register/promoter" on:click={handleLinkClick}>Register as Promoter</a>
+							<a href="/login/bars" onclick={handleLinkClick}>Partner Login</a>
+							<a href="/register" onclick={handleLinkClick}>Register Bar</a>
+							<a href="/register/promoter" onclick={handleLinkClick}>Register as Promoter</a>
 						</div>
 					</div>
 				{/if}
@@ -309,10 +312,10 @@
 				<div class="nav-link dropdown">
 					<span>About</span>
 					<div class="dropdown-content">
-						<a href="/about/blog" on:click={handleLinkClick}>Socials</a>
-						<a href="/about/terms" on:click={handleLinkClick}>Terms & Policies</a>
-						<a href="/about/us" on:click={handleLinkClick}>Who we are</a>
-						<a href="/about/contact" on:click={handleLinkClick}>Contact</a>
+						<a href="/about/blog" onclick={handleLinkClick}>Socials</a>
+						<a href="/about/terms" onclick={handleLinkClick}>Terms & Policies</a>
+						<a href="/about/us" onclick={handleLinkClick}>Who we are</a>
+						<a href="/about/contact" onclick={handleLinkClick}>Contact</a>
 					</div>
 				</div>
 			</div>
@@ -325,8 +328,8 @@
 				{#if isLoggedIn}
 					<div
 						class="nav-item"
-						on:click={() => openSubmenu('profile')}
-						on:keydown={(e) => e.key === 'Enter' && openSubmenu('profile')}
+						onclick={() => openSubmenu('profile')}
+						onkeydown={(e) => e.key === 'Enter' && openSubmenu('profile')}
 						role="button"
 						tabindex="0"
 					>
@@ -336,8 +339,8 @@
 				{:else if isPartnerLoggedIn}
 					<div
 						class="nav-item"
-						on:click={() => openSubmenu('partner')}
-						on:keydown={(e) => e.key === 'Enter' && openSubmenu('partner')}
+						onclick={() => openSubmenu('partner')}
+						onkeydown={(e) => e.key === 'Enter' && openSubmenu('partner')}
 						role="button"
 						tabindex="0"
 					>
@@ -347,8 +350,8 @@
 				{:else}
 					<div
 						class="nav-item"
-						on:click={() => openSubmenu('login')}
-						on:keydown={(e) => e.key === 'Enter' && openSubmenu('login')}
+						onclick={() => openSubmenu('login')}
+						onkeydown={(e) => e.key === 'Enter' && openSubmenu('login')}
 						role="button"
 						tabindex="0"
 					>
@@ -360,8 +363,8 @@
 				{#if !isPartnerLoggedIn}
 					<div
 						class="nav-item"
-						on:click={() => openSubmenu('partners')}
-						on:keydown={(e) => e.key === 'Enter' && openSubmenu('partners')}
+						onclick={() => openSubmenu('partners')}
+						onkeydown={(e) => e.key === 'Enter' && openSubmenu('partners')}
 						role="button"
 						tabindex="0"
 					>
@@ -372,8 +375,8 @@
 
 				<div
 					class="nav-item"
-					on:click={() => openSubmenu('about')}
-					on:keydown={(e) => e.key === 'Enter' && openSubmenu('about')}
+					onclick={() => openSubmenu('about')}
+					onkeydown={(e) => e.key === 'Enter' && openSubmenu('about')}
 					role="button"
 					tabindex="0"
 				>
@@ -386,18 +389,18 @@
 			{#if isLoggedIn}
 				<div class="menu-level submenu" class:active={currentSubmenu === 'profile'}>
 					<div class="submenu-header">
-						<button class="back-button" on:click={goBack}>
+						<button class="back-button" onclick={goBack}>
 							<span class="arrow">←</span>
 							<span>Back</span>
 						</button>
 						<h2>My Profile</h2>
 					</div>
-					<a href="/users-home" class="nav-item" on:click={handleLinkClick}>View Profile</a>
-					<!-- svelte-ignore a11y-invalid-attribute -->
+					<a href="/users-home" class="nav-item" onclick={handleLinkClick}>View Profile</a>
+					<!-- svelte-ignore a11y_invalid_attribute -->
 					<a
 						href="#"
 						class="nav-item"
-						on:click={() => {
+						onclick={() => {
 							handleLinkClick();
 							logout();
 						}}>Log Out</a
@@ -406,17 +409,17 @@
 			{:else if isPartnerLoggedIn}
 				<div class="menu-level submenu" class:active={currentSubmenu === 'partner'}>
 					<div class="submenu-header">
-						<button class="back-button" on:click={goBack}>
+						<button class="back-button" onclick={goBack}>
 							<span class="arrow">←</span>
 							<span>Back</span>
 						</button>
 						<h2>Partner Menu</h2>
 					</div>
-					<!-- svelte-ignore a11y-invalid-attribute -->
+					<!-- svelte-ignore a11y_invalid_attribute -->
 					<a
 						href="#"
 						class="nav-item"
-						on:click={() => {
+						onclick={() => {
 							handleLinkClick();
 							logout();
 						}}>Log Out</a
@@ -425,13 +428,13 @@
 			{:else}
 				<div class="menu-level submenu" class:active={currentSubmenu === 'login'}>
 					<div class="submenu-header">
-						<button class="back-button" on:click={goBack}>
+						<button class="back-button" onclick={goBack}>
 							<span class="arrow">←</span>
 							<span>Back</span>
 						</button>
 						<h2>Login</h2>
 					</div>
-					<a href="/login/users" class="nav-item" on:click={handleLinkClick}>User Login</a>
+					<a href="/login/users" class="nav-item" onclick={handleLinkClick}>User Login</a>
 				</div>
 			{/if}
 
@@ -439,15 +442,15 @@
 			{#if !isPartnerLoggedIn}
 				<div class="menu-level submenu" class:active={currentSubmenu === 'partners'}>
 					<div class="submenu-header">
-						<button class="back-button" on:click={goBack}>
+						<button class="back-button" onclick={goBack}>
 							<span class="arrow">←</span>
 							<span>Back</span>
 						</button>
 						<h2>Partners</h2>
 					</div>
-					<a href="/login/bars" class="nav-item" on:click={handleLinkClick}>Partner Login</a>
-					<a href="/register" class="nav-item" on:click={handleLinkClick}>Register Bar</a>
-					<a href="/register/promoter" class="nav-item" on:click={handleLinkClick}
+					<a href="/login/bars" class="nav-item" onclick={handleLinkClick}>Partner Login</a>
+					<a href="/register" class="nav-item" onclick={handleLinkClick}>Register Bar</a>
+					<a href="/register/promoter" class="nav-item" onclick={handleLinkClick}
 						>Register as Promoter</a
 					>
 				</div>
@@ -456,16 +459,16 @@
 			<!-- About Submenu -->
 			<div class="menu-level submenu" class:active={currentSubmenu === 'about'}>
 				<div class="submenu-header">
-					<button class="back-button" on:click={goBack}>
+					<button class="back-button" onclick={goBack}>
 						<span class="arrow">←</span>
 						<span>Back</span>
 					</button>
 					<h2>About</h2>
 				</div>
-				<a href="/about/blog" class="nav-item" on:click={handleLinkClick}>Socials</a>
-				<a href="/about/terms" class="nav-item" on:click={handleLinkClick}>Terms & Policies</a>
-				<a href="/about/us" class="nav-item" on:click={handleLinkClick}>Who we are</a>
-				<a href="/about/contact" class="nav-item" on:click={handleLinkClick}>Contact</a>
+				<a href="/about/blog" class="nav-item" onclick={handleLinkClick}>Socials</a>
+				<a href="/about/terms" class="nav-item" onclick={handleLinkClick}>Terms & Policies</a>
+				<a href="/about/us" class="nav-item" onclick={handleLinkClick}>Who we are</a>
+				<a href="/about/contact" class="nav-item" onclick={handleLinkClick}>Contact</a>
 			</div>
 		{/if}
 	</nav>
@@ -473,23 +476,23 @@
 
 <main class="content-container">
 	<div
-		class="text-light font-sen p-4 pt-8 text-center {$page.url.pathname === '/'
+		class="text-light font-sen p-4 pt-8 text-center {page.url.pathname === '/'
 			? 'w-full'
 			: 'md:container md:mx-auto md:p-16'}"
 	>
-		<slot />
+		{@render children?.()}
 	</div>
 </main>
 
 <footer class="footer">
 	<div class="footer-content">
 		<div class="footer-links">
-			<a href="/policies/privacy-policy" class="footer-link" on:click={handleLinkClick}>Privacy</a>
-			<a href="/policies/terms-and-conditions" class="footer-link" on:click={handleLinkClick}
+			<a href="/policies/privacy-policy" class="footer-link" onclick={handleLinkClick}>Privacy</a>
+			<a href="/policies/terms-and-conditions" class="footer-link" onclick={handleLinkClick}
 				>Terms</a
 			>
-			<a href="/policies/cookie-policy" class="footer-link" on:click={handleLinkClick}>Cookies</a>
-			<a href="/about/contact" class="footer-link" on:click={handleLinkClick}>Contact</a>
+			<a href="/policies/cookie-policy" class="footer-link" onclick={handleLinkClick}>Cookies</a>
+			<a href="/about/contact" class="footer-link" onclick={handleLinkClick}>Contact</a>
 		</div>
 		<p class="copyright">&copy; {new Date().getFullYear()} Clubfindr. All rights reserved.</p>
 	</div>

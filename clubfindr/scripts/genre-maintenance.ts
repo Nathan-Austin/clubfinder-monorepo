@@ -66,13 +66,9 @@ const processMissingGenres = async () => {
 	const tempCsvPath = path.resolve(APP_ROOT, 'data/temp_missing_genres.csv');
 	fs.writeFileSync(tempCsvPath, 'genre\n' + Array.from(missingGenres).join('\n'));
 
-	// Temporarily swap the full genre list path to process only missing genres
-	const originalFullGenreListPath = process.env.FULL_GENRE_LIST_PATH;
-	process.env.FULL_GENRE_LIST_PATH = tempCsvPath;
-
 	try {
-		// Process the missing genres
-		const result = await processGenres();
+		// Process only the missing genres
+		const result = await processGenres({ appRoot: APP_ROOT, genreListPath: tempCsvPath });
 		console.log(`Processed ${result.processed} missing genres`);
 
 		if (result.unmatched > 0) {
@@ -83,9 +79,6 @@ const processMissingGenres = async () => {
 		// Clear the missing genres file after processing
 		fs.writeFileSync(MISSING_GENRES_PATH, '');
 	} finally {
-		// Restore the original path
-		process.env.FULL_GENRE_LIST_PATH = originalFullGenreListPath;
-
 		// Clean up temp file
 		if (fs.existsSync(tempCsvPath)) {
 			fs.unlinkSync(tempCsvPath);
@@ -175,7 +168,7 @@ const main = async () => {
 
 		// Then process the full genre list
 		console.log('\nProcessing full genre list...');
-		const result = await processGenres();
+		const result = await processGenres({ appRoot: APP_ROOT });
 		console.log(`Genre processing complete:
 - Processed: ${result.processed}
 - Unmatched: ${result.unmatched}

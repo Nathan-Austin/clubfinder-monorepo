@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
+import { dev } from '$app/environment';
 
 export const GET: RequestHandler = async ({ cookies, locals, url }) => {
 	try {
@@ -35,7 +36,7 @@ export const GET: RequestHandler = async ({ cookies, locals, url }) => {
 				path: '/',
 				domain: url.hostname,
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !dev,
 				sameSite: 'strict'
 			});
 		});

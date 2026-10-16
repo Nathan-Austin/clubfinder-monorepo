@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let email = '';
-	let confirmationCode = '';
-	let isCodeSent = false;
-	let isVerified = false;
-	let errorMessage = '';
-	let isLoading = false;
+	let email = $state('');
+	let confirmationCode = $state('');
+	let isCodeSent = $state(false);
+	let isVerified = $state(false);
+	let errorMessage = $state('');
+	let isLoading = $state(false);
 
 	// Load state from localStorage on component mount
 	onMount(() => {
@@ -115,7 +115,7 @@
 
 <div class="delete-account-container">
 	<h2 class="delete-data-title">Delete Your Data from Clubfindr</h2>
-	<div class="divider" />
+	<div class="divider"></div>
 
 	<div class="info-section">
 		<p>We're sad to see you go. Please enter your email address below.</p>
@@ -137,7 +137,13 @@
 	{#if !isVerified}
 		<div class="form-container">
 			{#if !isCodeSent}
-				<form on:submit|preventDefault={sendConfirmationCode} class="email-form">
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						sendConfirmationCode();
+					}}
+					class="email-form"
+				>
 					<div class="form-group">
 						<label for="email">Confirm your email:</label>
 						<input
@@ -162,7 +168,13 @@
 					</button>
 				</form>
 			{:else}
-				<form on:submit|preventDefault={verifyAndDelete} class="code-form">
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						verifyAndDelete();
+					}}
+					class="code-form"
+				>
 					<div class="form-group">
 						<label for="confirmation-code">Enter Confirmation Code:</label>
 						<input
@@ -182,14 +194,14 @@
 						>
 							{isLoading ? 'Verifying...' : 'Verify and Delete'}
 						</button>
-						<button type="button" on:click={resetForm} class="reset-button" disabled={false}>
+						<button type="button" onclick={resetForm} class="reset-button" disabled={false}>
 							Start Over
 						</button>
 					</div>
 					<p class="email-info">Confirmation code was sent to: <strong>{email}</strong></p>
 					<p class="resend-info">
 						Didn't receive the code? <button
-							on:click={sendConfirmationCode}
+							onclick={sendConfirmationCode}
 							class="resend-button"
 							disabled={!!isLoading}
 						>

@@ -3,42 +3,43 @@
 <!-- It includes the registration form, reCAPTCHA verification, and integration with the Spotify service. -->
 
 <script lang="ts">
+	import { PUBLIC_MAPS_API_KEY, PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { validatePassword } from '$lib/passwordUtils';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import type { CitiesData, City } from '$lib/types/city';
 
-	const siteKey = import.meta.env.VITE_reCAPTCHA_SITE_KEY;
-	let isVerified = false;
-	let cityError = '';
-	let citiesData: CitiesData = { cities: [] };
-	let selectedCityName = '';
-	let selectedCityDetails: City | null = null;
-	let businessName = '';
-	let contactPerson = '';
-	let email = '';
-	let phone = '';
-	let address = '';
-	let postcode = '';
-	let website = '';
-	let musicService = '';
-	let agreeToTerms = false;
-	let agreeToPrivacyPolicy = false;
-	let password = '';
-	let confirmPassword = '';
-	let passwordErrors: string[] = [];
-	let predictions: string[] = [];
+	const siteKey = PUBLIC_RECAPTCHA_SITE_KEY;
+	let isVerified = $state(false);
+	let cityError = $state('');
+	let citiesData: CitiesData = $state({ cities: [] });
+	let selectedCityName = $state('');
+	let selectedCityDetails: City | null = $state(null);
+	let businessName = $state('');
+	let contactPerson = $state('');
+	let email = $state('');
+	let phone = $state('');
+	let address = $state('');
+	let postcode = $state('');
+	let website = $state('');
+	let musicService = $state('');
+	let agreeToTerms = $state(false);
+	let agreeToPrivacyPolicy = $state(false);
+	let password = $state('');
+	let confirmPassword = $state('');
+	let passwordErrors: string[] = $state([]);
+	let predictions: string[] = $state([]);
 	let appleClientId = '';
 	let deezerAppId = '';
-	let isSubmitting = false;
-	let phoneError = '';
-	let emailError = '';
-	let businessNameError = '';
-	let musicServiceEmail = '';
+	let isSubmitting = $state(false);
+	let phoneError = $state('');
+	let emailError = $state('');
+	let businessNameError = $state('');
+	let musicServiceEmail = $state('');
 
-	let smokingAllowed = false;
-	let barTypes: string[] = [];
+	let smokingAllowed = $state(false);
+	let barTypes: string[] = $state([]);
 
 	const BAR_TYPES = [
 		{ value: 'cocktail', label: 'Cocktail Bar' },
@@ -54,7 +55,7 @@
 	];
 
 	const clientId = PUBLIC_SPOTIFY_CLIENT_ID;
-	const mapsApiKey = import.meta.env.VITE_MAPS_API_KEY;
+	const mapsApiKey = PUBLIC_MAPS_API_KEY;
 
 	// Function to validate email
 	function validateEmail(email: string): boolean {
@@ -162,9 +163,8 @@
 				sessionToken: token
 			};
 
-			const response: google.maps.places.AutocompleteResponse = await service.getPlacePredictions(
-				request
-			);
+			const response: google.maps.places.AutocompleteResponse =
+				await service.getPlacePredictions(request);
 			if (response.predictions) {
 				predictions = response.predictions.map((prediction) => prediction.description);
 			}
@@ -362,15 +362,15 @@
 			<div class="recaptcha-container">
 				<h2>Please complete the reCAPTCHA</h2>
 				<!-- reCAPTCHA widget -->
-				<div class="g-recaptcha" data-sitekey={siteKey} />
-				<button on:click={submitForm}>Close</button>
+				<div class="g-recaptcha" data-sitekey={siteKey}></div>
+				<button onclick={submitForm}>Close</button>
 			</div>
 		</div>
 	{/if}
 
 	<h1>Bar Registration & Music Integration</h1>
 
-	<form on:submit={register} class="registration-form">
+	<form onsubmit={register} class="registration-form">
 		<div class="form-group">
 			<label for="businessName">
 				Business Name:
@@ -378,7 +378,7 @@
 					type="text"
 					id="businessName"
 					bind:value={businessName}
-					on:input={() => {
+					oninput={() => {
 						validateBusinessName(businessName);
 						fetchPredictions();
 					}}
@@ -391,9 +391,9 @@
 			</label>
 			{#if predictions.length > 0}
 				<ul class="predictions-list">
-					{#each predictions as prediction}
+					{#each predictions as prediction (prediction)}
 						<li>
-							<button type="button" on:click={() => selectPlace(prediction)}>
+							<button type="button" onclick={() => selectPlace(prediction)}>
 								{prediction}
 							</button>
 						</li>
@@ -416,7 +416,7 @@
 					type="email"
 					id="email"
 					bind:value={email}
-					on:input={() => validateEmail(email)}
+					oninput={() => validateEmail(email)}
 					class:error={emailError}
 					required
 				/>
@@ -433,7 +433,7 @@
 					type="tel"
 					id="phone"
 					bind:value={phone}
-					on:input={() => validatePhone(phone)}
+					oninput={() => validatePhone(phone)}
 					class:error={phoneError}
 					required
 				/>
@@ -462,7 +462,7 @@
 				<select
 					id="citySelect"
 					bind:value={selectedCityName}
-					on:change={() => {
+					onchange={() => {
 						selectedCityDetails = getCityDetails(selectedCityName);
 						validateCity(selectedCityName);
 					}}
@@ -471,7 +471,7 @@
 				>
 					<option value="">Select a city</option>
 					{#if citiesData.cities && citiesData.cities.length > 0}
-						{#each citiesData.cities as city}
+						{#each citiesData.cities as city (city.name)}
 							<option value={city.name}>{city.name}</option>
 						{/each}
 					{/if}
@@ -498,7 +498,7 @@
 		<div class="form-group">
 			<label for="barTypes">Bar Type (Select up to 3):</label>
 			<div class="bar-types-grid">
-				{#each BAR_TYPES as type}
+				{#each BAR_TYPES as type (type.value)}
 					<label class="bar-type-chip {barTypes.includes(type.value) ? 'selected' : ''}">
 						<input
 							type="checkbox"
@@ -519,7 +519,7 @@
 					type="password"
 					id="password"
 					bind:value={password}
-					on:input={validatePasswords}
+					oninput={validatePasswords}
 					class:error={passwordErrors.length > 0}
 					required
 				/>
@@ -533,7 +533,7 @@
 					type="password"
 					id="confirmPassword"
 					bind:value={confirmPassword}
-					on:input={validatePasswords}
+					oninput={validatePasswords}
 					class:error={passwordErrors.length > 0}
 					required
 				/>
@@ -542,7 +542,7 @@
 				<div class="password-requirements">
 					<p>Password Requirements:</p>
 					<ul>
-						{#each passwordErrors as error}
+						{#each passwordErrors as error, i (i)}
 							<li class="error-message">{error}</li>
 						{/each}
 					</ul>
@@ -570,7 +570,7 @@
 					type="email"
 					id="musicServiceEmail"
 					bind:value={musicServiceEmail}
-					on:input={() => validateEmail(musicServiceEmail)}
+					oninput={() => validateEmail(musicServiceEmail)}
 					class:error={emailError}
 					required
 				/>

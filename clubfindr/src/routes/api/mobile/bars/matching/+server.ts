@@ -494,13 +494,11 @@ export const POST: RequestHandler = async ({ request }) => {
 				const tenMinutesInMs = 10 * 60 * 1000;
 				if (trackAge < tenMinutesInMs) {
 					// Try to extract artist from the track name
-					let artist = '';
 					const trackParts = bar.current_track.split(' - ');
 					if (trackParts.length > 1) {
-						artist = trackParts[0];
 						currentTrack = {
 							name: trackParts[1],
-							artist: artist
+							artist: trackParts[0]
 						};
 					} else {
 						currentTrack = {

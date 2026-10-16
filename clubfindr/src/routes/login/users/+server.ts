@@ -5,6 +5,7 @@ import { normalizeCityName } from '$lib/spotifyUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { addUserToSpotifyApp } from '$lib/spotifyService';
 import { cookieManager } from '$lib/cookieManager';
+import { PUBLIC_GOOGLE_OAUTH_CLIENT_ID } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('========================');
@@ -185,7 +186,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			}
 
 			const userData = await googleResponse.json();
-			if (userData.aud !== import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID) {
+			if (userData.aud !== PUBLIC_GOOGLE_OAUTH_CLIENT_ID) {
 				return new Response(
 					JSON.stringify({ success: false, message: 'Invalid Google token audience' }),
 					{ status: 401 }

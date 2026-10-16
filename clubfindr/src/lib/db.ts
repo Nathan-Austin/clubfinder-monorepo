@@ -1,15 +1,16 @@
 // $lib/db.ts
 import pkg from 'pg';
+import { PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USERNAME } from '$env/static/private';
 const { Pool } = pkg;
 
 //import { Pool } from 'pg';
 
 export const pool = new Pool({
-	user: import.meta.env.VITE_PG_USERNAME,
-	password: import.meta.env.VITE_PG_PASSWORD,
-	database: import.meta.env.VITE_PG_DB,
-	host: import.meta.env.VITE_PG_HOST,
-	port: Number(import.meta.env.VITE_PG_PORT)
+	user: PG_USERNAME,
+	password: PG_PASSWORD,
+	database: PG_DB,
+	host: PG_HOST,
+	port: Number(PG_PORT)
 });
 
 export async function query(
