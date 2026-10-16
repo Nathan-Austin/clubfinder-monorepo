@@ -2,18 +2,22 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { hashPassword } from '$lib/passwordUtils';
-import { decryptToken } from '$lib/encryptionUtils';
+import { hashToken } from '$lib/encryptionUtils';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { token, newPassword } = await request.json();
 
+	if (typeof token !== 'string' || !token) {
+		return json({ success: false, message: 'Invalid or expired reset token' }, { status: 400 });
+	}
+
 	try {
-		// Find the password reset record
+		// Find the password reset record (stored as a hash of the token)
 		const resetResult = await query(
 			`SELECT user_id, expires_at 
              FROM clubfindr.password_resets 
              WHERE reset_token = $1`,
-			[decryptToken(token)]
+			[hashToken(token)]
 		);
 
 		if (resetResult.rowCount === 0) {
