@@ -20,6 +20,14 @@ const getEncryptionKey = (): Buffer => {
 };
 
 /**
+ * SHA-256 of a random single-use token (hex), for storing tokens that are looked up by
+ * value, such as password reset tokens. encryptToken uses a random IV, so its output
+ * cannot be used in a WHERE clause.
+ */
+export const hashToken = (token: string): string =>
+	crypto.createHash('sha256').update(token).digest('hex');
+
+/**
  * Encrypts a string value using AES-256-GCM
  * Returns a string in format: iv.authTag.encryptedData (all base64 encoded)
  */
