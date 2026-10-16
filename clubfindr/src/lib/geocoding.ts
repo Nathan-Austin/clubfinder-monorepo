@@ -1,5 +1,5 @@
 // $lib/server/geocoding.ts
-import { VITE_MAPS_API_KEY as GOOGLE_MAPS_API_KEY } from '$env/static/private';
+import { PUBLIC_MAPS_API_KEY as GOOGLE_MAPS_API_KEY } from '$env/static/public';
 
 // Cache for geocoding results to avoid redundant API calls
 const geocodeCache: Record<string, { latitude: number; longitude: number }> = {};

@@ -2,16 +2,16 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 
-	let formData = {
+	let formData = $state({
 		name: '',
 		email: '',
 		password: '',
 		newPassword: '',
 		confirmNewPassword: ''
-	};
+	});
 
-	let errorMessage = '';
-	let successMessage = '';
+	let errorMessage = $state('');
+	let successMessage = $state('');
 
 	const validateForm = () => {
 		errorMessage = '';
@@ -45,14 +45,19 @@
 
 <div class="container mx-auto px-4 py-8">
 	<h1
-		class="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
+		class="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
 	>
 		Update Profile
 	</h1>
 
 	<form
 		method="POST"
-		use:enhance={() => {
+		use:enhance={({ cancel }) => {
+			// enhance submits regardless of other submit handlers, so validate here
+			if (!validateForm()) {
+				cancel();
+				return;
+			}
 			return ({ result }) => {
 				if (result.type === 'success') {
 					successMessage = 'Profile updated successfully';
@@ -64,11 +69,6 @@
 				}
 			};
 		}}
-		on:submit|preventDefault={() => {
-			if (!validateForm()) {
-				return false;
-			}
-		}}
 		class="max-w-md mx-auto"
 	>
 		<div class="mb-6">
@@ -78,7 +78,7 @@
 				id="name"
 				name="name"
 				bind:value={formData.name}
-				class="w-full p-2 rounded bg-gray-700 border border-gray-600"
+				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
 				placeholder="Enter your name"
 			/>
 		</div>
@@ -90,7 +90,7 @@
 				id="email"
 				name="email"
 				bind:value={formData.email}
-				class="w-full p-2 rounded bg-gray-700 border border-gray-600"
+				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
 				placeholder="Enter your email"
 			/>
 		</div>
@@ -102,7 +102,7 @@
 				id="current-password"
 				name="password"
 				bind:value={formData.password}
-				class="w-full p-2 rounded bg-gray-700 border border-gray-600"
+				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
 				placeholder="Enter current password"
 				required
 			/>
@@ -115,7 +115,7 @@
 				id="new-password"
 				name="newPassword"
 				bind:value={formData.newPassword}
-				class="w-full p-2 rounded bg-gray-700 border border-gray-600"
+				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
 				placeholder="Enter new password"
 			/>
 		</div>
@@ -127,19 +127,19 @@
 				id="confirm-password"
 				name="confirmNewPassword"
 				bind:value={formData.confirmNewPassword}
-				class="w-full p-2 rounded bg-gray-700 border border-gray-600"
+				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
 				placeholder="Confirm new password"
 			/>
 		</div>
 
 		{#if errorMessage}
-			<div class="mb-4 p-3 bg-red-500 text-white rounded">
+			<div class="mb-4 p-3 bg-red-500 text-white rounded-sm">
 				{errorMessage}
 			</div>
 		{/if}
 
 		{#if successMessage}
-			<div class="mb-4 p-3 bg-green-500 text-white rounded">
+			<div class="mb-4 p-3 bg-green-500 text-white rounded-sm">
 				{successMessage}
 			</div>
 		{/if}
@@ -147,14 +147,14 @@
 		<div class="flex justify-between">
 			<button
 				type="submit"
-				class="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+				class="px-6 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600 transition-colors"
 			>
 				Update Profile
 			</button>
 			<button
 				type="button"
-				class="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-				on:click={() => goto('/users-home')}
+				class="px-6 py-2 bg-gray-500 text-white rounded-sm hover:bg-gray-600 transition-colors"
+				onclick={() => goto('/users-home')}
 			>
 				Cancel
 			</button>

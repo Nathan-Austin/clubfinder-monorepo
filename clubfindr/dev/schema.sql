@@ -451,6 +451,21 @@ CREATE TABLE clubfindr.user_sessions (
 
 
 --
+-- Name: password_resets; Type: TABLE; Schema: clubfindr; Owner: -
+-- (not in the production dump this file was taken from; see migrations/20261012_add_password_resets.sql)
+--
+
+CREATE TABLE clubfindr.password_resets (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    reset_token text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: clubfindr; Owner: -
 --
 
@@ -790,6 +805,23 @@ ALTER TABLE ONLY clubfindr.user_sessions
 
 
 --
+-- Name: password_resets password_resets_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.password_resets
+    ADD CONSTRAINT password_resets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: password_resets password_resets_user_id_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.password_resets
+    ADD CONSTRAINT password_resets_user_id_key UNIQUE (user_id);
+
+
+
+--
 -- Name: users users_apple_music_email_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -965,6 +997,14 @@ CREATE INDEX idx_spotify_task_entity ON clubfindr.spotify_task_log USING btree (
 --
 
 CREATE INDEX idx_spotify_task_status ON clubfindr.spotify_task_log USING btree (status);
+
+
+--
+-- Name: password_resets password_resets_user_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.password_resets
+    ADD CONSTRAINT password_resets_user_id_fkey FOREIGN KEY (user_id) REFERENCES clubfindr.users(id) ON DELETE CASCADE;
 
 
 --

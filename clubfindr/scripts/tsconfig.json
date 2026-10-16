@@ -7,6 +7,7 @@
 		"allowSyntheticDefaultImports": true,
 		"strict": true,
 		"outDir": "../dist-scripts",
+		"rootDir": "..",
 		"sourceMap": true,
 		"allowJs": true,
 		"resolveJsonModule": true

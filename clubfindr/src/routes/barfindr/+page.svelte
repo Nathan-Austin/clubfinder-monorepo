@@ -21,30 +21,34 @@
 		events?: EventDetails[];
 	};
 
-	export let data: {
-		city: string;
-		date: string;
-		address?: string;
-		isLoggedIn: boolean;
-		serverSimilarityResults: SimilarityResult[];
-	};
+	interface Props {
+		data: {
+			city: string;
+			date: string;
+			address?: string;
+			isLoggedIn: boolean;
+			serverSimilarityResults: SimilarityResult[];
+		};
+	}
 
-	const city = data.city || 'Unknown City';
-	const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-	const newdate = data.date;
-	const address = data.address;
-	const isLoggedIn = data.isLoggedIn;
-	let showMoreMap: { [key: string]: boolean } = {}; // Track each bar's expanded state separately
-	let interestedBars: { [key: string]: boolean } = {}; // Track interest state for each bar
+	let { data }: Props = $props();
+
+	const city = $derived(data.city || 'Unknown City');
+	const capitalizedCity = $derived(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
+	const newdate = $derived(data.date);
+	const address = $derived(data.address);
+	const isLoggedIn = $derived(data.isLoggedIn);
+	let showMoreMap: { [key: string]: boolean } = $state({}); // Track each bar's expanded state separately
+	let interestedBars: { [key: string]: boolean } = $state({}); // Track interest state for each bar
 
 	let options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
-	let formattedDate = new Intl.DateTimeFormat('en-US', options).format(
-		newdate ? new Date(newdate) : new Date()
+	let formattedDate = $derived(
+		new Intl.DateTimeFormat('en-US', options).format(newdate ? new Date(newdate) : new Date())
 	);
-	let selectedDate = '';
-	let similarityResults = data.serverSimilarityResults || [];
+	let selectedDate = $state('');
+	let similarityResults = $derived(data.serverSimilarityResults || []);
 
-	let displayCount = 6; // Initial number of results to display
+	let displayCount = $state(6); // Initial number of results to display
 	const incrementAmount = 4; // Number of additional results to show when clicking "Show More"
 
 	// Function to handle showing more results
@@ -58,10 +62,10 @@
 	}
 
 	// Calculate whether there are more results to show
-	$: hasMoreResults = similarityResults.length > displayCount;
+	let hasMoreResults = $derived(similarityResults.length > displayCount);
 
 	// Get the currently visible results
-	$: visibleResults = similarityResults.slice(0, displayCount);
+	let visibleResults = $derived(similarityResults.slice(0, displayCount));
 
 	function generateGoogleMapsLink(destination: string, origin?: string) {
 		if (origin) {
@@ -259,7 +263,7 @@
 
 <div class="header mt-2 md:mt-16">
 	<h1
-		class="text-4xl md:text-8xl font-bold my-2 md:my-4 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
+		class="text-4xl md:text-8xl font-bold my-2 md:my-4 text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
 	>
 		BarFinder {capitalizedCity}
 	</h1>
@@ -268,7 +272,7 @@
 
 	<!-- Flex container to align the button and form horizontally -->
 	<div class="flex flex-col md:flex-row items-center mt-6">
-		<button type="button" class="back-button mr-4" on:click={goBack}>Change the vibe</button>
+		<button type="button" class="back-button mr-4" onclick={goBack}>Change the vibe</button>
 		<form method="GET" data-sveltekit-reload class="flex items-center">
 			<div class="date-input-container">
 				<input type="date" name="date" bind:value={selectedDate} required style="color: black;" />
@@ -288,7 +292,7 @@
 		</div>
 	{:else}
 		<div class="poster-container">
-			{#each visibleResults as result}
+			{#each visibleResults as result (result.bar_id)}
 				<div class="poster">
 					{#if result.similarity > 0}
 						<div class="similarity-badge">
@@ -316,7 +320,7 @@
 									target="_blank"
 									class="location-icon"
 									rel="noopener noreferrer"
-									on:click={() => markAsInterested(result.bar_id)}
+									onclick={() => markAsInterested(result.bar_id)}
 								>
 									<img src="/images/pin-location-icon.jpg" alt="Location Marker" />
 								</a>
@@ -339,7 +343,7 @@
 							<div class="item events-container">
 								<div class="label">Events:</div>
 								<div class="events-list">
-									{#each result.events.slice(0, 3) as event}
+									{#each result.events.slice(0, 3) as event, i (event.id ?? i)}
 										<div class="event-item">
 											<div class="event-header">
 												<span class="event-name">{event.theme_name}</span>
@@ -356,7 +360,7 @@
 											{/if}
 											{#if event.special_genres && event.special_genres.length > 0}
 												<div class="event-genres">
-													{#each event.special_genres.slice(0, 3) as genre}
+													{#each event.special_genres.slice(0, 3) as genre, i (i)}
 														<span class="genre-bubble">{genre}</span>
 													{/each}
 													{#if event.special_genres.length > 3}
@@ -379,15 +383,13 @@
 								<div class="value">
 									{#if interestedBars[result.bar_id]}
 										<span class="interest-icon green-tick">✓</span>
-										<button class="red-cross" on:click={() => resetInterest(result.bar_id)}
-											>✕</button
+										<button class="red-cross" onclick={() => resetInterest(result.bar_id)}>✕</button
 										>
 									{:else}
-										<button class="green-tick" on:click={() => markAsInterested(result.bar_id)}
+										<button class="green-tick" onclick={() => markAsInterested(result.bar_id)}
 											>✓</button
 										>
-										<button class="red-cross" on:click={() => resetInterest(result.bar_id)}
-											>✕</button
+										<button class="red-cross" onclick={() => resetInterest(result.bar_id)}>✕</button
 										>
 									{/if}
 								</div>
@@ -399,7 +401,7 @@
 							<div class="value genres-container">
 								<div class="genres-header">Genres:</div>
 								<div class="genres-columns">
-									{#each getHighlightedGenres(result).slice(0, showMoreMap[result.bar_id] ? getHighlightedGenres(result).length : 5) as genreData}
+									{#each getHighlightedGenres(result).slice(0, showMoreMap[result.bar_id] ? getHighlightedGenres(result).length : 5) as genreData (genreData.genre)}
 										<div class="genre-item {genreData.isMatching ? 'matching' : ''}">
 											{genreData.genre}
 											{#if genreData.isMatching}
@@ -409,7 +411,7 @@
 									{/each}
 								</div>
 								{#if getHighlightedGenres(result).length > 5}
-									<button on:click={() => toggleShowMore(result.bar_id)} class="show-more-button">
+									<button onclick={() => toggleShowMore(result.bar_id)} class="show-more-button">
 										{showMoreMap[result.bar_id] ? 'Show Less' : 'Show More'}
 									</button>
 								{/if}
@@ -421,7 +423,7 @@
 		</div>
 
 		{#if hasMoreResults}
-			<button on:click={handleShowMore} class="show-more-results-button"> Show More Bars </button>
+			<button onclick={handleShowMore} class="show-more-results-button"> Show More Bars </button>
 		{/if}
 
 		<p class="mt-4 update-message">

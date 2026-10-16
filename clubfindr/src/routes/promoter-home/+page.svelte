@@ -6,26 +6,25 @@
 	import type { Performer } from '$lib/$types';
 
 	import { Search } from 'lucide-svelte';
-	export let data: PageData;
 
 	// State management
-	let isAddingEvent = false;
-	let isLoading = false;
-	let error: string | null = null;
-	let performers: Performer[] = [];
-	let expandedPerformerIndex: number | null = null;
-	let selectedVenueId: string = '';
+	let isAddingEvent = $state(false);
+	let isLoading = $state(false);
+	let error: string | null = $state(null);
+	let performers: Performer[] = $state([]);
+	let expandedPerformerIndex: number | null = $state(null);
+	let selectedVenueId: string = $state('');
 
-	let venueSearchTerm = '';
-	let isSearching = false;
-	let showVenueForm = false;
-	let venueSuggestions: Venue[] = [];
-	let newVenue: VenueInput = {
+	let venueSearchTerm = $state('');
+	let isSearching = $state(false);
+	let showVenueForm = $state(false);
+	let venueSuggestions: Venue[] = $state([]);
+	let newVenue: VenueInput = $state({
 		name: '',
 		address: '',
 		city: '',
 		isNew: true
-	};
+	});
 	interface VenueBase {
 		name: string;
 		address: string;
@@ -43,13 +42,9 @@
 		city: string;
 		isNew?: boolean;
 	}
-	// Use the data from the server
-	$: currentEvents = data.currentEvents;
-	$: pastEvents = data.pastEvents;
-	$: venues = data.venues;
 
 	// Form state for new event
-	let newEvent = {
+	let newEvent = $state({
 		event_name: '',
 		club_name: '',
 		club_address: '',
@@ -61,21 +56,18 @@
 		event_image: '',
 		city: '',
 		venue_id: ''
-	};
-	// Watch for venue selection and update form
-	$: selectedVenue = venues.find((v) => v.id === selectedVenueId);
-	$: if (selectedVenue) {
-		newEvent.venue_id = selectedVenue.id;
-		newEvent.club_name = selectedVenue.name;
-		newEvent.club_address = selectedVenue.address;
-		newEvent.city = selectedVenue.city;
-	}
+	});
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let currentRole = 'bar'; // 'bar' or 'promoter'
+	interface Props {
+		data: PageData;
+	}
 
-	let hasDualRole = false;
+	let { data }: Props = $props();
+	const currentRole = 'bar'; // 'bar' or 'promoter'
+
+	let hasDualRole = $state(false);
 
 	onMount(() => {
 		// Check if user has dual role by reading the cookie
@@ -138,13 +130,11 @@
 
 	function handleArtistComplete(index: number, artistData: Performer) {
 		performers[index] = artistData;
-		performers = performers; // trigger reactivity
 		//expandedPerformerIndex = null; // collapse the form after completion
 	}
 
 	function removePerformer(index: number) {
 		performers.splice(index, 1);
-		performers = performers;
 	}
 
 	function togglePerformer(index: number) {
@@ -256,9 +246,6 @@
 	}
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-	$: if (venueSearchTerm) {
-		searchVenues(venueSearchTerm);
-	}
 	function showNewVenueForm() {
 		showVenueForm = true;
 		venueSuggestions = []; // Clear suggestions
@@ -277,6 +264,25 @@
 			isNew: true
 		};
 	}
+	// Use the data from the server
+	let currentEvents = $derived(data.currentEvents);
+	let pastEvents = $derived(data.pastEvents);
+	let venues = $derived(data.venues);
+	// Watch for venue selection and update form
+	let selectedVenue = $derived(venues.find((v) => v.id === selectedVenueId));
+	$effect(() => {
+		if (selectedVenue) {
+			newEvent.venue_id = selectedVenue.id;
+			newEvent.club_name = selectedVenue.name;
+			newEvent.club_address = selectedVenue.address;
+			newEvent.city = selectedVenue.city;
+		}
+	});
+	$effect(() => {
+		if (venueSearchTerm) {
+			searchVenues(venueSearchTerm);
+		}
+	});
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -284,7 +290,7 @@
 		<h1 class="text-4xl font-bold mb-4">Promoter Dashboard</h1>
 		{#if hasDualRole}
 			<div class="role-switcher">
-				<button on:click={switchRole} class="switcher-button">
+				<button onclick={switchRole} class="switcher-button">
 					Switch to {currentRole === 'bar' ? 'Promoter' : 'Bar Manager'} Dashboard
 				</button>
 			</div>
@@ -295,8 +301,8 @@
 			</div>
 			<div>
 				<button
-					class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2"
-					on:click={() => (isAddingEvent = true)}
+					class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-sm flex items-center gap-2"
+					onclick={() => (isAddingEvent = true)}
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="white">
 						<path
@@ -312,19 +318,19 @@
 	</header>
 
 	{#if error}
-		<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+		<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-sm mb-4">
 			{error}
 		</div>
 	{/if}
 
 	{#if isAddingEvent}
-		<div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+		<div class="bg-white shadow-md rounded-sm px-8 pt-6 pb-8 mb-4">
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-bold">Add New Event</h2>
 				<button
 					type="button"
 					class="text-gray-500 hover:text-gray-700"
-					on:click={() => {
+					onclick={() => {
 						isAddingEvent = false;
 						resetForm();
 					}}
@@ -333,7 +339,13 @@
 				</button>
 			</div>
 
-			<form on:submit|preventDefault={handleSubmitEvent} class="space-y-6">
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSubmitEvent();
+				}}
+				class="space-y-6"
+			>
 				<!-- Event Name -->
 				<div>
 					<label class="block text-gray-700 text-sm font-bold mb-2" for="event_name">
@@ -343,13 +355,13 @@
 						id="event_name"
 						type="text"
 						bind:value={newEvent.event_name}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 						required
 					/>
 				</div>
 
 				<div class="space-y-4">
-					<!-- svelte-ignore a11y-label-has-associated-control -->
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-gray-700 text-sm font-bold mb-2"> Venue * </label>
 
 					<!-- Search input -->
@@ -358,12 +370,12 @@
 							type="text"
 							bind:value={venueSearchTerm}
 							placeholder="Search for a venue or enter a new one"
-							class="shadow appearance-none border rounded w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+							class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 						/>
 						{#if isSearching}
 							<div
 								class="absolute right-3 top-2.5 animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"
-							/>
+							></div>
 						{:else}
 							<Search class="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
 						{/if}
@@ -375,16 +387,18 @@
 							class="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-y-auto"
 						>
 							{#if venueSuggestions.length > 0}
-								{#each venueSuggestions as venue}
+								{#each venueSuggestions as venue (venue.id ?? venue.name)}
 									<button
 										type="button"
 										class="w-full text-left px-4 py-2 hover:bg-gray-100"
-										on:click={() => handleVenueSelection(venue)}
+										onclick={() => handleVenueSelection(venue)}
 									>
 										<div class="font-medium">
 											{venue.name}
 											{#if venue.isExisting}
-												<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+												<span
+													class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-sm"
+												>
 													Existing Venue
 												</span>
 											{/if}
@@ -397,7 +411,7 @@
 								<button
 									type="button"
 									class="w-full text-left px-4 py-2 text-blue-600 hover:bg-gray-100"
-									on:click={showNewVenueForm}
+									onclick={showNewVenueForm}
 								>
 									+ Add new venue
 								</button>
@@ -411,32 +425,32 @@
 							<h3 class="font-bold mb-4">Add New Venue</h3>
 							<div class="space-y-4">
 								<div>
-									<!-- svelte-ignore a11y-label-has-associated-control -->
+									<!-- svelte-ignore a11y_label_has_associated_control -->
 									<label class="block text-sm font-medium mb-1">Venue Name *</label>
 									<input
 										type="text"
 										bind:value={newVenue.name}
-										class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+										class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700"
 										required
 									/>
 								</div>
 								<div>
-									<!-- svelte-ignore a11y-label-has-associated-control -->
+									<!-- svelte-ignore a11y_label_has_associated_control -->
 									<label class="block text-sm font-medium mb-1">Address *</label>
 									<input
 										type="text"
 										bind:value={newVenue.address}
-										class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+										class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700"
 										required
 									/>
 								</div>
 								<div>
-									<!-- svelte-ignore a11y-label-has-associated-control -->
+									<!-- svelte-ignore a11y_label_has_associated_control -->
 									<label class="block text-sm font-medium mb-1">City *</label>
 									<input
 										type="text"
 										bind:value={newVenue.city}
-										class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+										class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700"
 										required
 									/>
 								</div>
@@ -444,14 +458,14 @@
 									<button
 										type="button"
 										class="px-4 py-2 text-gray-600 hover:text-gray-800"
-										on:click={resetVenueForm}
+										onclick={resetVenueForm}
 									>
 										Cancel
 									</button>
 									<button
 										type="button"
-										class="px-4 py-2 bg-blue-500 text-black rounded hover:bg-blue-600"
-										on:click={() => handleVenueSelection(newVenue)}
+										class="px-4 py-2 bg-blue-500 text-black rounded-sm hover:bg-blue-600"
+										onclick={() => handleVenueSelection(newVenue)}
 									>
 										Add Venue
 									</button>
@@ -475,22 +489,22 @@
 				<!-- Venue Details (Read-only when venue is selected) -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<!-- svelte-ignore a11y-label-has-associated-control -->
+						<!-- svelte-ignore a11y_label_has_associated_control -->
 						<label class="block text-gray-700 text-sm font-bold mb-2">Venue Address</label>
 						<input
 							type="text"
 							value={newEvent.club_address}
-							class="bg-gray-100 w-full py-2 px-3 rounded"
+							class="bg-gray-100 w-full py-2 px-3 rounded-sm"
 							readonly
 						/>
 					</div>
 					<div>
-						<!-- svelte-ignore a11y-label-has-associated-control -->
+						<!-- svelte-ignore a11y_label_has_associated_control -->
 						<label class="block text-gray-700 text-sm font-bold mb-2">City</label>
 						<input
 							type="text"
 							value={newEvent.city}
-							class="bg-gray-100 w-full py-2 px-3 rounded"
+							class="bg-gray-100 w-full py-2 px-3 rounded-sm"
 							readonly
 						/>
 					</div>
@@ -507,7 +521,7 @@
 							type="date"
 							bind:value={newEvent.event_date}
 							min={new Date().toISOString().split('T')[0]}
-							class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+							class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 							required
 						/>
 					</div>
@@ -521,7 +535,7 @@
 							id="start_time"
 							type="time"
 							bind:value={newEvent.start_time}
-							class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+							class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 							required
 						/>
 					</div>
@@ -535,7 +549,7 @@
 							id="end_time"
 							type="time"
 							bind:value={newEvent.end_time}
-							class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+							class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 							required
 						/>
 					</div>
@@ -549,7 +563,7 @@
 						type="text"
 						bind:value={newEvent.price}
 						placeholder="e.g. £10 / £15 on door"
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 						required
 					/>
 				</div>
@@ -563,13 +577,13 @@
 						id="event_image"
 						type="url"
 						bind:value={newEvent.event_image}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 
 				<!-- Event Genres -->
 				<div>
-					<!-- svelte-ignore a11y-label-has-associated-control -->
+					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-gray-700 text-sm font-bold mb-2">Event Genres *</label>
 					<GenreSelector bind:selectedGenres={newEvent.event_genres} />
 				</div>
@@ -584,8 +598,8 @@
 						<div class="mb-4">
 							<button
 								type="button"
-								class="bg-blue-500 hover:bg-blue-600 text-black px-4 py-2 rounded flex items-center gap-2"
-								on:click={addPerformer}
+								class="bg-blue-500 hover:bg-blue-600 text-black px-4 py-2 rounded-sm flex items-center gap-2"
+								onclick={addPerformer}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -605,7 +619,7 @@
 					{/if}
 
 					<!-- Performers List -->
-					{#each performers as performer, index}
+					{#each performers as performer, index (index)}
 						<div class="border rounded-lg p-4 bg-gray-50">
 							<!-- Performer Header -->
 							<div class="flex justify-between items-center mb-4">
@@ -615,7 +629,7 @@
 								<button
 									type="button"
 									class="text-gray-500 hover:text-gray-700"
-									on:click={() => togglePerformer(index)}
+									onclick={() => togglePerformer(index)}
 								>
 									{#if expandedPerformerIndex === index}
 										<svg
@@ -665,8 +679,8 @@
 							<div class="flex justify-end gap-2 mt-4">
 								<button
 									type="button"
-									class="px-4 py-2 bg-green-500 text-black rounded hover:bg-green-600"
-									on:click={() => {
+									class="px-4 py-2 bg-green-500 text-black rounded-sm hover:bg-green-600"
+									onclick={() => {
 										if (performer.artist_name) {
 											togglePerformer(index);
 										} else {
@@ -678,15 +692,15 @@
 								</button>
 								<button
 									type="button"
-									class="px-4 py-2 bg-blue-500 text-black rounded hover:bg-blue-600"
-									on:click={addPerformer}
+									class="px-4 py-2 bg-blue-500 text-black rounded-sm hover:bg-blue-600"
+									onclick={addPerformer}
 								>
 									Add Another Performer
 								</button>
 								<button
 									type="button"
-									class="px-4 py-2 bg-red-500 text-black rounded hover:bg-red-600"
-									on:click={() => removePerformer(index)}
+									class="px-4 py-2 bg-red-500 text-black rounded-sm hover:bg-red-600"
+									onclick={() => removePerformer(index)}
 								>
 									Remove
 								</button>
@@ -698,8 +712,8 @@
 				<div class="flex items-center justify-end gap-4">
 					<button
 						type="button"
-						class="bg-gray-500 hover:bg-gray-600 text-black px-4 py-2 rounded"
-						on:click={() => {
+						class="bg-gray-500 hover:bg-gray-600 text-black px-4 py-2 rounded-sm"
+						onclick={() => {
 							isAddingEvent = false;
 							resetForm();
 						}}
@@ -709,11 +723,11 @@
 					</button>
 					<button
 						type="submit"
-						class="bg-blue-500 hover:bg-blue-600 text-black px-4 py-2 rounded flex items-center gap-2"
+						class="bg-blue-500 hover:bg-blue-600 text-black px-4 py-2 rounded-sm flex items-center gap-2"
 						disabled={isLoading}
 					>
 						{#if isLoading}
-							<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+							<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
 						{/if}
 						Create Event
 					</button>
@@ -746,8 +760,8 @@
 						</p>
 						<p class="text-gray-600 mb-2">{event.price}</p>
 						<div class="flex flex-wrap gap-2 mb-4">
-							{#each event.event_genres as genre}
-								<span class="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded">
+							{#each event.event_genres as genre, i (i)}
+								<span class="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-sm">
 									{genre}
 								</span>
 							{/each}
@@ -781,8 +795,8 @@
 							{event.start_time} - {event.end_time}
 						</p>
 						<div class="flex flex-wrap gap-2">
-							{#each event.event_genres as genre}
-								<span class="bg-gray-200 text-gray-700 text-sm px-2 py-1 rounded">
+							{#each event.event_genres as genre, i (i)}
+								<span class="bg-gray-200 text-gray-700 text-sm px-2 py-1 rounded-sm">
 									{genre}
 								</span>
 							{/each}

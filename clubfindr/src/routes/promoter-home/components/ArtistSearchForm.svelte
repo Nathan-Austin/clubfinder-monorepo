@@ -8,30 +8,43 @@
 	import type { Performer, PerformerTrack } from '$lib/$types';
 	const { debounce } = pkg;
 
-	export let handleArtistComplete: (index: number, artistData: Performer) => void;
-	export let initialData: Performer | null = null;
-	export let index: number;
-	export let expanded = false;
+	interface Props {
+		handleArtistComplete: (index: number, artistData: Performer) => void;
+		initialData?: Performer | null;
+		index: number;
+		expanded?: boolean;
+	}
 
-	let searchTerm = '';
-	let isSearching = false;
-	let searchResults: Performer[] = [];
-	let searchError = '';
+	let {
+		handleArtistComplete,
+		initialData = null,
+		index,
+		expanded = $bindable(false)
+	}: Props = $props();
 
-	let formData: Performer = initialData || {
-		artist_name: '',
-		email: '',
-		spotify_uri: '',
-		soundcloud_link: '',
-		bandcamp_link: '',
-		facebook_link: '',
-		instagram_link: '',
-		ra_link: '',
-		genres: [],
-		website: '',
-		primary_city: '',
-		top_tracks: []
-	};
+	let searchTerm = $state('');
+	let isSearching = $state(false);
+	let searchResults: Performer[] = $state([]);
+	let searchError = $state('');
+
+	// Intentionally seeded from the initial prop only (as before the runes migration)
+	// svelte-ignore state_referenced_locally
+	let formData: Performer = $state(
+		initialData || {
+			artist_name: '',
+			email: '',
+			spotify_uri: '',
+			soundcloud_link: '',
+			bandcamp_link: '',
+			facebook_link: '',
+			instagram_link: '',
+			ra_link: '',
+			genres: [],
+			website: '',
+			primary_city: '',
+			top_tracks: []
+		}
+	);
 
 	const debouncedSearch = debounce(async (term: string) => {
 		if (!term.trim()) {
@@ -112,7 +125,7 @@
 		handleArtistComplete(index, formData);
 	}
 
-	$: isComplete = formData.artist_name && formData.email;
+	let isComplete = $derived(formData.artist_name && formData.email);
 
 	function handleSearchClick() {
 		debouncedSearch(searchTerm);
@@ -126,7 +139,7 @@
 	}
 </script>
 
-<div class="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+<div class="border border-gray-200 rounded-lg shadow-xs bg-white overflow-hidden">
 	<!-- Header/Search Section -->
 	<div class="p-4 border-b border-gray-200">
 		<div class="flex flex-col gap-4">
@@ -147,12 +160,13 @@
 							type="text"
 							placeholder="Search by artist name or email"
 							bind:value={searchTerm}
-							on:keydown={handleKeyDown}
+							onkeydown={handleKeyDown}
 							class="w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500"
 						/>
 						{#if searchTerm}
 							<button
-								on:click={clearSearch}
+								onclick={clearSearch}
+								aria-label="Clear search"
 								class="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
 							>
 								<svg class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -166,7 +180,7 @@
 						{/if}
 					</div>
 					<button
-						on:click={handleSearchClick}
+						onclick={handleSearchClick}
 						class="px-4 py-2 bg-blue-500 text-black rounded-lg hover:bg-blue-600 flex items-center gap-2 min-w-[100px] justify-center"
 						disabled={isSearching}
 					>
@@ -185,12 +199,12 @@
 
 				{#if searchResults.length > 0}
 					<div
-						class="absolute z-[60] w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto"
+						class="absolute z-60 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto"
 					>
-						{#each searchResults as artist}
+						{#each searchResults as artist (artist.email || artist.artist_name)}
 							<button
-								class="w-full text-left px-4 py-4 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b last:border-b-0 transition-colors"
-								on:click={() => selectArtist(artist)}
+								class="w-full text-left px-4 py-4 hover:bg-blue-50 focus:bg-blue-50 focus:outline-hidden border-b last:border-b-0 transition-colors"
+								onclick={() => selectArtist(artist)}
 							>
 								<div class="flex flex-col gap-2">
 									<div class="flex justify-between items-start">
@@ -241,7 +255,7 @@
 										</div>
 										{#if artist.genres && artist.genres.length > 0}
 											<div class="flex flex-wrap gap-1 max-w-[200px] justify-end">
-												{#each artist.genres.slice(0, 2) as genre}
+												{#each artist.genres.slice(0, 2) as genre, i (i)}
 													<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
 														{genre}
 													</span>
@@ -257,17 +271,17 @@
 									{#if artist.spotify_uri || artist.soundcloud_link || artist.instagram_link}
 										<div class="flex gap-3">
 											{#if artist.spotify_uri}
-												<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded"
+												<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-sm"
 													>Spotify</span
 												>
 											{/if}
 											{#if artist.soundcloud_link}
-												<span class="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded"
+												<span class="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded-sm"
 													>SoundCloud</span
 												>
 											{/if}
 											{#if artist.instagram_link}
-												<span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded"
+												<span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-sm"
 													>Instagram</span
 												>
 											{/if}
@@ -294,7 +308,7 @@
 						id="artist_name_{index}"
 						type="text"
 						bind:value={formData.artist_name}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 						required
 					/>
 				</div>
@@ -306,7 +320,7 @@
 						id="email_{index}"
 						type="email"
 						bind:value={formData.email}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 						required
 					/>
 				</div>
@@ -321,7 +335,7 @@
 						id="spotify_uri_{index}"
 						type="text"
 						bind:value={formData.spotify_uri}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 				<div>
@@ -332,7 +346,7 @@
 						id="soundcloud_{index}"
 						type="url"
 						bind:value={formData.soundcloud_link}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 				<div>
@@ -343,7 +357,7 @@
 						id="bandcamp_{index}"
 						type="url"
 						bind:value={formData.bandcamp_link}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 			</div>
@@ -357,7 +371,7 @@
 						id="facebook_{index}"
 						type="url"
 						bind:value={formData.facebook_link}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 				<div>
@@ -368,7 +382,7 @@
 						id="instagram_{index}"
 						type="url"
 						bind:value={formData.instagram_link}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 				<div>
@@ -379,7 +393,7 @@
 						id="ra_{index}"
 						type="url"
 						bind:value={formData.ra_link}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 			</div>
@@ -393,7 +407,7 @@
 						id="website_{index}"
 						type="url"
 						bind:value={formData.website}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 				<div>
@@ -404,7 +418,7 @@
 						id="primary_city_{index}"
 						type="text"
 						bind:value={formData.primary_city}
-						class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+						class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 					/>
 				</div>
 			</div>

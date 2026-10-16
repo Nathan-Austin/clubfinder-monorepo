@@ -22,11 +22,22 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<head>
-	<meta charset="UTF-8" />
-	<title>Privacy Policy of www.clubfindr.com</title>
+<div class="policy-body">
 	<style>
-		body {
+		/* This used to be a stray <body> element; it picked up the layout's body
+		   rules, which are kept here so the page looks the same. */
+		.policy-body {
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
+			background: linear-gradient(
+					180deg,
+					rgb(var(--rgb-dark-bg)) 0%,
+					rgb(var(--rgb-mid-bg)) 45%,
+					rgb(var(--rgb-bg)) 100%
+				)
+				no-repeat;
+			background-size: cover;
 			font-family: Arial, sans-serif;
 			line-height: 1.6;
 		}
@@ -68,8 +79,6 @@
 			margin: 40px 0;
 		}
 	</style>
-</head>
-<body>
 	<h1>Privacy Policy of www.clubfindr.com</h1>
 	<p>This Application collects some Personal Data from its Users.</p>
 	<p>
@@ -556,4 +565,4 @@
 	<p><strong>Latest update:</strong> Sep 16 2024</p>
 
 	<hr />
-</body>
+</div>

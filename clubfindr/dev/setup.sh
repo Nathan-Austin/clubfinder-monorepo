@@ -230,7 +230,7 @@ else
 	# Keep the generated secrets across runs so existing cookies stay valid
 	old() { [ -f "$ENV_FILE" ] && sed -n "s/^$1=//p" "$ENV_FILE" | head -n 1 || true; }
 	random_secret() { od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
-	CRYPTO_KEY=$(old VITE_CRYPTO_KEY)
+	CRYPTO_KEY=$(old CRYPTO_KEY)
 	[ ${#CRYPTO_KEY} -ge 32 ] || CRYPTO_KEY=$(random_secret)
 	JWT=$(old JWT_SECRET)
 	[ ${#JWT} -ge 32 ] || JWT=$(random_secret)
@@ -242,13 +242,13 @@ else
 		awk -v host="$HOST" -v port="$PORT" -v db="$DB" -v user="$DBUSER" -v pass="$DBPASS" \
 			-v crypto="$CRYPTO_KEY" -v jwt="$JWT" '
 			BEGIN { FS = OFS = "=" }
-			/^VITE_PG_HOST=/     { print $1, host; next }
-			/^VITE_PG_PORT=/     { print $1, port; next }
-			/^VITE_PG_DB=/       { print $1, db; next }
-			/^VITE_PG_USERNAME=/ { print $1, user; next }
-			/^VITE_PG_PASSWORD=/ { print $1, pass; next }
+			/^PG_HOST=/     { print $1, host; next }
+			/^PG_PORT=/     { print $1, port; next }
+			/^PG_DB=/       { print $1, db; next }
+			/^PG_USERNAME=/ { print $1, user; next }
+			/^PG_PASSWORD=/ { print $1, pass; next }
 			/^DATABASE_URL=/     { print $1, "postgres://" user ":" pass "@" host ":" port "/" db; next }
-			/^VITE_CRYPTO_KEY=/  { print $1, crypto; next }
+			/^CRYPTO_KEY=/  { print $1, crypto; next }
 			/^JWT_SECRET=/       { print $1, jwt; next }
 			{ print }
 		' "$APP_DIR/.env.example"

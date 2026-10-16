@@ -2,7 +2,10 @@
 import { json, redirect, error } from '@sveltejs/kit';
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '$lib/db';
-import { VITE_SPOTIFY_REDIRECT_USER_URI, VITE_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/private';
+import {
+	PUBLIC_SPOTIFY_REDIRECT_USER_URI,
+	PUBLIC_SPOTIFY_REDIRECT_BAR_URI
+} from '$env/static/public';
 import { cookieManager } from '$lib/cookieManager';
 import { storeState } from '$lib/tempStore';
 
@@ -41,8 +44,8 @@ export const GET = async ({ url, cookies }) => {
 		// Get client ID from cookies first (for bar managers)
 		let clientId = cookies.get('spotifyClientId');
 		const redirectUri = isBarReauth
-			? VITE_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
-			: VITE_SPOTIFY_REDIRECT_USER_URI;
+			? PUBLIC_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
+			: PUBLIC_SPOTIFY_REDIRECT_USER_URI;
 
 		console.log('Initial client ID from cookies:', clientId);
 		console.log('Redirect URI:', redirectUri);
@@ -190,8 +193,8 @@ export const POST = async ({ request, cookies }) => {
 		// Get client ID from cookies first (for bar managers)
 		let clientId = cookies.get('spotifyClientId');
 		const redirectUri = isBarReauth
-			? VITE_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
-			: VITE_SPOTIFY_REDIRECT_USER_URI;
+			? PUBLIC_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
+			: PUBLIC_SPOTIFY_REDIRECT_USER_URI;
 
 		// If no client ID in cookies, look it up based on user/bar ID
 		if (!clientId) {

@@ -2,35 +2,43 @@
 	import { onMount } from 'svelte';
 	import type { spPlaylist, spTrack, spActivity } from '$lib/$types';
 
-	export let data: {
-		topTracks: spTrack[];
-		topArtists: {
-			username: string;
-			avatar_url: string | null;
-			playCount: number;
-			artistId: number;
-			selected?: boolean;
-			tags?: string[];
-			genre?: string | null;
-			tag_list?: string;
-			description?: string;
-		}[];
-		topPlaylists: spPlaylist[];
-		recentTracks: spActivity[];
-		debug: {
-			likedTracksCount: number;
-			topTracksCount: number;
-			playlistsCount: number;
+	interface Props {
+		data: {
+			topTracks: spTrack[];
+			topArtists: {
+				username: string;
+				avatar_url: string | null;
+				playCount: number;
+				artistId: number;
+				selected?: boolean;
+				tags?: string[];
+				genre?: string | null;
+				tag_list?: string;
+				description?: string;
+			}[];
+			topPlaylists: spPlaylist[];
+			recentTracks: spActivity[];
 		};
-	};
+	}
 
-	let view: 'playlists' | 'artists' | 'tracks' = 'playlists';
+	let { data }: Props = $props();
+
+	// Local reactive copies of the lists: selection toggles mutate these (the page `data`
+	// prop is a plain object in runes mode, so writing to it would not update the view).
+	// svelte-ignore state_referenced_locally
+	let topTracks = $state(data.topTracks);
+	// svelte-ignore state_referenced_locally
+	let topPlaylists = $state(data.topPlaylists);
+	// svelte-ignore state_referenced_locally
+	let topArtists = $state(data.topArtists);
+
+	let view: 'playlists' | 'artists' | 'tracks' = $state('playlists');
 	const viewOptions = ['playlists', 'artists', 'tracks'] as const;
 	const setView = (newView: typeof view) => {
 		view = newView;
 	};
-	let isLoading = false;
-	let error: string | null = null;
+	let isLoading = $state(false);
+	let error: string | null = $state(null);
 
 	const getHighResImage = (url: string | null): string => {
 		if (!url) return '/images/static_ella.jpg';
@@ -38,41 +46,39 @@
 		return url.replace('large', 't500x500');
 	};
 
-	$: selectedItems = {
-		tracks: data.topTracks
-			.filter((t) => t.selected)
-			.map((t) => ({ id: t.id, type: 'track' as const })),
-		playlists: data.topPlaylists
+	let selectedItems = $derived({
+		tracks: topTracks.filter((t) => t.selected).map((t) => ({ id: t.id, type: 'track' as const })),
+		playlists: topPlaylists
 			.filter((p) => p.selected)
 			.map((p) => ({ id: p.id, type: 'playlist' as const })),
-		artists: data.topArtists
+		artists: topArtists
 			.filter((a) => a.selected)
 			.map((a) => ({ id: a.artistId, type: 'artist' as const }))
-	};
+	});
 
-	$: selectedItemsArray = [
+	let selectedItemsArray = $derived([
 		...selectedItems.tracks,
 		...selectedItems.playlists,
 		...selectedItems.artists
-	];
+	]);
 
-	$: selectedCount = selectedItemsArray.length;
+	let selectedCount = $derived(selectedItemsArray.length);
 
 	const onSelect = async (id: number, type: 'track' | 'playlist' | 'artist') => {
 		try {
 			switch (type) {
 				case 'track':
-					data.topTracks = data.topTracks.map((track) =>
+					topTracks = topTracks.map((track) =>
 						track.id === id ? { ...track, selected: !track.selected } : track
 					);
 					break;
 				case 'playlist':
-					data.topPlaylists = data.topPlaylists.map((playlist) =>
+					topPlaylists = topPlaylists.map((playlist) =>
 						playlist.id === id ? { ...playlist, selected: !playlist.selected } : playlist
 					);
 					break;
 				case 'artist':
-					data.topArtists = data.topArtists.map((artist) =>
+					topArtists = topArtists.map((artist) =>
 						artist.artistId === id ? { ...artist, selected: !artist.selected } : artist
 					);
 					break;
@@ -94,11 +100,11 @@
 				data: (() => {
 					switch (item.type) {
 						case 'track':
-							return data.topTracks.find((t) => t.id === item.id);
+							return topTracks.find((t) => t.id === item.id);
 						case 'playlist':
-							return data.topPlaylists.find((p) => p.id === item.id);
+							return topPlaylists.find((p) => p.id === item.id);
 						case 'artist':
-							return data.topArtists.find((a) => a.artistId === item.id);
+							return topArtists.find((a) => a.artistId === item.id);
 					}
 				})()
 			}));
@@ -138,16 +144,16 @@
 	<div class="container mx-auto p-4 mb-24">
 		{#if error}
 			<div
-				class="error-banner bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+				class="error-banner bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-sm relative mb-4"
 			>
 				{error}
 			</div>
 		{/if}
 
 		<div class="toggle-buttons flex gap-2 lg:hidden mb-4">
-			{#each viewOptions as viewOption}
+			{#each viewOptions as viewOption (viewOption)}
 				<button
-					on:click={() => setView(viewOption)}
+					onclick={() => setView(viewOption)}
 					class="px-4 py-2 rounded {view === viewOption
 						? 'bg-orange-500 text-white'
 						: 'bg-gray-200'}"
@@ -162,12 +168,12 @@
 			<section class="playlists-section {view !== 'playlists' ? 'hidden lg:block' : ''}">
 				<h2 class="text-2xl font-bold mb-4">Playlists</h2>
 				<div class="grid gap-4">
-					{#each data.topPlaylists as playlist}
+					{#each topPlaylists as playlist (playlist.id)}
 						<div
 							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
                     {playlist.selected ? 'ring-4 ring-green-500' : ''}"
-							on:click={() => onSelect(playlist.id, 'playlist')}
-							on:keydown={(e) => e.key === 'Enter' && onSelect(playlist.id, 'playlist')}
+							onclick={() => onSelect(playlist.id, 'playlist')}
+							onkeydown={(e) => e.key === 'Enter' && onSelect(playlist.id, 'playlist')}
 							role="button"
 							tabindex="0"
 						>
@@ -217,12 +223,12 @@
 			<section class="artists-section {view !== 'artists' ? 'hidden lg:block' : ''}">
 				<h2 class="text-2xl font-bold mb-4">Top Artists</h2>
 				<div class="grid gap-4">
-					{#each data.topArtists as artist}
+					{#each topArtists as artist (artist.artistId)}
 						<div
 							class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
                     {artist.selected ? 'ring-4 ring-green-500' : ''}"
-							on:click={() => onSelect(artist.artistId, 'artist')}
-							on:keydown={(e) => e.key === 'Enter' && onSelect(artist.artistId, 'artist')}
+							onclick={() => onSelect(artist.artistId, 'artist')}
+							onkeydown={(e) => e.key === 'Enter' && onSelect(artist.artistId, 'artist')}
 							role="button"
 							tabindex="0"
 						>
@@ -268,13 +274,13 @@
 			<section class="tracks-section {view !== 'tracks' ? 'hidden lg:block' : ''}">
 				<h2 class="text-2xl font-bold mb-4">Recent Activity</h2>
 				<div class="grid gap-4">
-					{#each data.recentTracks as activity}
+					{#each data.recentTracks as activity, i (i)}
 						{#if activity.origin}
 							<div
 								class="item relative rounded-lg overflow-hidden cursor-pointer transition-transform hover:scale-105
                         {activity.origin.selected ? 'ring-4 ring-green-500' : ''}"
-								on:click={() => activity.origin && onSelect(activity.origin.id, 'track')}
-								on:keydown={(e) =>
+								onclick={() => activity.origin && onSelect(activity.origin.id, 'track')}
+								onkeydown={(e) =>
 									e.key === 'Enter' && activity.origin && onSelect(activity.origin.id, 'track')}
 								role="button"
 								tabindex="0"
@@ -332,7 +338,7 @@
 					{selectedCount} item{selectedCount === 1 ? '' : 's'} selected
 				</p>
 				<button
-					on:click={handleSubmitSelection}
+					onclick={handleSubmitSelection}
 					disabled={isLoading}
 					class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
@@ -344,18 +350,22 @@
 </div>
 
 <style lang="postcss">
+	/* Tailwind 4 processes each style block on its own: @apply needs the theme */
+	@reference '../../app.css';
+
 	.item {
 		@apply relative overflow-hidden shadow-md;
 	}
 
-	@screen lg {
+	/* `@screen lg` is gone in Tailwind 4; same breakpoint via the theme variable */
+	@media (width >= theme(--breakpoint-lg)) {
 		.container {
 			@apply grid-cols-3 gap-8;
 		}
 	}
 
 	.item:focus-visible {
-		@apply outline-none ring-2 ring-orange-500 ring-offset-2;
+		@apply outline-hidden ring-2 ring-orange-500 ring-offset-2;
 	}
 
 	.error-banner {

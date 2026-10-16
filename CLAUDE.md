@@ -59,8 +59,8 @@ pnpm lint
 pnpm format
 
 # Testing
-pnpm test          # Playwright e2e tests
-pnpm test:unit     # Vitest unit tests
+pnpm test          # Playwright e2e tests (needs dev/setup.sh first)
+pnpm exec vitest run   # Vitest unit tests (pnpm test:unit = watch mode)
 
 # Genre maintenance script
 pnpm build-scripts
@@ -126,7 +126,7 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 
 ### clubfindr (SvelteKit Web App)
 
-**Tech Stack:** SvelteKit, TypeScript, Tailwind CSS, Vite
+**Tech Stack:** Svelte 5 (runes), SvelteKit 2, TypeScript 6, Tailwind 4, Vite 8, Node 24 (see `clubfindr/README.md`)
 
 **Key Directories:**
 - `src/routes/` - File-based routing with +page.svelte, +page.server.ts, +layout.svelte
@@ -145,7 +145,7 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 **Database Access:**
 - Direct PostgreSQL access via `src/lib/db.ts` using pg Pool
 - All queries use parameterized queries for security
-- Connection configured via VITE_PG_* environment variables
+- Connection configured via the PG_* environment variables (`$env/static/private`)
 
 **Key Features:**
 - Spotify and SoundCloud integration for artist profiles
@@ -214,7 +214,7 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 ### Environment Variables
 
 **clubfindr requires:**
-- `VITE_PG_USERNAME`, `VITE_PG_PASSWORD`, `VITE_PG_DB`, `VITE_PG_HOST`, `VITE_PG_PORT` - PostgreSQL connection
+- `PG_USERNAME`, `PG_PASSWORD`, `PG_DB`, `PG_HOST`, `PG_PORT` - PostgreSQL connection (all keys in `clubfindr/.env.example` are required at build time; `PUBLIC_*` ones reach the browser)
 - Google Maps API key for geocoding
 - Spotify and SoundCloud API credentials
 - Email credentials for notifications
@@ -238,7 +238,7 @@ pnpm vitest src/lib/specific.test.ts
 
 ### Security Considerations
 
-- CSRF protection disabled in `svelte.config.js` (line 21: `checkOrigin: false`)
+- CSRF origin check on in `svelte.config.js` (`csrf.trustedOrigins`: clubfindr.com and www); production needs `ORIGIN` set
 - Rate limiting implemented in hooks.server.ts (60 requests/minute per IP)
 - Blocked paths for common exploit attempts (/.env, /admin, /shell, etc.)
 - All database queries use parameterized queries to prevent SQL injection
@@ -300,10 +300,11 @@ The monorepo uses path-based workflow triggering for efficient CI:
    - Uses `dorny/paths-filter` for intelligent path detection
 
 2. **clubfindr-ci.yml**: Web application CI
-   - Runs on Node.js 18.x and 20.x
-   - Executes: lint, type check, build, unit tests, e2e tests
-   - Uploads Playwright test reports as artifacts
-   - Requires secrets: `VITE_PG_*` environment variables
+   - Runs on Node.js 24 (`clubfindr/.nvmrc`), pnpm from `packageManager`
+   - Postgres 16 service; `dev/setup.sh` writes `.env` and loads the synthetic seed
+   - Executes: lint, type check, unit tests, build, e2e tests (all must pass)
+   - Uploads the Playwright report as an artifact on failure
+   - Needs no secrets
 
 3. **barfindr-ci.yml**: Backend API CI
    - Runs on Python 3.10 and 3.11
@@ -344,5 +345,5 @@ cd ../barfindr && pytest
 
 - Workflows only trigger on changes to their respective directories
 - Uses caching for dependencies (pnpm, pip, npm)
-- Matrix builds test multiple versions (Node 18/20, Python 3.10/3.11)
+- Matrix builds test multiple versions (Python 3.10/3.11; clubfindr runs on Node 24 only)
 - Path filtering prevents unnecessary workflow runs

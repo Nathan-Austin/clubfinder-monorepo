@@ -1,13 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	onMount(() => {
 		// Parse URL parameters
-		const barId = $page.url.searchParams.get('barId');
-		const qrId = $page.url.searchParams.get('qrId');
-		const type = $page.url.searchParams.get('type');
-		const barName = $page.url.searchParams.get('barName') || '';
+		const barId = page.url.searchParams.get('barId');
+		const qrId = page.url.searchParams.get('qrId');
+		const type = page.url.searchParams.get('type');
+		const barName = page.url.searchParams.get('barName') || '';
 
 		// Create the deep link URL
 		const deepLink = `clubfindr://checkin?barId=${barId}&qrId=${qrId}&type=${type}&barName=${encodeURIComponent(
@@ -44,7 +44,7 @@
 <div class="container">
 	<img src="/logo.png" alt="Clubfindr Logo" class="logo" />
 	<h1>Opening Clubfindr...</h1>
-	<div class="loading" />
+	<div class="loading"></div>
 	<p>If nothing happens, please download the app:</p>
 	<div class="store-buttons">
 		<a href="https://apps.apple.com/app/tilki/idXXXXXXXXXX">

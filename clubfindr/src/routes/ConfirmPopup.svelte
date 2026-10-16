@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	let confirmationCode = $state('');
+	let errorMessage = $state('');
+	let successMessage = $state('');
+	let loading = $state(false);
 
-	let confirmationCode = '';
-	let errorMessage = '';
-	let successMessage = '';
-	let loading = false;
-	const dispatch = createEventDispatcher();
+	interface Props {
+		onclose: () => void;
+	}
+
+	let { onclose }: Props = $props();
 	// Function to handle the confirmation form submission
 	async function submitConfirmation() {
 		loading = true;
@@ -25,7 +28,7 @@
 
 			if (response.ok && result.success) {
 				successMessage = 'Email confirmed successfully!';
-				dispatch('close'); // Trigger the close event when successful
+				onclose(); // Close the popup when successful
 			} else {
 				errorMessage = result.message || 'Invalid confirmation code. Please try again.';
 			}
@@ -41,7 +44,12 @@
 <div class="modal-overlay">
 	<div class="modal-content">
 		<h2 style="color: black;">Enter Confirmation Code</h2>
-		<form on:submit|preventDefault={submitConfirmation}>
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				submitConfirmation();
+			}}
+		>
 			<label for="confirmation-code">Confirmation Code</label>
 			<input
 				type="text"

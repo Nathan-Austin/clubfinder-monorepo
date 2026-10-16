@@ -3,15 +3,18 @@
 	import { onMount } from 'svelte';
 	import BarEventModal from './BarEventModal.svelte';
 
-	export let barId: string;
-
 	import type { EventDetails } from '$lib/types/events';
+	interface Props {
+		barId: string;
+	}
 
-	let events: EventDetails[] = [];
-	let isLoading = false;
-	let error = '';
-	let showEventModal = false;
-	let currentEvent: EventDetails = {
+	let { barId }: Props = $props();
+
+	let events: EventDetails[] = $state([]);
+	let isLoading = $state(false);
+	let error = $state('');
+	let showEventModal = $state(false);
+	let currentEvent: EventDetails = $state({
 		id: '',
 		theme_name: '',
 		description: '',
@@ -21,10 +24,10 @@
 		recurring: false,
 		recurrence_pattern: null,
 		special_genres: []
-	};
-	let modalSuccess = '';
-	let modalError = '';
-	let validationErrors: string[] = [];
+	});
+	let modalSuccess = $state('');
+	let modalError = $state('');
+	let validationErrors: string[] = $state([]);
 
 	// Format date for display
 	function formatDate(dateString: string): string {
@@ -103,8 +106,7 @@
 	}
 
 	// Submit event data (create or update)
-	async function handleEventSubmit(event: { detail: EventDetails }) {
-		const eventData = event.detail;
+	async function handleEventSubmit(eventData: EventDetails) {
 		isLoading = true;
 		modalError = '';
 		validationErrors = [];
@@ -209,7 +211,7 @@
 <section class="events-section">
 	<div class="section-header">
 		<h2>Special Events & Themes</h2>
-		<button class="add-event-button" on:click={openCreateModal}>
+		<button class="add-event-button" onclick={openCreateModal}>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				width="24"
@@ -242,16 +244,20 @@
 			<p>
 				Create special themed nights, recurring events, or one-time occasions to attract customers.
 			</p>
-			<button class="create-first-event" on:click={openCreateModal}>Create Your First Event</button>
+			<button class="create-first-event" onclick={openCreateModal}>Create Your First Event</button>
 		</div>
 	{:else}
 		<div class="events-grid">
-			{#each events as event}
+			{#each events as event (event.id)}
 				<div class="event-card">
 					<div class="event-header">
 						<h3>{event.theme_name}</h3>
 						<div class="event-actions">
-							<button class="edit-button" on:click={() => openEditModal(event)}>
+							<button
+								class="edit-button"
+								aria-label="Edit {event.theme_name}"
+								onclick={() => openEditModal(event)}
+							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									width="18"
@@ -267,7 +273,11 @@
 									<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 								</svg>
 							</button>
-							<button class="delete-button" on:click={() => deleteEvent(event.id)}>
+							<button
+								class="delete-button"
+								aria-label="Delete {event.theme_name}"
+								onclick={() => deleteEvent(event.id)}
+							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									width="18"
@@ -311,7 +321,7 @@
 					{/if}
 					{#if event.special_genres && event.special_genres.length > 0}
 						<div class="event-genres">
-							{#each event.special_genres as genre}
+							{#each event.special_genres as genre, i (i)}
 								<span class="genre-tag">{genre}</span>
 							{/each}
 						</div>
@@ -330,8 +340,8 @@
 		{validationErrors}
 		successMessage={modalSuccess}
 		{barId}
-		on:close={closeEventModal}
-		on:submit={handleEventSubmit}
+		onclose={closeEventModal}
+		onsubmit={handleEventSubmit}
 	/>
 {/if}
 

@@ -11,6 +11,7 @@ on:
     branches: [ main, develop ]
     paths:
       - 'clubfindr/**'
+      - '.github/workflows/clubfindr-ci.yml'
 
 jobs:
   build-and-test:
@@ -20,66 +21,70 @@ jobs:
       run:
         working-directory: clubfindr
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-
-    env:
-      PUBLIC_SPOTIFY_CLIENT_ID: ${{ secrets.PUBLIC_SPOTIFY_CLIENT_ID }}
-      VITE_SPOTIFY_CLIENT_SECRET: ${{ secrets.VITE_SPOTIFY_CLIENT_SECRET }}
-      VITE_MAPS_API_KEY: ${{ secrets.VITE_MAPS_API_KEY }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      SPOTIFY_SERVICE_URL: ${{ secrets.SPOTIFY_SERVICE_URL }}
-      VITE_SPOTIFY_REDIRECT_USER_URI: ${{ secrets.VITE_SPOTIFY_REDIRECT_USER_URI }}
-      VITE_SPOTIFY_REDIRECT_BAR_URI: ${{ secrets.VITE_SPOTIFY_REDIRECT_BAR_URI }}
-      VITE_PG_HOST: ${{ secrets.VITE_PG_HOST }}
-      VITE_PG_PORT: ${{ secrets.VITE_PG_PORT }}
-      VITE_PG_DB: ${{ secrets.VITE_PG_DB }}
-      VITE_PG_USERNAME: ${{ secrets.VITE_PG_USERNAME }}
-      VITE_PG_PASSWORD: ${{ secrets.VITE_PG_PASSWORD }}
+    # Seeded test database for the e2e suite. dev/setup.sh finds it on 54329 with the dev
+    # credentials, loads schema + synthetic seed and writes a placeholder .env, so no
+    # secrets are needed: every external service is blocked in the tests.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: clubfindr_dev
+          POSTGRES_PASSWORD: clubfindr_dev
+          POSTGRES_DB: clubfindr_dev
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U clubfindr_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
     - uses: actions/checkout@v4
 
+    # Version comes from clubfindr/package.json `packageManager`
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 9
+        package_json_file: clubfindr/package.json
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js from .nvmrc
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version-file: clubfindr/.nvmrc
         cache: 'pnpm'
         cache-dependency-path: clubfindr/pnpm-lock.yaml
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
+    - name: Seed test database and write .env
+      run: dev/setup.sh
+
     - name: Run linter
       run: pnpm lint
 
     - name: Run type check
       run: pnpm check
-      continue-on-error: true  # Allow CI to continue despite type errors
+
+    - name: Run unit tests
+      run: pnpm exec vitest run
 
     - name: Build
       run: pnpm build
 
-    - name: Run unit tests
-      run: pnpm test:unit
-
-    - name: Install Playwright Browsers
-      run: pnpm exec playwright install --with-deps
+    - name: Install Playwright browser
+      run: pnpm exec playwright install --with-deps chromium
 
     - name: Run E2E tests
       run: pnpm test
-      continue-on-error: true
+      env:
+        PW_SKIP_BUILD: '1'
 
     - name: Upload test results
-      if: always()
+      if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: playwright-report-${{ matrix.node-version }}
+        name: playwright-report
         path: clubfindr/playwright-report/
         retention-days: 30

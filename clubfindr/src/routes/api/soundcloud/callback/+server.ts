@@ -1,10 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { cookieManager } from '$lib/cookieManager';
+import { SOUNDCLOUD_CLIENT_ID, SOUNDCLOUD_CLIENT_SECRET } from '$env/static/private';
 
 export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
-	const client_id = import.meta.env.VITE_SOUNDCLOUD_CLIENT_ID;
-	const client_secret = import.meta.env.VITE_SOUNDCLOUD_CLIENT_SECRET;
+	const client_id = SOUNDCLOUD_CLIENT_ID;
+	const client_secret = SOUNDCLOUD_CLIENT_SECRET;
 
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');

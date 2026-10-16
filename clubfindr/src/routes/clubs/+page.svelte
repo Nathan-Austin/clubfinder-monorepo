@@ -1,24 +1,20 @@
 <script lang="ts">
 	import type { SimilarityResult } from '$lib/$types';
-	export let data;
+	let { data } = $props();
 
-	const city = data.props.city || 'Unknown City'; // Default value if city is undefined
-	const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-	const newdate = data.props.date;
-	const address: string | undefined = data.props.address;
-	const isLoggedIn: boolean = data.props.isLoggedIn ?? false;
-	let showMore = false;
+	const city = $derived(data.props.city || 'Unknown City'); // Default value if city is undefined
+	const capitalizedCity = $derived(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
+	const newdate = $derived(data.props.date);
+	const address: string | undefined = $derived(data.props.address);
+	const isLoggedIn: boolean = $derived(data.props.isLoggedIn ?? false);
+	let showMore = $state(false);
 	let options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
-	let formattedDate = new Intl.DateTimeFormat('en-US', options).format(
-		newdate ? new Date(newdate) : new Date()
+	let formattedDate = $derived(
+		new Intl.DateTimeFormat('en-US', options).format(newdate ? new Date(newdate) : new Date())
 	);
-	let selectedDate = '';
-	let SimilarityResults: SimilarityResult[] = [];
-
-	if (data.props.serverSimilarityResults) {
-		SimilarityResults = data.props.serverSimilarityResults;
-	}
-	let displayCount = 6; // Initial number of results to display
+	let selectedDate = $state('');
+	let SimilarityResults: SimilarityResult[] = $derived(data.props.serverSimilarityResults ?? []);
+	let displayCount = $state(6); // Initial number of results to display
 	const incrementAmount = 4; // Number of additional results to show when clicking "Show More"
 
 	// Function to handle showing more results
@@ -27,10 +23,10 @@
 	}
 
 	// Calculate whether there are more results to show
-	$: hasMoreResults = SimilarityResults.length > displayCount;
+	let hasMoreResults = $derived(SimilarityResults.length > displayCount);
 
 	// Get the currently visible results
-	$: visibleResults = SimilarityResults.slice(0, displayCount);
+	let visibleResults = $derived(SimilarityResults.slice(0, displayCount));
 
 	function generateGoogleMapsLink(destination: string, origin?: string) {
 		if (origin) {
@@ -51,7 +47,7 @@
 		// goto('/previousRoute');
 	}
 
-	let isInterested = false; // Track the interest state for each event
+	let isInterested = $state(false); // Track the interest state for each event
 
 	async function markAsInterested(eventId: number) {
 		try {
@@ -115,7 +111,7 @@
 
 <div class="header mt-2 md:mt-16">
 	<h1
-		class="text-4xl md:text-8xl font-bold my-2 md:my-4 text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
+		class="text-4xl md:text-8xl font-bold my-2 md:my-4 text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
 	>
 		ClubFinder {capitalizedCity}
 	</h1>
@@ -124,7 +120,7 @@
 
 	<!-- Flex container to align the button and form horizontally -->
 	<div class="flex flex-col md:flex-row items-center mt-6">
-		<button type="button" class="back-button mr-4" on:click={goBack}>Change the vibe</button>
+		<button type="button" class="back-button mr-4" onclick={goBack}>Change the vibe</button>
 		<form method="GET" data-sveltekit-reload class="flex items-center">
 			<div class="date-input-container">
 				<input type="date" name="date" bind:value={selectedDate} required style="color: black;" />
@@ -144,13 +140,13 @@
 		</div>
 	{:else}
 		<div class="poster-container">
-			{#each visibleResults as result}
+			{#each visibleResults as result (result.event_id)}
 				<div class="poster">
 					<div class="flyer-container">
 						{#if result.event_image && result.event_image.trim() !== '' && result.event_image !== 'Event flyerfront image not available'}
 							<img src={result.event_image} alt="Event flyer" />
 						{:else}
-							<!-- svelte-ignore a11y-img-redundant-alt -->
+							<!-- svelte-ignore a11y_img_redundant_alt -->
 							<img src="/images/static_ella.jpg" alt="Placeholder image" />
 						{/if}
 					</div>
@@ -164,7 +160,7 @@
 									target="_blank"
 									class="location-icon"
 									rel="noopener noreferrer"
-									on:click={() => markAsInterested(result.event_id)}
+									onclick={() => markAsInterested(result.event_id)}
 								>
 									<img src="/images/pin-location-icon.jpg" alt="Location Marker" />
 								</a>
@@ -179,7 +175,7 @@
 									target="_blank"
 									rel="noopener noreferrer"
 									class="event-link"
-									on:click={() => markAsInterested(result.event_id)}
+									onclick={() => markAsInterested(result.event_id)}
 								>
 									{result.event_name}
 								</a>
@@ -204,13 +200,13 @@
 									{#if isInterested}
 										<!-- When interested is selected, show the tick and the cross to undo -->
 										<span class="interest-icon green-tick">✅</span>
-										<button class="red-cross" on:click={resetInterest}>❌</button>
+										<button class="red-cross" onclick={resetInterest}>❌</button>
 									{:else}
 										<!-- Show tick and cross before selecting interest -->
-										<button class="green-tick" on:click={() => markAsInterested(result.event_id)}
+										<button class="green-tick" onclick={() => markAsInterested(result.event_id)}
 											>✅</button
 										>
-										<button class="red-cross" on:click={resetInterest}>❌</button>
+										<button class="red-cross" onclick={resetInterest}>❌</button>
 									{/if}
 								</div>
 							</div>
@@ -224,12 +220,12 @@
 							<div class="value genres-container">
 								<div class="genres-header">Matching Genres:</div>
 								<div class="genres-columns">
-									{#each result.genres.slice(0, showMore ? result.genres.length : 5) as genre}
+									{#each result.genres.slice(0, showMore ? result.genres.length : 5) as genre, i (i)}
 										<div class="genre-item">{genre}</div>
 									{/each}
 								</div>
 								{#if result.genres.length > 5}
-									<button on:click={() => (showMore = !showMore)} class="show-more-button">
+									<button onclick={() => (showMore = !showMore)} class="show-more-button">
 										{showMore ? 'Show Less' : 'Show More'}
 									</button>
 								{/if}
@@ -240,9 +236,7 @@
 			{/each}
 		</div>
 		{#if hasMoreResults}
-			<button on:click={handleShowMore} class="show-more-results-button">
-				Show More Results
-			</button>
+			<button onclick={handleShowMore} class="show-more-results-button"> Show More Results </button>
 		{/if}
 
 		<p class="mt-4">Please note: Online ticket sales finish at 10pm the day of the party</p>

@@ -2,6 +2,7 @@
 
 import type { RequestHandler } from '@sveltejs/kit';
 import nodemailer from 'nodemailer';
+import { GMAIL_USER, GMAIL_PASS } from '$env/static/private';
 
 export const POST: RequestHandler = async ({ request }) => {
 	console.log('Request received at /api/request-access');
@@ -26,8 +27,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			port: 587, // or 587 for STARTTLS
 			secure: false,
 			auth: {
-				user: process.env.GMAIL_USER,
-				pass: process.env.GMAIL_PASS
+				user: GMAIL_USER,
+				pass: GMAIL_PASS
 			},
 			connectionTimeout: 10000,
 			tls: {

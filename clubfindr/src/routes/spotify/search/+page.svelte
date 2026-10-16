@@ -4,12 +4,17 @@
 	import { goto } from '$app/navigation';
 	import type { Artist_search, Track } from '$lib/$types';
 
-	export let data: { props: { artists: Artist_search[]; tracks: Track[]; message?: string } };
+	interface Props {
+		data: { props: { artists: Artist_search[]; tracks: Track[]; message?: string } };
+	}
+
+	let { data }: Props = $props();
 
 	// Default view mode is 'artists'
-	let viewMode: 'artists' | 'tracks' = 'artists';
-	let message = data.props.message;
-	let newSearchQuery = '';
+	let viewMode: 'artists' | 'tracks' = $state('artists');
+	// svelte-ignore state_referenced_locally
+	let message = $state(data.props.message);
+	let newSearchQuery = $state('');
 
 	function handleNewSearch() {
 		// Set the new search query in cookies and reload the page
@@ -17,8 +22,9 @@
 		location.reload();
 	}
 
-	// Mapping track and artist data for display
-	let tracks =
+	// Mapping track and artist data for display (local state: selection is toggled here)
+	// svelte-ignore state_referenced_locally
+	let tracks = $state(
 		data.props.tracks?.map((track) => ({
 			name: track.name,
 			id: track.id,
@@ -26,9 +32,11 @@
 			artist: track.artists?.[0] || {}, // Fallback to empty object if artist is not available
 			selected: false,
 			spotifyLink: track.external_urls?.spotify || ''
-		})) || [];
+		})) || []
+	);
 
-	let artists =
+	// svelte-ignore state_referenced_locally
+	let artists = $state(
 		data.props.artists?.map(({ id, name, images, genres, spotifyLink }) => ({
 			id,
 			name,
@@ -36,21 +44,25 @@
 			selected: false,
 			genres,
 			spotifyLink
-		})) || [];
+		})) || []
+	);
 
 	// Count of selected items
-	$: selectedCount =
-		tracks.filter((t) => t.selected).length + artists.filter((a) => a.selected).length;
+	let selectedCount = $derived(
+		tracks.filter((t) => t.selected).length + artists.filter((a) => a.selected).length
+	);
 
 	// Get the selected artist and track IDs
-	$: selectedIds = [
-		...tracks
-			.filter((t) => t.selected && t.artist?.id) // Ensure there's an artist and the artist has an ID
-			.map((t) => t.artist?.id as string), // Explicitly cast to string
-		...artists
-			.filter((a) => a.selected && a.id) // Ensure there's an artist with an ID
-			.map((a) => a.id as string) // Explicitly cast to string
-	].filter(Boolean); // Filter out any null or undefined values
+	let selectedIds = $derived(
+		[
+			...tracks
+				.filter((t) => t.selected && t.artist?.id) // Ensure there's an artist and the artist has an ID
+				.map((t) => t.artist?.id as string), // Explicitly cast to string
+			...artists
+				.filter((a) => a.selected && a.id) // Ensure there's an artist with an ID
+				.map((a) => a.id as string) // Explicitly cast to string
+		].filter(Boolean)
+	); // Filter out any null or undefined values
 
 	// Toggle between artists and tracks
 	function toggleView(mode: 'artists' | 'tracks') {
@@ -85,8 +97,6 @@
 				break;
 		}
 	};
-	$: tracks = [...tracks]; // Force Svelte to recognize changes
-	$: artists = [...artists]; // Force Svelte to recognize changes
 
 	// Handle form submission
 	async function proceedToClubsPage() {
@@ -202,16 +212,21 @@
 
 	<!-- View Toggle Buttons -->
 	<div class="view-toggle">
-		<button on:click={() => toggleView('artists')} class={viewMode === 'artists' ? 'active' : ''}>
+		<button onclick={() => toggleView('artists')} class={viewMode === 'artists' ? 'active' : ''}>
 			View Artists
 		</button>
-		<button on:click={() => toggleView('tracks')} class={viewMode === 'tracks' ? 'active' : ''}>
+		<button onclick={() => toggleView('tracks')} class={viewMode === 'tracks' ? 'active' : ''}>
 			View Tracks
 		</button>
 	</div>
 	{#if message}
 		<div class="message">{message}</div>
-		<form on:submit|preventDefault={handleNewSearch}>
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleNewSearch();
+			}}
+		>
 			<input type="text" bind:value={newSearchQuery} placeholder="Enter new search query" />
 			<button type="submit">Search</button>
 		</form>
@@ -225,13 +240,13 @@
 			<h2 class="section-title">Top Artists</h2>
 			<div class="items-grid">
 				{#each artists as artist (artist.id)}
-					<!-- svelte-ignore a11y-no-static-element-interactions -->
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<div
 						class="item {artist.selected ? 'selected' : ''}"
-						on:click={() => onSelect(artist.id, 'artist')}
+						onclick={() => onSelect(artist.id, 'artist')}
 					>
-						<img src={artist.image} alt={artist.name} on:load={onImageLoad} />
+						<img src={artist.image} alt={artist.name} onload={onImageLoad} />
 						<div class="overlay">
 							<span>{artist.name}</span><br />
 							<a href={artist.spotifyLink} style="color: #1db954;" target="_blank"
@@ -247,13 +262,13 @@
 			<h2 class="section-title">Top Tracks</h2>
 			<div class="items-grid">
 				{#each tracks as track (track.id)}
-					<!-- svelte-ignore a11y-no-static-element-interactions -->
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<div
 						class="item {track.selected ? 'selected' : ''}"
-						on:click={() => onSelect(track.id, 'track')}
+						onclick={() => onSelect(track.id, 'track')}
 					>
-						<img src={track.image} alt={track.name} on:load={onImageLoad} />
+						<img src={track.image} alt={track.name} onload={onImageLoad} />
 						<div class="overlay">
 							<span>{track.name} by {track.artist.name}</span><br />
 							<a href={track.spotifyLink} style="color: #1db954;" target="_blank"
@@ -268,13 +283,13 @@
 
 	<!-- Button to proceed to clubs page -->
 	<div class="text-center">
-		<button class="floating-search-clubs-button" on:click={proceedToClubsPage}>
+		<button class="floating-search-clubs-button" onclick={proceedToClubsPage}>
 			Search for Clubs
 		</button>
 	</div>
 	<!-- Button to proceed to barfindr page -->
 	<div class="text-center">
-		<button class="floating-search-bars-button" on:click={proceedToBarfindrpage}>
+		<button class="floating-search-bars-button" onclick={proceedToBarfindrpage}>
 			Search for Bars
 		</button>
 	</div>
@@ -392,7 +407,9 @@
 		height: 50px;
 		margin-top: auto;
 		overflow: hidden;
-		transition: height 0.3s ease, overflow 0.3s ease;
+		transition:
+			height 0.3s ease,
+			overflow 0.3s ease;
 	}
 
 	.item:hover .overlay {
@@ -420,7 +437,9 @@
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 		cursor: pointer;
 		z-index: 1000;
-		transition: background-color 0.3s ease, transform 0.2s ease;
+		transition:
+			background-color 0.3s ease,
+			transform 0.2s ease;
 	}
 
 	.floating-search-clubs-button:hover {
@@ -440,7 +459,9 @@
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 		cursor: pointer;
 		z-index: 1000;
-		transition: background-color 0.3s ease, transform 0.2s ease;
+		transition:
+			background-color 0.3s ease,
+			transform 0.2s ease;
 	}
 
 	.floating-search-bars-button:hover {

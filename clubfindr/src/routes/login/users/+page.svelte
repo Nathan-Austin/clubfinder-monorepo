@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { PUBLIC_FACEBOOK_APP_ID, PUBLIC_GOOGLE_OAUTH_CLIENT_ID } from '$env/static/public';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { validateEmail } from '$lib/passwordUtils';
 	import type { FacebookLoginResponse } from '../../../../types/facebook';
 
-	const client_id = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
-	const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
+	const client_id = PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+	const facebookAppId = PUBLIC_FACEBOOK_APP_ID;
 
-	let email = '';
-	let password = '';
-	let fullName = ''; // New field
-	let spotifyEmail = ''; // New field
-	let emailError = '';
-	let loginError = '';
-	let isSubmitting = false;
-	let isNewUser = false; // New state for registration mode
-	let showSpotifyEmailInfo = false; // State for Spotify email info tooltip
-	const dispatch = createEventDispatcher();
+	let email = $state('');
+	let password = $state('');
+	let fullName = $state(''); // New field
+	let spotifyEmail = $state(''); // New field
+	let emailError = $state('');
+	let loginError = $state('');
+	let isSubmitting = $state(false);
+	let isNewUser = $state(false); // New state for registration mode
+	let showSpotifyEmailInfo = $state(false); // State for Spotify email info tooltip
 
 	function toggleSpotifyEmailInfo(event: Event): void {
 		event.stopPropagation();
@@ -136,7 +136,6 @@
 			const result = await response.json();
 
 			if (result.success) {
-				dispatch('loginSuccess');
 				window.location.href = '/users-home';
 			} else {
 				loginError = result.message || 'Login failed';
@@ -282,10 +281,10 @@
 			data-client_id={client_id}
 			data-callback="handleGoogleSignIn"
 			data-auto_prompt="false"
-		/>
-		<div class="g_id_signin" data-type="standard" />
+		></div>
+		<div class="g_id_signin" data-type="standard"></div>
 
-		<button class="facebook-login-button" on:click={triggerFacebookLogin}>
+		<button class="facebook-login-button" onclick={triggerFacebookLogin}>
 			Login with Facebook
 		</button>
 	</div>
@@ -294,14 +293,14 @@
 		<span>or</span>
 	</div>
 
-	<form on:submit={handleLogin} class="login-form">
+	<form onsubmit={handleLogin} class="login-form">
 		<div class="form-group">
 			<label for="email">Email</label>
 			<input
 				type="email"
 				id="email"
 				bind:value={email}
-				on:input={() => (emailError = '')}
+				oninput={() => (emailError = '')}
 				class:error={emailError}
 				placeholder="Enter your email"
 				required
@@ -328,7 +327,7 @@
 							style="width: {calculatePasswordStrength(
 								password
 							)}%; background-color: {getPasswordStrengthColor(password)};"
-						/>
+						></div>
 					</div>
 					<span class="strength-text" style="color: {getPasswordStrengthColor(password)};">
 						{getPasswordStrengthText(password)}
@@ -362,7 +361,7 @@
 			<div class="form-group">
 				<label for="spotifyEmail">
 					Spotify Email
-					<button type="button" class="info-icon" on:click={toggleSpotifyEmailInfo}>?</button>
+					<button type="button" class="info-icon" onclick={toggleSpotifyEmailInfo}>?</button>
 				</label>
 				<input
 					type="email"
@@ -373,7 +372,7 @@
 				/>
 				{#if showSpotifyEmailInfo}
 					<div class="info-tooltip">
-						<button type="button" class="close-tooltip" on:click={toggleSpotifyEmailInfo}>×</button>
+						<button type="button" class="close-tooltip" onclick={toggleSpotifyEmailInfo}>×</button>
 						<h4>Why do we need this?</h4>
 						<p>
 							This email is used to add you to our Spotify application so you can use Spotify
@@ -522,7 +521,9 @@
 		background-color: rgba(255, 255, 255, 0.1);
 		color: white;
 		font-size: 1rem;
-		transition: border-color 0.3s, background-color 0.3s;
+		transition:
+			border-color 0.3s,
+			background-color 0.3s;
 	}
 
 	input:focus {
@@ -586,7 +587,9 @@
 	.strength-indicator {
 		height: 100%;
 		border-radius: 2px;
-		transition: width 0.3s, background-color 0.3s;
+		transition:
+			width 0.3s,
+			background-color 0.3s;
 	}
 
 	.strength-text {

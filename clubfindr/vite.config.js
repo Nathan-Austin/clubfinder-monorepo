@@ -1,9 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
 	return {
-		plugins: [sveltekit()],
+		plugins: [tailwindcss(), sveltekit()],
 		test: {
 			include: ['src/**/*.{test,spec}.{js,ts}']
 		},
@@ -11,13 +12,7 @@ export default defineConfig(({ mode }) => {
 			noExternal: ['@googlemaps/js-api-loader']
 		},
 		optimizeDeps: {
-			exclude: ['@mapbox/node-pre-gyp', 'bcrypt', 'pg-native', '@googlemaps/js-api-loader'],
-			esbuildOptions: {
-				loader: {
-					'.html': 'text'
-				},
-				platform: 'node'
-			}
+			exclude: ['@googlemaps/js-api-loader']
 		},
 		server: {
 			port: 3000,
@@ -38,18 +33,10 @@ export default defineConfig(({ mode }) => {
 				followSymlinks: false
 			}
 		},
-		assetsInclude: ['**/*.html'],
 		build: {
-			rollupOptions: {
-				external: ['@mapbox/node-pre-gyp', 'bcrypt', 'pg-native']
-			},
 			target: 'esnext',
 			sourcemap: mode === 'development'
 		},
-		clearScreen: false,
-		fs: {
-			strict: true,
-			allow: ['.']
-		}
+		clearScreen: false
 	};
 });

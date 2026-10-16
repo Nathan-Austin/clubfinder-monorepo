@@ -33,11 +33,22 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<head>
-	<meta charset="UTF-8" />
-	<title>Cookie Policy of www.clubfindr.com</title>
+<div class="policy-body">
 	<style>
-		body {
+		/* This used to be a stray <body> element; it picked up the layout's body
+		   rules, which are kept here so the page looks the same. */
+		.policy-body {
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
+			background: linear-gradient(
+					180deg,
+					rgb(var(--rgb-dark-bg)) 0%,
+					rgb(var(--rgb-mid-bg)) 45%,
+					rgb(var(--rgb-bg)) 100%
+				)
+				no-repeat;
+			background-size: cover;
 			font-family: Arial, sans-serif;
 			line-height: 1.6;
 			color: white;
@@ -104,8 +115,6 @@
 			margin-right: 10px;
 		}
 	</style>
-</head>
-<body>
 	<h1>Cookie Policy of www.clubfindr.com</h1>
 
 	<p>
@@ -165,41 +174,43 @@
 	<p>Below is a detailed list of the cookies we use on our Application:</p>
 
 	<table>
-		<tr>
-			<th>Cookie Name</th>
-			<th>Provider</th>
-			<th>Purpose</th>
-			<th>Expiration</th>
-			<th>Type</th>
-		</tr>
-		<tr>
-			<td>cf_session</td>
-			<td>First-party</td>
-			<td>Session management and authentication</td>
-			<td>Session</td>
-			<td>Necessary</td>
-		</tr>
-		<tr>
-			<td>cf_preferences</td>
-			<td>First-party</td>
-			<td>Stores user preferences</td>
-			<td>1 year</td>
-			<td>Functional</td>
-		</tr>
-		<tr>
-			<td>_ga</td>
-			<td>Google Analytics</td>
-			<td>Used to distinguish users</td>
-			<td>2 years</td>
-			<td>Analytics</td>
-		</tr>
-		<tr>
-			<td>_ga_<em>container-id</em></td>
-			<td>Google Analytics</td>
-			<td>Used to persist session state</td>
-			<td>2 years</td>
-			<td>Analytics</td>
-		</tr>
+		<tbody>
+			<tr>
+				<th>Cookie Name</th>
+				<th>Provider</th>
+				<th>Purpose</th>
+				<th>Expiration</th>
+				<th>Type</th>
+			</tr>
+			<tr>
+				<td>cf_session</td>
+				<td>First-party</td>
+				<td>Session management and authentication</td>
+				<td>Session</td>
+				<td>Necessary</td>
+			</tr>
+			<tr>
+				<td>cf_preferences</td>
+				<td>First-party</td>
+				<td>Stores user preferences</td>
+				<td>1 year</td>
+				<td>Functional</td>
+			</tr>
+			<tr>
+				<td>_ga</td>
+				<td>Google Analytics</td>
+				<td>Used to distinguish users</td>
+				<td>2 years</td>
+				<td>Analytics</td>
+			</tr>
+			<tr>
+				<td>_ga_<em>container-id</em></td>
+				<td>Google Analytics</td>
+				<td>Used to persist session state</td>
+				<td>2 years</td>
+				<td>Analytics</td>
+			</tr>
+		</tbody>
 	</table>
 
 	<p>Please note that the names of cookies, pixels, and other technologies may change over time.</p>
@@ -249,23 +260,10 @@
 	</ul>
 
 	<div class="consent-buttons">
-		<button on:click={acceptConsent}>Accept All Cookies</button>
-		<button on:click={declineConsent}>Reject Non-Essential Cookies</button>
-		<button on:click={openCustomModal}>Customize Preferences</button>
+		<button onclick={acceptConsent}>Accept All Cookies</button>
+		<button onclick={declineConsent}>Reject Non-Essential Cookies</button>
+		<button onclick={openCustomModal}>Customize Preferences</button>
 	</div>
-
-	<script>
-		// Placeholder functions for demonstration
-		function acceptCookies() {
-			alert('All cookies accepted.');
-		}
-		function rejectCookies() {
-			alert('Non-essential cookies rejected.');
-		}
-		function openPreferences() {
-			alert('Opening cookie preferences.');
-		}
-	</script>
 
 	<hr />
 
@@ -408,4 +406,4 @@
 	<hr />
 
 	<p><strong>Latest Update:</strong> Sep 16 2024</p>
-</body>
+</div>

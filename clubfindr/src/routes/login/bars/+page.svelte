@@ -1,15 +1,14 @@
 <!-- login/bars/+page.svelte -->
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { validateEmail } from '$lib/passwordUtils';
 
-	let email = '';
-	let password = '';
-	let emailError = '';
-	let loginError = '';
-	let isSubmitting = false;
-	const dispatch = createEventDispatcher();
+	let email = $state('');
+	let password = $state('');
+	let emailError = $state('');
+	let loginError = $state('');
+	let isSubmitting = $state(false);
 
 	function validateForm() {
 		emailError = '';
@@ -51,7 +50,6 @@
 					window.location.href = result.authUrl;
 				} else {
 					// Normal login success flow
-					dispatch('loginSuccess');
 					// Use the redirect URL from the response
 					window.location.href = result.redirectUrl;
 				}
@@ -108,14 +106,14 @@
 		</div>
 	{/if}
 
-	<form on:submit={handleLogin} class="login-form">
+	<form onsubmit={handleLogin} class="login-form">
 		<div class="form-group">
 			<label for="email">Email</label>
 			<input
 				type="email"
 				id="email"
 				bind:value={email}
-				on:input={() => (emailError = '')}
+				oninput={() => (emailError = '')}
 				class:error={emailError}
 				placeholder="Enter your email"
 				required
@@ -190,7 +188,9 @@
 		background-color: rgba(255, 255, 255, 0.1);
 		color: white;
 		font-size: 1rem;
-		transition: border-color 0.3s, background-color 0.3s;
+		transition:
+			border-color 0.3s,
+			background-color 0.3s;
 	}
 
 	input:focus {

@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { validatePassword } from '$lib/passwordUtils';
 
-	let password = '';
-	let confirmPassword = '';
-	let passwordErrors: string[] = [];
-	let isSubmitting = false;
-	let successMessage = '';
-	let errorMessage = '';
+	let password = $state('');
+	let confirmPassword = $state('');
+	let passwordErrors: string[] = $state([]);
+	let isSubmitting = $state(false);
+	let successMessage = $state('');
+	let errorMessage = $state('');
 
-	$: token = $page.params.token;
+	let token = $derived(page.params.token);
 
 	function validatePasswords() {
 		const validation = validatePassword(password);
@@ -90,7 +90,7 @@
 		</div>
 	{/if}
 
-	<form on:submit={handlePasswordUpdate} class="reset-form">
+	<form onsubmit={handlePasswordUpdate} class="reset-form">
 		<div class="form-group">
 			<label for="password">
 				New Password:
@@ -98,7 +98,7 @@
 					type="password"
 					id="password"
 					bind:value={password}
-					on:input={validatePasswords}
+					oninput={validatePasswords}
 					class:error={passwordErrors.length > 0}
 					required
 				/>
@@ -112,7 +112,7 @@
 					type="password"
 					id="confirmPassword"
 					bind:value={confirmPassword}
-					on:input={validatePasswords}
+					oninput={validatePasswords}
 					class:error={passwordErrors.length > 0}
 					required
 				/>
@@ -122,7 +122,7 @@
 				<div class="password-requirements">
 					<p>Password Requirements:</p>
 					<ul>
-						{#each passwordErrors as error}
+						{#each passwordErrors as error, i (i)}
 							<li class="error-message">{error}</li>
 						{/each}
 					</ul>

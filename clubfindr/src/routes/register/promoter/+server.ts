@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase();
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 	const hashedPassword = await hashPassword(password);
-	let userId: string | null = null;
+	let userId: string | null;
 
 	try {
 		const normalizedCityName = normalizeCityName(cityName);

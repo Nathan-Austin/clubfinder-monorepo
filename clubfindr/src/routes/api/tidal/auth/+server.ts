@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import { generateRandomString, generateCodeChallenge } from '$lib/tidal/pkce';
 import { cookieManager } from '$lib/cookieManager';
+import { TIDAL_CLIENT_ID } from '$env/static/private';
 
 export const GET = async ({ cookies, url }) => {
-	const client_id = import.meta.env.VITE_TIDAL_CLIENT_ID;
+	const client_id = TIDAL_CLIENT_ID;
 	const protocol = url.protocol;
 	const host = url.host;
 	const redirect_uri = `${protocol}//${host}/api/tidal/callback`;

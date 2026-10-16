@@ -1,10 +1,10 @@
 <script lang="ts">
+	import { PUBLIC_MAPS_API_KEY, PUBLIC_SPOTIFY_REDIRECT_USER_URI } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { DatePicker } from 'date-picker-svelte';
 	import { Loader } from '@googlemaps/js-api-loader';
-	import { writable } from 'svelte/store';
 	import { getDistance } from 'geolib';
 	//const PUBLIC_SPOTIFY_CLIENT_ID = 'd92712657a2c4805bda31175bcf576eb';
 	// Register the required components for the pie chart
@@ -15,57 +15,60 @@
 
 	// Chart instance type and data props
 	let chart: Chart<'pie', number[], string> | undefined;
-	export let data: {
-		props: {
-			userName: string | null;
-			topPreferences: Array<{ genre: string; search_count: number }>;
-			interestedEvents: Array<{
-				event_id: number; // Assuming this is the ID type
-				club_name: string;
-				event_name: string;
-				event_date: string; // or Date, depending on how you're storing it
-				attended?: string; // Store the attendance choice
-				likedRecommendation?: string; // Store the feedback on recommendation
-			}>;
-			connectedServices: {
-				spotify: boolean;
-				soundcloud: boolean;
-				tidal: boolean;
+	interface Props {
+		data: {
+			props: {
+				userName: string | null;
+				topPreferences: Array<{ genre: string; search_count: number }>;
+				interestedEvents: Array<{
+					event_id: number; // Assuming this is the ID type
+					club_name: string;
+					event_name: string;
+					event_date: string; // or Date, depending on how you're storing it
+					attended?: string; // Store the attendance choice
+					likedRecommendation?: string; // Store the feedback on recommendation
+				}>;
+				connectedServices: {
+					spotify: boolean;
+					soundcloud: boolean;
+					tidal: boolean;
+				};
 			};
 		};
-	};
+	}
 
-	const userName: string | null = data.props.userName;
-	const preferences: Array<{ genre: string; search_count: number }> =
-		data.props.topPreferences || [];
-	let interestedEvents = data.props.interestedEvents || [];
-	const connectedServices = data.props.connectedServices || {
-		spotify: false,
-		soundcloud: false,
-		tidal: false
-	};
+	let { data }: Props = $props();
+
+	const userName: string | null = $derived(data.props.userName);
+	const preferences: Array<{ genre: string; search_count: number }> = $derived(
+		data.props.topPreferences || []
+	);
+	// Local copy: events are removed from it when the user un-marks them
+	// svelte-ignore state_referenced_locally
+	let interestedEvents = $state(data.props.interestedEvents || []);
+	const connectedServices = $derived(
+		data.props.connectedServices || {
+			spotify: false,
+			soundcloud: false,
+			tidal: false
+		}
+	);
 
 	// Keep track of the maximum visible events
 	const maxVisibleEvents = 5;
 
 	// Settings dropdown state
-	let dropdownVisible = false;
+	let dropdownVisible = $state(false);
 
-	let newName: string = '';
-	$: newName = userName || '';
+	// Editable copy of the name, re-seeded whenever the page data changes (writable derived)
+	let newName: string = $derived(userName || '');
 
 	// Date picker functionality
-	let formattedDate: Date = new Date();
-
-	function handleDateChange(event: CustomEvent) {
-		const date = event.detail;
-		formattedDate = new Date(date);
-		formattedDate.setHours(0, 0, 0, 0);
-	}
+	let formattedDate: Date = $state(new Date());
 
 	// Location and city selection functionality
 	let geocoder: google.maps.Geocoder;
-	let city1 = writable('');
+	let city1 = $state('');
 	let closestCity = '';
 
 	interface City {
@@ -85,12 +88,12 @@
 		region?: string;
 	}
 
-	let cities: City[] = [];
+	let cities: City[] = $state([]);
 	let userDeniedLocation = false;
 	let location: Position | null = null;
-	let address = '';
-	let isCitySelectionInvalid = false;
-	let showCityDropdown = false;
+	let address = $state('');
+	let isCitySelectionInvalid = $state(false);
+	let showCityDropdown = $state(false);
 
 	interface Position {
 		coords: {
@@ -190,7 +193,7 @@
 		});
 
 		if (closestCity) {
-			city1.set(closestCity);
+			city1 = closestCity;
 			console.log(`Closest city is: ${closestCity}`);
 			document.cookie = `closestCity=${closestCity}; path=/`; // Set cookie with the closest city
 		}
@@ -200,7 +203,7 @@
 		const target = event.target as HTMLSelectElement;
 		const selectedCity = target.value;
 		if (selectedCity) {
-			city1.set(selectedCity);
+			city1 = selectedCity;
 			isCitySelectionInvalid = false;
 			console.log(`User selected city: ${selectedCity}`);
 		}
@@ -289,12 +292,8 @@
 			console.log('Generated state key:', stateKey);
 
 			// State data
-			let cityValue = '';
-			const unsubscribe = city1.subscribe((value) => {
-				cityValue = value;
-				console.log('City value store for form:', cityValue);
-			});
-			unsubscribe();
+			const cityValue = city1;
+			console.log('City value store for form:', cityValue);
 
 			if (!cityValue && userDeniedLocation) {
 				isCitySelectionInvalid = true;
@@ -346,7 +345,7 @@
 
 			// Use redirect URI from environment if available
 			const redirectUri = encodeURIComponent(
-				import.meta.env.VITE_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
+				PUBLIC_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
 			);
 
 			console.log('Using redirect URI:', decodeURIComponent(redirectUri));
@@ -383,9 +382,7 @@
 		event.preventDefault();
 		try {
 			const stateKey = Date.now().toString();
-			let cityValue = '';
-			const unsubscribe = city1.subscribe((v) => (cityValue = v));
-			unsubscribe();
+			const cityValue = city1;
 
 			const formData = {
 				city: cityValue || 'berlin',
@@ -412,9 +409,7 @@
 		event.preventDefault();
 		try {
 			const stateKey = Date.now().toString();
-			let cityValue = '';
-			const unsubscribe = city1.subscribe((v) => (cityValue = v));
-			unsubscribe();
+			const cityValue = city1;
 
 			const formData = {
 				city: cityValue || 'berlin',
@@ -472,7 +467,7 @@
 
 				// Initialize Google Maps Geocoding API
 				const loader = new Loader({
-					apiKey: import.meta.env.VITE_MAPS_API_KEY,
+					apiKey: PUBLIC_MAPS_API_KEY,
 					version: 'weekly',
 					libraries: ['places']
 				});
@@ -490,7 +485,7 @@
 								if (address) {
 									const city = await extractCity(address);
 									if (city) {
-										city1.set(city);
+										city1 = city;
 										console.log(`City from extractCity: ${city}`);
 									} else {
 										console.log('No city extracted');
@@ -617,7 +612,7 @@
 
 <!-- Hidden form to store data -->
 <form id="city-location" action="/storestate" method="POST">
-	<input type="hidden" bind:value={$city1} name="city" />
+	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" bind:value={address} name="address" />
 	<input
 		type="hidden"
@@ -628,7 +623,7 @@
 </form>
 
 <h1
-	class="text-4xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-light via-light to-secondary"
+	class="text-4xl md:text-8xl font-bold text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
 >
 	Clubfindr Profile
 </h1>
@@ -637,7 +632,12 @@
 		<p class="welcome-text">Welcome, {userName}!</p>
 	{:else}
 		<p class="welcome-text">Please update your name to complete your profile.</p>
-		<form on:submit|preventDefault={updateName}>
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				updateName();
+			}}
+		>
 			<label for="name">Name:</label>
 			<input type="text" id="name" bind:value={newName} placeholder="Enter your name" />
 			<button type="submit" class="button">Update Name</button>
@@ -645,7 +645,7 @@
 	{/if}
 
 	<div class="settings-container">
-		<button class="settings-button" on:click={toggleDropdown}>
+		<button class="settings-button" onclick={toggleDropdown}>
 			<span class="desktop">Settings</span>
 			<span class="mobile">&#9776;</span>
 			<!-- Hamburger icon for mobile -->
@@ -654,10 +654,10 @@
 		<div class="dropdown-menu {dropdownVisible ? 'visible' : ''}">
 			<ul>
 				<li>
-					<button on:click={() => (window.location.href = '/update-info')}>Update My Info</button>
+					<button onclick={() => (window.location.href = '/update-info')}>Update My Info</button>
 				</li>
 				<li>
-					<button on:click={() => (window.location.href = '/delete-confirmation')}
+					<button onclick={() => (window.location.href = '/delete-confirmation')}
 						>Delete My Data</button
 					>
 				</li>
@@ -670,7 +670,7 @@
 <div class="date-location-section">
 	<div class="date-picker-container">
 		<h3>Choose Date for Events</h3>
-		<DatePicker bind:value={formattedDate} on:change={handleDateChange} />
+		<DatePicker bind:value={formattedDate} />
 		<p class="selected-date">
 			{new Intl.DateTimeFormat('en-GB', {
 				year: 'numeric',
@@ -683,8 +683,8 @@
 	<div class="city-display">
 		<h3>Current City</h3>
 		<div class="city-info">
-			<p class="current-city">{$city1 || 'Detecting your location...'}</p>
-			<button class="change-city-btn" on:click={() => (showCityDropdown = !showCityDropdown)}>
+			<p class="current-city">{city1 || 'Detecting your location...'}</p>
+			<button class="change-city-btn" onclick={() => (showCityDropdown = !showCityDropdown)}>
 				Change City
 			</button>
 		</div>
@@ -694,14 +694,14 @@
 				<select
 					id="city-select"
 					class:isInvalid={isCitySelectionInvalid}
-					on:change={(e) => {
+					onchange={(e) => {
 						handleCitySelection(e);
 						showCityDropdown = false;
 					}}
 					style="color: black;"
 				>
 					<option value="" selected disabled>Select a city</option>
-					{#each cities as city}
+					{#each cities as city (city.name)}
 						<option value={city.name} style="color: black;">{city.name}</option>
 					{/each}
 				</select>
@@ -733,7 +733,7 @@
 
 				<button
 					type="button"
-					on:click={handleSpotifyButtonClick}
+					onclick={handleSpotifyButtonClick}
 					class="connect-button spotify-button"
 					aria-label="Login with Spotify"
 				>
@@ -759,7 +759,7 @@
 				</p>
 				<button
 					type="button"
-					on:click={handleSoundCloudButtonClick}
+					onclick={handleSoundCloudButtonClick}
 					class="connect-button soundcloud-button"
 					aria-label="Login with SoundCloud"
 				>
@@ -780,7 +780,7 @@
 				</p>
 				<button
 					type="button"
-					on:click={handleTidalButtonClick}
+					onclick={handleTidalButtonClick}
 					class="connect-button tidal-button"
 					aria-label="Login with Tidal"
 				>
@@ -805,7 +805,7 @@
 <div class="flex-container">
 	<div class="chart-container">
 		{#if preferences.length > 0}
-			<canvas id="myChart" />
+			<canvas id="myChart"></canvas>
 		{:else}
 			<p>No genre preferences found.</p>
 		{/if}
@@ -813,7 +813,7 @@
 	<div class="additional-content">
 		{#if interestedEvents.length > 0}
 			<ul>
-				{#each interestedEvents.slice(0, maxVisibleEvents) as event}
+				{#each interestedEvents.slice(0, maxVisibleEvents) as event (event.event_id)}
 					<li>
 						<h4>{event.event_name}</h4>
 						<p>At: {event.club_name}</p>
@@ -824,9 +824,9 @@
 								<select
 									data-event-id={event.event_id}
 									bind:value={event.attended}
-									on:change={handleAttendanceChange}
+									onchange={handleAttendanceChange}
 								>
-									<option value="" />
+									<option value=""></option>
 									<option value="0">No</option>
 									<option value="1">Yes</option>
 								</select>
@@ -838,9 +838,9 @@
 									<select
 										data-event-id={event.event_id}
 										bind:value={event.likedRecommendation}
-										on:change={handleRecommendationChange}
+										onchange={handleRecommendationChange}
 									>
-										<option value="" />
+										<option value=""></option>
 										<option value="0">No</option>
 										<option value="1">Yes</option>
 									</select>

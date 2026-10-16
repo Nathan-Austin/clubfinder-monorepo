@@ -6,13 +6,13 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	let email = '';
-	let confirmationCode = '';
-	let errorMessage = '';
-	let loading = false;
-	let attempts = 0;
-	let resendCooldown = 0;
-	let canResend = true;
+	let email = $state('');
+	let confirmationCode = $state('');
+	let errorMessage = $state('');
+	let loading = $state(false);
+	let attempts = $state(0);
+	let resendCooldown = $state(0);
+	let canResend = $state(true);
 	let resendTimer: ReturnType<typeof setInterval> | null = null;
 
 	// Automatically get the email from the query parameter if available
@@ -103,7 +103,7 @@
 
 <h1>Confirm Your Email</h1>
 
-<form on:submit|preventDefault={confirm} aria-busy={loading}>
+<form onsubmit={confirm} aria-busy={loading}>
 	<label for="email">Email:</label>
 	<input type="email" id="email" bind:value={email} required placeholder="Enter your email" />
 
@@ -132,8 +132,15 @@
 
 	{#if attempts < 3 && canResend}
 		<p>
-			<!-- svelte-ignore a11y-invalid-attribute -->
-			Didn’t receive the code? <a href="#" on:click|preventDefault={resendCode}>Resend Code</a>
+			<!-- svelte-ignore a11y_invalid_attribute -->
+			Didn’t receive the code?
+			<a
+				href="#"
+				onclick={(e) => {
+					e.preventDefault();
+					resendCode();
+				}}>Resend Code</a
+			>
 		</p>
 	{/if}
 

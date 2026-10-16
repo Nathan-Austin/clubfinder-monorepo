@@ -1,17 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { genresStore } from '../../../../stores/genresStore';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { genres } from '../../../../stores/genres.svelte';
 
-	let genresList: string[] = [];
-	let selectedGenres: Set<string> = new Set();
-
-	// Fetch the genres when the component mounts
-	onMount(() => {
-		const unsubscribe = genresStore.subscribe((genres) => {
-			genresList = [...genres]; // Convert Set to Array
-		});
-		return unsubscribe;
-	});
+	const selectedGenres = new SvelteSet<string>();
 
 	function handleGenreClick(genre: string): void {
 		if (selectedGenres.has(genre)) {
@@ -40,18 +31,18 @@
 </script>
 
 <div>
-	{#each genresList as genre (genre)}
+	{#each [...genres] as genre (genre)}
 		<button
 			class:selected={selectedGenres.has(genre)}
-			on:click={() => handleGenreClick(genre)}
-			on:keydown={(event) => handleKeydown(event, genre)}
+			onclick={() => handleGenreClick(genre)}
+			onkeydown={(event) => handleKeydown(event, genre)}
 		>
 			{genre}
 		</button>
 	{/each}
 </div>
 
-<button on:click={handleSubmit} on:keydown={handleSubmitKeydown}>Submit</button>
+<button onclick={handleSubmit} onkeydown={handleSubmitKeydown}>Submit</button>
 
 <style>
 	.selected {
