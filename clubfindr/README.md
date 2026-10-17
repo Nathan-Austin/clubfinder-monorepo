@@ -74,10 +74,10 @@ tests/             Playwright suite and fixtures
 dev/               local database setup, schema, seed, TESTING.md
 migrations/        SQL migrations to apply by hand
 scripts/           genre maintenance tools (compiled to dist-scripts/)
-docs/              design notes and PRODUCTION_HANDOVER.md
+docs/              design notes and KNOWN_ISSUES.md
 ```
 
 ## Production
 
-See `docs/PRODUCTION_HANDOVER.md` for the checklist to move a server from the previous
-(Node 18, Svelte 4) deployment to this version, and the list of known issues.
+Known issues are listed in `docs/KNOWN_ISSUES.md`. Production deployment is documented in
+the monorepo's `deploy/README.md` and is not needed for local development.
