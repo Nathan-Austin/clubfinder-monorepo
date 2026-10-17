@@ -37,7 +37,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		const mailOptions = {
-			from: '"ClubFindr Dev Mode" <nath.austin@gmail.com>',
+			// Gmail sends as the account it authenticates with
+			from: `"ClubFindr Dev Mode" <${GMAIL_USER}>`,
 			to: 'admin@clubfindr.com',
 			subject: 'New Access Request for Dev Mode Feature',
 			text: emailContent

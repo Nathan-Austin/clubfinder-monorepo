@@ -171,7 +171,7 @@ import, and the old client bundle does not contain it. No rotation needed.
   ARM64 install in 8 s, build in 25 s, peak RAM+swap use 4.0 of 5.8 GB (the build adds
   about 1 GB). Status codes on staging matched live for `/`, `/clubs`, `/barfindr`,
   `/login/users`, `/password-reset`, `/about/us` and a 404. `/clubs` and `/barfindr` return
-  500 without cookies on both (handover known issue #3). Reset-password with a bogus token
+  500 without cookies on both (known issue #3 in `clubfindr/docs/KNOWN_ISSUES.md`). Reset-password with a bogus token
   gave 400 (DB reachable with the `PG_*` names). A form post with a foreign Origin got 403;
   with its own Origin, 401.
   - `git fetch && git worktree add --detach ~/clubfindr-staging origin/upgrade/svelte5`,
@@ -299,7 +299,7 @@ automatic deploy only fast-forwards the checkout (0 files changed, no rebuild or
 - `bcryptjs` ends up in the browser bundle (build warning "Module crypto has been
   externalized"). Something client-side imports the password utilities; move them to
   `$lib/server`.
-- Handover known issue #7 (colour classes outside the palette) also hides text: update-info
+- Known issue #7 (colour classes outside the palette) also hides text: update-info
   was fixed in PR #3; check the other pages that use `bg-gray-*`/`text-gray-*`.
 - Handover doc follow-ups: bump `@playwright/test`, then the known-issues list. Worth
   prioritising: #3 (500s without cookies), #1 (UTC dates), #2 (Spotify token expiry).
