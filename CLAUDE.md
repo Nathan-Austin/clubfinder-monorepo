@@ -279,8 +279,8 @@ The clubfindr web app builds to a Node.js server:
 - Uses `@sveltejs/adapter-node` with precompression enabled
 - Preview server runs on port 3000
 
-Production setup (services, ports, restarts, logs) is documented in the
-README "Production" section; the live systemd units, nginx site and cron lines
+Production setup (services, ports, restarts, logs) is documented in
+`deploy/README.md`; the live systemd units, nginx site and cron lines
 are copied in `deploy/`. Summary:
 - clubfindr: `node build/index.js` on :3000 under PM2 (`clubfindr/ecosystem.config.cjs`, resurrected at boot by `pm2-nathan.service`)
 - spotify_service: `spotify-automation-api` (Flask, :5000, called by clubfindr on 127.0.0.1; routes under `/api/<name>`), `-worker-browser`, `-beat`; venv `~/spotify_service_env`

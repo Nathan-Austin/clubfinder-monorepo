@@ -70,7 +70,7 @@ dev/setup.sh
 It is safe to re-run; each run resets the data to the seed. It never overwrites a `.env` that
 it did not write; use `dev/setup.sh --force` to replace one (the old file is kept as
 `.env.bak`). A `.env` from before the upgrade uses the old `VITE_*` names: `--force`
-rewrites it with the current ones (see `docs/PRODUCTION_HANDOVER.md` for the rename table).
+rewrites it with the current ones.
 `dev/setup.sh --stop` stops the Postgres it started.
 
 Settings can be changed with `DEV_PG_HOST`, `DEV_PG_USER`, `DEV_PG_PASSWORD` and

@@ -13,6 +13,22 @@ Thumbs.db
 *~
 .cache
 
+# Dependencies, build output and test artefacts, at any depth
+node_modules/
+.venv/
+venv/
+__pycache__/
+.svelte-kit/
+build/
+dist/
+coverage/
+test-results/
+playwright-report/
+# A pattern with a slash in the middle is anchored to the root, so add **/ to match
+# component dev databases such as clubfindr/dev/.pgdata/
+dev/.pgdata/
+**/dev/.pgdata/
+
 # IDE & Editor
 .vscode/
 .idea/

@@ -109,7 +109,7 @@ changed spotify_service && DO_SPOTIFY=1
 if [ $DO_CLUBFINDR = 1 ]; then
 	want=$(git show "$TARGET:clubfindr/.nvmrc" | tr -d '[:space:]')
 	[ -x "$NODE_DIR/bin/node" ] ||
-		fail "$NODE_DIR/bin/node not found; install Node $want and link it there (README \"Production\")"
+		fail "$NODE_DIR/bin/node not found; install Node $want and link it there (deploy/README.md)"
 	have=$("$NODE_DIR/bin/node" -p 'process.versions.node.split(".")[0]')
 	[ "$have" = "$want" ] || fail "$NODE_DIR is Node $have, clubfindr/.nvmrc wants $want"
 	[ -x "$PNPM" ] || fail "$PNPM not found; run $NODE_DIR/bin/corepack enable"
@@ -134,7 +134,7 @@ if [ ${#need_units[@]} -gt 0 ]; then
 	allowed=$(nopasswd_commands)
 	for unit in "${need_units[@]}"; do
 		echo "$allowed" | grep -qxF "$SYSTEMCTL restart $unit" ||
-			fail "no passwordless sudo for '$SYSTEMCTL restart $unit'; install deploy/sudoers/clubfinder-deploy (README \"Production\")"
+			fail "no passwordless sudo for '$SYSTEMCTL restart $unit'; install deploy/sudoers/clubfinder-deploy (deploy/README.md)"
 	done
 fi
 
@@ -206,7 +206,7 @@ fi
 
 MANUAL=$(echo "$CODE" | grep '^deploy/' | grep -vE '^deploy/deploy\.sh$' || true)
 if [ -n "$MANUAL" ]; then
-	log "Changed under deploy/ (NOT applied; install by hand, see README \"Production\"):"
+	log "Changed under deploy/ (NOT applied; install by hand, see deploy/README.md):"
 	echo "$MANUAL" | sed 's/^/  /'
 fi
 
