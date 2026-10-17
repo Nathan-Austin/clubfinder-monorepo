@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 
 	let formData = $state({
 		name: '',
@@ -72,7 +73,7 @@
 		class="max-w-md mx-auto"
 	>
 		<div class="mb-6">
-			<label for="name" class="block mb-2">Name</label>
+			<label for="name" class="block mb-2 text-white">Name</label>
 			<input
 				type="text"
 				id="name"
@@ -84,7 +85,7 @@
 		</div>
 
 		<div class="mb-6">
-			<label for="email" class="block mb-2">Email</label>
+			<label for="email" class="block mb-2 text-white">Email</label>
 			<input
 				type="email"
 				id="email"
@@ -96,40 +97,46 @@
 		</div>
 
 		<div class="mb-6">
-			<label for="current-password" class="block mb-2">Current Password</label>
-			<input
-				type="password"
-				id="current-password"
-				name="password"
-				bind:value={formData.password}
-				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
-				placeholder="Enter current password"
-				required
-			/>
+			<label for="current-password" class="block mb-2 text-white">Current Password</label>
+			<PasswordToggle>
+				<input
+					type="password"
+					id="current-password"
+					name="password"
+					bind:value={formData.password}
+					class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
+					placeholder="Enter current password"
+					required
+				/>
+			</PasswordToggle>
 		</div>
 
 		<div class="mb-6">
-			<label for="new-password" class="block mb-2">New Password (optional)</label>
-			<input
-				type="password"
-				id="new-password"
-				name="newPassword"
-				bind:value={formData.newPassword}
-				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
-				placeholder="Enter new password"
-			/>
+			<label for="new-password" class="block mb-2 text-white">New Password (optional)</label>
+			<PasswordToggle>
+				<input
+					type="password"
+					id="new-password"
+					name="newPassword"
+					bind:value={formData.newPassword}
+					class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
+					placeholder="Enter new password"
+				/>
+			</PasswordToggle>
 		</div>
 
 		<div class="mb-6">
-			<label for="confirm-password" class="block mb-2">Confirm New Password</label>
-			<input
-				type="password"
-				id="confirm-password"
-				name="confirmNewPassword"
-				bind:value={formData.confirmNewPassword}
-				class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
-				placeholder="Confirm new password"
-			/>
+			<label for="confirm-password" class="block mb-2 text-white">Confirm New Password</label>
+			<PasswordToggle>
+				<input
+					type="password"
+					id="confirm-password"
+					name="confirmNewPassword"
+					bind:value={formData.confirmNewPassword}
+					class="w-full p-2 rounded-sm bg-gray-700 border border-gray-600"
+					placeholder="Confirm new password"
+				/>
+			</PasswordToggle>
 		</div>
 
 		{#if errorMessage}
@@ -165,9 +172,5 @@
 <style>
 	input::placeholder {
 		color: #9ca3af;
-	}
-
-	input {
-		color: white;
 	}
 </style>

@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { validateEmail } from '$lib/passwordUtils';
 	import type { FacebookLoginResponse } from '../../../../types/facebook';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 
 	const client_id = PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 	const facebookAppId = PUBLIC_FACEBOOK_APP_ID;
@@ -312,13 +313,15 @@
 
 		<div class="form-group">
 			<label for="password">{isNewUser ? 'Choose a Password' : 'Password'}</label>
-			<input
-				type="password"
-				id="password"
-				bind:value={password}
-				placeholder={isNewUser ? 'Create a secure password' : 'Enter your password'}
-				required
-			/>
+			<PasswordToggle>
+				<input
+					type="password"
+					id="password"
+					bind:value={password}
+					placeholder={isNewUser ? 'Create a secure password' : 'Enter your password'}
+					required
+				/>
+			</PasswordToggle>
 			{#if isNewUser && password}
 				<div class="password-strength-meter">
 					<div class="strength-bar">

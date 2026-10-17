@@ -3,6 +3,7 @@
 	import { PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import type { CitiesData, City } from '$lib/types/city';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 	const siteKey = PUBLIC_RECAPTCHA_SITE_KEY;
 	let isVerified = $state(false);
 	let citiesData: CitiesData = $state({ cities: [] });
@@ -193,12 +194,16 @@
 
 	<label>
 		Password:
-		<input type="password" bind:value={password} required />
+		<PasswordToggle>
+			<input type="password" bind:value={password} required />
+		</PasswordToggle>
 	</label>
 
 	<label>
 		Confirm Password:
-		<input type="password" bind:value={confirmPassword} required oninput={validatePasswords} />
+		<PasswordToggle>
+			<input type="password" bind:value={confirmPassword} required oninput={validatePasswords} />
+		</PasswordToggle>
 	</label>
 
 	{#if passwordError}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { validatePassword } from '$lib/passwordUtils';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 
 	let password = $state('');
 	let confirmPassword = $state('');
@@ -94,28 +95,32 @@
 		<div class="form-group">
 			<label for="password">
 				New Password:
-				<input
-					type="password"
-					id="password"
-					bind:value={password}
-					oninput={validatePasswords}
-					class:error={passwordErrors.length > 0}
-					required
-				/>
+				<PasswordToggle>
+					<input
+						type="password"
+						id="password"
+						bind:value={password}
+						oninput={validatePasswords}
+						class:error={passwordErrors.length > 0}
+						required
+					/>
+				</PasswordToggle>
 			</label>
 		</div>
 
 		<div class="form-group">
 			<label for="confirmPassword">
 				Confirm New Password:
-				<input
-					type="password"
-					id="confirmPassword"
-					bind:value={confirmPassword}
-					oninput={validatePasswords}
-					class:error={passwordErrors.length > 0}
-					required
-				/>
+				<PasswordToggle>
+					<input
+						type="password"
+						id="confirmPassword"
+						bind:value={confirmPassword}
+						oninput={validatePasswords}
+						class:error={passwordErrors.length > 0}
+						required
+					/>
+				</PasswordToggle>
 			</label>
 
 			{#if passwordErrors.length > 0}
