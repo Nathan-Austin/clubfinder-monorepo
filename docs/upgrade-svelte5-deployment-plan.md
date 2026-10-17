@@ -165,16 +165,29 @@ import, and the old client bundle does not contain it. No rotation needed.
   looked up with `decryptToken`) was fixed on `main` by PR #1 (`76cab13`, SHA-256 token
   hash). The same change is on this branch, and the reset flow test passes 12/12 on the
   Node 24 build.
-- **S4. Staging run on the server.**
-  - `git fetch && git worktree add ~/clubfindr-staging origin/upgrade/svelte5`, then copy
-    `.env` into `~/clubfindr-staging/clubfindr/`.
+- **S4. Staging run on the server. Done 2026-10-17** on `80efcc1`; browser checks (logins,
+  search, update-info form) passed through the tunnel. Build and curl checks:
+  ARM64 install in 8 s, build in 25 s, peak RAM+swap use 4.0 of 5.8 GB (the build adds
+  about 1 GB). Status codes on staging matched live for `/`, `/clubs`, `/barfindr`,
+  `/login/users`, `/password-reset`, `/about/us` and a 404. `/clubs` and `/barfindr` return
+  500 without cookies on both (handover known issue #3). Reset-password with a bogus token
+  gave 400 (DB reachable with the `PG_*` names). A form post with a foreign Origin got 403;
+  with its own Origin, 401.
+  - `git fetch && git worktree add --detach ~/clubfindr-staging origin/upgrade/svelte5`,
+    then copy `.env` into `~/clubfindr-staging/clubfindr/`.
   - With `PATH=~/.local/node24/bin:$PATH`, run `pnpm install --frozen-lockfile && pnpm build`.
-  - Run `PORT=3001 ORIGIN=https://www.clubfindr.com node build/index.js`.
-  - From the laptop, `ssh -L 3001:127.0.0.1:3001` and smoke-test (list below).
+  - Run `NODE_ENV=production HOST=127.0.0.1 PORT=3001 ORIGIN=http://localhost:3001 node build/index.js`.
+    `ORIGIN` must be the address the browser uses, or the CSRF check rejects every form
+    post through the tunnel.
+  - From the laptop, `ssh -N -L 3001:127.0.0.1:3001` and smoke-test (list below). Spotify
+    login can't work here (its redirect URIs point at clubfindr.com); test it after cutover.
   - This uses the production database: logging in writes session rows and "mark interest"
     writes one row. Don't submit registrations or deletions.
-  - Afterwards stop it and run `git worktree remove ~/clubfindr-staging`.
-- **S5. Note the rollback commit:** `git -C ~/clubfinder rev-parse HEAD`.
+  - Afterwards stop it (`kill $(cat /tmp/s4.pid)`) and run
+    `git -C ~/clubfinder worktree remove --force ~/clubfindr-staging` (`--force` because of
+    the copied `.env` and `node_modules`).
+- **S5. Note the rollback commit:** `git -C ~/clubfinder rev-parse HEAD`. For this
+  cutover it is `76cab13` (PR #1, the last deploy).
 
 ## Cutover
 
@@ -190,7 +203,9 @@ Pick a quiet window. The deploy runs as soon as Main CI passes on `main`.
    `$PM2 delete clubfindr && $PM2 start ecosystem.config.cjs && $PM2 save`, so the new
    `interpreter` is definitely used. Confirm with
    `readlink /proc/$($PM2 pid clubfindr)/exe`, which should point into
-   `~/.nvm/versions/node/v24…`.
+   `~/.nvm/versions/node/v24…`. Until then the reloaded process may still run on Node 18.
+   The new build does start and serve `GET /` with 200 on Node 18 (tested offline), so this
+   window is not an outage, but Node 18 is unsupported: do it promptly.
 4. Apply `pm2-nathan.service` (repo change 4) with `sudo cp …`, then
    `systemctl daemon-reload`. This also removes the drifted live PATH (`.` and the
    vscode-server entry). It takes effect at the next boot or PM2 resurrect; the app pins its
@@ -231,8 +246,9 @@ automatic deploy only fast-forwards the checkout (0 files changed, no rebuild or
 - Rename or remove the old GitHub `VITE_*` secrets.
 - PM2 logs are not rotated (`clubfindr-error-0.log` was 9 MB on 2026-10-16): install
   `pm2-logrotate` or add a logrotate rule.
-- Main CI's `changes` job fails on pull requests ("Resource not accessible by
-  integration"): add `permissions: { contents: read, pull-requests: read }` to
-  `main-ci.yml`.
+- `$lib/email.ts` hard-codes `mail.spacemail.com`, so CI and local e2e runs try to log in
+  to the real mail provider with placeholder credentials (refused with 535; the tests
+  expect the failure). Make the host configurable and point tests at nothing or a fake
+  SMTP server.
 - Handover doc follow-ups: bump `@playwright/test`, then the known-issues list. Worth
   prioritising: #3 (500s without cookies), #1 (UTC dates), #2 (Spotify token expiry).
