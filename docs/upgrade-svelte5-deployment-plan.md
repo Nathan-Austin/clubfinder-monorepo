@@ -1,6 +1,7 @@
 # Deployment plan: clubfindr Svelte 5 / Node 24 upgrade (`upgrade/svelte5`)
 
-Status: draft, 2026-10-16. Nothing here has been done on the server yet.
+Status: **done.** Cut over on 2026-10-17 (`ce689f7`, PR #2); see "Cutover log". Written
+2026-10-16 as the plan; the steps below are kept as the record and for rollback.
 
 ## Why this needs a plan
 
@@ -39,7 +40,7 @@ CSRF impact checked: no third party POSTs forms to us (Apple `form_post` targets
 `/register/login/apple`, which does not exist before or after the upgrade). The mobile app
 posts JSON to `/api/mobile/*`, which the check does not apply to.
 
-## Repo changes on the branch (done 2026-10-16, uncommitted)
+## Repo changes on the branch (merged in PR #2)
 
 All must land in the same merge, because the deploy uses `deploy.sh` from the merged commit.
 Items 1–5 are made. Item 6 is partly made: the `dev/TESTING.md` baseline is fixed; the
@@ -222,6 +223,45 @@ Pick a quiet window. The deploy runs as soon as Main CI passes on `main`.
 6. Watch `~/.pm2/logs/clubfindr-error-0.log` for 15 to 30 minutes, looking for 403
    "Cross-site POST", 500s, and `$env` errors.
 
+## Cutover log (2026-10-17)
+
+- PR #2 merged as `ce689f7`. Main CI passed; `deploy.sh` installed with pnpm
+  10.34.6, built in 18 s and reloaded PM2; the health check returned 200.
+- Step 3 by hand: `$PM2 delete/start/save`; `readlink` showed
+  `~/.nvm/versions/node/v24.22.0/bin/node`; `GET /` returned 200.
+- Step 4: the live `pm2-nathan.service` differed only in the PATH line. Replaced and
+  `daemon-reload`ed. Its `ExecStart` runs pm2 through `/usr/bin/env node`, so at the next
+  boot the PM2 daemon itself also runs on Node 24.
+- Error log for the day (excluding the Spotify 403s) was clean: no "Cross-site", `$env` or
+  other errors.
+- Smoke tests on clubfindr.com, all passed: listener and bar logins, `/clubs` search,
+  `/barfindr` (once a bar was streaming), update-info with a wrong current password
+  ("Invalid current password", so the CSRF check passes the site's own forms), the
+  password reset e-mail and link, and the Spotify login for users and bars (after the
+  Spotify fixes below).
+- Follow-up deploy `5a1e79f` (PR #3): show/hide toggle on all password fields, and
+  update-info fields made readable (white text on white, a palette leftover).
+
+## Spotify findings (2026-10-17; not caused by the upgrade)
+
+- The Spotify login failed with `403 the user may not be registered` (also logged on
+  2026-10-13, before the upgrade). Spotify's Development Mode rules, applied to existing apps
+  on 2026-03-09: one Development Mode Client ID per developer, at most 5 allowlisted users
+  per Client ID, and the owner needs Premium.
+- `clubfindr.spotify_apps` held 4 apps that no longer exist in the dashboard (Clubfindr
+  Bars 1, Party Recommender 1-3). The only user-facing app left is **Party Recommender**
+  (`ab96bcae…`). It was added as a row with `is_active = false`, so nothing assigns it
+  automatically. The test user and all 5 bars now point at it. Its 5 allowlist slots are
+  full (1 user and 4 bar accounts).
+- The Data collection 1-4 apps have no users; the scraper uses them for app-only calls.
+- Recently played comes back empty for this app, even while the account is playing.
+  Currently playing, the queue, top artists and playlists work.
+- Extended Quota Mode is out of reach. Since 2025-05-15 it is for organisations with at least
+  250k MAU, and the use case conflicts with Developer Policy III.13 (no analysis of Spotify
+  content or user profiling) and III.10 (no products aimed at businesses such as bars).
+  This was also the earlier rejection reason. Options: make the manual genre/artist picker the main path,
+  add a Last.fm import, keep Spotify for at most 5 people.
+
 ## Rollback
 
 Fast path (minutes), on the server:
@@ -242,7 +282,8 @@ automatic deploy only fast-forwards the checkout (0 files changed, no rebuild or
 ## After it has been stable for a week
 
 - Remove the `VITE_*` keys from `.env`, and remove `.env.pre-svelte5`.
-- Move the PM2 daemon to Node 24 (`pm2 kill`, then restart `pm2-nathan.service`).
+- The PM2 daemon still runs on Node 18 until the next reboot (the new unit then starts it on
+  Node 24). To switch sooner: `pm2 kill`, then restart `pm2-nathan.service`.
 - Rename or remove the old GitHub `VITE_*` secrets.
 - PM2 logs are not rotated (`clubfindr-error-0.log` was 9 MB on 2026-10-16): install
   `pm2-logrotate` or add a logrotate rule.
@@ -250,5 +291,15 @@ automatic deploy only fast-forwards the checkout (0 files changed, no rebuild or
   to the real mail provider with placeholder credentials (refused with 535; the tests
   expect the failure). Make the host configurable and point tests at nothing or a fake
   SMTP server.
+- Spotify: decide on the options above. Until then, pause spotify_service's add-user and
+  add-bar automation, which creates and fills apps against the new one-Client-ID rule. Retire
+  the 4 dead `spotify_apps` rows once nothing references them.
+- Two test bars have `music_service = 'Spotify'` (capital S). `login/bars` compares with
+  `'spotify'`, so they skip the Spotify flow. Normalise the data or compare case-insensitively.
+- `bcryptjs` ends up in the browser bundle (build warning "Module crypto has been
+  externalized"). Something client-side imports the password utilities; move them to
+  `$lib/server`.
+- Handover known issue #7 (colour classes outside the palette) also hides text: update-info
+  was fixed in PR #3; check the other pages that use `bg-gray-*`/`text-gray-*`.
 - Handover doc follow-ups: bump `@playwright/test`, then the known-issues list. Worth
   prioritising: #3 (500s without cookies), #1 (UTC dates), #2 (Spotify token expiry).
