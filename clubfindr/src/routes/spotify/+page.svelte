@@ -6,6 +6,7 @@
 	import type { Artist, PlaylistWithArtists, RecentlyPlayedTrack } from '$lib/$types';
 
 	import ConfirmPopup from '../ConfirmPopup.svelte';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 	interface Props {
 		data: PageData;
 	}
@@ -303,25 +304,29 @@
 							</div>
 							<div class="form-group">
 								<label for="password">Password</label>
-								<input
-									type="password"
-									id="password"
-									class="input-field"
-									bind:value={password}
-									placeholder="Enter a password"
-									required
-								/>
+								<PasswordToggle>
+									<input
+										type="password"
+										id="password"
+										class="input-field"
+										bind:value={password}
+										placeholder="Enter a password"
+										required
+									/>
+								</PasswordToggle>
 							</div>
 							<div class="form-group">
 								<label for="confirmPassword">Confirm Password</label>
-								<input
-									type="password"
-									id="confirmPassword"
-									class="input-field"
-									bind:value={confirmPassword}
-									placeholder="Confirm your password"
-									required
-								/>
+								<PasswordToggle>
+									<input
+										type="password"
+										id="confirmPassword"
+										class="input-field"
+										bind:value={confirmPassword}
+										placeholder="Confirm your password"
+										required
+									/>
+								</PasswordToggle>
 							</div>
 							<!-- Error Message -->
 							{#if errorMessage}
