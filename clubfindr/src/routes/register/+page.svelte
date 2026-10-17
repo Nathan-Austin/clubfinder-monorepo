@@ -9,6 +9,7 @@
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import type { CitiesData, City } from '$lib/types/city';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 
 	const siteKey = PUBLIC_RECAPTCHA_SITE_KEY;
 	let isVerified = $state(false);
@@ -515,28 +516,32 @@
 		<div class="form-group">
 			<label for="password">
 				Password:
-				<input
-					type="password"
-					id="password"
-					bind:value={password}
-					oninput={validatePasswords}
-					class:error={passwordErrors.length > 0}
-					required
-				/>
+				<PasswordToggle>
+					<input
+						type="password"
+						id="password"
+						bind:value={password}
+						oninput={validatePasswords}
+						class:error={passwordErrors.length > 0}
+						required
+					/>
+				</PasswordToggle>
 			</label>
 		</div>
 
 		<div class="form-group">
 			<label for="confirmPassword">
 				Confirm Password:
-				<input
-					type="password"
-					id="confirmPassword"
-					bind:value={confirmPassword}
-					oninput={validatePasswords}
-					class:error={passwordErrors.length > 0}
-					required
-				/>
+				<PasswordToggle>
+					<input
+						type="password"
+						id="confirmPassword"
+						bind:value={confirmPassword}
+						oninput={validatePasswords}
+						class:error={passwordErrors.length > 0}
+						required
+					/>
+				</PasswordToggle>
 			</label>
 			{#if passwordErrors.length > 0}
 				<div class="password-requirements">

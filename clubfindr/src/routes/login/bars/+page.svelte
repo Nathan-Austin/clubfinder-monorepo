@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { validateEmail } from '$lib/passwordUtils';
+	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -125,13 +126,15 @@
 
 		<div class="form-group">
 			<label for="password">Password</label>
-			<input
-				type="password"
-				id="password"
-				bind:value={password}
-				placeholder="Enter your password"
-				required
-			/>
+			<PasswordToggle>
+				<input
+					type="password"
+					id="password"
+					bind:value={password}
+					placeholder="Enter your password"
+					required
+				/>
+			</PasswordToggle>
 		</div>
 
 		<div class="form-actions">

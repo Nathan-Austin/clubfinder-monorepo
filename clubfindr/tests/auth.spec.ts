@@ -35,6 +35,26 @@ test.describe('login', () => {
 		await expect(page).toHaveURL(/\/login\/users$/);
 	});
 
+	test('password field can be shown and hidden without submitting', async ({ page }) => {
+		await page.goto(USERS.listener.loginPath);
+		await acceptCookies(page);
+		const form = page.locator('form.login-form');
+		const field = form.locator('#password');
+		await field.fill('typed-secret');
+		await expect(field).toHaveAttribute('type', 'password');
+
+		await form.getByRole('button', { name: 'Show password' }).click();
+		await expect(field).toHaveAttribute('type', 'text');
+		await expect(field).toHaveValue('typed-secret');
+
+		await form.getByRole('button', { name: 'Hide password' }).click();
+		await expect(field).toHaveAttribute('type', 'password');
+		await expect(field).toHaveValue('typed-secret');
+		// The toggle is type="button", so the form was not submitted
+		await expect(page).toHaveURL(/\/login\/users$/);
+		await expect(page.locator('.error-message')).toHaveCount(0);
+	});
+
 	test('logout returns to the public site', async ({ page }) => {
 		await login(page, 'listener');
 		await page.goto('/logout');
