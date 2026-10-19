@@ -1,4 +1,5 @@
 // bars/+page.server.ts
+import { redirect } from '@sveltejs/kit';
 import { pool } from '$lib/db';
 import type { PageServerLoad } from './$types';
 import { normalizeCityName } from '$lib/spotifyUtils';
@@ -259,7 +260,8 @@ function combineGenreProfiles(
 
 export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	depends('app:date');
-	const city = normalizeCityName(cookies.get('city') || '');
+	const cityCookie = cookies.get('city');
+	const city = cityCookie ? normalizeCityName(cityCookie) : '';
 	const isLoggedIn = cookies.get('isLoggedIn') === 'true';
 	let date = cookies.get('date');
 
@@ -272,13 +274,10 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	const address = cookies.get('address');
 	let genresList: string[] = [];
 
-	// Ensure required values are present
-	if (!city) {
-		throw new Error('City not found in cookies');
-	}
-	if (!date) {
-		date = new Date().toISOString().split('T')[0];
-		console.log(`No date found in cookies, using today's date: ${date}`);
+	// No search yet (or the one-hour search cookies expired): start over on the home page.
+	// No "today" fallback here: the server's clock is not the visitor's.
+	if (!city || !date) {
+		redirect(302, '/');
 	}
 
 	const sessionId = cookieManager.get(cookies, 'sessionId');
