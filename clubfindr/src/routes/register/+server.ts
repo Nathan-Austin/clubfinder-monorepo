@@ -9,7 +9,7 @@ import { randomBytes } from 'crypto';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import type { RequestHandler } from '@sveltejs/kit';
-import { hashPassword } from '$lib/passwordUtils';
+import { hashPassword } from '$lib/server/passwordUtils';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
 
 // Get the form data

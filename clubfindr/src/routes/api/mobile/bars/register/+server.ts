@@ -5,7 +5,7 @@ import { randomBytes } from 'crypto';
 import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
-import { hashPassword } from '$lib/passwordUtils';
+import { hashPassword } from '$lib/server/passwordUtils';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
 
 export const POST: RequestHandler = async ({ request }) => {

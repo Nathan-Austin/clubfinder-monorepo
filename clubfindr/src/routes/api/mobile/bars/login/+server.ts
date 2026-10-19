@@ -1,7 +1,7 @@
 // api/mobile/bar/login/+server.ts
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
-import { comparePassword } from '$lib/passwordUtils';
+import { comparePassword } from '$lib/server/passwordUtils';
 import { decryptToken, encryptToken } from '$lib/encryptionUtils';
 import { refreshSpotifyToken } from '$lib/spotifyUtils';
 import { v4 as uuidv4 } from 'uuid';

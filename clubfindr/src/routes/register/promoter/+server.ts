@@ -3,7 +3,7 @@ import { query } from '$lib/db';
 import { randomBytes } from 'crypto';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
-import { hashPassword } from '$lib/passwordUtils';
+import { hashPassword } from '$lib/server/passwordUtils';
 import type { RequestHandler } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
