@@ -217,6 +217,10 @@ Git history from individual repos is backed up in `.git-backups/` (ignored by gi
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Roadmap
+
+Planned work, in order, is in [ROADMAP.md](ROADMAP.md).
+
 ## License
 
 MIT, see [LICENSE](LICENSE). The Spotify logo files in
