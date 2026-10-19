@@ -77,6 +77,13 @@ scripts/           genre maintenance tools (compiled to dist-scripts/)
 docs/              design notes and KNOWN_ISSUES.md
 ```
 
+## Taste profile
+
+Users pick favourite artists (or import them from Last.fm) and the genres of those artists
+feed the club and bar matching, with no Spotify login. Design and trace of the old flows:
+`docs/taste-profile-design.md`; operational handover (how to run and test it, decisions,
+follow-ups, what was not verified live): `docs/HANDOVER.md`.
+
 ## Production
 
 Known issues are listed in `docs/KNOWN_ISSUES.md`. Production deployment is documented in
