@@ -6,6 +6,7 @@ import type { DbDataRow } from '$lib/$types';
 import { genreClusters } from '$lib/data/validatedGenreClusters';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
+import { getProfileGenresForSession } from '$lib/taste/profileGenres';
 import {
 	genreOverlap,
 	isFuzzyMatch,
@@ -224,6 +225,12 @@ function findClusters(genres: string[]): ClusterEntry[] {
 	return clusters;
 }
 
+// Genres no cluster knows all land in this one fallback id. It must never count as a match:
+// otherwise any two unknown genres "match" each other (["Hip-Hop/Rap"] vs ["schlager"] scored
+// 1.0, see docs/taste-profile-design.md section 3). Unknown genres carry no information, so
+// they are left out of both sides of the similarity; findClusters still returns and logs them.
+const UNCATEGORIZED_CLUSTER_ID = makeClusterId('Uncategorized', 'Other');
+
 function calculateClusterSimilarity(
 	userClusters: ClusterEntry[],
 	clubClusters: ClusterEntry[]
@@ -233,6 +240,7 @@ function calculateClusterSimilarity(
 
 	for (const entry of userClusters) {
 		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
+		if (clusterId === UNCATEGORIZED_CLUSTER_ID) continue;
 		const existing = userClusterWeights.get(clusterId) ?? 0;
 		if (entry.weight > existing) {
 			userClusterWeights.set(clusterId, entry.weight);
@@ -241,6 +249,7 @@ function calculateClusterSimilarity(
 
 	for (const entry of clubClusters) {
 		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
+		if (clusterId === UNCATEGORIZED_CLUSTER_ID) continue;
 		const existing = clubClusterWeights.get(clusterId) ?? 0;
 		if (entry.weight > existing) {
 			clubClusterWeights.set(clusterId, entry.weight);
@@ -430,6 +439,20 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 			}
 		} catch (error) {
 			console.error('Error fetching genres from database:', error);
+		}
+	}
+
+	// 5. Fifth priority: the taste profile, the genres of the user's favourite artists
+	//    (docs/taste-profile-design.md). Picks for this search and Spotify session genres
+	//    above win; this is what logged-in users without Spotify get.
+	if (genresList.length === 0 && sessionId) {
+		try {
+			genresList = await getProfileGenresForSession(pool, sessionId);
+			if (genresList.length > 0) {
+				console.log('Using genres from the taste profile:', genresList);
+			}
+		} catch (error) {
+			console.error('Error fetching taste profile genres:', error);
 		}
 	}
 

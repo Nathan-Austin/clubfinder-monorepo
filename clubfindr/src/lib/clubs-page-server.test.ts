@@ -200,13 +200,34 @@ describe('_calculateClusterSimilarity', () => {
 		expect(matchingGenres).toEqual(['ambient']);
 	});
 
-	it('includes missing genres in similarity calculations', () => {
-		const missingGenre = 'zzzz-unmatched-genre-67890';
-		const userClusters = _findClusters([missingGenre]);
-		const clubClusters = _findClusters([missingGenre]);
-		const { similarity } = _calculateClusterSimilarity(userClusters, clubClusters);
+	it('never matches unknown genres with each other', () => {
+		// Both sides only have genres no cluster knows: they share the Uncategorized fallback,
+		// which used to score 1.0 (e.g. ["Hip-Hop/Rap"] vs ["schlager"])
+		const userClusters = _findClusters(['zzzz-unmatched-genre-67890']);
+		const clubClusters = _findClusters(['zzzz-unmatched-genre-09876']);
+		expect(userClusters[0].cluster).toBe('Uncategorized');
+		const { similarity, matchingGenres } = _calculateClusterSimilarity(userClusters, clubClusters);
+		expect(similarity).toBe(0);
+		expect(matchingGenres).toEqual([]);
+	});
 
-		expect(similarity).toBeGreaterThan(0);
+	it('ignores unknown genres next to known ones', () => {
+		// An unknown genre on either side neither adds a match nor dilutes the score
+		const known = _calculateClusterSimilarity(_findClusters(['techno']), _findClusters(['techno']));
+		const withUnknown = _calculateClusterSimilarity(
+			_findClusters(['techno', 'zzzz-unmatched-genre-11111']),
+			_findClusters(['techno', 'zzzz-unmatched-genre-22222'])
+		);
+		expect(known.similarity).toBeCloseTo(1, 5);
+		expect(withUnknown.similarity).toBeCloseTo(1, 5);
+		expect(withUnknown.matchingGenres).toEqual(['techno']);
+
+		// But a known user genre against an event with only unknown genres is no match at all
+		const unknownEvent = _calculateClusterSimilarity(
+			_findClusters(['techno']),
+			_findClusters(['zzzz-unmatched-genre-33333'])
+		);
+		expect(unknownEvent.similarity).toBe(0);
 	});
 
 	it('scores exact matches higher than fuzzy matches', () => {
