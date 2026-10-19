@@ -2,6 +2,7 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 	import type { EventDetails } from '$lib/types/events';
+	import { toLocalIsoDate } from '$lib/localDate';
 
 	interface Props {
 		eventDetails?: EventDetails;
@@ -19,7 +20,7 @@
 			id: '',
 			theme_name: '',
 			description: '',
-			event_date: new Date().toISOString().split('T')[0],
+			event_date: toLocalIsoDate(),
 			start_time: null,
 			end_time: null,
 			recurring: false,

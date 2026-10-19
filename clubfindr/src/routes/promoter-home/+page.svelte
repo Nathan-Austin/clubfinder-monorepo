@@ -4,6 +4,7 @@
 	import GenreSelector from './components/GenreSelector.svelte';
 	import ArtistSearchForm from './components/ArtistSearchForm.svelte';
 	import type { Performer } from '$lib/$types';
+	import { toLocalIsoDate } from '$lib/localDate';
 
 	import { Search } from 'lucide-svelte';
 
@@ -520,7 +521,7 @@
 							id="event_date"
 							type="date"
 							bind:value={newEvent.event_date}
-							min={new Date().toISOString().split('T')[0]}
+							min={toLocalIsoDate()}
 							class="shadow-sm appearance-none border rounded-sm w-full py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
 							required
 						/>
