@@ -10,6 +10,10 @@
 --   listener@clubfindr.test  / Listener#2026    regular user   -> /login/users
 --   promoter@clubfindr.test  / Promoter#2026    promoter       -> /login/bars
 --   bar@clubfindr.test       / BarManager#2026  bar manager    -> /login/bars
+--   fan@clubfindr.test       / Fan#2026         regular user without Spotify, with
+--                                               favourite artists (taste profile) -> /login/users
+--   newcomer@clubfindr.test  / Newcomer#2026    regular user without Spotify and with an
+--                                               empty taste profile -> /login/users
 --
 -- Password hashes are bcrypt with 10 rounds, as made by hashPassword() in
 -- src/lib/passwordUtils.ts.
@@ -45,6 +49,8 @@ TRUNCATE
 	clubfindr.bar_sessions,
 	clubfindr.bars,
 	clubfindr.promoters,
+	clubfindr.user_favourite_artists,
+	clubfindr.taste_artists,
 	clubfindr.user_sessions,
 	clubfindr.password_resets,
 	clubfindr.oauth_states,
@@ -82,7 +88,42 @@ VALUES
 	-- same e-mail and password hash; this mirrors it.
 	('00000000-0000-4000-8000-000000000003', 'bar@clubfindr.test',
 	 '$2a$10$/P75P1c.9/qjpX.ZbvABfeo.f938kHNpqPCHLEasNO2.9A9bsrk2O',
-	 'Bo Barkeep', 'manager', 'berlin', true, false, true, '[]'::jsonb, NULL);
+	 'Bo Barkeep', 'manager', 'berlin', true, false, true, '[]'::jsonb, NULL),
+	-- Regular user who never connected Spotify (no spotify_email, empty
+	-- preferences): taste comes only from the favourite artists below.
+	('00000000-0000-4000-8000-000000000004', 'fan@clubfindr.test',
+	 '$2a$10$XnvrXIPC16BZM/l32dMJUee0CFDXVbcY5fXNUfx8Q6/KK4pcrm9.W',
+	 'Farid Fan', NULL, 'berlin', true, false, true, '[]'::jsonb, NULL),
+	-- Regular user who never connected Spotify and has no favourite artists
+	-- yet: the empty taste profile. Only the taste tests log in as this user.
+	('00000000-0000-4000-8000-000000000005', 'newcomer@clubfindr.test',
+	 '$2a$10$lniEoW9jfeprCXvwd7Yop.5w1B4i0YU4lzkQTkFeCqqr9RZSD8Ffq',
+	 'Nia Newcomer', NULL, 'berlin', true, false, true, '[]'::jsonb, NULL);
+
+-- ---------------------------------------------------------------------------
+-- Taste profile: favourite artists (see docs/taste-profile-design.md).
+-- taste_artists is the local catalogue; genres are stored as the provider
+-- reported them, so /api/taste/artists never has to reach Spotify for these.
+-- source_id values are Spotify-shaped (22 base-62 characters) but invented.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO clubfindr.taste_artists (id, source, source_id, name, genres, image_url, fetched_at)
+VALUES
+	('00000000-0000-4000-8000-0000000000d1', 'spotify', 'devJunoPaperplane00001',
+	 'Juno Paperplane', ARRAY['deep house', 'minimal'], NULL, now()),
+	('00000000-0000-4000-8000-0000000000d2', 'spotify', 'devKasimirLow000000001',
+	 'Kasimir Low', ARRAY['minimal techno', 'dub techno'], NULL, now()),
+	('00000000-0000-4000-8000-0000000000d3', 'spotify', 'devTamsinOkra000000001',
+	 'Tamsin Okra', ARRAY['afro house', 'amapiano'], NULL, now()),
+	-- In the catalogue but nobody's favourite: adding it must not call Spotify either
+	('00000000-0000-4000-8000-0000000000d4', 'spotify', 'devPerihelionChoir0001',
+	 'Perihelion Choir', ARRAY['ambient', 'modern classical'], NULL, now());
+
+INSERT INTO clubfindr.user_favourite_artists (user_id, artist_id, created_at)
+VALUES
+	('00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-0000000000d1', now() - interval '3 days'),
+	('00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-0000000000d2', now() - interval '2 days'),
+	('00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-0000000000d3', now() - interval '1 day');
 
 -- events.promoter_id references promoters(id), while /promoter-home looks
 -- events up by the promoter's users.id, so the two ids are the same.
@@ -307,6 +348,27 @@ SELECT
 	CASE WHEN club_name = 'Parallax Cellar'
 		THEN '00000000-0000-4000-8000-000000000002'::uuid END
 FROM rows;
+
+-- A fixed date for tests that must not depend on when the seed was loaded: four Berlin
+-- nights on 2031-06-21 (far enough ahead never to collide with the relative ones above).
+-- tests/taste.spec.ts opens /clubs?date=2031-06-21: the fan's profile reaches Velour and
+-- Glasshouse but not Calor or Night Shift Rock.
+INSERT INTO clubfindr.events
+	(event_id, event_name, club_name, club_address, event_date, start_time, end_time,
+	 event_genres, popularity, price, event_image, city, latitude, longitude)
+VALUES
+	('dev-ber-pinned-1', 'Velour at Hollow Moon Club', 'Hollow Moon Club', 'Platzhalterweg 9, 10115 Berlin',
+	 DATE '2031-06-21', '23:00', '06:00', ARRAY['deep house', 'tech house', 'minimal'], '35', '€12',
+	 NULL, 'berlin', 52.530, 13.385),
+	('dev-ber-pinned-2', 'Glasshouse at Parallax Cellar', 'Parallax Cellar', 'Beispielufer 7, 10179 Berlin',
+	 DATE '2031-06-21', '23:00', '06:00', ARRAY['melodic techno', 'progressive house'], '63', '€20',
+	 NULL, 'berlin', 52.512, 13.420),
+	('dev-ber-pinned-3', 'Calor at Neon Heron', 'Neon Heron', 'Musterplatz 2, 12043 Berlin',
+	 DATE '2031-06-21', '23:00', '06:00', ARRAY['reggaeton', 'salsa', 'dancehall'], '24', '€10',
+	 NULL, 'berlin', 52.481, 13.435),
+	('dev-ber-pinned-4', 'Night Shift Rock at Halle Nimbus', 'Halle Nimbus', 'Fiktivstraße 101, 10997 Berlin',
+	 DATE '2031-06-21', '23:00', '06:00', ARRAY['post-punk', 'indie rock', 'shoegaze'], '19', '£9',
+	 NULL, 'berlin', 52.501, 13.441);
 
 -- Line-ups: two or three artists from the event's city per event
 INSERT INTO clubfindr.event_artists (event_id, artist_id, city)

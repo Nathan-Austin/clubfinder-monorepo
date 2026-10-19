@@ -267,4 +267,8 @@ Next (see dev/TESTING.md):
 Test logins: listener@clubfindr.test / Listener#2026   (regular user, /login/users)
              promoter@clubfindr.test / Promoter#2026   (promoter, /login/bars)
              bar@clubfindr.test      / BarManager#2026 (bar manager, /login/bars)
+             fan@clubfindr.test      / Fan#2026        (regular user without Spotify,
+                                                        favourite artists, /login/users)
+             newcomer@clubfindr.test / Newcomer#2026   (regular user without Spotify,
+                                                        empty taste profile, /login/users)
 EOF
