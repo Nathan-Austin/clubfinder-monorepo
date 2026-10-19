@@ -1,19 +1,43 @@
-import nodemailer from 'nodemailer';
-import { SPACEMAIL_USER, SPACEMAIL_PASSWORD } from '$env/static/private';
+import nodemailer, { type Transporter } from 'nodemailer';
+import { env } from '$env/dynamic/private';
+import fs from 'node:fs';
+import path from 'node:path';
 
-// Reusable transporter configuration
-const transporter = nodemailer.createTransport({
-	host: 'mail.spacemail.com',
-	port: 465,
-	secure: true, // Use true for port 465
-	auth: {
-		user: SPACEMAIL_USER,
-		pass: SPACEMAIL_PASSWORD
-	},
-	tls: {
-		rejectUnauthorized: false // Only if needed for self-signed certificates
+// Runtime configuration (see .env.example):
+//   MAIL_TRANSPORT      'smtp' (default) or 'capture'
+//   SMTP_HOST, SMTP_PORT (465), SMTP_SECURE (true), SMTP_USER, SMTP_PASSWORD
+//   MAIL_CAPTURE_FILE   capture only: JSON lines file that receives every message
+// Read at send time so the e2e suite can switch to capture without a rebuild.
+
+let transporter: Transporter | undefined;
+
+function smtpTransporter(): Transporter {
+	if (!env.SMTP_HOST) {
+		throw new Error(
+			'SMTP_HOST is not set: cannot send e-mail (set MAIL_TRANSPORT=capture to write it to a file)'
+		);
 	}
-});
+	transporter ??= nodemailer.createTransport({
+		host: env.SMTP_HOST,
+		port: Number(env.SMTP_PORT || 465),
+		secure: env.SMTP_SECURE !== 'false', // true for port 465
+		auth: {
+			user: env.SMTP_USER,
+			pass: env.SMTP_PASSWORD
+		},
+		tls: {
+			rejectUnauthorized: false // KNOWN_ISSUES 15
+		}
+	});
+	return transporter;
+}
+
+/** Test transport: appends one JSON line per message instead of sending it. */
+function captureMail(mail: Record<string, unknown>) {
+	const file = env.MAIL_CAPTURE_FILE || 'test-results/mail.jsonl';
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.appendFileSync(file, JSON.stringify({ at: new Date().toISOString(), ...mail }) + '\n');
+}
 
 interface Attachment {
 	filename: string;
@@ -36,8 +60,13 @@ export async function sendEmail(
 			attachments
 		};
 
-		await transporter.sendMail(mailOptions);
-		console.log('Email sent to:', to);
+		if (env.MAIL_TRANSPORT === 'capture') {
+			captureMail({ ...mailOptions, attachments: attachments?.map((a) => a.filename) });
+			console.log('Email captured (not sent) for:', to);
+		} else {
+			await smtpTransporter().sendMail(mailOptions);
+			console.log('Email sent to:', to);
+		}
 	} catch (error) {
 		console.error('Error sending email:', error);
 		throw error; // Re-throw to handle it higher up if necessary
