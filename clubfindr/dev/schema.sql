@@ -397,6 +397,23 @@ ALTER SEQUENCE clubfindr.spotify_task_log_id_seq OWNED BY clubfindr.spotify_task
 
 
 --
+-- Name: taste_artists; Type: TABLE; Schema: clubfindr; Owner: -
+-- (not in the production dump this file was taken from; see migrations/20261017_add_taste_artists.sql)
+--
+
+CREATE TABLE clubfindr.taste_artists (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source text NOT NULL,
+    source_id text NOT NULL,
+    name text NOT NULL,
+    genres text[] DEFAULT '{}'::text[] NOT NULL,
+    image_url text,
+    fetched_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT taste_artists_source_check CHECK ((source = ANY (ARRAY['spotify'::text, 'lastfm'::text])))
+);
+
+
+--
 -- Name: user_checkins; Type: TABLE; Schema: clubfindr; Owner: -
 --
 
@@ -427,6 +444,18 @@ CREATE SEQUENCE clubfindr.user_checkins_id_seq
 --
 
 ALTER SEQUENCE clubfindr.user_checkins_id_seq OWNED BY clubfindr.user_checkins.id;
+
+
+--
+-- Name: user_favourite_artists; Type: TABLE; Schema: clubfindr; Owner: -
+-- (not in the production dump this file was taken from; see migrations/20261017_add_taste_artists.sql)
+--
+
+CREATE TABLE clubfindr.user_favourite_artists (
+    user_id uuid NOT NULL,
+    artist_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
 
 --
@@ -781,6 +810,30 @@ ALTER TABLE ONLY clubfindr.events
 
 
 --
+-- Name: taste_artists taste_artists_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.taste_artists
+    ADD CONSTRAINT taste_artists_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: taste_artists taste_artists_source_source_id_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.taste_artists
+    ADD CONSTRAINT taste_artists_source_source_id_key UNIQUE (source, source_id);
+
+
+--
+-- Name: user_favourite_artists user_favourite_artists_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.user_favourite_artists
+    ADD CONSTRAINT user_favourite_artists_pkey PRIMARY KEY (user_id, artist_id);
+
+
+--
 -- Name: user_sessions unique_user_id; Type: CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -1000,6 +1053,13 @@ CREATE INDEX idx_spotify_task_status ON clubfindr.spotify_task_log USING btree (
 
 
 --
+-- Name: idx_user_favourite_artists_artist_id; Type: INDEX; Schema: clubfindr; Owner: -
+--
+
+CREATE INDEX idx_user_favourite_artists_artist_id ON clubfindr.user_favourite_artists USING btree (artist_id);
+
+
+--
 -- Name: password_resets password_resets_user_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -1141,6 +1201,22 @@ ALTER TABLE ONLY clubfindr.user_checkins
 
 ALTER TABLE ONLY clubfindr.user_checkins
     ADD CONSTRAINT user_checkins_user_id_fkey FOREIGN KEY (user_id) REFERENCES clubfindr.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_favourite_artists user_favourite_artists_artist_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.user_favourite_artists
+    ADD CONSTRAINT user_favourite_artists_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES clubfindr.taste_artists(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_favourite_artists user_favourite_artists_user_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.user_favourite_artists
+    ADD CONSTRAINT user_favourite_artists_user_id_fkey FOREIGN KEY (user_id) REFERENCES clubfindr.users(id) ON DELETE CASCADE;
 
 
 --
