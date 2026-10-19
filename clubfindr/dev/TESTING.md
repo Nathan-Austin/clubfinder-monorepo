@@ -64,8 +64,10 @@ dev/setup.sh
 2. Creates the `clubfindr_dev` database and role (password `clubfindr_dev`) if missing.
 3. Loads `dev/schema.sql` if the `clubfindr` schema does not exist yet.
 4. Loads `dev/seed.sql`, which empties every `clubfindr` table and inserts the test data.
-5. Writes `.env` from `.env.example` with the local database settings and random
-   `CRYPTO_KEY` and `JWT_SECRET` values. All other keys keep their placeholder values.
+5. Writes `.env` from `.env.example` with the local database settings, random `CRYPTO_KEY`
+   and `JWT_SECRET` values and `MAIL_TRANSPORT=capture` (e-mail goes to
+   `test-results/mail.jsonl` instead of a mail server). All other keys keep their placeholder
+   values.
 
 It is safe to re-run; each run resets the data to the seed. It never overwrites a `.env` that
 it did not write; use `dev/setup.sh --force` to replace one (the old file is kept as
@@ -117,7 +119,9 @@ pnpm test          # Playwright end-to-end tests, see "End-to-end tests" below
 ```
 
 None of the first four needs the database or network. `pnpm build` needs every key in `.env` to be
-defined (placeholders are fine), which `dev/setup.sh` takes care of. Use `vitest run`:
+defined (placeholders are fine), which `dev/setup.sh` takes care of. It also fails if a
+server-only package (`bcryptjs`, `pg`, `nodemailer`, `jsonwebtoken`) ends up in a client chunk
+(`forbidInClientBundle` in `vite.config.js`): code that needs one belongs under `src/lib/server/`. Use `vitest run`:
 `pnpm test:unit` starts Vitest in watch mode.
 
 All components use Svelte 5 runes; `svelte.config.js` forces runes mode for every component
@@ -137,13 +141,13 @@ TypeScript 6, ESLint 10 (flat config), Prettier 3 and Playwright stack:
 | `pnpm install --frozen-lockfile`      | clean, no build scripts, no warnings                 |
 | `pnpm lint`                           | passes, no warnings                                  |
 | `pnpm check`                          | 0 errors, 0 warnings                                 |
-| `pnpm exec vitest run`                | 4 files, 62 tests pass                               |
+| `pnpm exec vitest run`                | 7 files, 74 tests pass                               |
 | `pnpm build`                          | passes                                               |
 | `node --env-file=.env build/index.js` | production server on :3000                           |
 | `pnpm dev`                            | Vite 8 dev server on :3000                           |
 | `pnpm preview`                        | serves the build on :3000                            |
 | `pnpm build-scripts`                  | compiles `scripts/` to `dist-scripts/`               |
-| `pnpm test`                           | 44 Playwright tests pass against the seeded database |
+| `pnpm test`                           | 60 Playwright tests pass against the seeded database |
 | `pnpm format`                         | Prettier 3 with prettier-plugin-svelte 4             |
 
 Baseline (re-checked 2026-10-16 in a clean Node 24 container): every command above passes
@@ -151,13 +155,16 @@ with no errors or warnings. Treat any new `pnpm check` or lint output as a regre
 
 ## End-to-end tests
 
-`pnpm test` runs the Playwright suite in `tests/` against the production build, served by
-`vite preview` on port 4173 and backed by the seeded database. It needs:
+`pnpm test` runs the Playwright suite in `tests/` against the production build, served by the
+adapter-node server (`node --env-file=.env build/index.js`, what PM2 runs in production) on
+port 4173 and backed by the seeded database. It needs:
 
 - `dev/setup.sh` run once (database on 54329 and `.env`; re-run it to reset the data),
 - the browser: `pnpm exec playwright install chromium` once per machine (CI: `--with-deps`),
 - nothing else: every request that does not go to `localhost:4173` is blocked, so the tests
-  pass with no Google, Spotify, SoundCloud, Tidal or e-mail access.
+  pass with no Google, Spotify, SoundCloud, Tidal or e-mail access. The server is started with
+  `MAIL_TRANSPORT=capture`, so e-mail is written to `test-results/mail.jsonl` (`tests/mail.ts`
+  reads it back) and no SMTP connection is ever made.
 
 ```bash
 pnpm test                                  # builds, starts the preview server, runs everything
@@ -179,14 +186,25 @@ What is covered (`tests/*.spec.ts`):
 | `promoter.spec.ts` | promoter: venue search and selection, `GenreSelector` (expand, search, select, remove), performer form with artist and track search                               |
 | `forms.spec.ts`    | password reset (both pages), update-info validation, custom genres on `/selectedGenres`, delete-confirmation, registration code resend, users-home feedback/city  |
 
+The "`/clubs` without a search" case now lives in `no-cookies.spec.ts`, which checks that `/clubs`,
+`/barfindr` and `/promoter-home` redirect (to `/` and `/login/bars`) instead of erroring when opened
+without their cookies. `timezone.spec.ts` runs the home page search and the users-home connect
+buttons with the browser in Pacific/Auckland and America/Los_Angeles and the clock pinned to a
+time where the UTC day differs from the local one, and checks the local date is what gets sent.
+`rate-limit.spec.ts` checks the limiter keys on the trusted address only; `rate-limit-cf.spec.ts`
+repeats that in the `cf-connecting-ip` project, against a second instance of the build on port
+4174 started with `ADDRESS_HEADER=cf-connecting-ip`, the production setting.
+
 `tests/fixtures.ts` holds the shared pieces: the offline route blocking, a distinct
-`x-forwarded-for` per test (the app rate-limits 60 requests/minute per address, which a
-parallel run would hit otherwise), `login()`, and the `pageErrors` fixture that fails a test
+`x-forwarded-for` per test (the test server trusts its last entry as the client address, see
+`playwright.config.ts`; the app rate-limits 60 requests/minute per address, which a parallel
+run would hit otherwise), `login()`, and the `pageErrors` fixture that fails a test
 on any uncaught error in the page.
 
 The suite does not change the seed: nothing it submits is persisted (saves that need Spotify,
-a bar id or e-mail fail offline, and the validation cases never reach the server). The one
-exception is "mark interest" on `/clubs`, which writes a row that the seed reloads.
+a bar id or e-mail fail offline, and the validation cases never reach the server). The
+exceptions are "mark interest" on `/clubs` and the delete-confirmation code request, which each
+write a row that the seed reloads.
 
 ## Running the app
 
@@ -196,7 +214,8 @@ ORIGIN=http://localhost:3000 node --env-file=.env build/index.js     # http://lo
 ```
 
 `ORIGIN` tells adapter-node the public origin (it assumes `https://` otherwise), which the
-CSRF check compares form posts against; `pnpm dev` and `pnpm preview` do not need it.
+CSRF check compares form posts against; `pnpm dev` and `pnpm preview` do not need it
+(`playwright.config.ts` sets it, with `PORT`, for the test server).
 
 `pnpm dev` (development server, also port 3000) and `pnpm preview` read `.env` themselves.
 
@@ -204,9 +223,11 @@ CSRF check compares form posts against; `pnpm dev` and `pnpm preview` do not nee
 - Open the app at `http://localhost:3000`. Cookies are marked `Secure` in every build (only
   `pnpm dev` drops the flag), which browsers accept on `localhost` but not on other
   plain-HTTP hosts.
-- The app rate-limits to 60 requests per minute per IP, read from `X-Forwarded-For`. Without a
-  proxy every local client shares one bucket, so a scripted crawl faster than that gets
-  `429 Too Many Requests` (restart the app to reset it).
+- The app rate-limits to 60 requests per minute per client address, taken from
+  `event.getClientAddress()`: the socket address, or behind a proxy the header named by
+  `ADDRESS_HEADER`/`XFF_DEPTH` (see `.env.example`). Without a proxy every local client shares
+  one bucket, so a scripted crawl faster than that gets `429 Too Many Requests` (restart the
+  app to reset it).
 
 ## Test logins
 
@@ -234,13 +255,13 @@ Manager is blocked on every page, which only shows up as console errors.
 | Page                                                                                                    | Notes                                                                                                                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`                                                                                                     | Renders. City list and genre picker are local files, so "select a city, pick genres, search" works. Address search and nearest-city lookup use Google Maps and do nothing offline. The Spotify, SoundCloud and Tidal buttons go to those services. |
-| `/clubs`                                                                                                | Club events for the city, date and genres chosen on `/`, ranked by genre match. Only events whose genres match appear. Opening it without searching first gives a 500 error page (no city cookie), as in production.                               |
-| `/barfindr`                                                                                             | Bars for the chosen city, with their now-playing genre profile and upcoming bar events. Same search requirement as `/clubs`. The genre choice is used once: search again from `/` before opening it a second time.                                 |
+| `/clubs`                                                                                                | Club events for the city, date and genres chosen on `/`, ranked by genre match. Only events whose genres match appear. Opening it without searching first (no city/date cookies) redirects to `/`.                                                 |
+| `/barfindr`                                                                                             | Bars for the chosen city, with their now-playing genre profile and upcoming bar events. Same search requirement as `/clubs` (redirects to `/` without one). The genre choice is used once: search again from `/` before opening it a second time.  |
 | `/login/users`                                                                                          | E-mail and password login works. The Google and Facebook buttons do not load.                                                                                                                                                                      |
 | `/login/bars`                                                                                           | Promoter and bar manager login works.                                                                                                                                                                                                              |
 | `/users-home`                                                                                           | Regular user: name, top genres and saved events. The map does not load (Google Maps). "Connect" buttons for Spotify, SoundCloud and Tidal go to those services.                                                                                    |
 | `/update-info`                                                                                          | Regular user: the account form loads. Logged out it returns 401.                                                                                                                                                                                   |
-| `/promoter-home`                                                                                        | Promoter: current and past events at Parallax Cellar with line-ups. Logged out it returns a 500 error page.                                                                                                                                        |
+| `/promoter-home`                                                                                        | Promoter: current and past events at Parallax Cellar with line-ups. Logged out it redirects to `/login/bars`.                                                                                                                                      |
 | `/bars`                                                                                                 | Bar manager: the dashboard frame with the bar name and a "Spotify Authentication Required" dialog; the playback, artist and playlist panels stay empty. Logged out it redirects to `/login/bars`.                                                  |
 | `/about/us`, `/about/contact`, `/about/terms`                                                           | Static pages.                                                                                                                                                                                                                                      |
 | `/about/blog`                                                                                           | Renders; its images come from Wikimedia and do not load.                                                                                                                                                                                           |
@@ -253,7 +274,7 @@ Manager is blocked on every page, which only shows up as console errors.
 | ------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/register`, `/register/promoter`                 | Google reCAPTCHA, Google Maps, e-mail   | The forms render, but submitting needs reCAPTCHA, and the confirmation code is sent by e-mail. Not testable offline; use the seeded accounts.                   |
 | `/register/confirm`, `/register/promoter/confirm` | e-mail                                  | Render; the code they ask for only arrives by e-mail.                                                                                                           |
-| Password reset, delete-account codes              | e-mail (SMTP to `mail.spacemail.com`)   | No e-mail arrives: the placeholder SMTP credentials cannot send. The app logs the send error. Not exercised in testing (it would contact the real mail server). |
+| Password reset, delete-account codes              | e-mail (SMTP, see `.env.example`)       | `pnpm test` sets `MAIL_TRANSPORT=capture`: messages go to `test-results/mail.jsonl`, never to any SMTP server. Otherwise the placeholder SMTP settings do fail. |
 | `/spotify`                                        | Spotify                                 | 401 page without a Spotify session.                                                                                                                             |
 | `/spotify/search`                                 | Spotify                                 | The page renders; searching needs the Spotify API.                                                                                                              |
 | `/spotify/login`                                  | Spotify OAuth callback                  | Opened directly, redirects to `/?error=Invalid state returned from OAuth`.                                                                                      |
