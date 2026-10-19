@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SimilarityResult } from '$lib/$types';
+	import { fromLocalIsoDate } from '$lib/localDate';
 	let { data } = $props();
 
 	const city = $derived(data.props.city || 'Unknown City'); // Default value if city is undefined
@@ -10,7 +11,9 @@
 	let showMore = $state(false);
 	let options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
 	let formattedDate = $derived(
-		new Intl.DateTimeFormat('en-US', options).format(newdate ? new Date(newdate) : new Date())
+		new Intl.DateTimeFormat('en-US', options).format(
+			newdate ? fromLocalIsoDate(newdate) : new Date()
+		)
 	);
 	let selectedDate = $state('');
 	let SimilarityResults: SimilarityResult[] = $derived(data.props.serverSimilarityResults ?? []);
