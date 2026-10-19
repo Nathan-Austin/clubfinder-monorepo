@@ -1,12 +1,10 @@
 import { test, expect, acceptCookies, login } from './fixtures';
 
 // Client-side validation and offline behaviour of the account and registration forms.
-// Anything that would send an e-mail fails offline and must report that, not crash.
+// E-mail goes to the capture file (tests/mail.ts); anything else external fails offline and
+// must report that, not crash.
 test.describe('forms', () => {
-	test('password reset: validates the e-mail, reports the failed send', async ({
-		page,
-		pageErrors
-	}) => {
+	test('password reset: validates the e-mail, submits', async ({ page, pageErrors }) => {
 		await page.goto('/password-reset');
 		await acceptCookies(page);
 		const form = page.locator('form.reset-form');
@@ -83,14 +81,15 @@ test.describe('forms', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
-	test('delete confirmation: the code request reports the failed e-mail', async ({ page }) => {
+	test('delete confirmation: the code request moves on to the code form', async ({ page }) => {
 		await page.goto('/delete-confirmation');
 		await acceptCookies(page);
 		page.on('dialog', (dialog) => dialog.dismiss());
 		const form = page.locator('form.email-form');
 		await form.locator('#email').fill('listener@clubfindr.test');
 		await form.locator('button[type="submit"]').click();
-		await expect(page.locator('.error-message').first()).toBeVisible();
+		// The code e-mail goes to the capture file (tests/mail.ts), so the send succeeds
+		await expect(page.locator('form.code-form')).toBeVisible();
 	});
 
 	test('registration confirmation: resend without a pending registration', async ({ page }) => {
