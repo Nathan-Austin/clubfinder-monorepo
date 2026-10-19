@@ -64,3 +64,45 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
     `api/mobile/bars/[barId]/stats`), outside the #1 fix. Likely fix:
     `types.setTypeParser(1082, (v) => v)` so `DATE` stays a `YYYY-MM-DD` string end to end,
     plus a client-supplied date for the mobile "today" cases.
+
+## Taste profile follow-ups
+
+From the taste profile work (`docs/HANDOVER.md` section 4, `docs/taste-profile-design.md`
+section 4), left open on purpose.
+
+18. **Raw genre tags the clusters do not know are dropped or misplaced.** `genreClusters.json`
+    has no leaf for `house`, `hip hop`, `pop`, `nu disco`, `dnb`, `funk`, `soul`, `trance`,
+    `rock`, `metal`, `edm`, `afrobeats` and others, and the fuzzy fallback makes false friends
+    (`funk → punk`, `hip hop → trip hop`, `edm → idm`). Such tags end up `Uncategorized`
+    (ignored in scoring) or in the wrong cluster, which limits how much a taste profile or a
+    Last.fm import changes results. Proposed fix: an alias layer (`genre_aliases`, design doc
+    section 2.2), plus de-duplicating the 92 leaves that sit in several sub-clusters.
+19. **The same artist from two providers is only matched by name.** The Last.fm import reuses
+    a `taste_artists` row with the same name from any source; a spelling difference gives two
+    rows. Catalogue rows nobody favourites any more are never removed.
+20. **Two ways of reading configuration.** Most of the app reads `.env` through
+    `$env/static/*` at build time; mail (`MAIL_TRANSPORT`, `SMTP_*`), the taste settings
+    (`LASTFM_API_KEY`, `LASTFM_API_BASE`, `SPOTIFY_API_BASE`, `SPOTIFY_ACCOUNTS_BASE`) and
+    `SPOTIFY_CONNECT_ENABLED` use `$env/dynamic/private` at runtime, so tests can switch them
+    without a rebuild and a missing optional key cannot break a build. Either document both
+    conventions or move the optional keys to required placeholders.
+21. **Spotify and Last.fm responses were never checked against the live APIs.** The mocks
+    (`tests/mock-spotify.ts`, `tests/mock-lastfm.ts`) follow the public documentation: the
+    development-mode 403 body, whether search and artist objects still carry `genres`, Last.fm
+    error codes and HTTP statuses, the `toptags` count scale. `SPOTIFY_CONNECT_ENABLED=false`
+    is unit-tested but not run end to end.
+22. **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile endpoints, three
+    different normalisers). The profile is wired into the two web ones only; the mobile API
+    does not read it. `src/lib/taste/genreClassifier.ts` imports `_findClusters` from the
+    `/clubs` route module; move it into `$lib` when the matchers are unified.
+23. **`/api/spotify/artists` shares its last result between users.** `lastFetchedGenres` is a
+    module-level variable: GET returns the genres of whichever user's Spotify artists were
+    fetched last, on the single PM2 process.
+24. **Smaller gaps in the existing flows:** `/api/delete-user-data` does not clear
+    `preferences` or `interested_events`; `user_sessions.genres` is wiped on every login and
+    scoped to the home city; `/clubs` deletes the genre cookies on first read, so "Change
+    Date" loses a guest's genres; "Change the vibe" restores the city but not the date; the
+    `spotify_service` add_user call still runs when a Spotify e-mail is given at signup; mobile
+    signup still requires a `musicService` choice.
+25. **Seed dates move with the seed.** Only the four Berlin nights on 2031-06-21 are pinned;
+    tests that need fixed results use `/clubs?date=2031-06-21`.

@@ -4,7 +4,9 @@ How to run clubfindr against a local Postgres with synthetic data and no externa
 
 Everything in `dev/seed.sql` is invented: clubs, bars, artists, events and people are
 fictional, and e-mail addresses use the reserved `.test` domain. Event dates are relative to
-the current date, so there are always upcoming events (from 3 days ago to 21 days ahead).
+the current date, so there are always upcoming events (from 3 days ago to 21 days ahead), plus
+four Berlin nights on the fixed date 2031-06-21 for tests whose expectations must not depend on
+when the seed was loaded (`/clubs?date=2031-06-21`).
 
 ## Requirements
 
@@ -108,6 +110,16 @@ PGPASSWORD=clubfindr_dev psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d postgres
 dev/setup.sh
 ```
 
+A database created before a table was added to `dev/schema.sql` needs the matching file from
+`migrations/` applied (they are idempotent), or the reset above. `dev/seed.sql` fails on the
+missing table otherwise. Currently that is `migrations/20261017_add_taste_artists.sql`
+(`taste_artists`, `user_favourite_artists`):
+
+```bash
+PGPASSWORD=clubfindr_dev psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev \
+  -v ON_ERROR_STOP=1 -f migrations/20261017_add_taste_artists.sql
+```
+
 ## Checks
 
 ```bash
@@ -136,19 +148,19 @@ Component `<style>` blocks that use `@apply` start with `@reference '../../app.c
 What works on Node 24 / pnpm 10.34.6 with the Svelte 5, SvelteKit 2.70, Vite 8, Tailwind 4,
 TypeScript 6, ESLint 10 (flat config), Prettier 3 and Playwright stack:
 
-| Command                               | Status                                               |
-| ------------------------------------- | ---------------------------------------------------- |
-| `pnpm install --frozen-lockfile`      | clean, no build scripts, no warnings                 |
-| `pnpm lint`                           | passes, no warnings                                  |
-| `pnpm check`                          | 0 errors, 0 warnings                                 |
-| `pnpm exec vitest run`                | 7 files, 74 tests pass                               |
-| `pnpm build`                          | passes                                               |
-| `node --env-file=.env build/index.js` | production server on :3000                           |
-| `pnpm dev`                            | Vite 8 dev server on :3000                           |
-| `pnpm preview`                        | serves the build on :3000                            |
-| `pnpm build-scripts`                  | compiles `scripts/` to `dist-scripts/`               |
-| `pnpm test`                           | 60 Playwright tests pass against the seeded database |
-| `pnpm format`                         | Prettier 3 with prettier-plugin-svelte 4             |
+| Command                               | Status                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`      | clean, no build scripts, no warnings                                                   |
+| `pnpm lint`                           | passes, no warnings                                                                    |
+| `pnpm check`                          | 0 errors, 0 warnings                                                                   |
+| `pnpm exec vitest run`                | 11 files, 134 tests pass                                                               |
+| `pnpm build`                          | passes                                                                                 |
+| `node --env-file=.env build/index.js` | production server on :3000                                                             |
+| `pnpm dev`                            | Vite 8 dev server on :3000                                                             |
+| `pnpm preview`                        | serves the build on :3000                                                              |
+| `pnpm build-scripts`                  | compiles `scripts/` to `dist-scripts/`                                                 |
+| `pnpm test`                           | 87 Playwright tests pass against the seeded database (84 chromium, 3 cf-connecting-ip) |
+| `pnpm format`                         | Prettier 3 with prettier-plugin-svelte 4                                               |
 
 Baseline (re-checked 2026-10-16 in a clean Node 24 container): every command above passes
 with no errors or warnings. Treat any new `pnpm check` or lint output as a regression.
@@ -162,12 +174,14 @@ port 4173 and backed by the seeded database. It needs:
 - `dev/setup.sh` run once (database on 54329 and `.env`; re-run it to reset the data),
 - the browser: `pnpm exec playwright install chromium` once per machine (CI: `--with-deps`),
 - nothing else: every request that does not go to `localhost:4173` is blocked, so the tests
-  pass with no Google, Spotify, SoundCloud, Tidal or e-mail access. The server is started with
-  `MAIL_TRANSPORT=capture`, so e-mail is written to `test-results/mail.jsonl` (`tests/mail.ts`
-  reads it back) and no SMTP connection is ever made.
+  pass with no Google, Spotify, SoundCloud, Tidal, Last.fm or e-mail access. The server is
+  started with `MAIL_TRANSPORT=capture`, so e-mail is written to `test-results/mail.jsonl`
+  (`tests/mail.ts` reads it back) and no SMTP connection is ever made. The taste profile's
+  server-side Spotify and Last.fm calls go to mocks instead, see "Mock Spotify and Last.fm"
+  below.
 
 ```bash
-pnpm test                                  # builds, starts the preview server, runs everything
+pnpm test                                  # builds, starts the servers, runs everything
 PW_SKIP_BUILD=1 pnpm test                  # reuse the existing build/ (after a manual pnpm build)
 pnpm exec playwright test tests/auth.spec.ts       # one file
 pnpm exec playwright test -g "genre picker"        # by title
@@ -177,14 +191,58 @@ pnpm exec playwright show-report                   # after a CI run (html report
 
 What is covered (`tests/*.spec.ts`):
 
-| File               | Flows                                                                                                                                                             |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pages.spec.ts`    | every public page renders and hydrates without JS errors; cookie banner and preferences; desktop dropdown and mobile menu; logged-out protection; `robots.txt`    |
-| `auth.spec.ts`     | the three seeded logins land on `/users-home`, `/promoter-home`, `/bars`; wrong password; logout                                                                  |
-| `search.spec.ts`   | city + genre search to `/clubs` and `/barfindr`; marking interest when logged in; `/clubs` without a search; the genre picker (browse, select all, search, clear) |
-| `bars.spec.ts`     | bar manager: bar details modal (pre-fill, edit chips, cancel) and event modal (fields, preset and custom genres, recurring, failed save, cancel, close)           |
-| `promoter.spec.ts` | promoter: venue search and selection, `GenreSelector` (expand, search, select, remove), performer form with artist and track search                               |
-| `forms.spec.ts`    | password reset (both pages), update-info validation, custom genres on `/selectedGenres`, delete-confirmation, registration code resend, users-home feedback/city  |
+| File               | Flows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages.spec.ts`    | every public page renders and hydrates without JS errors; cookie banner and preferences; desktop dropdown and mobile menu; logged-out protection; `robots.txt`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `auth.spec.ts`     | the three seeded logins land on `/users-home`, `/promoter-home`, `/bars`; wrong password; logout                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `search.spec.ts`   | city + genre search to `/clubs` and `/barfindr`; marking interest when logged in; "Change the vibe" keeps the city; the genre picker (browse, select all, search, clear)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `bars.spec.ts`     | bar manager: bar details modal (pre-fill, edit chips, cancel) and event modal (fields, preset and custom genres, recurring, failed save, cancel, close)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `promoter.spec.ts` | promoter: venue search and selection, `GenreSelector` (expand, search, select, remove), performer form with artist and track search                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `forms.spec.ts`    | password reset (both pages), update-info validation, custom genres on `/selectedGenres`, delete-confirmation, registration code resend, users-home feedback/city                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `taste.spec.ts`    | favourite artists API (`/api/taste/artists`, `/api/taste/search`) against the seed and the mock Spotify; the picker on `/` (search, add, remove, genre profile following, link from `/users-home`); the profile driving `/clubs` (pinned date) and `/barfindr` (add an artist, results change, remove it, they change back; picked genres win; "Change the vibe" keeps the city); the Last.fm import on `/users-home` against the mock (import, repeat import, unknown user, rate limit, outage, bad username); optional Spotify e-mail at signup. Runs in order, see above; the Spotify connect flow against the mock (buttons shown by default, unregistered account → clear message on `/`, registered account, one failing call → partial `/spotify`). Runs in order, see above |
+
+### Mock Spotify and Last.fm
+
+The favourite-artist picker calls Spotify **from the server** (client-credentials token,
+`/v1/search`, `/v1/artists/:id`), which the browser-side request blocking cannot see. Playwright
+therefore also starts `tests/mock-spotify.ts` on `127.0.0.1:4175` (plain Node, no build step)
+and gives the app `SPOTIFY_API_BASE` and `SPOTIFY_ACCOUNTS_BASE` pointing at it. Those two
+variables are read at runtime (`$env/dynamic/private`, `src/lib/taste/spotifyOptions.ts`) and
+are unset in production, so real deployments talk to the real hosts. The mock accepts any
+client id and secret (the placeholders in `.env` are fine), knows the invented artists listed in
+the file (two of them are also in the seed's `taste_artists`) and answers 404 for everything
+else. To run the app against the mock by hand:
+
+```bash
+node tests/mock-spotify.ts &
+SPOTIFY_API_BASE=http://127.0.0.1:4175 SPOTIFY_ACCOUNTS_BASE=http://127.0.0.1:4175 \
+  ORIGIN=http://localhost:3000 node --env-file=.env build/index.js
+```
+
+The same mock also plays Spotify for the user flow behind "Connect with Spotify": the
+authorization-code exchange, the token refresh, `/v1/me` and the three listening calls of
+`/spotify`. Tests reach it by storing a state through `/storestate` and opening
+`/spotify/login?code=<code>&state=<key>`, where the code picks the account:
+`mock-code-ok` (everything works), `mock-code-unregistered` (every API call answers 403 "User
+not registered in the Developer Dashboard", which is what a development-mode Spotify app says
+to accounts that are not on its allow list) and `mock-code-partial` (recently played answers
+503). The Spotify error bodies in the mock follow Spotify's documentation; they were not
+captured from the live API.
+
+The Last.fm import (`/users-home`, `POST /api/taste/lastfm/import`) works the same way:
+Playwright starts `tests/mock-lastfm.ts` on `127.0.0.1:4176` and sets `LASTFM_API_BASE` plus
+`LASTFM_API_KEY=mock-lastfm-key` for the app. Both are read at runtime; with the placeholder
+key from `.env.example` (what `dev/setup.sh` writes) the import answers 503 "not set up"
+instead of calling Last.fm, so outside the e2e suite it is off until a real key is put in
+`.env`. The mock knows the users `fanatic` (four artists, one of them already a favourite of
+the seeded fan), `solo_listener`, `nobody_here` (unknown user), `ratelimited` (error 29) and
+`broken` (HTTP 500), and the tags of the artists it lists. By hand:
+
+```bash
+node tests/mock-lastfm.ts &
+LASTFM_API_BASE=http://127.0.0.1:4176 LASTFM_API_KEY=anything \
+  ORIGIN=http://localhost:3000 node --env-file=.env build/index.js
+```
 
 The "`/clubs` without a search" case now lives in `no-cookies.spec.ts`, which checks that `/clubs`,
 `/barfindr` and `/promoter-home` redirect (to `/` and `/login/bars`) instead of erroring when opened
@@ -200,6 +258,12 @@ repeats that in the `cf-connecting-ip` project, against a second instance of the
 `playwright.config.ts`; the app rate-limits 60 requests/minute per address, which a parallel
 run would hit otherwise), `login()`, and the `pageErrors` fixture that fails a test
 on any uncaught error in the page.
+
+Logging in deletes the user's other sessions, so tests that call the API as the same user
+cannot run in parallel with each other: `taste.spec.ts` runs its tests in order in one
+worker (`test.describe.configure({ mode: 'default' })`), is the only file that logs in as
+`fan@clubfindr.test` or `newcomer@clubfindr.test`, and resets the fan's favourites to the seed
+before and after every test, so an interrupted run cannot break the next one.
 
 The suite does not change the seed: nothing it submits is persisted (saves that need Spotify,
 a bar id or e-mail fail offline, and the validation cases never reach the server). The
@@ -236,9 +300,22 @@ CSRF check compares form posts against; `pnpm dev` and `pnpm preview` do not nee
 | Regular user | `listener@clubfindr.test` | `Listener#2026`   | `/login/users` | `/users-home`    |
 | Promoter     | `promoter@clubfindr.test` | `Promoter#2026`   | `/login/bars`  | `/promoter-home` |
 | Bar manager  | `bar@clubfindr.test`      | `BarManager#2026` | `/login/bars`  | `/bars`          |
+| Regular user | `fan@clubfindr.test`      | `Fan#2026`        | `/login/users` | `/users-home`    |
+| Regular user | `newcomer@clubfindr.test` | `Newcomer#2026`   | `/login/users` | `/users-home`    |
 
 Passwords are hashed with bcrypt (10 rounds), the same way the app hashes them. `/login/bars`
 is the "Partners" login. Login by Google, Facebook or Spotify needs those services.
+
+`fan@clubfindr.test` never connected Spotify (no `spotify_email`, empty `preferences`) and has
+three favourite artists in the taste profile (`taste_artists` + `user_favourite_artists`, see
+`docs/taste-profile-design.md`): Juno Paperplane (deep house, minimal), Kasimir Low (minimal
+techno, dub techno) and Tamsin Okra (afro house, amapiano). A fourth catalogue artist,
+Perihelion Choir (`sourceId` `devPerihelionChoir0001`), is nobody's favourite yet, so
+`POST /api/taste/artists` can add it without reaching Spotify: genres are stored with the
+artist, and only unknown or stale (30 days) artists are fetched. `newcomer@clubfindr.test`
+is the same kind of user with an empty taste profile (no favourites, no genres); the taste
+tests use it for the empty states. `listener@clubfindr.test` keeps the Spotify-style
+`preferences` counters and is not used by the taste tests.
 
 Besides the bar manager's bar (The Copper Lantern) and the promoter's (Static Orchard), the seed
 has one more bar in Berlin, one in London and one in Amsterdam; 225 club events in Berlin, London and Amsterdam with 24
@@ -252,35 +329,37 @@ Manager is blocked on every page, which only shows up as console errors.
 
 ### Works offline
 
-| Page                                                                                                    | Notes                                                                                                                                                                                                                                              |
-| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                                                                                     | Renders. City list and genre picker are local files, so "select a city, pick genres, search" works. Address search and nearest-city lookup use Google Maps and do nothing offline. The Spotify, SoundCloud and Tidal buttons go to those services. |
-| `/clubs`                                                                                                | Club events for the city, date and genres chosen on `/`, ranked by genre match. Only events whose genres match appear. Opening it without searching first (no city/date cookies) redirects to `/`.                                                 |
-| `/barfindr`                                                                                             | Bars for the chosen city, with their now-playing genre profile and upcoming bar events. Same search requirement as `/clubs` (redirects to `/` without one). The genre choice is used once: search again from `/` before opening it a second time.  |
-| `/login/users`                                                                                          | E-mail and password login works. The Google and Facebook buttons do not load.                                                                                                                                                                      |
-| `/login/bars`                                                                                           | Promoter and bar manager login works.                                                                                                                                                                                                              |
-| `/users-home`                                                                                           | Regular user: name, top genres and saved events. The map does not load (Google Maps). "Connect" buttons for Spotify, SoundCloud and Tidal go to those services.                                                                                    |
-| `/update-info`                                                                                          | Regular user: the account form loads. Logged out it returns 401.                                                                                                                                                                                   |
-| `/promoter-home`                                                                                        | Promoter: current and past events at Parallax Cellar with line-ups. Logged out it redirects to `/login/bars`.                                                                                                                                      |
-| `/bars`                                                                                                 | Bar manager: the dashboard frame with the bar name and a "Spotify Authentication Required" dialog; the playback, artist and playlist panels stay empty. Logged out it redirects to `/login/bars`.                                                  |
-| `/about/us`, `/about/contact`, `/about/terms`                                                           | Static pages.                                                                                                                                                                                                                                      |
-| `/about/blog`                                                                                           | Renders; its images come from Wikimedia and do not load.                                                                                                                                                                                           |
-| `/policies/*`                                                                                           | Static pages.                                                                                                                                                                                                                                      |
-| `/selectedGenres`, `/confirm-bar`, `/delete-confirmation`, `/password-reset`, `/password-reset/<token>` | The pages render. Anything they submit that sends e-mail delivers nothing offline (see below).                                                                                                                                                     |
+| Page                                                                                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                                                                                     | Renders. City list and genre picker are local files, so "select a city, pick genres, search" works. Address search and nearest-city lookup use Google Maps and do nothing offline. The Spotify, SoundCloud and Tidal buttons go to those services.                                                                                                                                                                                  |
+| `/clubs`                                                                                                | Club events for the city, date and genres chosen on `/`, ranked by genre match. Without chosen genres, a logged-in user's taste profile (favourite artists' genres) is used. Only events whose genres match appear. Opening it without searching first (no city/date cookies) redirects to `/`.                                                                                                                                     |
+| `/barfindr`                                                                                             | Bars for the chosen city, with their now-playing genre profile and upcoming bar events. Same search requirement as `/clubs` (redirects to `/` without one) and the same taste-profile fallback. A chosen genre list is used once: search again from `/` before opening it a second time.                                                                                                                                            |
+| `/login/users`                                                                                          | E-mail and password login works. The Google and Facebook buttons do not load.                                                                                                                                                                                                                                                                                                                                                       |
+| `/login/bars`                                                                                           | Promoter and bar manager login works.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `/users-home`                                                                                           | Regular user: name, top genres and saved events. The map does not load (Google Maps). "Connect" buttons for Spotify, SoundCloud and Tidal go to those services. The "Favourite artists" card links to the taste profile on `/` and holds the Last.fm import (503 "not set up" with the placeholder key; see the mocks section).                                                                                                     |
+| `/update-info`                                                                                          | Regular user: the account form loads. Logged out it returns 401.                                                                                                                                                                                                                                                                                                                                                                    |
+| `/promoter-home`                                                                                        | Promoter: current and past events at Parallax Cellar with line-ups. Logged out it redirects to `/login/bars`.                                                                                                                                                                                                                                                                                                                       |
+| `/bars`                                                                                                 | Bar manager: the dashboard frame with the bar name and a "Spotify Authentication Required" dialog; the playback, artist and playlist panels stay empty. Logged out it redirects to `/login/bars`.                                                                                                                                                                                                                                   |
+| `/about/us`, `/about/contact`, `/about/terms`                                                           | Static pages.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `/about/blog`                                                                                           | Renders; its images come from Wikimedia and do not load.                                                                                                                                                                                                                                                                                                                                                                            |
+| `/policies/*`                                                                                           | Static pages.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `/` taste profile (logged-in users)                                                                     | Below the music-service buttons: search artists, add and remove favourites, see the genres they give, and "Find clubs / bars with my taste" (city and date from the page, no genre list, so `/clubs` and `/barfindr` fall back to the profile). Offline, the search only finds artists already in `taste_artists` (with a "Spotify search is unavailable" note); the seeded ones and Perihelion Choir can be added without network. |
+| `/api/taste/artists` (GET, POST, DELETE `/:artistId`), `/api/taste/search?q=`                           | The JSON behind the picker. GET and DELETE need no network; POST works offline for artists already in `taste_artists` and returns 502 for unknown ones, which need Spotify; search returns catalogue hits plus a warning. Logged out: 401.                                                                                                                                                                                          |
+| `/selectedGenres`, `/confirm-bar`, `/delete-confirmation`, `/password-reset`, `/password-reset/<token>` | The pages render. Anything they submit that sends e-mail delivers nothing offline (see below).                                                                                                                                                                                                                                                                                                                                      |
 
 ### Needs external services
 
-| Page or feature                                   | Service                                 | Offline                                                                                                                                                         |
-| ------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/register`, `/register/promoter`                 | Google reCAPTCHA, Google Maps, e-mail   | The forms render, but submitting needs reCAPTCHA, and the confirmation code is sent by e-mail. Not testable offline; use the seeded accounts.                   |
-| `/register/confirm`, `/register/promoter/confirm` | e-mail                                  | Render; the code they ask for only arrives by e-mail.                                                                                                           |
-| Password reset, delete-account codes              | e-mail (SMTP, see `.env.example`)       | `pnpm test` sets `MAIL_TRANSPORT=capture`: messages go to `test-results/mail.jsonl`, never to any SMTP server. Otherwise the placeholder SMTP settings do fail. |
-| `/spotify`                                        | Spotify                                 | 401 page without a Spotify session.                                                                                                                             |
-| `/spotify/search`                                 | Spotify                                 | The page renders; searching needs the Spotify API.                                                                                                              |
-| `/spotify/login`                                  | Spotify OAuth callback                  | Opened directly, redirects to `/?error=Invalid state returned from OAuth`.                                                                                      |
-| `/soundcloud`                                     | SoundCloud                              | Redirects to SoundCloud's login (`/api/soundcloud/auth`), which fails offline.                                                                                  |
-| `/tidal`                                          | Tidal                                   | Redirects to Tidal's login (`/api/tidal/auth`), which fails offline.                                                                                            |
-| `/redirect`                                       | App stores                              | Sends the browser to the Google Play or App Store page.                                                                                                         |
-| Google and Facebook login                         | Google, Facebook                        | The buttons do not load.                                                                                                                                        |
-| Maps, address search, nearest city                | Google Maps                             | Not shown; the rest of the page works.                                                                                                                          |
-| Spotify app assignment                            | `SPOTIFY_SERVICE_URL` (spotify_service) | Only used when a bar has `music_service = 'spotify'` or a new user registers; the seed avoids both.                                                             |
+| Page or feature                                   | Service                                 | Offline                                                                                                                                                                                                                                           |
+| ------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/register`, `/register/promoter`                 | Google reCAPTCHA, Google Maps, e-mail   | The forms render, but submitting needs reCAPTCHA, and the confirmation code is sent by e-mail. Not testable offline; use the seeded accounts.                                                                                                     |
+| `/register/confirm`, `/register/promoter/confirm` | e-mail                                  | Render; the code they ask for only arrives by e-mail.                                                                                                                                                                                             |
+| Password reset, delete-account codes              | e-mail (SMTP, see `.env.example`)       | `pnpm test` sets `MAIL_TRANSPORT=capture`: messages go to `test-results/mail.jsonl`, never to any SMTP server. Otherwise the placeholder SMTP settings do fail.                                                                                   |
+| `/spotify`                                        | Spotify                                 | 401 page without a Spotify session. With one, each of the three sections loads on its own: a failing call is listed at the top and the rest is shown; an account the development-mode app may not access is sent back to `/` with an explanation. |
+| `/spotify/search`                                 | Spotify                                 | The page renders; searching needs the Spotify API.                                                                                                                                                                                                |
+| `/spotify/login`                                  | Spotify OAuth callback                  | Opened directly, redirects to `/?error=Invalid state returned from OAuth`.                                                                                                                                                                        |
+| `/soundcloud`                                     | SoundCloud                              | Redirects to SoundCloud's login (`/api/soundcloud/auth`), which fails offline.                                                                                                                                                                    |
+| `/tidal`                                          | Tidal                                   | Redirects to Tidal's login (`/api/tidal/auth`), which fails offline.                                                                                                                                                                              |
+| `/redirect`                                       | App stores                              | Sends the browser to the Google Play or App Store page.                                                                                                                                                                                           |
+| Google and Facebook login                         | Google, Facebook                        | The buttons do not load.                                                                                                                                                                                                                          |
+| Maps, address search, nearest city                | Google Maps                             | Not shown; the rest of the page works.                                                                                                                                                                                                            |
+| Spotify app assignment                            | `SPOTIFY_SERVICE_URL` (spotify_service) | Only used when a bar has `music_service = 'spotify'` or a new user registers; the seed avoids both.                                                                                                                                               |
