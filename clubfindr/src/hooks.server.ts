@@ -1,4 +1,4 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
 
@@ -11,10 +11,23 @@ const RATE_LIMIT = new Map();
 const MAX_REQUESTS = 60; // Max requests per minute
 const RESET_INTERVAL = 60 * 1000; // 1 minute
 
+/**
+ * The client address as the adapter determined it: behind the proxy that is the header named
+ * by ADDRESS_HEADER (with XFF_DEPTH for X-Forwarded-For), see .env.example; otherwise the
+ * socket. Nothing the client sends is read directly. A request that lacks the trusted header
+ * (local health check, direct hit) lands in one shared bucket instead of erroring.
+ */
+function clientAddress(event: RequestEvent): string {
+	try {
+		return event.getClientAddress();
+	} catch {
+		return 'unknown';
+	}
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	const { url, request } = event;
-	const clientIp =
-		request.headers.get('x-forwarded-for') || request.headers.get('cf-connecting-ip') || 'unknown';
+	const clientIp = clientAddress(event);
 
 	// Only log non-static requests to reduce noise
 	const isStaticAsset =
@@ -28,8 +41,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 		console.log(`Received request for: ${url.pathname}`);
 	}
 
-	// Add rate limiting for security
-	if (checkRateLimit(clientIp)) {
+	// Add rate limiting for security. Health checks are exempt: they come from the box itself
+	// (no trusted address header) and must never be turned away.
+	const isHealthCheck =
+		url.pathname === '/health' ||
+		url.pathname === '/actuator/health' ||
+		url.pathname === '/actuator/gateway/routes';
+	if (!isHealthCheck && checkRateLimit(clientIp)) {
 		console.warn(`Rate limit exceeded for IP: ${clientIp}`);
 		return new Response('Too Many Requests', { status: 429 });
 	}
