@@ -4,6 +4,7 @@ import { pool } from '$lib/db';
 import type { PageServerLoad } from './$types';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
+import { getProfileGenresForSession } from '$lib/taste/profileGenres';
 import genreClusters from '$lib/data/genreClusters.json';
 import type { EventDetails } from '$lib/types/events';
 
@@ -367,6 +368,20 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 			}
 		} catch (error) {
 			console.error('Error fetching genres from database:', error);
+		}
+	}
+
+	// 5. Fifth priority: the taste profile, the genres of the user's favourite artists
+	//    (docs/taste-profile-design.md). Picks for this search and Spotify session genres
+	//    above win; this is what logged-in users without Spotify get.
+	if (genresList.length === 0 && sessionId) {
+		try {
+			genresList = await getProfileGenresForSession(pool, sessionId);
+			if (genresList.length > 0) {
+				console.log('Using genres from the taste profile:', genresList);
+			}
+		} catch (error) {
+			console.error('Error fetching taste profile genres:', error);
 		}
 	}
 
