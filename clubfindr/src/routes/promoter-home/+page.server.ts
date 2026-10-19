@@ -1,17 +1,18 @@
 // promoter-home/+page.server.ts
 
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { query } from '$lib/db';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	try {
-		// Ensure user is authenticated and is a promoter
-		const promoterId = cookies.get('promoterId');
-		if (!promoterId) {
-			throw error(401, 'Unauthorized');
-		}
+	// Not logged in as a promoter: to the partner login (outside the try below, whose catch
+	// turns everything into a 500)
+	const promoterId = cookies.get('promoterId');
+	if (!promoterId) {
+		redirect(302, '/login/bars');
+	}
 
+	try {
 		// Get all events for the promoter with their associated artists
 		const eventsQuery = `
             SELECT 
