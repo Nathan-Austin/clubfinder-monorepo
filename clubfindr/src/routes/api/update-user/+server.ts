@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { query } from '$lib/db';
-import { comparePassword, hashPassword } from '$lib/passwordUtils';
+import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user?.id) {

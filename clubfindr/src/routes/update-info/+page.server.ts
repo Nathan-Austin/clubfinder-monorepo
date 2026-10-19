@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { query } from '$lib/db';
-import { comparePassword, hashPassword } from '$lib/passwordUtils';
+import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// Check if user is authenticated
