@@ -5,7 +5,7 @@ import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
 import { hashToken } from '$lib/encryptionUtils';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
 	const { email } = await request.json();
 
 	try {
@@ -35,7 +35,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 
 		// Send password reset email
-		const resetLink = `https://www.clubfindr.com/password-reset/${resetToken}`;
+		// The site the request came from (ORIGIN in production), so the token matches the deployment
+		const resetLink = `${url.origin}/password-reset/${resetToken}`;
 		await sendEmail(
 			email,
 			'Password Reset Request',

@@ -250,6 +250,7 @@ else
 			/^DATABASE_URL=/     { print $1, "postgres://" user ":" pass "@" host ":" port "/" db; next }
 			/^CRYPTO_KEY=/  { print $1, crypto; next }
 			/^JWT_SECRET=/       { print $1, jwt; next }
+			/^MAIL_TRANSPORT=/   { print $1, "capture"; next }
 			{ print }
 		' "$APP_DIR/.env.example"
 	} >"$tmp"
