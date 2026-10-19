@@ -7,6 +7,7 @@
 	import { toLocalIsoDate } from '$lib/localDate';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import { getDistance } from 'geolib';
+	import LastfmImport from '$lib/components/LastfmImport.svelte';
 	//const PUBLIC_SPOTIFY_CLIENT_ID = 'd92712657a2c4805bda31175bcf576eb';
 	// Register the required components for the pie chart
 	Chart.register(PieController, ArcElement, Tooltip, Legend);
@@ -34,6 +35,8 @@
 					soundcloud: boolean;
 					tidal: boolean;
 				};
+				/** SPOTIFY_CONNECT_ENABLED flag; absent on the error responses of the load */
+				spotifyConnectEnabled?: boolean;
 			};
 		};
 	}
@@ -716,6 +719,19 @@
 	<p>Connect and use your music streaming accounts with Clubfindr.</p>
 
 	<div class="connection-cards">
+		<!-- Manual taste profile: no streaming login needed (docs/taste-profile-design.md) -->
+		<div class="connection-card taste-card" data-testid="taste-card">
+			<div class="card-content">
+				<h3>Favourite artists</h3>
+				<p>
+					No streaming account? Pick the artists you love on the home page and their genres become
+					your taste profile.
+				</p>
+				<a href="/#taste-profile" class="connect-button taste-button">Edit your taste profile</a>
+				<LastfmImport />
+			</div>
+		</div>
+
 		<div class="connection-card">
 			<div class="card-content">
 				<h3>Spotify</h3>
@@ -727,20 +743,27 @@
 					{/if}
 				</p>
 				<!-- Use button element for better accessibility -->
-
-				<button
-					type="button"
-					onclick={handleSpotifyButtonClick}
-					class="connect-button spotify-button"
-					aria-label="Login with Spotify"
-				>
-					<span>{connectedServices.spotify ? 'Go to' : 'Connect with'}</span>
-					<img
-						src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
-						alt="Spotify Logo"
-						class="spotify-logo"
-					/>
-				</button>
+				{#if data.props.spotifyConnectEnabled ?? true}
+					<button
+						type="button"
+						onclick={handleSpotifyButtonClick}
+						class="connect-button spotify-button"
+						aria-label="Login with Spotify"
+						data-testid="spotify-connect"
+					>
+						<span>{connectedServices.spotify ? 'Go to' : 'Connect with'}</span>
+						<img
+							src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
+							alt="Spotify Logo"
+							class="spotify-logo"
+						/>
+					</button>
+				{:else}
+					<p class="connect-off" data-testid="spotify-connect-off">
+						Connecting Spotify is switched off at the moment (SPOTIFY_CONNECT_ENABLED). Use your
+						favourite artists or a Last.fm import instead.
+					</p>
+				{/if}
 			</div>
 		</div>
 
@@ -1124,6 +1147,21 @@
 
 	.spotify-button {
 		background-color: #1db954;
+		color: white;
+	}
+
+	.connect-off {
+		margin-top: 1rem;
+		font-size: 0.9rem;
+		color: rgba(var(--rgb-light), 0.75);
+	}
+
+	.taste-card {
+		border: 1px solid rgba(var(--rgb-light), 0.3);
+	}
+
+	.taste-button {
+		background-color: rgb(var(--rgb-secondary));
 		color: white;
 	}
 
