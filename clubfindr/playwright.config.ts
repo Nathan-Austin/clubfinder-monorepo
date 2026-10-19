@@ -7,6 +7,9 @@ import { MAIL_CAPTURE_FILE } from './tests/mail';
 //
 // PW_SKIP_BUILD=1 reuses the existing build/ output instead of rebuilding first.
 const port = 4173;
+// Second instance of the same build, configured like production (ADDRESS_HEADER=cf-connecting-ip),
+// for tests/rate-limit-cf.spec.ts only
+const cfPort = 4174;
 const serve = `node --env-file=.env build/index.js`;
 const serverEnv = {
 	// Never send real e-mail from the suite: the app writes it to the capture file instead
@@ -27,21 +30,47 @@ export default defineConfig({
 		trace: 'retain-on-failure',
 		screenshot: 'only-on-failure'
 	},
-	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-	webServer: {
-		command: process.env.PW_SKIP_BUILD ? serve : `vite build && ${serve}`,
-		port,
-		reuseExistingServer: !process.env.CI,
-		timeout: 300_000,
-		env: {
-			...serverEnv,
-			PORT: String(port),
-			// adapter-node needs the public origin for the CSRF check on form posts
-			ORIGIN: `http://localhost:${port}`,
-			// The test client stands in for the proxy: the last X-Forwarded-For entry (the one
-			// tests/fixtures.ts sets per test) is the client address
-			ADDRESS_HEADER: 'x-forwarded-for',
-			XFF_DEPTH: '1'
+	projects: [
+		{
+			name: 'chromium',
+			use: { ...devices['Desktop Chrome'] },
+			testIgnore: /rate-limit-cf\.spec\.ts/
+		},
+		{
+			name: 'cf-connecting-ip',
+			testMatch: /rate-limit-cf\.spec\.ts/,
+			use: { baseURL: `http://localhost:${cfPort}` }
 		}
-	}
+	],
+	webServer: [
+		{
+			command: process.env.PW_SKIP_BUILD ? serve : `vite build && ${serve}`,
+			port,
+			reuseExistingServer: !process.env.CI,
+			timeout: 300_000,
+			env: {
+				...serverEnv,
+				PORT: String(port),
+				// adapter-node needs the public origin for the CSRF check on form posts
+				ORIGIN: `http://localhost:${port}`,
+				// The test client stands in for the proxy: the last X-Forwarded-For entry (the one
+				// tests/fixtures.ts sets per test) is the client address
+				ADDRESS_HEADER: 'x-forwarded-for',
+				XFF_DEPTH: '1'
+			}
+		},
+		{
+			// Started after the first one, so the build above is in place
+			command: serve,
+			port: cfPort,
+			reuseExistingServer: !process.env.CI,
+			timeout: 60_000,
+			env: {
+				...serverEnv,
+				PORT: String(cfPort),
+				ORIGIN: `http://localhost:${cfPort}`,
+				ADDRESS_HEADER: 'cf-connecting-ip'
+			}
+		}
+	]
 });

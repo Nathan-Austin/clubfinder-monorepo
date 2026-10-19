@@ -73,7 +73,10 @@ test.describe('public pages', () => {
 	});
 
 	test('robots.txt is served', async ({ request }) => {
-		const response = await request.get('/robots.txt');
+		// own address: header-less requests share one rate-limit bucket (tests/rate-limit.spec.ts)
+		const response = await request.get('/robots.txt', {
+			headers: { 'x-forwarded-for': '192.0.2.1' }
+		});
 		expect(response.status()).toBe(200);
 		expect(await response.text()).toContain('User-agent');
 	});
