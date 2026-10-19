@@ -80,8 +80,9 @@
 				loginError = 'Please enter your full name';
 				return false;
 			}
-			if (!validateEmail(spotifyEmail)) {
-				loginError = 'Please enter a valid Spotify email address';
+			// Optional: only validated when something was typed
+			if (spotifyEmail.trim() && !validateEmail(spotifyEmail.trim())) {
+				loginError = 'Please enter a valid Spotify email address, or leave the field empty';
 				return false;
 			}
 			const commonPatterns = [
@@ -130,7 +131,7 @@
 					provider: 'local',
 					isNewUser,
 					fullName: isNewUser ? fullName : undefined,
-					spotifyEmail: isNewUser ? spotifyEmail : undefined
+					spotifyEmail: isNewUser && spotifyEmail.trim() ? spotifyEmail.trim() : undefined
 				})
 			});
 
@@ -363,23 +364,23 @@
 
 			<div class="form-group">
 				<label for="spotifyEmail">
-					Spotify Email
+					Spotify Email (optional)
 					<button type="button" class="info-icon" onclick={toggleSpotifyEmailInfo}>?</button>
 				</label>
 				<input
 					type="email"
 					id="spotifyEmail"
 					bind:value={spotifyEmail}
-					placeholder="Enter your Spotify email"
-					required
+					placeholder="Only if you want to connect Spotify"
 				/>
 				{#if showSpotifyEmailInfo}
 					<div class="info-tooltip">
 						<button type="button" class="close-tooltip" onclick={toggleSpotifyEmailInfo}>×</button>
-						<h4>Why do we need this?</h4>
+						<h4>Why do we ask for this?</h4>
 						<p>
-							This email is used to add you to our Spotify application so you can use Spotify
-							features in Clubfindr.
+							You can use Clubfindr without Spotify: pick your favourite artists and genres in your
+							taste profile instead. If you do want to connect Spotify later, this email is used to
+							add you to our Spotify application.
 						</p>
 
 						<h4>Where to find your Spotify email?</h4>

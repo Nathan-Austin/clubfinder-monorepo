@@ -1,9 +1,9 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error, isHttpError, redirect } from '@sveltejs/kit';
 import type { Cookies } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
+import { describeSpotifyFailure, spotifyTokenEndpoint } from '$lib/spotifyHosts';
 const REFRESH_TOKEN_COOKIE = 'spotifyRefreshToken';
-const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
 
 const fetchWithAuth = async (endpoint: string, accessToken: string) =>
 	await fetch(endpoint, {
@@ -101,7 +101,7 @@ const fetchAccessToken = async (cookies: Cookies) => {
 
 		console.log('Refreshing token with client ID:', clientId.substring(0, 5) + '...');
 
-		const response = await fetch(TOKEN_ENDPOINT, {
+		const response = await fetch(spotifyTokenEndpoint(), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -239,10 +239,16 @@ export const withAccessToken = async ({
 
 		const errorText = await endpointResponse.text();
 		console.error(`Error on Spotify API call: ${endpointResponse.status} - ${errorText}`);
-		throw error(403, 'Unauthorized Spotify API call');
+		// A clear message for the development-mode 403 ("user not registered") and the other
+		// known failures, instead of a generic one; callers can show failure.message as it is
+		const failure = describeSpotifyFailure(endpointResponse.status, errorText);
+		throw error(failure.status, failure.message);
 	} catch (apiErr: unknown) {
-		// If it's already a redirect, just rethrow it
+		// If it's already a redirect or one of our own errors, just rethrow it
 		if (apiErr && typeof apiErr === 'object' && 'status' in apiErr && apiErr.status === 302) {
+			throw apiErr;
+		}
+		if (isHttpError(apiErr)) {
 			throw apiErr;
 		}
 
@@ -275,7 +281,7 @@ export const refreshSpotifyToken = async ({ refreshToken }: { refreshToken: stri
 		const clientId = defaultAppResult.rows[0].client_id;
 		const clientSecret = defaultAppResult.rows[0].client_secret;
 
-		const response = await fetch(TOKEN_ENDPOINT, {
+		const response = await fetch(spotifyTokenEndpoint(), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',

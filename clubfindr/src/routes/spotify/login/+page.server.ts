@@ -13,6 +13,7 @@ import { getStateAsync } from '$lib/tempStore';
 import { cookieManager } from '$lib/cookieManager';
 import { encryptToken } from '$lib/encryptionUtils';
 import { dev } from '$app/environment';
+import { describeSpotifyFailure, spotifyApi, spotifyTokenEndpoint } from '$lib/spotifyHosts';
 
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const code = url.searchParams.get('code');
@@ -262,7 +263,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		});
 
 		/** Fetch Spotify Tokens **/
-		const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+		const tokenResponse = await fetch(spotifyTokenEndpoint(), {
 			method: 'POST',
 			headers: {
 				Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
@@ -295,7 +296,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 
 		/** Fetch Spotify User Profile **/
 		console.log('Fetching user profile from Spotify');
-		const userProfileResponse = await fetch('https://api.spotify.com/v1/me', {
+		const userProfileResponse = await fetch(spotifyApi('/me'), {
 			headers: {
 				Authorization: `Bearer ${access_token}`
 			}
@@ -306,7 +307,14 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			console.error(
 				`Failed to fetch user profile: ${userProfileResponse.status} - ${profileError}`
 			);
-			throw redirect(302, `/?error=${encodeURIComponent('Failed to fetch Spotify profile')}`);
+			// The first API call after the login is where a development-mode app finds out
+			// the account is not registered; say so instead of "failed to fetch profile"
+			const failure = describeSpotifyFailure(userProfileResponse.status, profileError);
+			const message =
+				failure.kind === 'not-registered'
+					? failure.message
+					: `Could not read your Spotify profile. ${failure.message}`;
+			throw redirect(302, `/?error=${encodeURIComponent(message)}`);
 		}
 
 		const userProfile = await userProfileResponse.json();

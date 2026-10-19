@@ -261,6 +261,28 @@
 	</a>
 	<div class="content">
 		<h1 class="text-2xl mb-4 md:mb-8">Find bars or clubs with a vibe like&hellip;</h1>
+
+		{#if data.notRegistered}
+			<!-- Development-mode Spotify app: the account is not on the allow list -->
+			<div
+				class="spotify-notice spotify-notice-blocking"
+				role="alert"
+				data-testid="spotify-not-registered"
+			>
+				<h2 class="notice-title">Spotify will not share your listening with us</h2>
+				<p>{data.failures?.[0]?.message}</p>
+				<a class="notice-link" href="/#taste-profile">Build your taste profile instead</a>
+			</div>
+		{:else if data.failures && data.failures.length > 0}
+			<div class="spotify-notice" role="status" data-testid="spotify-partial">
+				<p>Some of your Spotify data could not be loaded; the rest is shown below.</p>
+				<ul>
+					{#each data.failures as failure (failure.section)}
+						<li><strong>{failure.section}</strong>: {failure.message}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 		<!-- <span class="text-sm mb-4">{selectedCount} selected</span> -->
 		<!-- Notification banner to prompt the user to update their profile -->
 		<!-- Update Section - Only visible if the profile is incomplete -->
@@ -359,91 +381,93 @@
 			</div>
 		{/if}
 
-		<!-- Dropdown for mobile view -->
-		<div class="mobile-dropdown md:hidden mb-4 text-black">
-			<select bind:value={selectedView} class="dropdown-select">
-				<option value="playlists">Playlists</option>
-				<option value="artists">Top Artists</option>
-				<option value="tracks">Recently Played Tracks</option>
-			</select>
-		</div>
-
-		<!-- Grid container -->
-		<div class="grid-container">
-			<!-- Playlists Section -->
-			<div class="section playlists" class:hide-on-mobile={selectedView !== 'playlists'}>
-				<h2 class="section-title">Playlists</h2>
-				<div class="items-grid">
-					{#each playlists as playlist (playlist.id)}
-						<!-- The entire item box is clickable -->
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="item {playlist.selected ? 'selected' : ''}"
-							onclick={() => onSelect(playlist.id, 'playlist')}
-						>
-							<img src={playlist.image} alt={playlist.name} onload={onImageLoad} />
-							<div class="overlay">
-								<span>{playlist.name}</span><br />
-								<a href={playlist.spotifyUrl} style="color: #1db954;" target="_blank"
-									>Listen on Spotify</a
-								>
-							</div>
-						</div>
-					{/each}
-				</div>
+		{#if !data.notRegistered}
+			<!-- Dropdown for mobile view -->
+			<div class="mobile-dropdown md:hidden mb-4 text-black">
+				<select bind:value={selectedView} class="dropdown-select">
+					<option value="playlists">Playlists</option>
+					<option value="artists">Top Artists</option>
+					<option value="tracks">Recently Played Tracks</option>
+				</select>
 			</div>
 
-			<!-- Artists Section -->
-			<div class="section artists" class:hide-on-mobile={selectedView !== 'artists'}>
-				<h2 class="section-title">Top Artists</h2>
-				<div class="items-grid">
-					{#each artists as artist (artist.id)}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="item {artist.selected ? 'selected' : ''}"
-							onclick={() => onSelect(artist.id, 'artist')}
-						>
-							<img src={artist.image} alt={artist.name} onload={onImageLoad} />
-							<div class="overlay">
-								<span>{artist.name}</span><br />
-								<a href={artist.spotifyUrl} style="color: #1db954;" target="_blank"
-									>Listen on Spotify</a
-								>
+			<!-- Grid container -->
+			<div class="grid-container">
+				<!-- Playlists Section -->
+				<div class="section playlists" class:hide-on-mobile={selectedView !== 'playlists'}>
+					<h2 class="section-title">Playlists</h2>
+					<div class="items-grid">
+						{#each playlists as playlist (playlist.id)}
+							<!-- The entire item box is clickable -->
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="item {playlist.selected ? 'selected' : ''}"
+								onclick={() => onSelect(playlist.id, 'playlist')}
+							>
+								<img src={playlist.image} alt={playlist.name} onload={onImageLoad} />
+								<div class="overlay">
+									<span>{playlist.name}</span><br />
+									<a href={playlist.spotifyUrl} style="color: #1db954;" target="_blank"
+										>Listen on Spotify</a
+									>
+								</div>
 							</div>
-						</div>
-					{/each}
+						{/each}
+					</div>
+				</div>
+
+				<!-- Artists Section -->
+				<div class="section artists" class:hide-on-mobile={selectedView !== 'artists'}>
+					<h2 class="section-title">Top Artists</h2>
+					<div class="items-grid">
+						{#each artists as artist (artist.id)}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="item {artist.selected ? 'selected' : ''}"
+								onclick={() => onSelect(artist.id, 'artist')}
+							>
+								<img src={artist.image} alt={artist.name} onload={onImageLoad} />
+								<div class="overlay">
+									<span>{artist.name}</span><br />
+									<a href={artist.spotifyUrl} style="color: #1db954;" target="_blank"
+										>Listen on Spotify</a
+									>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Tracks Section -->
+				<div class="section tracks" class:hide-on-mobile={selectedView !== 'tracks'}>
+					<h2 class="section-title">Recently Played Tracks</h2>
+					<div class="items-grid">
+						{#each tracks as track, i (i)}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="item {track.selected ? 'selected' : ''}"
+								onclick={() => onSelect(track.id, 'track')}
+							>
+								<img src={track.image} alt={track.name} onload={onImageLoad} />
+								<div class="overlay">
+									<span>{track.name}</span><br />
+
+									{#if track.artist}
+										<span class="artist-name">{track.artist.name}</span><br />
+									{/if}
+									<a href={track.spotifyUrl} style="color: #1db954;" target="_blank"
+										>Listen on Spotify</a
+									>
+								</div>
+							</div>
+						{/each}
+					</div>
 				</div>
 			</div>
-
-			<!-- Tracks Section -->
-			<div class="section tracks" class:hide-on-mobile={selectedView !== 'tracks'}>
-				<h2 class="section-title">Recently Played Tracks</h2>
-				<div class="items-grid">
-					{#each tracks as track, i (i)}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="item {track.selected ? 'selected' : ''}"
-							onclick={() => onSelect(track.id, 'track')}
-						>
-							<img src={track.image} alt={track.name} onload={onImageLoad} />
-							<div class="overlay">
-								<span>{track.name}</span><br />
-
-								{#if track.artist}
-									<span class="artist-name">{track.artist.name}</span><br />
-								{/if}
-								<a href={track.spotifyUrl} style="color: #1db954;" target="_blank"
-									>Listen on Spotify</a
-								>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		</div>
+		{/if}
 	</div>
 
 	<!-- Footer Buttons -->
@@ -515,6 +539,42 @@
 	/* Section Styling */
 	.section {
 		margin-bottom: 2rem;
+	}
+
+	.spotify-notice {
+		text-align: left;
+		margin: 0 auto 1.5rem;
+		max-width: 48rem;
+		padding: 1rem 1.25rem;
+		border-radius: 0.75rem;
+		border: 1px solid rgba(var(--rgb-primary), 0.6);
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.spotify-notice ul {
+		margin: 0.5rem 0 0 1.25rem;
+		list-style: disc;
+	}
+
+	.spotify-notice-blocking {
+		border-color: rgb(var(--rgb-primary));
+	}
+
+	.notice-title {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.notice-link {
+		display: inline-block;
+		margin-top: 0.75rem;
+		padding: 0.5rem 1rem;
+		border-radius: 0.5rem;
+		background: rgb(var(--rgb-secondary));
+		color: white;
+		font-weight: 600;
+		text-decoration: none;
 	}
 
 	.section-title {

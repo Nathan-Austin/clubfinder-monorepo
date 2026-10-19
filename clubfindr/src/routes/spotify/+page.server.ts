@@ -1,4 +1,4 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error, isHttpError, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from '../$types';
 import { withAccessToken } from '$lib/spotifyUtils';
 import { SPOTIFY_CLIENT_SECRET } from '$env/static/private';
@@ -6,10 +6,13 @@ import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 import { Buffer } from 'buffer';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
+import {
+	SPOTIFY_NOT_REGISTERED_MESSAGE,
+	spotifyApi,
+	spotifyTokenEndpoint
+} from '$lib/spotifyHosts';
 const client_id = PUBLIC_SPOTIFY_CLIENT_ID;
 const client_secret = SPOTIFY_CLIENT_SECRET;
-
-const token_endpoint = `https://accounts.spotify.com/api/token`;
 
 import type {
 	Playlist,
@@ -19,9 +22,17 @@ import type {
 	PlaylistWithArtists
 } from '$lib/$types';
 
-const recentlyPlayedEndpoint = `https://api.spotify.com/v1/me/player/recently-played`;
-const userPlaylistsEndpoint = `https://api.spotify.com/v1/me/playlists`;
-const userTopArtistsEndpoint = `https://api.spotify.com/v1/me/top/artists`;
+const recentlyPlayedEndpoint = () => spotifyApi('/me/player/recently-played');
+const userPlaylistsEndpoint = () => spotifyApi('/me/playlists');
+const userTopArtistsEndpoint = () => spotifyApi('/me/top/artists');
+
+/** One of the three sections of the page, for the "could not load" notes. */
+type Section = 'recently played tracks' | 'playlists' | 'top artists';
+
+function failureMessage(reason: unknown): string {
+	if (isHttpError(reason)) return reason.body?.message ?? `HTTP ${reason.status}`;
+	return reason instanceof Error ? reason.message : String(reason);
+}
 
 export const load = (async ({ cookies }) => {
 	const now = Date.now();
@@ -87,7 +98,7 @@ export const load = (async ({ cookies }) => {
 			const encodedString = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
 
 			// Fetch a new access token using the refresh token
-			const response = await fetch(token_endpoint, {
+			const response = await fetch(spotifyTokenEndpoint(), {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
@@ -134,57 +145,74 @@ export const load = (async ({ cookies }) => {
 		}
 	}
 
-	try {
-		const [tracks, PlaylistsData, TopArtistsData] = await Promise.all([
-			withAccessToken({ cookies, endpoint: recentlyPlayedEndpoint }),
-			withAccessToken({ cookies, endpoint: userPlaylistsEndpoint }),
-			withAccessToken({ cookies, endpoint: userTopArtistsEndpoint })
-		]);
+	// Each section is loaded on its own: one failing call (Spotify is flaky, and in development
+	// mode every call fails with 403 for accounts that are not registered) must not blank the
+	// whole page. What failed is reported per section; the not-registered case gets its own
+	// message because there is nothing the user can do about it here.
+	const settled = await Promise.allSettled([
+		withAccessToken({ cookies, endpoint: recentlyPlayedEndpoint() }),
+		withAccessToken({ cookies, endpoint: userPlaylistsEndpoint() }),
+		withAccessToken({ cookies, endpoint: userTopArtistsEndpoint() })
+	]);
+	const sections: Section[] = ['recently played tracks', 'playlists', 'top artists'];
+	const failures: { section: Section; message: string }[] = [];
+	settled.forEach((result, index) => {
+		if (result.status === 'rejected') {
+			failures.push({ section: sections[index], message: failureMessage(result.reason) });
+			console.error(`Spotify ${sections[index]} failed:`, result.reason);
+		}
+	});
+	const notRegistered = failures.some((f) => f.message === SPOTIFY_NOT_REGISTERED_MESSAGE);
+	const [tracks, PlaylistsData, TopArtistsData] = settled.map((result) =>
+		result.status === 'fulfilled' ? result.value : null
+	);
 
-		const allPlaylistTracks: PlaylistTracks[] = await Promise.all(
-			PlaylistsData.items.map((playlist: Playlist) =>
-				withAccessToken({ cookies, endpoint: playlist.tracks.href })
-			)
-		);
+	const playlistItems: Playlist[] = PlaylistsData?.items ?? [];
+	const allPlaylistTracks: (PlaylistTracks | null)[] = await Promise.all(
+		playlistItems.map((playlist: Playlist) =>
+			withAccessToken({ cookies, endpoint: playlist.tracks.href }).catch((reason) => {
+				console.error(`Spotify playlist tracks for ${playlist.id} failed:`, reason);
+				return null;
+			})
+		)
+	);
 
-		const playlistArtistIds = [] as Array<string[]>;
-		allPlaylistTracks.forEach((pt) => {
-			const artistsInPlaylist = new Set<string>();
-			// Filter out null/undefined tracks first
-			const validTracks = pt.items.filter((item) => item?.track);
+	const playlistArtistIds = [] as Array<string[]>;
+	allPlaylistTracks.forEach((pt) => {
+		const artistsInPlaylist = new Set<string>();
+		// Filter out null/undefined tracks first
+		const validTracks = (pt?.items ?? []).filter((item) => item?.track);
 
-			validTracks.forEach((ptt) => {
-				ptt.track.artists?.forEach((artist) => {
-					if (artist?.id) {
-						artistsInPlaylist.add(artist.id);
-					}
-				});
+		validTracks.forEach((ptt) => {
+			ptt.track.artists?.forEach((artist) => {
+				if (artist?.id) {
+					artistsInPlaylist.add(artist.id);
+				}
 			});
-
-			playlistArtistIds.push([...artistsInPlaylist]);
 		});
 
-		// Return the data for rendering
-		return {
-			recentlyPlayedTracks: tracks.items.map((i: { track: RecentlyPlayedTrack }) => ({
-				...i.track,
-				spotifyLink: i.track.album
-					? i.track.album.external_urls.spotify
-					: i.track.external_urls?.spotify
-			})),
-			playlists: (PlaylistsData as { items: Playlist[] }).items.map((item, i) => ({
-				...item,
-				artistIds: playlistArtistIds[i],
-				spotifyLink: item.external_urls // Add Spotify link to playlists
-			})) as PlaylistWithArtists[],
-			topArtists: TopArtistsData.items.map((artist: Artist) => ({
-				...artist,
-				spotifyLink: artist.external_urls // Add Spotify link to artists
-			})) as Artist[],
-			profileComplete
-		};
-	} catch (err) {
-		console.error('Error in GET handler', err);
-		return { message: err instanceof Error ? err.message : 'An unexpected error occurred' };
-	}
+		playlistArtistIds.push([...artistsInPlaylist]);
+	});
+
+	// Return the data for rendering
+	return {
+		recentlyPlayedTracks: (tracks?.items ?? []).map((i: { track: RecentlyPlayedTrack }) => ({
+			...i.track,
+			spotifyLink: i.track.album
+				? i.track.album.external_urls.spotify
+				: i.track.external_urls?.spotify
+		})),
+		playlists: playlistItems.map((item, i) => ({
+			...item,
+			artistIds: playlistArtistIds[i],
+			spotifyLink: item.external_urls // Add Spotify link to playlists
+		})) as PlaylistWithArtists[],
+		topArtists: (TopArtistsData?.items ?? []).map((artist: Artist) => ({
+			...artist,
+			spotifyLink: artist.external_urls // Add Spotify link to artists
+		})) as Artist[],
+		failures,
+		notRegistered,
+		profileComplete
+	};
 }) satisfies PageServerLoad;

@@ -44,8 +44,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const dbCheckStart = Date.now();
 		if (provider === 'local') {
 			if (isNewUser) {
-				// New user registration
-				if (!email || !password || !fullName || !spotifyEmail) {
+				// New user registration. A Spotify e-mail is optional: taste can come from the
+				// manual taste profile, so signing up must not depend on Spotify.
+				const optionalSpotifyEmail =
+					typeof spotifyEmail === 'string' && spotifyEmail.trim() ? spotifyEmail.trim() : null;
+				if (!email || !password || !fullName) {
 					return new Response(
 						JSON.stringify({
 							success: false,
@@ -58,8 +61,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 				// Check if user exists
 				const existingUser = await query(
-					'SELECT id FROM clubfindr.users WHERE general_email = $1 OR spotify_email = $2',
-					[email, spotifyEmail]
+					'SELECT id FROM clubfindr.users WHERE general_email = $1 OR ($2::text IS NOT NULL AND spotify_email = $2)',
+					[email, optionalSpotifyEmail]
 				);
 
 				if (existingUser.rows.length > 0) {
@@ -85,7 +88,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						(general_email, password_hash, name, city, spotify_email) 
 						VALUES ($1, $2, $3, $4, $5) 
 						RETURNING id`,
-						[email, hashedPassword, fullName, city, spotifyEmail]
+						[email, hashedPassword, fullName, city, optionalSpotifyEmail]
 					);
 
 					user_id = newUserResult.rows[0].id;
@@ -104,12 +107,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						{ status: 400 }
 					);
 				}
-				// Add user to Spotify app
-				try {
-					await addUserToSpotifyApp(user_id, spotifyEmail);
-				} catch (error) {
-					console.error('Failed to add user to Spotify app:', error);
-					// Continue with login even if Spotify app addition fails
+				// Only users who gave a Spotify e-mail are added to a Spotify app
+				if (optionalSpotifyEmail) {
+					try {
+						await addUserToSpotifyApp(user_id, optionalSpotifyEmail);
+					} catch (error) {
+						console.error('Failed to add user to Spotify app:', error);
+						// Continue with login even if Spotify app addition fails
+					}
 				}
 			} else {
 				// Regular login
