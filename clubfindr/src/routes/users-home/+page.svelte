@@ -4,6 +4,7 @@
 	import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { DatePicker } from 'date-picker-svelte';
+	import { toLocalIsoDate } from '$lib/localDate';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import { getDistance } from 'geolib';
 	//const PUBLIC_SPOTIFY_CLIENT_ID = 'd92712657a2c4805bda31175bcf576eb';
@@ -308,7 +309,7 @@
 
 			const formData = {
 				city: cityValue || 'berlin',
-				formattedDate: formattedDate.toISOString().substring(0, 10),
+				formattedDate: toLocalIsoDate(formattedDate),
 				source: 'user-home' // Add source identifier to help with redirect
 			};
 
@@ -386,7 +387,7 @@
 
 			const formData = {
 				city: cityValue || 'berlin',
-				formattedDate: formattedDate.toISOString().substring(0, 10),
+				formattedDate: toLocalIsoDate(formattedDate),
 				source: 'user-home'
 			};
 
@@ -413,7 +414,7 @@
 
 			const formData = {
 				city: cityValue || 'berlin',
-				formattedDate: formattedDate.toISOString().substring(0, 10),
+				formattedDate: toLocalIsoDate(formattedDate),
 				source: 'user-home'
 			};
 
@@ -614,11 +615,7 @@
 <form id="city-location" action="/storestate" method="POST">
 	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" bind:value={address} name="address" />
-	<input
-		type="hidden"
-		value={formattedDate.toISOString().substring(0, 10).replace(/-/g, '-')}
-		name="formattedDate"
-	/>
+	<input type="hidden" value={toLocalIsoDate(formattedDate)} name="formattedDate" />
 	<button type="button" id="form-submit-button" class="hidden">Submit</button>
 </form>
 

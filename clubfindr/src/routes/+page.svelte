@@ -5,6 +5,7 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { DatePicker } from 'date-picker-svelte';
+	import { toLocalIsoDate } from '$lib/localDate';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { goto } from '$app/navigation';
 	import { getDistance } from 'geolib';
@@ -1107,22 +1108,14 @@
 <form id="city-location" action="/storestate" method="POST">
 	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" bind:value={address} name="address" />
-	<input
-		type="hidden"
-		value={formattedDate.toISOString().substring(0, 10).replace(/-/g, '-')}
-		name="formattedDate"
-	/>
+	<input type="hidden" value={toLocalIsoDate(formattedDate)} name="formattedDate" />
 	<button type="button" id="form-submit-button" class="hidden">Submit</button>
 </form>
 <form id="genres" action="/storestate" method="POST">
 	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" value={selectedGenres} name="selectedGenre" />
 	<input type="hidden" bind:value={address} name="address" />
-	<input
-		type="hidden"
-		value={formattedDate.toISOString().substring(0, 10).replace(/-/g, '-')}
-		name="formattedDate"
-	/>
+	<input type="hidden" value={toLocalIsoDate(formattedDate)} name="formattedDate" />
 	<button type="button" id="form-submit-button" class="hidden">Submit</button>
 </form>
 
@@ -1130,11 +1123,7 @@
 	<input type="hidden" bind:value={searchQuery} name="search" />
 	<input type="hidden" bind:value={city1} name="city" />
 	<input type="hidden" bind:value={address} name="address" />
-	<input
-		type="hidden"
-		value={formattedDate.toISOString().substring(0, 10).replace(/-/g, '-')}
-		name="formattedDate"
-	/>
+	<input type="hidden" value={toLocalIsoDate(formattedDate)} name="formattedDate" />
 	<button type="button" id="form-submit-button" class="hidden">Submit</button>
 </form>
 
