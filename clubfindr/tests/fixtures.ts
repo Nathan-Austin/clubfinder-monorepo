@@ -1,5 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
+export type { Page };
+
 /**
  * Shared fixture for the e2e suite.
  *
@@ -9,6 +11,11 @@ import { test as base, expect, type Page } from '@playwright/test';
  *   (60 requests/minute in hooks.server.ts) keys on; without it a parallel run is throttled.
  * - Uncaught page errors fail the test. Console errors from blocked third-party scripts are
  *   expected offline and are not counted.
+ * - One session per user: /login/users deletes the user's other sessions, so two tests that
+ *   log in as the same user in parallel invalidate each other's session cookie. Page loads
+ *   mostly survive this (they also read the usersId cookie), API calls do not. Tests that call
+ *   the API as a given user must live in one file with `test.describe.configure({ mode:
+ *   'default' })`, and no other file may log in as that user (see tests/taste.spec.ts).
  */
 
 export const USERS = {
@@ -29,6 +36,20 @@ export const USERS = {
 		password: 'BarManager#2026',
 		loginPath: '/login/bars',
 		home: '/bars'
+	},
+	/** Regular user who never connected Spotify; has seeded favourite artists (taste profile) */
+	fan: {
+		email: 'fan@clubfindr.test',
+		password: 'Fan#2026',
+		loginPath: '/login/users',
+		home: '/users-home'
+	},
+	/** Regular user who never connected Spotify and has no favourite artists (empty profile) */
+	newcomer: {
+		email: 'newcomer@clubfindr.test',
+		password: 'Newcomer#2026',
+		loginPath: '/login/users',
+		home: '/users-home'
 	}
 } as const;
 

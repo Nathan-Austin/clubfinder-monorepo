@@ -24,6 +24,18 @@ test.describe('home page search', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
+	test('"Change the vibe" returns to / with the city still selected', async ({ page }) => {
+		const menu = await chooseCityAndGenre(page, 'Berlin', 'Minimal and Techno');
+		await menu.locator('button.submit-selection-button', { hasText: 'Find A club' }).click();
+		await page.waitForURL('**/clubs');
+		await page.getByRole('button', { name: 'Change the vibe' }).click();
+		await page.waitForURL(/\/$/);
+		await expect(page.locator('#city-select')).toHaveValue('Berlin');
+		// And a reload keeps it too: the city comes from the search's cookie, not page state
+		await page.reload();
+		await expect(page.locator('#city-select')).toHaveValue('Berlin');
+	});
+
 	test('logged-in user can mark interest on a club result', async ({ page }) => {
 		await login(page, 'listener');
 		const menu = await chooseCityAndGenre(page, 'Berlin', 'Minimal and Techno');
