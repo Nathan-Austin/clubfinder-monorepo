@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
-import { comparePassword, hashPassword } from '$lib/passwordUtils';
+import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { addUserToSpotifyApp } from '$lib/spotifyService';

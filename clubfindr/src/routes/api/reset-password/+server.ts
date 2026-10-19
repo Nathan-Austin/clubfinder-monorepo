@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
-import { hashPassword } from '$lib/passwordUtils';
+import { hashPassword } from '$lib/server/passwordUtils';
 import { hashToken } from '$lib/encryptionUtils';
 
 export const POST: RequestHandler = async ({ request }) => {
