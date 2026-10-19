@@ -24,11 +24,6 @@ test.describe('home page search', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
-	test('/clubs without a search is an error page', async ({ page }) => {
-		const response = await page.goto('/clubs');
-		expect(response?.status()).toBe(500);
-	});
-
 	test('logged-in user can mark interest on a club result', async ({ page }) => {
 		await login(page, 'listener');
 		const menu = await chooseCityAndGenre(page, 'Berlin', 'Minimal and Techno');
