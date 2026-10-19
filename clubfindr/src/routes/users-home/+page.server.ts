@@ -2,6 +2,7 @@
 import { query } from '$lib/db';
 import type { PageServerLoad } from '../$types';
 import { cookieManager } from '$lib/cookieManager';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 // Define interfaces for our data structures
 interface Preference {
 	genre: string;
@@ -175,7 +176,8 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			userName: user.name || null,
 			topPreferences,
 			interestedEvents,
-			connectedServices
+			connectedServices,
+			spotifyConnectEnabled: isSpotifyConnectEnabled()
 		}
 	};
 };

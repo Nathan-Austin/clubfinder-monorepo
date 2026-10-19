@@ -10,6 +10,7 @@
 	import { goto } from '$app/navigation';
 	import { getDistance } from 'geolib';
 	import type { City } from '$lib/types/city';
+	import TasteProfile from '$lib/components/TasteProfile.svelte';
 
 	const redirectUri = encodeURIComponent(
 		PUBLIC_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
@@ -67,6 +68,12 @@
 
 	let { data }: Props = $props();
 	let loggedIn = $derived(data.hasAccessToken);
+	// Start from the city of the last search, if there was one (see +page.server.ts)
+	// svelte-ignore state_referenced_locally
+	if (data.rememberedCity) city1 = data.rememberedCity;
+	// Message from a redirect such as /?error=... (Spotify login failures); dismissable
+	// svelte-ignore state_referenced_locally
+	let flashError = $state(data.errorMessage);
 	let userClientId = $state(clientId);
 	// Check if user is logged in via cookie
 	let isUserLoggedIn = $state(false);
@@ -178,7 +185,8 @@
 		});
 
 		if (closestCity) {
-			city1 = closestCity;
+			// A city remembered from the last search wins over the guessed one
+			if (!data.rememberedCity) city1 = closestCity;
 			console.log(`Closest city is: ${closestCity}`);
 			document.cookie = `closestCity=${closestCity}; path=/`; // Set cookie with the closest city
 		}
@@ -366,7 +374,7 @@
 					if (address) {
 						const city = await extractCity(address);
 						if (city) {
-							city1 = city;
+							if (!data.rememberedCity) city1 = city;
 							console.log(`City from extractCity: ${city}`);
 						} else {
 							console.log('No city extracted from address');
@@ -428,6 +436,16 @@
 
 		console.warn('No city found in the address');
 		return null;
+	}
+
+	// Same feedback as the search handlers below when no city is selected yet
+	function flagMissingCity() {
+		isCitySelectionInvalid = true;
+		const citySelect = document.getElementById('city-select');
+		if (citySelect) {
+			citySelect.scrollIntoView({ behavior: 'smooth' });
+			citySelect.classList.add('flash');
+		}
 	}
 
 	function handleCitySelection(event: Event) {
@@ -1183,6 +1201,19 @@
 
 	<!-- Center content -->
 	<div class="main-content">
+		{#if flashError}
+			<div class="flash-error" role="alert" data-testid="flash-error">
+				<p>{flashError}</p>
+				<button
+					type="button"
+					class="flash-error-close"
+					onclick={() => (flashError = '')}
+					aria-label="Dismiss message"
+				>
+					✖
+				</button>
+			</div>
+		{/if}
 		<div>
 			<h1
 				class="text-[2.1rem] md:text-[5.7rem] font-bold my-1 md:my-2 text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
@@ -1218,10 +1249,11 @@
 			<select
 				id="city-select"
 				class:isInvalid={isCitySelectionInvalid}
+				bind:value={city1}
 				onchange={handleCitySelection}
 				style="color: black;"
 			>
-				<option value="" selected disabled>Select a city</option>
+				<option value="" disabled>Select a city</option>
 				{#each cities as city (city.name)}
 					<option value={city.name} style="color: black;">{city.name}</option>
 				{/each}
@@ -1234,25 +1266,32 @@
 		<div class="my-6 md:my-14">
 			<!-- Conditionally show login button or music service buttons -->
 			{#if isUserLoggedIn}
-				<!-- Spotify login button -->
-				<div class="center-button">
-					<a
-						href={loggedIn
-							? '/spotify'
-							: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`}
-						onclick={handleSpotifyButtonClick}
-						role="button"
-						class="custom-spotify-button"
-						aria-label="Login with Spotify"
-					>
-						<span>Connect with</span>
-						<img
-							src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
-							alt="Spotify Logo"
-							class="spotify-logo"
-						/>
-					</a>
-				</div>
+				{#if data.spotifyConnectEnabled}
+					<!-- Spotify login button (SPOTIFY_CONNECT_ENABLED, see src/lib/featureFlags.ts) -->
+					<div class="center-button" data-testid="spotify-connect">
+						<a
+							href={loggedIn
+								? '/spotify'
+								: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`}
+							onclick={handleSpotifyButtonClick}
+							role="button"
+							class="custom-spotify-button"
+							aria-label="Login with Spotify"
+						>
+							<span>Connect with</span>
+							<img
+								src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
+								alt="Spotify Logo"
+								class="spotify-logo"
+							/>
+						</a>
+					</div>
+				{:else}
+					<p class="text-sm opacity-80" data-testid="spotify-connect-off">
+						Connecting Spotify is switched off at the moment. Your taste profile below works without
+						it.
+					</p>
+				{/if}
 
 				<!-- SoundCloud button -->
 				<div class="center-button mt-4">
@@ -1314,6 +1353,11 @@
 				</div>
 			{/if}
 		</div>
+		{#if isUserLoggedIn}
+			<!-- Manual taste profile: favourite artists and the genres they give (no Spotify needed) -->
+			<TasteProfile city={city1} date={formattedDate} onMissingCity={flagMissingCity} />
+		{/if}
+
 		<!-- Divider between 'login' and 'guest' options -->
 		<div class="relative flex items-center">
 			<div class="grow border-t border-light rounded-sm"></div>
@@ -1720,6 +1764,30 @@
 		flex: 1;
 		max-width: 600px;
 		min-width: 0;
+	}
+
+	.flash-error {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		text-align: left;
+		margin: 1rem 0;
+		padding: 0.9rem 1rem;
+		border-radius: 0.75rem;
+		border: 1px solid rgb(var(--rgb-primary));
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.flash-error p {
+		flex: 1;
+		margin: 0;
+	}
+
+	.flash-error-close {
+		background: none;
+		border: none;
+		color: rgb(var(--rgb-light));
+		cursor: pointer;
 	}
 
 	.feature-card {
