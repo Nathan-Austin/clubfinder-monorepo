@@ -30,6 +30,7 @@ playwright-report/
 # component dev databases such as clubfindr/dev/.pgdata/
 dev/.pgdata/
 **/dev/.pgdata/
+data_collection/test_db_data/
 
 # IDE & Editor
 .vscode/

@@ -84,7 +84,7 @@ top artists or play counts on the web).
 
 ## 7. `barfindr` scaling
 
-Only relevant if `barfindr` keeps polling venues after section 1.
+Superseded by section 1 once `barfindr` stops polling venue Spotify playback.
 
 - [ ] Process venues in parallel chunks instead of one sequential loop
 - [ ] Move 24-hour genre aggregation into SQL instead of loading rows into memory
