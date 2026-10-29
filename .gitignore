@@ -24,6 +24,8 @@ dist/
 coverage/
 test-results/
 playwright-report/
+.expo/
+.pytest_cache/
 # A pattern with a slash in the middle is anchored to the root, so add **/ to match
 # component dev databases such as clubfindr/dev/.pgdata/
 dev/.pgdata/
