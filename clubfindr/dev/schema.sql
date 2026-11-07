@@ -397,6 +397,18 @@ ALTER SEQUENCE clubfindr.spotify_task_log_id_seq OWNED BY clubfindr.spotify_task
 
 
 --
+-- Name: bar_favourite_artists; Type: TABLE; Schema: clubfindr; Owner: -
+-- (not in the production dump this file was taken from; see migrations/20261108_add_bar_favourite_artists.sql)
+--
+
+CREATE TABLE clubfindr.bar_favourite_artists (
+    bar_id uuid NOT NULL,
+    artist_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: taste_artists; Type: TABLE; Schema: clubfindr; Owner: -
 -- (not in the production dump this file was taken from; see migrations/20261017_add_taste_artists.sql)
 --
@@ -810,6 +822,14 @@ ALTER TABLE ONLY clubfindr.events
 
 
 --
+-- Name: bar_favourite_artists bar_favourite_artists_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.bar_favourite_artists
+    ADD CONSTRAINT bar_favourite_artists_pkey PRIMARY KEY (bar_id, artist_id);
+
+
+--
 -- Name: taste_artists taste_artists_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -1053,6 +1073,13 @@ CREATE INDEX idx_spotify_task_status ON clubfindr.spotify_task_log USING btree (
 
 
 --
+-- Name: idx_bar_favourite_artists_artist_id; Type: INDEX; Schema: clubfindr; Owner: -
+--
+
+CREATE INDEX idx_bar_favourite_artists_artist_id ON clubfindr.bar_favourite_artists USING btree (artist_id);
+
+
+--
 -- Name: idx_user_favourite_artists_artist_id; Type: INDEX; Schema: clubfindr; Owner: -
 --
 
@@ -1201,6 +1228,22 @@ ALTER TABLE ONLY clubfindr.user_checkins
 
 ALTER TABLE ONLY clubfindr.user_checkins
     ADD CONSTRAINT user_checkins_user_id_fkey FOREIGN KEY (user_id) REFERENCES clubfindr.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bar_favourite_artists bar_favourite_artists_artist_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.bar_favourite_artists
+    ADD CONSTRAINT bar_favourite_artists_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES clubfindr.taste_artists(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bar_favourite_artists bar_favourite_artists_bar_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
+--
+
+ALTER TABLE ONLY clubfindr.bar_favourite_artists
+    ADD CONSTRAINT bar_favourite_artists_bar_id_fkey FOREIGN KEY (bar_id) REFERENCES clubfindr.bars(id) ON DELETE CASCADE;
 
 
 --
