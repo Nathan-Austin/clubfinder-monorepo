@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { addUserToSpotifyApp } from '$lib/spotifyService';
 import { cookieManager } from '$lib/cookieManager';
 import { PUBLIC_GOOGLE_OAUTH_CLIENT_ID } from '$env/static/public';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('========================');
@@ -47,9 +48,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		if (provider === 'local') {
 			if (isNewUser) {
 				// New user registration. A Spotify e-mail is optional: taste can come from the
-				// manual taste profile, so signing up must not depend on Spotify.
+				// manual taste profile, so signing up must not depend on Spotify. With
+				// SPOTIFY_CONNECT_ENABLED off it is ignored altogether: not stored, not checked for
+				// duplicates, and spotify_service is never asked to add the user.
 				const optionalSpotifyEmail =
-					typeof spotifyEmail === 'string' && spotifyEmail.trim() ? spotifyEmail.trim() : null;
+					isSpotifyConnectEnabled() && typeof spotifyEmail === 'string' && spotifyEmail.trim()
+						? spotifyEmail.trim()
+						: null;
 				if (!email || !password || !fullName) {
 					return new Response(
 						JSON.stringify({

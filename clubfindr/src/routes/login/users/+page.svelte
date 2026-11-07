@@ -5,6 +5,11 @@
 	import { validateEmail } from '$lib/passwordUtils';
 	import type { FacebookLoginResponse } from '../../../../types/facebook';
 	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+	/** SPOTIFY_CONNECT_ENABLED: off hides the optional Spotify e-mail field (+page.server.ts) */
+	const spotifyConnectEnabled = $derived(data.spotifyConnectEnabled);
 
 	const client_id = PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 	const facebookAppId = PUBLIC_FACEBOOK_APP_ID;
@@ -85,7 +90,7 @@
 				return false;
 			}
 			// Optional: only validated when something was typed
-			if (spotifyEmail.trim() && !validateEmail(spotifyEmail.trim())) {
+			if (spotifyConnectEnabled && spotifyEmail.trim() && !validateEmail(spotifyEmail.trim())) {
 				loginError = 'Please enter a valid Spotify email address, or leave the field empty';
 				return false;
 			}
@@ -135,7 +140,10 @@
 					provider: 'local',
 					isNewUser,
 					fullName: isNewUser ? fullName : undefined,
-					spotifyEmail: isNewUser && spotifyEmail.trim() ? spotifyEmail.trim() : undefined
+					spotifyEmail:
+						spotifyConnectEnabled && isNewUser && spotifyEmail.trim()
+							? spotifyEmail.trim()
+							: undefined
 				})
 			});
 
@@ -366,43 +374,48 @@
 				/>
 			</div>
 
-			<div class="form-group">
-				<label for="spotifyEmail">
-					Spotify Email (optional)
-					<button type="button" class="info-icon" onclick={toggleSpotifyEmailInfo}>?</button>
-				</label>
-				<input
-					type="email"
-					id="spotifyEmail"
-					bind:value={spotifyEmail}
-					placeholder="Only if you want to connect Spotify"
-				/>
-				{#if showSpotifyEmailInfo}
-					<div class="info-tooltip">
-						<button type="button" class="close-tooltip" onclick={toggleSpotifyEmailInfo}>×</button>
-						<h4>Why do we ask for this?</h4>
-						<p>
-							You can use Clubfindr without Spotify: pick your favourite artists and genres in your
-							taste profile instead. If you do want to connect Spotify later, this email is used to
-							add you to our Spotify application.
-						</p>
+			{#if spotifyConnectEnabled}
+				<div class="form-group">
+					<label for="spotifyEmail">
+						Spotify Email (optional)
+						<button type="button" class="info-icon" onclick={toggleSpotifyEmailInfo}>?</button>
+					</label>
+					<input
+						type="email"
+						id="spotifyEmail"
+						bind:value={spotifyEmail}
+						placeholder="Only if you want to connect Spotify"
+					/>
+					{#if showSpotifyEmailInfo}
+						<div class="info-tooltip">
+							<button type="button" class="close-tooltip" onclick={toggleSpotifyEmailInfo}>×</button
+							>
+							<h4>Why do we ask for this?</h4>
+							<p>
+								You can use Clubfindr without Spotify: pick your favourite artists and genres in
+								your taste profile instead. If you do want to connect Spotify later, this email is
+								used to add you to our Spotify application.
+							</p>
 
-						<h4>Where to find your Spotify email?</h4>
-						<ol>
-							<li>
-								Log in to <a
-									href="https://www.spotify.com/account"
-									target="_blank"
-									rel="noopener noreferrer">Spotify Account page</a
-								>
-							</li>
-							<li>Look for "Email" in your profile information</li>
-							<li>Use this email address in this form</li>
-						</ol>
-						<p><strong>Note:</strong> This must be the same email you use to log in to Spotify.</p>
-					</div>
-				{/if}
-			</div>
+							<h4>Where to find your Spotify email?</h4>
+							<ol>
+								<li>
+									Log in to <a
+										href="https://www.spotify.com/account"
+										target="_blank"
+										rel="noopener noreferrer">Spotify Account page</a
+									>
+								</li>
+								<li>Look for "Email" in your profile information</li>
+								<li>Use this email address in this form</li>
+							</ol>
+							<p>
+								<strong>Note:</strong> This must be the same email you use to log in to Spotify.
+							</p>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 
 		<div class="form-actions">
@@ -418,7 +431,11 @@
 				<p>We value your privacy. By registering, you agree to our:</p>
 				<ul>
 					<li>Collection of your name and email for account management</li>
-					<li>Integration with Spotify to provide personalized recommendations</li>
+					{#if spotifyConnectEnabled}
+						<li>Integration with Spotify to provide personalized recommendations</li>
+					{:else}
+						<li>The artists you pick, whose genres personalise your recommendations</li>
+					{/if}
 					<li>Processing of your music preferences to find suitable venues</li>
 				</ul>
 				<p>
