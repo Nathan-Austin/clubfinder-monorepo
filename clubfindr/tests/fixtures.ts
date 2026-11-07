@@ -1,6 +1,17 @@
 import { test as base, expect, type Page } from '@playwright/test';
+import { isFlagEnabled } from '../src/lib/flagValue';
 
 export type { Page };
+
+/**
+ * SPOTIFY_CONNECT_ENABLED as the server under test sees it. playwright.config.ts starts the
+ * server with this process's environment (node --env-file never overrides it), so
+ *   SPOTIFY_CONNECT_ENABLED=false pnpm test
+ * runs the whole suite with per-account Spotify connect switched off. Specs that only make
+ * sense in one mode skip themselves in the other (see tests/spotify-connect-flag.spec.ts).
+ * Parsed with the server's own isFlagEnabled, so "0", "off", "no" … all count as off.
+ */
+export const SPOTIFY_CONNECT_ENABLED = isFlagEnabled(process.env.SPOTIFY_CONNECT_ENABLED, true);
 
 /**
  * Shared fixture for the e2e suite.

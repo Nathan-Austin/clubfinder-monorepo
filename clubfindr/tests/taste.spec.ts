@@ -1,4 +1,12 @@
-import { test, expect, login, acceptCookies, USERS, type Page } from './fixtures';
+import {
+	test,
+	expect,
+	login,
+	acceptCookies,
+	USERS,
+	SPOTIFY_CONNECT_ENABLED,
+	type Page
+} from './fixtures';
 
 // Taste profile: favourite artists (docs/taste-profile-design.md). The JSON endpoints are
 // called through the browser context after a real login, which carries the session cookie,
@@ -298,6 +306,8 @@ test.describe('favourite-artist picker on /', () => {
 
 test.describe('signup without Spotify', () => {
 	test('the Spotify e-mail field is optional', async ({ page }) => {
+		// With connect off the field is not there at all (tests/spotify-connect-flag.spec.ts)
+		test.skip(!SPOTIFY_CONNECT_ENABLED, 'SPOTIFY_CONNECT_ENABLED is off');
 		await page.goto(USERS.fan.loginPath);
 		await acceptCookies(page);
 		const form = page.locator('form.login-form');
@@ -569,6 +579,8 @@ test.describe('Spotify connect against the mock', () => {
 	test('the connect buttons are shown by default (SPOTIFY_CONNECT_ENABLED unset)', async ({
 		page
 	}) => {
+		// The off counterpart is in tests/spotify-connect-flag.spec.ts
+		test.skip(!SPOTIFY_CONNECT_ENABLED, 'SPOTIFY_CONNECT_ENABLED is off');
 		await login(page, 'fan');
 		await acceptCookies(page);
 		await expect(page.getByTestId('spotify-connect')).toBeVisible();
