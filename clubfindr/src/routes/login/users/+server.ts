@@ -39,6 +39,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	}
 
 	let user_id, normalizedCityName, userName;
+	// Set when this request created the account; the web client then goes to /onboarding
+	let newAccount = false;
 
 	try {
 		const dbCheckStart = Date.now();
@@ -92,6 +94,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					);
 
 					user_id = newUserResult.rows[0].id;
+					newAccount = true;
 					userName = fullName;
 					normalizedCityName = normalizeCityName(city);
 				} catch (error) {
@@ -212,6 +215,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					[googleId, googleEmail, city, googleName || 'Google User']
 				);
 				user_id = newResult.rows[0].id;
+				newAccount = true;
 				userName = googleName || 'Google User';
 				normalizedCityName = normalizeCityName(city);
 			} else {
@@ -258,6 +262,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					[facebookId, facebookEmail, city, facebookName || 'Facebook User']
 				);
 				user_id = newResult.rows[0].id;
+				newAccount = true;
 				userName = facebookName || 'Facebook User';
 				normalizedCityName = normalizeCityName(city);
 			} else {
@@ -359,7 +364,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			console.log(`Total login processing time: ${Date.now() - startTime}ms`);
 			console.log('========================');
 			// Return success response
-			return new Response(JSON.stringify({ success: true }), { status: 200 });
+			return new Response(JSON.stringify({ success: true, newAccount }), { status: 200 });
 		}
 	} catch (error) {
 		console.error('Error during login:', error);

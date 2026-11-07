@@ -17,6 +17,10 @@
 	let loginError = $state('');
 	let isSubmitting = $state(false);
 	let isNewUser = $state(false); // New state for registration mode
+
+	/** New accounts pick a few artists first (/onboarding); everyone else goes home. */
+	const landingPage = (result: { newAccount?: boolean }) =>
+		result.newAccount ? '/onboarding' : '/users-home';
 	let showSpotifyEmailInfo = $state(false); // State for Spotify email info tooltip
 
 	function toggleSpotifyEmailInfo(event: Event): void {
@@ -138,7 +142,7 @@
 			const result = await response.json();
 
 			if (result.success) {
-				window.location.href = '/users-home';
+				window.location.href = landingPage(result);
 			} else {
 				loginError = result.message || 'Login failed';
 			}
@@ -164,7 +168,7 @@
 			const data = await res.json();
 
 			if (data.success) {
-				window.location.href = '/users-home';
+				window.location.href = landingPage(data);
 			} else {
 				loginError = data.message || 'Google login failed';
 			}
@@ -198,7 +202,7 @@
 							const data = await res.json();
 
 							if (data.success) {
-								window.location.href = '/users-home';
+								window.location.href = landingPage(data);
 							} else {
 								loginError = data.message || 'Facebook login failed';
 							}
