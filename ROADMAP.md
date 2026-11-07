@@ -48,6 +48,8 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       maybe a thumbs up/down after a night, nudging genre weights
 - [ ] "Nights like these" genre picker that shows sample events or artists per cluster
       instead of bare cluster names
+- [ ] Link each new importer from the onboarding cap note (`/onboarding` stops at 5 artists
+      and points to the taste profile and the Last.fm import for more) and from `/users-home`
 
 Ruled out: Spotify playlist link paste (development mode only returns playlists the user
 owns), Deezer (new API access closed since 2025), Apple Music (paid developer account, no

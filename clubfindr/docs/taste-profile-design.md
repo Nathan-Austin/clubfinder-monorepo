@@ -451,6 +451,18 @@ the original proposal; where it differs from the answers, the answers win.
   `italo disco` are dropped today), which the alias layer below would fix.
 - `/` remembers the city of the last search, so "Change the vibe" does not ask for it again.
 
+- Artist picker onboarding at `/onboarding` (ROADMAP section 1): `/login/users` answers
+  `newAccount: true` for an account it just created (local, Google, Facebook), and the page
+  sends those users to pick 3-5 artists before `/users-home`; "Skip for now" is always there.
+  The picker is the shared `ArtistPicker.svelte` (also inside `TasteProfile.svelte`), so search
+  goes through `/api/taste/search` and the server-side Spotify app. Whether a user is onboarded
+  is derived, not stored (`src/lib/taste/onboarding.ts`: at least 3 favourites, however they
+  were added); onboarded users who open the page go on to `/users-home` unless the URL has
+  `?edit`. The 5 is a quick-start cap for that screen only and is not enforced by the server
+  (the 50-favourite cap still is): at 5 the page points to the taste profile on `/` for more
+  artists and to the Last.fm import on `/users-home`. New importers (section 3 of the roadmap)
+  should be linked from that note when they land. Mobile signup does not use it yet.
+
 - Spotify failures: the development-mode 403 ("user not registered") is explained on `/`,
   `/spotify` loads its sections independently, `SPOTIFY_CONNECT_ENABLED` hides the connect
   buttons. See `HANDOVER.md` for what was not verified against the live APIs.
