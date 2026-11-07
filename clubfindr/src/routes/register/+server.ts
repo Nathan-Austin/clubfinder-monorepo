@@ -11,6 +11,7 @@ import { normalizeCityName } from '$lib/spotifyUtils';
 import type { RequestHandler } from '@sveltejs/kit';
 import { hashPassword } from '$lib/server/passwordUtils';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 // Get the form data
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -23,19 +24,27 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		postcode,
 		cityName,
 		website,
-		musicService,
+		musicService: requestedMusicService,
 		password,
 		musicServiceEmail, // Optional parameter for Spotify integration
 		smokingAllowed = false,
 		barTypes = []
 	} = await request.json();
 
+	// SPOTIFY_CONNECT_ENABLED off: the form asks for no music service, and whatever is sent
+	// anyway is neither stored nor passed to spotify_service (add_bar).
+	const spotifyConnectEnabled = isSpotifyConnectEnabled();
+	const musicService: string | null =
+		spotifyConnectEnabled && typeof requestedMusicService === 'string' && requestedMusicService
+			? requestedMusicService
+			: null;
+
 	// Generate a random confirmation code
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase(); // e.g., "A1B2C3"
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes expiry time
 	const hashedPassword = await hashPassword(password);
 	let barId; // Track the bar ID for Spotify integration
-	const spotifyEmail = musicServiceEmail || null;
+	const spotifyEmail = spotifyConnectEnabled ? musicServiceEmail || null : null;
 
 	try {
 		const normalizedCityName = normalizeCityName(cityName);
@@ -180,7 +189,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// If Spotify integration is requested, register with Spotify service
 
-		if (musicService.toLowerCase() === 'spotify' && spotifyEmail) {
+		// (musicService may be null: this used to throw after the COMMIT above, reporting a
+		// failed registration for a bar that had been saved)
+		if (musicService?.toLowerCase() === 'spotify' && spotifyEmail) {
 			try {
 				console.log(`Attempting to register bar ${barId} with Spotify service`);
 
@@ -223,7 +234,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			Contact Person: ${contactPerson}\n
 			Email: ${email}\n
 			City: ${cityName}\n
-			Music Service: ${musicService}\n
+			Music Service: ${musicService ?? 'none'}\n
 			${spotifyEmail ? `Spotify Email: ${spotifyEmail}` : ''}`
 		);
 
