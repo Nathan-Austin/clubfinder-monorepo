@@ -63,6 +63,23 @@ const ARTISTS: MockArtist[] = [
 	}
 ];
 
+/**
+ * Artists with tags but no listener: artist.gettoptags knows them, user.gettopartists never
+ * returns them, so adding one here does not change what an import imports.
+ */
+const TAG_ONLY_ARTISTS: MockArtist[] = [
+	{
+		// tests/genre-fallback.spec.ts: noise only, so the fallback goes on to MusicBrainz
+		name: 'Cassette Mirage',
+		mbid: '',
+		playcount: 0,
+		tags: [
+			['seen live', 100],
+			['favourites', 60]
+		]
+	}
+];
+
 /** username -> top artists, or a canned failure */
 const USERS: Record<string, MockArtist[] | { error: number; message: string; status: number }> = {
 	fanatic: ARTISTS,
@@ -121,7 +138,7 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 
 	if (method === 'artist.gettoptags') {
 		const name = (url.searchParams.get('artist') ?? '').toLowerCase();
-		const artist = ARTISTS.find((a) => a.name.toLowerCase() === name);
+		const artist = [...ARTISTS, ...TAG_ONLY_ARTISTS].find((a) => a.name.toLowerCase() === name);
 		if (!artist)
 			return sendJson(res, 404, {
 				error: 6,

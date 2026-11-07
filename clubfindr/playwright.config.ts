@@ -7,7 +7,8 @@ import { MAIL_CAPTURE_FILE } from './tests/mail';
 //
 // The app's server-side Spotify calls (taste profile: token, artist search, artist by id) go
 // to tests/mock-spotify.ts on :4175 instead of Spotify, through the SPOTIFY_*_BASE overrides,
-// and its Last.fm calls (taste profile import) to tests/mock-lastfm.ts on :4176.
+// its Last.fm calls (taste profile import, genre fallback) to tests/mock-lastfm.ts on :4176,
+// and its MusicBrainz calls (genre fallback) to tests/mock-musicbrainz.ts on :4177.
 //
 // PW_SKIP_BUILD=1 reuses the existing build/ output instead of rebuilding first.
 const port = 4173;
@@ -16,6 +17,7 @@ const port = 4173;
 const cfPort = 4174;
 const mockSpotifyPort = 4175;
 const mockLastfmPort = 4176;
+const mockMusicbrainzPort = 4177;
 const serve = `node --env-file=.env build/index.js`;
 // Process env set here wins over .env (node --env-file never overrides an existing variable)
 const serverEnv = {
@@ -26,7 +28,8 @@ const serverEnv = {
 	SPOTIFY_API_BASE: `http://127.0.0.1:${mockSpotifyPort}`,
 	SPOTIFY_ACCOUNTS_BASE: `http://127.0.0.1:${mockSpotifyPort}`,
 	LASTFM_API_BASE: `http://127.0.0.1:${mockLastfmPort}`,
-	LASTFM_API_KEY: 'mock-lastfm-key'
+	LASTFM_API_KEY: 'mock-lastfm-key',
+	MUSICBRAINZ_API_BASE: `http://127.0.0.1:${mockMusicbrainzPort}`
 };
 
 export default defineConfig({
@@ -66,6 +69,13 @@ export default defineConfig({
 			command: `node tests/mock-lastfm.ts`,
 			port: mockLastfmPort,
 			env: { MOCK_LASTFM_PORT: String(mockLastfmPort) },
+			reuseExistingServer: !process.env.CI,
+			timeout: 30_000
+		},
+		{
+			command: `node tests/mock-musicbrainz.ts`,
+			port: mockMusicbrainzPort,
+			env: { MOCK_MUSICBRAINZ_PORT: String(mockMusicbrainzPort) },
 			reuseExistingServer: !process.env.CI,
 			timeout: 30_000
 		},
