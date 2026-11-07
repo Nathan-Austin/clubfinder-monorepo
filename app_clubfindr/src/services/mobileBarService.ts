@@ -14,8 +14,9 @@ export const registerBar = async (formData: {
     postcode: string;
     cityName: string;
     website: string;
-    musicService: string;
-    musicServiceEmail: string;
+    /** Only while the server's SPOTIFY_CONNECT_ENABLED is on (see appConfigService) */
+    musicService?: string;
+    musicServiceEmail?: string;
     password: string;
 }): Promise<{ success: boolean; message?: string }> => {
     try {

@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
+import { useAppConfig } from '../services/appConfigService';
 
 type BarRegistrationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BarRegistration'>;
 
@@ -31,8 +32,24 @@ enum RegistrationStep {
     Review = 6
 }
 
+const ALL_STEPS: RegistrationStep[] = [
+    RegistrationStep.BusinessInfo,
+    RegistrationStep.ContactInfo,
+    RegistrationStep.LocationInfo,
+    RegistrationStep.BarDetails,
+    RegistrationStep.MusicService,
+    RegistrationStep.CreatePassword,
+    RegistrationStep.Review
+];
+
 const BarRegistrationScreen = () => {
     const navigation = useNavigation<BarRegistrationScreenNavigationProp>();
+
+    // SPOTIFY_CONNECT_ENABLED on the server: off drops the music service step altogether
+    const { spotifyConnectEnabled } = useAppConfig();
+    const steps = spotifyConnectEnabled
+        ? ALL_STEPS
+        : ALL_STEPS.filter((step) => step !== RegistrationStep.MusicService);
 
     // Form state
     const [currentStep, setCurrentStep] = useState<RegistrationStep>(RegistrationStep.BusinessInfo);
@@ -158,8 +175,10 @@ const BarRegistrationScreen = () => {
             return;
         }
 
-        if (currentStep < RegistrationStep.Review) {
-            setCurrentStep(currentStep + 1);
+        // The next visible step (skips Music Service when it is switched off)
+        const next = steps.find((step) => step > currentStep);
+        if (next !== undefined) {
+            setCurrentStep(next);
         } else {
             handleSubmit();
         }
@@ -167,8 +186,9 @@ const BarRegistrationScreen = () => {
 
     // Handle back
     const handleBack = () => {
-        if (currentStep > 0) {
-            setCurrentStep(currentStep - 1);
+        const previous = [...steps].reverse().find((step) => step < currentStep);
+        if (previous !== undefined) {
+            setCurrentStep(previous);
         } else {
             navigation.goBack();
         }
@@ -236,8 +256,9 @@ const BarRegistrationScreen = () => {
                 postcode,
                 cityName,
                 website,
-                musicService,
-                musicServiceEmail,
+                // Only while Spotify connect is on; the server ignores them otherwise
+                musicService: spotifyConnectEnabled ? musicService : undefined,
+                musicServiceEmail: spotifyConnectEnabled ? musicServiceEmail : undefined,
                 password,
                 smokingAllowed,
                 barTypes
@@ -654,6 +675,7 @@ const BarRegistrationScreen = () => {
                             )}
                         </View>
 
+                        {spotifyConnectEnabled && (
                         <View style={styles.reviewSection}>
                             <Text style={styles.reviewTitle}>Music Service</Text>
                             <Text style={styles.reviewItem}>
@@ -667,6 +689,7 @@ const BarRegistrationScreen = () => {
                                 </Text>
                             )}
                         </View>
+                        )}
 
                         <View style={styles.checkboxContainer}>
                             <TouchableOpacity
@@ -717,12 +740,12 @@ const BarRegistrationScreen = () => {
         >
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.stepIndicatorContainer}>
-                    {[...Array(7)].map((_, index) => (
+                    {steps.map((step) => (
                         <View
-                            key={index}
+                            key={step}
                             style={[
                                 styles.stepDot,
-                                currentStep >= index ? styles.stepDotActive : styles.stepDotInactive
+                                currentStep >= step ? styles.stepDotActive : styles.stepDotInactive
                             ]}
                         />
                     ))}

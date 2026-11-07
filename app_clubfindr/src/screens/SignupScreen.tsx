@@ -16,6 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
+import { useAppConfig } from '../services/appConfigService';
 
 interface SignupResponse {
     success: boolean;
@@ -23,6 +24,8 @@ interface SignupResponse {
     userId?: string;
     requiresEmailVerification?: boolean;
     requiresSpotifySetup?: boolean;
+    /** The server's SPOTIFY_CONNECT_ENABLED, echoed back */
+    spotifyConnectEnabled?: boolean;
 }
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Signup'>;
@@ -44,6 +47,8 @@ const MUSIC_SERVICES = [
 
 const SignupScreen = () => {
     const navigation = useNavigation<SignupScreenNavigationProp>();
+    // SPOTIFY_CONNECT_ENABLED on the server: off hides the music service choice entirely
+    const { spotifyConnectEnabled } = useAppConfig();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -87,12 +92,14 @@ const SignupScreen = () => {
             newErrors.password = 'Password does not meet all requirements';
         }
 
-        if (!musicService) {
-            newErrors.musicService = 'Please select a music service';
-        }
+        if (spotifyConnectEnabled) {
+            if (!musicService) {
+                newErrors.musicService = 'Please select a music service';
+            }
 
-        if (musicService === 'spotify' && spotifyEmail.trim() && !/^\S+@\S+\.\S+$/.test(spotifyEmail)) {
-            newErrors.spotifyEmail = 'Invalid email format for Spotify email';
+            if (musicService === 'spotify' && spotifyEmail.trim() && !/^\S+@\S+\.\S+$/.test(spotifyEmail)) {
+                newErrors.spotifyEmail = 'Invalid email format for Spotify email';
+            }
         }
 
         // Add validation for T&Cs and Privacy Policy
@@ -134,8 +141,10 @@ const SignupScreen = () => {
                 name,
                 email,
                 password,
-                musicService,
-                spotifyEmail: musicService === 'spotify' ? spotifyEmailToUse : undefined,
+                // Only while Spotify connect is on; the server ignores them otherwise
+                musicService: spotifyConnectEnabled ? musicService : undefined,
+                spotifyEmail:
+                    spotifyConnectEnabled && musicService === 'spotify' ? spotifyEmailToUse : undefined,
                 isFirstTimeUser: false, // We're not using the welcome screen
                 requiresEmailVerification: true, // Add this flag for new email verification flow
                 onboarding_complete: true // Mark onboarding as complete since we've accepted T&Cs
@@ -264,6 +273,8 @@ const SignupScreen = () => {
                     </View>
                     {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
+                    {spotifyConnectEnabled && (
+                    <>
                     <View style={[styles.pickerContainer, errors.musicService ? styles.inputError : null]}>
                         <Picker
                             selectedValue={musicService}
@@ -317,6 +328,8 @@ const SignupScreen = () => {
                             />
                             {errors.spotifyEmail ? <Text style={styles.errorText}>{errors.spotifyEmail}</Text> : null}
                         </>
+                    )}
+                    </>
                     )}
 
                     {/* Terms & Conditions Checkbox */}
