@@ -7,6 +7,32 @@
 
 export const MAX_FAVOURITE_ARTISTS = 50;
 
+/**
+ * Whose favourites a call is about. Users and venues keep their favourites in separate
+ * tables (clubfindr.user_favourite_artists / clubfindr.bar_favourite_artists) pointing at
+ * the same taste_artists catalogue, so an artist looked up once serves both and neither side
+ * of a match can overwrite the other's picks.
+ *
+ * The table and column names are interpolated into SQL, so they come from this closed map
+ * only; the owner id itself is always a bound parameter.
+ */
+export const FAVOURITE_SCOPES = {
+	user: { table: 'clubfindr.user_favourite_artists', column: 'user_id' },
+	bar: { table: 'clubfindr.bar_favourite_artists', column: 'bar_id' }
+} as const;
+
+export type FavouriteOwner = keyof typeof FAVOURITE_SCOPES;
+
+export function isFavouriteOwner(value: unknown): value is FavouriteOwner {
+	return typeof value === 'string' && value in FAVOURITE_SCOPES;
+}
+
+function scope(owner: FavouriteOwner) {
+	const found = FAVOURITE_SCOPES[owner];
+	if (!found) throw new Error(`Unknown favourite owner: ${owner}`);
+	return found;
+}
+
 export const ARTIST_SOURCES = ['spotify', 'lastfm'] as const;
 export type ArtistSource = (typeof ARTIST_SOURCES)[number];
 
@@ -74,15 +100,17 @@ export function rowToTasteArtist(row: Record<string, unknown>): TasteArtist {
 
 export async function listFavouriteArtists(
 	db: Queryable,
-	userId: string
+	ownerId: string,
+	owner: FavouriteOwner = 'user'
 ): Promise<FavouriteArtistsProfile> {
+	const { table, column } = scope(owner);
 	const result = await db.query(
 		`SELECT a.id, a.source, a.source_id, a.name, a.genres, a.image_url, a.fetched_at
-		 FROM clubfindr.user_favourite_artists f
+		 FROM ${table} f
 		 JOIN clubfindr.taste_artists a ON a.id = f.artist_id
-		 WHERE f.user_id = $1
+		 WHERE f.${column} = $1
 		 ORDER BY f.created_at ASC, a.name ASC`,
-		[userId]
+		[ownerId]
 	);
 	const artists = result.rows.map(rowToTasteArtist);
 	return { artists, genres: deriveProfileGenres(artists) };
@@ -151,10 +179,15 @@ export function mergeSearchResults(
 	return hits.slice(0, limit);
 }
 
-export async function countFavouriteArtists(db: Queryable, userId: string): Promise<number> {
+export async function countFavouriteArtists(
+	db: Queryable,
+	ownerId: string,
+	owner: FavouriteOwner = 'user'
+): Promise<number> {
+	const { table, column } = scope(owner);
 	const result = await db.query(
-		'SELECT count(*)::int AS count FROM clubfindr.user_favourite_artists WHERE user_id = $1',
-		[userId]
+		`SELECT count(*)::int AS count FROM ${table} WHERE ${column} = $1`,
+		[ownerId]
 	);
 	return Number(result.rows[0]?.count ?? 0);
 }
@@ -283,38 +316,42 @@ export class FavouriteLimitError extends Error {
  */
 export async function addFavouriteArtist(
 	db: Queryable,
-	userId: string,
-	artistId: string
+	ownerId: string,
+	artistId: string,
+	owner: FavouriteOwner = 'user'
 ): Promise<{ created: boolean }> {
+	const { table, column } = scope(owner);
 	const inserted = await db.query(
-		`INSERT INTO clubfindr.user_favourite_artists (user_id, artist_id)
+		`INSERT INTO ${table} (${column}, artist_id)
 		 SELECT $1, $2
-		 WHERE (SELECT count(*) FROM clubfindr.user_favourite_artists WHERE user_id = $1) < $3
-		 ON CONFLICT (user_id, artist_id) DO NOTHING
+		 WHERE (SELECT count(*) FROM ${table} WHERE ${column} = $1) < $3
+		 ON CONFLICT (${column}, artist_id) DO NOTHING
 		 RETURNING artist_id`,
-		[userId, artistId, MAX_FAVOURITE_ARTISTS]
+		[ownerId, artistId, MAX_FAVOURITE_ARTISTS]
 	);
 	if ((inserted.rowCount ?? 0) > 0) return { created: true };
 
 	// Nothing inserted: either it was already a favourite or the limit was reached
 	const existing = await db.query(
-		'SELECT 1 FROM clubfindr.user_favourite_artists WHERE user_id = $1 AND artist_id = $2',
-		[userId, artistId]
+		`SELECT 1 FROM ${table} WHERE ${column} = $1 AND artist_id = $2`,
+		[ownerId, artistId]
 	);
 	if (existing.rows.length > 0) return { created: false };
 	throw new FavouriteLimitError(MAX_FAVOURITE_ARTISTS);
 }
 
-/** Unlinks an artist from the user. Returns whether anything was removed. */
+/** Unlinks an artist from the user or venue. Returns whether anything was removed. */
 export async function removeFavouriteArtist(
 	db: Queryable,
-	userId: string,
-	artistId: string
+	ownerId: string,
+	artistId: string,
+	owner: FavouriteOwner = 'user'
 ): Promise<boolean> {
-	const result = await db.query(
-		'DELETE FROM clubfindr.user_favourite_artists WHERE user_id = $1 AND artist_id = $2',
-		[userId, artistId]
-	);
+	const { table, column } = scope(owner);
+	const result = await db.query(`DELETE FROM ${table} WHERE ${column} = $1 AND artist_id = $2`, [
+		ownerId,
+		artistId
+	]);
 	return (result.rowCount ?? 0) > 0;
 }
 
