@@ -14,8 +14,16 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
 3. _Fixed._ `/clubs`, `/barfindr` and `/promoter-home` returned 500 when opened without the
    expected cookies (no city / not logged in); they now redirect to `/` and `/login/bars`.
    A city without a date also redirects (`/barfindr` used to fall back to the server's day).
-4. **`/bars` without the Spotify flow has no `barId`**, so creating a bar event posts to
-   `/api/bars//events` (404). The dashboard assumes Spotify has been connected.
+4. _Fixed._ **`/bars` without the Spotify flow had no `barId`**, so creating a bar event posted
+   to `/api/bars//events` (404): the dashboard assumed Spotify had been connected. Every return
+   of its `load` now carries `barId` (and `barName`), including the "not connected" and error
+   paths, so events can be managed with no Spotify session at all. The dashboard also shows the
+   artists a venue says it plays (`VenueArtistsSection`, the shared `ArtistPicker` against
+   `/api/venues/:barId/taste`, stored in `bar_favourite_artists`), which is how a venue
+   describes itself without connecting anything; with `SPOTIFY_CONNECT_ENABLED=false` the
+   Spotify panels and the reconnect prompt are gone entirely. Still open: `barfindr` continues
+   to poll venue Spotify playback, and `/login/bars` still retries the `spotify_service`
+   add_bar call for venues that already have a Spotify e-mail.
 5. _Partly fixed._ The rate limiter trusted `X-Forwarded-For` / `CF-Connecting-IP` as sent;
    it now keys on `event.getClientAddress()`, i.e. the header the deployment declares with
    `ADDRESS_HEADER`/`XFF_DEPTH` (see `.env.example`). Still per process memory (fine for the

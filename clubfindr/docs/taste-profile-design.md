@@ -474,6 +474,21 @@ the original proposal; where it differs from the answers, the answers win.
   an artist. Settings are runtime-only (`MUSICBRAINZ_ENABLED`, `MUSICBRAINZ_API_BASE`,
   `MUSICBRAINZ_USER_AGENT`); the e2e suite points them at `tests/mock-musicbrainz.ts`.
 
+- Venue taste profile (`clubfindr.bar_favourite_artists`,
+  `migrations/20261108_add_bar_favourite_artists.sql`): the artists a venue says it plays, so
+  the venue side of a match is described by hand instead of by polling its Spotify playback
+  (KNOWN_ISSUES 4). A separate link table from `user_favourite_artists`, pointing at the same
+  `taste_artists` catalogue: a venue is not a user, and neither side of a match should be able
+  to overwrite the other. The `$lib/taste/favouriteArtists` helpers take a `FavouriteOwner`
+  (`'user'` | `'bar'`, defaulting to `'user'`) that selects the table and key column from a
+  closed map; owner ids stay bound parameters. Endpoints: `/api/venues/:barId/taste/artists`
+  and `/api/venues/:barId/taste/search`, the `/api/taste` shape, so `ArtistPicker` serves the
+  bar dashboard unchanged (`src/routes/bars/VenueArtistsSection.svelte`). Authorised for that
+  venue only, by the `barId` dashboard cookie or a `Bearer` token from
+  `/api/mobile/bars/login` (`clubfindr.bar_sessions`, `$lib/taste/barSession`), so the app can
+  use the same endpoints. Not yet wired into matching: `/barfindr` still scores venues from
+  `bar_genre_aggregates`.
+
 - Spotify failures: the development-mode 403 ("user not registered") is explained on `/`,
   `/spotify` loads its sections independently, `SPOTIFY_CONNECT_ENABLED` hides the connect
   buttons. See `HANDOVER.md` for what was not verified against the live APIs.

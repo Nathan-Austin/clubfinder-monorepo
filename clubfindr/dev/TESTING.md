@@ -112,12 +112,15 @@ dev/setup.sh
 
 A database created before a table was added to `dev/schema.sql` needs the matching file from
 `migrations/` applied (they are idempotent), or the reset above. `dev/seed.sql` fails on the
-missing table otherwise. Currently that is `migrations/20261017_add_taste_artists.sql`
-(`taste_artists`, `user_favourite_artists`):
+missing table otherwise. Currently those are `migrations/20261017_add_taste_artists.sql` (`taste_artists`,
+`user_favourite_artists`) and `migrations/20261108_add_bar_favourite_artists.sql`
+(`bar_favourite_artists`):
 
 ```bash
-PGPASSWORD=clubfindr_dev psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev \
-  -v ON_ERROR_STOP=1 -f migrations/20261017_add_taste_artists.sql
+for m in 20261017_add_taste_artists 20261108_add_bar_favourite_artists; do
+  PGPASSWORD=clubfindr_dev psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev \
+    -v ON_ERROR_STOP=1 -f "migrations/$m.sql"
+done
 ```
 
 ## Checks
@@ -148,19 +151,19 @@ Component `<style>` blocks that use `@apply` start with `@reference '../../app.c
 What works on Node 24 / pnpm 10.34.6 with the Svelte 5, SvelteKit 2.70, Vite 8, Tailwind 4,
 TypeScript 6, ESLint 10 (flat config), Prettier 3 and Playwright stack:
 
-| Command                               | Status                                                                                                                                   |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`      | clean, no build scripts, no warnings                                                                                                     |
-| `pnpm lint`                           | passes, no warnings                                                                                                                      |
-| `pnpm check`                          | 0 errors, 0 warnings                                                                                                                     |
-| `pnpm exec vitest run`                | 13 files, 157 tests pass                                                                                                                 |
-| `pnpm build`                          | passes                                                                                                                                   |
-| `node --env-file=.env build/index.js` | production server on :3000                                                                                                               |
-| `pnpm dev`                            | Vite 8 dev server on :3000                                                                                                               |
-| `pnpm preview`                        | serves the build on :3000                                                                                                                |
-| `pnpm build-scripts`                  | compiles `scripts/` to `dist-scripts/`                                                                                                   |
-| `pnpm test`                           | 105 Playwright tests: 97 pass and 8 skip with Spotify connect on (the default), 101 pass and 4 skip with `SPOTIFY_CONNECT_ENABLED=false` |
-| `pnpm format`                         | Prettier 3 with prettier-plugin-svelte 4                                                                                                 |
+| Command                               | Status                                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`      | clean, no build scripts, no warnings                                                                                                      |
+| `pnpm lint`                           | passes, no warnings                                                                                                                       |
+| `pnpm check`                          | 0 errors, 0 warnings                                                                                                                      |
+| `pnpm exec vitest run`                | 14 files, 174 tests pass                                                                                                                  |
+| `pnpm build`                          | passes                                                                                                                                    |
+| `node --env-file=.env build/index.js` | production server on :3000                                                                                                                |
+| `pnpm dev`                            | Vite 8 dev server on :3000                                                                                                                |
+| `pnpm preview`                        | serves the build on :3000                                                                                                                 |
+| `pnpm build-scripts`                  | compiles `scripts/` to `dist-scripts/`                                                                                                    |
+| `pnpm test`                           | 114 Playwright tests: 106 pass and 8 skip with Spotify connect on (the default), 109 pass and 4 skip with `SPOTIFY_CONNECT_ENABLED=false` |
+| `pnpm format`                         | Prettier 3 with prettier-plugin-svelte 4                                                                                                  |
 
 Baseline (re-checked 2026-10-16 in a clean Node 24 container): every command above passes
 with no errors or warnings. Treat any new `pnpm check` or lint output as a regression.

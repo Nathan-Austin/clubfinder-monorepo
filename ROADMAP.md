@@ -29,9 +29,11 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 - [x] Remove the Spotify connect step from web and mobile signup (`musicService` choice,
       `spotify_service` add_user call; KNOWN_ISSUES 24). Behind `SPOTIFY_CONNECT_ENABLED=false`
       (default still on), covering users and venues; the app reads `/api/mobile/config`
-- [ ] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)
+- [x] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)
 - [ ] Venues set their genres and typical artists by hand through the same picker, and
       `barfindr` stops polling venue Spotify playback
+      (picker done: `/api/venues/:barId/taste`, the bar dashboard and the mobile API;
+      `barfindr` still polls)
 - [ ] Verify Spotify and Last.fm responses against the live APIs and run
       `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21)
       (the e2e run with the flag off is done, against the mocks; the live check is not)
