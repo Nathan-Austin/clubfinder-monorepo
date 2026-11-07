@@ -7,6 +7,7 @@ import { normalizeCityName } from '$lib/spotifyUtils';
 import { generateConfirmationCode } from '$lib/codegen';
 import { sendVerificationEmail } from '$lib/email';
 import { addUserToSpotifyApp } from '$lib/spotifyService';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request }) => {
 	console.log('========================');
@@ -25,10 +26,17 @@ export const POST: RequestHandler = async ({ request }) => {
 			isFirstTimeUser: data.isFirstTimeUser
 		});
 
-		const { name, email, password, musicService, spotifyEmail, isFirstTimeUser } = data;
+		const { name, email, password, isFirstTimeUser } = data;
 
-		// Validate required fields
-		if (!name || !email || !password || !musicService) {
+		// SPOTIFY_CONNECT_ENABLED off: no music service is asked for, none is stored, and
+		// spotify_service is never called, whatever an older app version still sends. The
+		// response says so (spotifyConnectEnabled), like GET /api/mobile/config.
+		const spotifyConnectEnabled = isSpotifyConnectEnabled();
+		const musicService = spotifyConnectEnabled ? data.musicService : undefined;
+		const spotifyEmail = spotifyConnectEnabled ? data.spotifyEmail : undefined;
+
+		// Validate required fields (the music service only while Spotify connect is on)
+		if (!name || !email || !password || (spotifyConnectEnabled && !musicService)) {
 			return new Response(
 				JSON.stringify({
 					success: false,
@@ -80,7 +88,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				hashedPassword,
 				name,
 				normalizedCityName,
-				spotifyEmail || email,
+				// With connect on, the login e-mail stands in for a missing Spotify one (as before)
+				spotifyConnectEnabled ? spotifyEmail || email : null,
 				spotifyAppName,
 				isFirstTimeUser
 			]
@@ -129,6 +138,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					message: 'Account created successfully. Spotify integration is being processed.',
 					userId: userId,
 					requiresSpotifySetup: true,
+					spotifyConnectEnabled,
 					isFirstTimeUser: isFirstTimeUser || false
 				}),
 				{
@@ -144,6 +154,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					message: 'Account created successfully. Please verify your email.',
 					userId: userId,
 					requiresEmailVerification: true,
+					spotifyConnectEnabled,
 					isFirstTimeUser: isFirstTimeUser || false
 				}),
 				{

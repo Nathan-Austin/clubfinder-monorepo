@@ -7,6 +7,7 @@ import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { hashPassword } from '$lib/server/passwordUtils';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const {
@@ -18,12 +19,23 @@ export const POST: RequestHandler = async ({ request }) => {
 		postcode,
 		cityName,
 		website,
-		musicService,
+		musicService: requestedMusicService,
 		password,
-		musicServiceEmail,
+		musicServiceEmail: requestedMusicServiceEmail,
 		smokingAllowed = false,
 		barTypes = []
 	} = await request.json();
+
+	// SPOTIFY_CONNECT_ENABLED off: no music service is asked for, and whatever an older app
+	// version still sends is neither stored nor passed to spotify_service (add_bar).
+	const spotifyConnectEnabled = isSpotifyConnectEnabled();
+	const musicService: string | null =
+		spotifyConnectEnabled && typeof requestedMusicService === 'string' && requestedMusicService
+			? requestedMusicService
+			: null;
+	const musicServiceEmail: string | null = spotifyConnectEnabled
+		? requestedMusicServiceEmail || null
+		: null;
 
 	// Generate confirmation code
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase();
@@ -181,7 +193,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Handle Spotify integration and emails asynchronously
 		(async () => {
 			// If Spotify integration is requested, register with Spotify service
-			if (musicService.toLowerCase() === 'spotify' && musicServiceEmail) {
+			// (musicService may be null: a throw here would skip the confirmation e-mail below)
+			if (musicService?.toLowerCase() === 'spotify' && musicServiceEmail) {
 				try {
 					console.log(`Attempting to register bar ${barId} with Spotify service`);
 
@@ -230,7 +243,7 @@ export const POST: RequestHandler = async ({ request }) => {
         Contact Person: ${contactPerson}\n
         Email: ${email}\n
         City: ${cityName}\n
-        Music Service: ${musicService}\n
+        Music Service: ${musicService ?? 'none'}\n
         ${musicServiceEmail ? `Spotify Email: ${musicServiceEmail}` : ''}`
 				);
 			} catch (adminEmailError) {
