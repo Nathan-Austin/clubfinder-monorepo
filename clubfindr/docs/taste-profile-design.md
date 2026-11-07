@@ -463,6 +463,17 @@ the original proposal; where it differs from the answers, the answers win.
   artists and to the Last.fm import on `/users-home`. New importers (section 3 of the roadmap)
   should be linked from that note when they land. Mobile signup does not use it yet.
 
+- Genre fallback when a provider reports no genres (`src/lib/taste/genreFallback.ts`,
+  KNOWN_ISSUES 21): adding an artist whose Spotify object has `genres: []` asks Last.fm for
+  its top tags, then MusicBrainz for its tags, and stores whatever the classifier recognises.
+  Last.fm first because its folksonomy covers club genres better; MusicBrainz is the backstop
+  that needs no API key. The two count scales differ (Last.fm is relative, top tag 100;
+  MusicBrainz is raw votes), so `tagsToGenres` takes the threshold as a parameter. It runs
+  only on add, where the answer is cached in `taste_artists` for 30 days, never during search,
+  and every provider failure is logged and swallowed: a fallback must not stop someone adding
+  an artist. Settings are runtime-only (`MUSICBRAINZ_ENABLED`, `MUSICBRAINZ_API_BASE`,
+  `MUSICBRAINZ_USER_AGENT`); the e2e suite points them at `tests/mock-musicbrainz.ts`.
+
 - Spotify failures: the development-mode 403 ("user not registered") is explained on `/`,
   `/spotify` loads its sections independently, `SPOTIFY_CONNECT_ENABLED` hides the connect
   buttons. See `HANDOVER.md` for what was not verified against the live APIs.

@@ -21,8 +21,11 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 - [ ] Artist picker onboarding as the default signup path: the user names 3-5 artists,
       autocomplete goes through the server-side Spotify app (`spotifyArtistLookup.ts`),
       and the genres of those artists feed the taste profile
-- [ ] Genre fallback for picked artists from Last.fm `toptags` or MusicBrainz tags, in
-      case Spotify artist objects stop carrying `genres` (KNOWN_ISSUES 21)
+      (web done: `/onboarding`; mobile signup still to come)
+- [x] Genre fallback for picked artists from Last.fm `toptags` or MusicBrainz tags, in
+      case Spotify artist objects stop carrying `genres` (KNOWN_ISSUES 21).
+      `$lib/taste/genreFallback.ts`, applied when an artist is added; still only verified
+      against the mocks, not the live APIs
 - [ ] Remove the Spotify connect step from web and mobile signup (`musicService` choice,
       `spotify_service` add_user call; KNOWN_ISSUES 24)
 - [ ] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)

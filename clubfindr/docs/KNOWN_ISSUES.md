@@ -86,11 +86,20 @@ section 4), left open on purpose.
     `SPOTIFY_CONNECT_ENABLED` use `$env/dynamic/private` at runtime, so tests can switch them
     without a rebuild and a missing optional key cannot break a build. Either document both
     conventions or move the optional keys to required placeholders.
-21. **Spotify and Last.fm responses were never checked against the live APIs.** The mocks
-    (`tests/mock-spotify.ts`, `tests/mock-lastfm.ts`) follow the public documentation: the
-    development-mode 403 body, whether search and artist objects still carry `genres`, Last.fm
-    error codes and HTTP statuses, the `toptags` count scale. `SPOTIFY_CONNECT_ENABLED=false`
-    is unit-tested but not run end to end.
+21. _Partly fixed._ **Spotify and Last.fm responses were never checked against the live APIs.**
+    The mocks (`tests/mock-spotify.ts`, `tests/mock-lastfm.ts`, `tests/mock-musicbrainz.ts`)
+    follow the public documentation: the development-mode 403 body, whether search and artist
+    objects still carry `genres`, Last.fm error codes and HTTP statuses, the `toptags` count
+    scale, the MusicBrainz search shape and its vote counts. That is still all that has been
+    checked; nothing here has been run against the live services.
+    An artist Spotify returns without `genres` no longer ends up with none: adding it falls
+    back to Last.fm `artist.gettoptags` and then MusicBrainz tags
+    (`src/lib/taste/genreFallback.ts`, wired into `POST /api/taste/artists`), so the profile
+    survives Spotify dropping the field. The fallback runs only when an artist is added, and
+    the result is stored in `taste_artists` like any other genres. MusicBrainz needs no key
+    (`MUSICBRAINZ_ENABLED=false` switches it off) but does need a descriptive
+    `MUSICBRAINZ_USER_AGENT` in production, and is held to one request a second.
+    `SPOTIFY_CONNECT_ENABLED=false` is still unit-tested but not run end to end.
 22. **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile endpoints, three
     different normalisers). The profile is wired into the two web ones only; the mobile API
     does not read it. `src/lib/taste/genreClassifier.ts` imports `_findClusters` from the
