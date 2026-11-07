@@ -10,6 +10,7 @@
 	import { goto } from '$app/navigation';
 	import BarDetailsModal, { type BarDetails } from './BarDetailsModal.svelte';
 	import BarEventsSection from './BarEventsSection.svelte';
+	import VenueArtistsSection from './VenueArtistsSection.svelte';
 	interface Props {
 		data: PageData;
 	}
@@ -32,6 +33,10 @@
 	let genreChart: Chart | undefined = $state.raw();
 	let hasDualRole = $state(false);
 	let error: string | null = $derived(data.error ?? null);
+	/** SPOTIFY_CONNECT_ENABLED: off hides every Spotify panel on the dashboard */
+	let spotifyConnectEnabled = $derived(data.spotifyConnectEnabled ?? true);
+	/** True once there is a Spotify session to show panels for */
+	let showSpotifyPanels = $derived(spotifyConnectEnabled && !loggedOut);
 
 	// Check if we can access the barId directly from data
 	let barId: string = $derived(data.barId ?? '');
@@ -103,8 +108,9 @@
 	}
 
 	onMount(async () => {
-		// Check for authentication issues
-		if (loggedOut) {
+		// Check for authentication issues (only while Spotify connect is on: without it the
+		// dashboard manages events and artists and never needs a Spotify session)
+		if (loggedOut && spotifyConnectEnabled) {
 			showModal = true;
 		}
 
@@ -380,7 +386,7 @@
 	/>
 {/if}
 
-{#if error}
+{#if error && spotifyConnectEnabled}
 	<div class="error-message">
 		<p>{error}</p>
 		<button onclick={reconnectSpotify} class="reconnect-button"> Reconnect Spotify </button>
@@ -388,13 +394,15 @@
 {/if}
 
 <main class="dashboard-container">
-	<a href="https://www.spotify.com" target="_blank">
-		<img
-			src="/lib/2024-spotify-full-logo/Full_Logo_White_CMYK.svg"
-			alt="Spotify Logo"
-			class="spotify-logo mr-4"
-		/>
-	</a>
+	{#if spotifyConnectEnabled}
+		<a href="https://www.spotify.com" target="_blank">
+			<img
+				src="/lib/2024-spotify-full-logo/Full_Logo_White_CMYK.svg"
+				alt="Spotify Logo"
+				class="spotify-logo mr-4"
+			/>
+		</a>
+	{/if}
 	<header class="dashboard-header">
 		<h1>{barName}'s Music Insights</h1>
 
@@ -412,7 +420,11 @@
 		<p>Explore how your music choices are shaping the vibe at your bar.</p>
 
 		<div class="dashboard-actions">
-			<button onclick={reconnectSpotify} class="spotify-reconnect-btn"> Reconnect Spotify </button>
+			{#if spotifyConnectEnabled}
+				<button onclick={reconnectSpotify} class="spotify-reconnect-btn">
+					Reconnect Spotify
+				</button>
+			{/if}
 			<button onclick={openBarDetailsModal} class="bar-details-btn"> Update Bar Details </button>
 		</div>
 	</header>
@@ -425,100 +437,108 @@
 		</div>
 	{/if}
 
-	<section class="current-next-container">
-		<div class="currently-playing">
-			<h2>Currently Playing</h2>
-			<div class="current-track">
-				{#if currentlyPlaying}
-					<img
-						src={currentlyPlaying.album.images[0].url}
-						alt="Album cover for {currentlyPlaying.name}"
-					/>
-					<div class="track-details">
-						<h3>{currentlyPlaying.name}</h3>
-						<p>{currentlyPlaying.artists.map((a) => a.name).join(', ')}</p>
-					</div>
-				{:else}
-					<p>No track is currently playing.</p>
-				{/if}
+	{#if showSpotifyPanels}
+		<section class="current-next-container">
+			<div class="currently-playing">
+				<h2>Currently Playing</h2>
+				<div class="current-track">
+					{#if currentlyPlaying}
+						<img
+							src={currentlyPlaying.album.images[0].url}
+							alt="Album cover for {currentlyPlaying.name}"
+						/>
+						<div class="track-details">
+							<h3>{currentlyPlaying.name}</h3>
+							<p>{currentlyPlaying.artists.map((a) => a.name).join(', ')}</p>
+						</div>
+					{:else}
+						<p>No track is currently playing.</p>
+					{/if}
+				</div>
 			</div>
-		</div>
 
-		<div class="upcoming-tracks">
-			<h2>Next Up</h2>
-			<ul class="next-tracks">
-				{#if nextTracks && nextTracks.length > 0}
-					{#each nextTracks as track, i (i)}
-						<li class="queue-track">
-							<!-- Add the album image -->
-							{#if track.album?.images && track.album.images.length > 0}
-								<img
-									src={track.album.images[track.album.images.length - 1].url}
-									alt="Album cover for {track.name}"
-									class="queue-track-image"
-								/>
-							{/if}
-							<div class="queue-track-info">
-								<span class="track-name">{track.name}</span>
-								<span class="track-artist">by {track.artists.map((a) => a.name).join(', ')}</span>
+			<div class="upcoming-tracks">
+				<h2>Next Up</h2>
+				<ul class="next-tracks">
+					{#if nextTracks && nextTracks.length > 0}
+						{#each nextTracks as track, i (i)}
+							<li class="queue-track">
+								<!-- Add the album image -->
+								{#if track.album?.images && track.album.images.length > 0}
+									<img
+										src={track.album.images[track.album.images.length - 1].url}
+										alt="Album cover for {track.name}"
+										class="queue-track-image"
+									/>
+								{/if}
+								<div class="queue-track-info">
+									<span class="track-name">{track.name}</span>
+									<span class="track-artist">by {track.artists.map((a) => a.name).join(', ')}</span>
+								</div>
+							</li>
+						{/each}
+					{:else}
+						<li>No upcoming tracks in queue</li>
+					{/if}
+				</ul>
+			</div>
+		</section>
+
+		<section class="side-container">
+			<div class="top-artists-playlists">
+				<div class="top-artists">
+					<h2>Top Artists</h2>
+					<ul>
+						{#each topArtists.slice(0, 10) as artist (artist.id)}
+							<li>{artist.name}</li>
+						{/each}
+					</ul>
+				</div>
+				<div class="top-playlists">
+					<h2>Top Playlists</h2>
+					<ul>
+						{#each topPlaylists.slice(0, 5) as playlist (playlist.id)}
+							<li>{playlist.name}</li>
+						{/each}
+					</ul>
+				</div>
+			</div>
+
+			<div class="recently-played">
+				<h2>Recently Played</h2>
+				<ul>
+					{#each recentlyPlayedTracks.slice(0, 5) as track, i (i)}
+						<li>
+							<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
+							<div>
+								<p>{track.name} by {track.artists.map((a) => a.name).join(', ')}</p>
 							</div>
 						</li>
 					{/each}
-				{:else}
-					<li>No upcoming tracks in queue</li>
-				{/if}
-			</ul>
-		</div>
-	</section>
-
-	<section class="side-container">
-		<div class="top-artists-playlists">
-			<div class="top-artists">
-				<h2>Top Artists</h2>
-				<ul>
-					{#each topArtists.slice(0, 10) as artist (artist.id)}
-						<li>{artist.name}</li>
-					{/each}
 				</ul>
 			</div>
-			<div class="top-playlists">
-				<h2>Top Playlists</h2>
-				<ul>
-					{#each topPlaylists.slice(0, 5) as playlist (playlist.id)}
-						<li>{playlist.name}</li>
-					{/each}
-				</ul>
-			</div>
-		</div>
-
-		<div class="recently-played">
-			<h2>Recently Played</h2>
-			<ul>
-				{#each recentlyPlayedTracks.slice(0, 5) as track, i (i)}
-					<li>
-						<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
-						<div>
-							<p>{track.name} by {track.artists.map((a) => a.name).join(', ')}</p>
-						</div>
-					</li>
-				{/each}
-			</ul>
-		</div>
-	</section>
-
-	<section class="inline-graphs">
-		<section class="genre-insights">
-			<h2>Genre Insights</h2>
-			<canvas id="genreChart"></canvas>
 		</section>
 
-		<section class="placeholder-section">
-			<h2>Coming Soon: User Search Insights</h2>
-			<div class="placeholder">
-				Placeholder for future graph of what Clubfindr users are searching for in your area
-			</div>
+		<section class="inline-graphs">
+			<section class="genre-insights">
+				<h2>Genre Insights</h2>
+				<canvas id="genreChart"></canvas>
+			</section>
+
+			<section class="placeholder-section">
+				<h2>Coming Soon: User Search Insights</h2>
+				<div class="placeholder">
+					Placeholder for future graph of what Clubfindr users are searching for in your area
+				</div>
+			</section>
 		</section>
-	</section>
+	{/if}
+
+	<VenueArtistsSection
+		{barId}
+		initialArtists={data.venueArtists ?? []}
+		initialGenres={data.venueGenres ?? []}
+	/>
 	<BarEventsSection {barId} />
 </main>
 

@@ -7,6 +7,9 @@ import { cookieManager } from '$lib/cookieManager';
 import { query } from '$lib/db';
 import { decryptToken, encryptToken } from '$lib/encryptionUtils';
 import { redirect } from '@sveltejs/kit';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
+import { listFavouriteArtists } from '$lib/taste/favouriteArtists';
+import { pool } from '$lib/db';
 
 const currentlyPlayingEndpoint = `https://api.spotify.com/v1/me/player/currently-playing`;
 const queueEndpoint = `https://api.spotify.com/v1/me/player/queue`;
@@ -249,6 +252,33 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 
 		const barName = cookies.get('barsName');
 
+		// Everything the dashboard needs with no Spotify session at all. It goes into every
+		// return below, so `barId` is never missing: without it the events section used to post
+		// to /api/bars//events and get a 404 (KNOWN_ISSUES 4). The venue's own artists come from
+		// its taste profile, which needs no streaming account either.
+		let venueArtists: Awaited<ReturnType<typeof listFavouriteArtists>> = {
+			artists: [],
+			genres: []
+		};
+		try {
+			venueArtists = await listFavouriteArtists(pool, barId, 'bar');
+		} catch (tasteError) {
+			// A dashboard that still manages events is better than an error page
+			console.error('Could not load the venue taste profile:', tasteError);
+		}
+		const base = {
+			barId,
+			barName: barName || 'Your Bar',
+			spotifyConnectEnabled: isSpotifyConnectEnabled(),
+			venueArtists: venueArtists.artists,
+			venueGenres: venueArtists.genres
+		};
+
+		// Spotify connect switched off: the dashboard is the events and artists it manages
+		if (!isSpotifyConnectEnabled()) {
+			return { ...base, loggedOut: false };
+		}
+
 		if (!accessToken || !refreshToken) {
 			// No tokens - user needs to authenticate
 			console.log('Missing Spotify tokens - redirecting to auth');
@@ -312,9 +342,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 
 			const returnUrl = url.pathname + url.search;
 			return {
+				...base,
 				loggedOut: true,
-				authUrl: `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`,
-				barName: barName || 'Your Bar'
+				authUrl: `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`
 			};
 		}
 		// Test the tokens with a simple API call before doing all the other calls
@@ -331,9 +361,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			);
 			const returnUrl = url.pathname + url.search;
 			return {
+				...base,
 				loggedOut: true,
-				authUrl: `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`,
-				barName: barName || 'Your Bar'
+				authUrl: `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`
 			};
 		}
 
@@ -383,9 +413,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				if (!cookies.get('spotifyAccessToken') || !cookies.get('spotifyRefreshToken')) {
 					const returnUrl = url.pathname + url.search;
 					return {
+						...base,
 						loggedOut: true,
-						authUrl: `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`,
-						barName
+						authUrl: `/spotify/reauth?returnTo=${encodeURIComponent(returnUrl)}`
 					};
 				}
 			}
@@ -470,6 +500,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 
 			// Return the successfully loaded data
 			return {
+				...base,
 				currentlyPlaying: (currentPlaying?.item as Track) || null,
 				queue: queueData?.queue || [],
 				nextTracks: nextTracks || [],
@@ -478,9 +509,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				playlists: playlistsData?.items || [],
 				topArtists: topArtistsData?.items || [],
 				loggedOut: false,
-				barName,
-				commonGenres,
-				barId: cookies.get('barId')
+				commonGenres
 			};
 		} catch (apiError: unknown) {
 			// If it's a 401/403 error, we need to reauth
@@ -496,9 +525,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			// For other errors, log them and return an error state
 			console.error('API error in bar page load:', apiError);
 			return {
+				...base,
 				error: 'Failed to load Spotify data. Please try reconnecting.',
-				loggedOut: false,
-				barName
+				loggedOut: false
 			};
 		}
 	} catch (err: unknown) {
@@ -508,7 +537,14 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		}
 
 		console.error('Error in GET handler', err);
+		// Still carries barId, so the events section keeps working through an unexpected failure
 		return {
+			barId: cookies.get('barId') ?? '',
+			barName: cookies.get('barsName') || 'Your Bar',
+			spotifyConnectEnabled: isSpotifyConnectEnabled(),
+			venueArtists: [],
+			venueGenres: [],
+			loggedOut: false,
 			message: 'An unexpected error occurred',
 			error: err instanceof Error ? err.message : 'Unknown error'
 		};
