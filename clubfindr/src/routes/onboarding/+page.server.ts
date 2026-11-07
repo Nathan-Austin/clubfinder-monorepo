@@ -8,8 +8,8 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { pool } from '$lib/db';
 import { getSessionUserId } from '$lib/taste/sessionUser';
+import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import {
-	countFavouriteArtists,
 	needsOnboarding,
 	ONBOARDING_MAX_ARTISTS,
 	ONBOARDING_MIN_ARTISTS

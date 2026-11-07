@@ -10,19 +10,8 @@
 // server keeps MAX_FAVOURITE_ARTISTS as the only hard limit, and more artists make a better
 // profile, so the step points users to their taste profile to add more.
 
-import type { Queryable } from './favouriteArtists';
-
 export const ONBOARDING_MIN_ARTISTS = 3;
 export const ONBOARDING_MAX_ARTISTS = 5;
-
-export async function countFavouriteArtists(db: Queryable, userId: string): Promise<number> {
-	const result = await db.query(
-		'SELECT count(*)::int AS n FROM clubfindr.user_favourite_artists WHERE user_id = $1',
-		[userId]
-	);
-	const n = Number(result.rows[0]?.n ?? 0);
-	return Number.isFinite(n) ? n : 0;
-}
 
 /** True when the user has fewer favourites than onboarding asks for. */
 export function needsOnboarding(favouriteCount: number): boolean {
