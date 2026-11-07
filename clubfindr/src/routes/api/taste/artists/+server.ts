@@ -5,7 +5,9 @@
 //
 // The artist's genres come from the provider (Spotify, client credentials) the first time
 // it is added and are stored in clubfindr.taste_artists, so listing and matching never call
-// the provider. See docs/taste-profile-design.md.
+// the provider. When the provider reports no genres, they are looked up from Last.fm's top
+// tags and then MusicBrainz's tags (KNOWN_ISSUES 21, $lib/taste/genreFallback).
+// See docs/taste-profile-design.md.
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -20,8 +22,18 @@ import {
 } from '$lib/taste/favouriteArtists';
 import { makeArtistLookup, SpotifyLookupError } from '$lib/taste/spotifyArtistLookup';
 import { spotifyLookupOptions } from '$lib/taste/spotifyOptions';
+import { withGenreFallback } from '$lib/taste/genreFallback';
+import { musicbrainzOptions } from '$lib/taste/musicbrainzOptions';
+import { lastfmOptions } from '$lib/taste/lastfmOptions';
+import { isKnownGenre } from '$lib/taste/genreClassifier';
 
-const lookup = makeArtistLookup(spotifyLookupOptions());
+// Built per request: the Last.fm key and the API hosts are runtime settings
+const artistLookup = () =>
+	withGenreFallback(makeArtistLookup(spotifyLookupOptions()), {
+		classify: isKnownGenre,
+		lastfm: lastfmOptions(),
+		musicbrainz: musicbrainzOptions()
+	});
 
 export const GET: RequestHandler = async ({ cookies }) => {
 	const userId = await getSessionUserId(cookies, pool);
@@ -51,7 +63,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 	}
 
 	try {
-		const artist = await resolveTasteArtist(pool, source, sourceId, lookup);
+		const artist = await resolveTasteArtist(pool, source, sourceId, artistLookup());
 		const { created } = await addFavouriteArtist(pool, userId, artist.id);
 		const { genres } = await listFavouriteArtists(pool, userId);
 		return json({ artist, created, genres }, { status: created ? 201 : 200 });

@@ -248,16 +248,21 @@ export type GenreClassifier = (tag: string) => boolean;
  * Turns an artist's Last.fm tags into genres: strongest first, normalised, stoplisted tags
  * and the artist's own name dropped, then only the tags the classifier recognises, up to
  * MAX_GENRES_PER_ARTIST.
+ *
+ * `minCount` is the weakest tag still worth keeping, on the scale of whoever produced the
+ * tags: Last.fm's counts are relative (the top tag is 100), MusicBrainz's are raw votes, so
+ * the genre fallback passes its own threshold (see musicbrainz.ts).
  */
 export function tagsToGenres(
 	tags: LastfmTag[],
 	artistName: string,
 	classify: GenreClassifier,
-	limit = MAX_GENRES_PER_ARTIST
+	limit = MAX_GENRES_PER_ARTIST,
+	minCount = MIN_TAG_COUNT
 ): string[] {
 	const ownName = artistName.toLowerCase().trim();
 	const candidates = [...tags]
-		.filter((tag) => tag.count >= MIN_TAG_COUNT)
+		.filter((tag) => tag.count >= minCount)
 		.sort((a, b) => b.count - a.count)
 		.map((tag) => tag.name);
 	const genres: string[] = [];
