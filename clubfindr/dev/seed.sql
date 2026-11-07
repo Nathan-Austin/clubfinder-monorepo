@@ -47,6 +47,7 @@ TRUNCATE
 	clubfindr.user_checkins,
 	clubfindr.bar_qr_codes,
 	clubfindr.bar_sessions,
+	clubfindr.bar_favourite_artists,
 	clubfindr.bars,
 	clubfindr.promoters,
 	clubfindr.user_favourite_artists,
@@ -166,6 +167,16 @@ VALUES
 	 'Voorbeeldgracht 88', '1015 XX', 'https://lighthouse-pantry.example', NULL, 'amsterdam', true,
 	 NULL, 'Canal-side bar with afro house and amapiano at weekends.',
 	 '15:00', '01:00', false, ARRAY['canal', 'cocktail']);
+
+-- The artists The Copper Lantern says it plays (venue taste profile). The other venues have
+-- none, so the dashboard's empty state is covered too. Same catalogue as the users'
+-- favourites, a separate link table: see migrations/20261108_add_bar_favourite_artists.sql.
+INSERT INTO clubfindr.bar_favourite_artists (bar_id, artist_id, created_at)
+VALUES
+	('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000d1',
+	 now() - interval '2 days'),
+	('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000d2',
+	 now() - interval '1 day');
 
 INSERT INTO clubfindr.bar_genre_profiles
 	(bar_id, "timestamp", current_track_id, current_track_name, current_genres, rolling_genre_profile)

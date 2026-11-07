@@ -1,8 +1,16 @@
 import { test, expect, login, dismissSpotifyDialog } from './fixtures';
 
 // Bar manager dashboard: BarDetailsModal and BarEventsSection/BarEventModal.
-// Offline there is no Spotify session and no `barId` cookie, so saving is not possible;
-// the tests cover opening, pre-filling, editing, validation feedback and closing.
+// Offline there is no Spotify session, but the dashboard still knows its `barId`
+// (KNOWN_ISSUES 4), so events can be managed here without connecting Spotify.
+//
+// Creating an event writes a row for the seeded bar, so that test cleans up after itself and
+// this file runs its tests in order: a parallel test must not see the half-created event.
+test.describe.configure({ mode: 'default' });
+
+/** The seeded bar manager's venue, "The Copper Lantern" (dev/seed.sql). */
+const BAR_ID = '00000000-0000-4000-8000-0000000000b1';
+
 test.describe('bar dashboard modals', () => {
 	test.beforeEach(async ({ page }) => {
 		await login(page, 'bar');
@@ -32,10 +40,7 @@ test.describe('bar dashboard modals', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
-	test('event modal: create form with custom genres, validation and cancel', async ({
-		page,
-		pageErrors
-	}) => {
+	test('event modal: create form with custom genres and cancel', async ({ page, pageErrors }) => {
 		const section = page.locator('section', { has: page.locator('.add-event-button') });
 		await section.locator('.add-event-button').click();
 		const form = page.locator('#event-details-form');
@@ -60,12 +65,6 @@ test.describe('bar dashboard modals', () => {
 		await form.locator('label.checkbox-label input[type="checkbox"]').check();
 		await expect(form.locator('#recurrencePattern')).toBeVisible();
 
-		// Saving needs a bar id, which only the Spotify flow provides: the modal stays open
-		// and reports the failure instead of silently closing.
-		await form.locator('button[type="submit"]').click();
-		await expect(form.locator('.error-message').first()).toBeVisible();
-		await expect(form).toBeVisible();
-
 		await form.locator('button', { hasText: 'Cancel' }).click();
 		await expect(form).toHaveCount(0);
 		expect(pageErrors).toEqual([]);
@@ -76,5 +75,42 @@ test.describe('bar dashboard modals', () => {
 		await expect(page.locator('#event-details-form')).toBeVisible();
 		await page.locator('.close-button').click();
 		await expect(page.locator('#event-details-form')).toHaveCount(0);
+	});
+
+	// KNOWN_ISSUES 4: the dashboard used to get no barId without the Spotify flow, so the
+	// modal posted to /api/bars//events and answered 404. Offline there is still no Spotify
+	// session, so this passing is the fix.
+	test('an event can be created with no Spotify session (KNOWN_ISSUES 4)', async ({
+		page,
+		pageErrors
+	}) => {
+		const theme = `Decoupled Night ${Date.now()}`;
+
+		await page.locator('.add-event-button').click();
+		const form = page.locator('#event-details-form');
+		await form.locator('#themeName').fill(theme);
+		await form.locator('#eventDate').fill('2031-06-21');
+		await form.locator('#startTime').fill('22:00');
+
+		const posted = page.waitForResponse(
+			(r) => r.request().method() === 'POST' && r.url().includes(`/api/bars/${BAR_ID}/events`)
+		);
+		await form.locator('button[type="submit"]').click();
+		expect((await posted).status(), 'POST /api/bars/:barId/events').toBe(200);
+
+		// The modal reports success, then closes, and the event is in the list
+		await expect(form.locator('.success-message').first()).toBeVisible();
+		await expect(form).toHaveCount(0);
+		const section = page.locator('section', { has: page.locator('.add-event-button') });
+		await expect(section.locator('.event-card h3', { hasText: theme })).toBeVisible();
+
+		// Clean up, so a re-run against the same database starts from the seed again
+		const created = await (await page.request.get(`/api/bars/${BAR_ID}/events`)).json();
+		const mine = (created.events as { id: string; theme_name: string }[]).find(
+			(e) => e.theme_name === theme
+		);
+		expect(mine, 'the created event').toBeDefined();
+		expect((await page.request.delete(`/api/bars/${BAR_ID}/events/${mine!.id}`)).ok()).toBe(true);
+		expect(pageErrors).toEqual([]);
 	});
 });

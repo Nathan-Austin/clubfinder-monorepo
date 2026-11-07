@@ -119,8 +119,12 @@ export async function login(page: Page, role: Role) {
 /**
  * Offline, the bar dashboard shows a "Spotify Authentication Required" dialog whose only
  * button redirects to Spotify. It covers the page, so the tests remove its backdrop.
+ *
+ * With SPOTIFY_CONNECT_ENABLED off there is no such dialog (the dashboard never asks a venue
+ * to connect Spotify), so this does nothing and the caller carries on.
  */
 export async function dismissSpotifyDialog(page: Page) {
+	if (!SPOTIFY_CONNECT_ENABLED) return;
 	await page.locator('.modal-backdrop').first().waitFor({ state: 'attached' });
 	await page.evaluate(() =>
 		document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove())
