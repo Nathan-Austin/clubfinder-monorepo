@@ -99,7 +99,8 @@ section 4), left open on purpose.
     the result is stored in `taste_artists` like any other genres. MusicBrainz needs no key
     (`MUSICBRAINZ_ENABLED=false` switches it off) but does need a descriptive
     `MUSICBRAINZ_USER_AGENT` in production, and is held to one request a second.
-    `SPOTIFY_CONNECT_ENABLED=false` is still unit-tested but not run end to end.
+    The full e2e suite now also runs with `SPOTIFY_CONNECT_ENABLED=false` (`dev/TESTING.md`),
+    against the same mocks.
 22. **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile endpoints, three
     different normalisers). The profile is wired into the two web ones only; the mobile API
     does not read it. `src/lib/taste/genreClassifier.ts` imports `_findClusters` from the
@@ -110,8 +111,15 @@ section 4), left open on purpose.
 24. **Smaller gaps in the existing flows:** `/api/delete-user-data` does not clear
     `preferences` or `interested_events`; `user_sessions.genres` is wiped on every login and
     scoped to the home city; `/clubs` deletes the genre cookies on first read, so "Change
-    Date" loses a guest's genres; "Change the vibe" restores the city but not the date; the
-    `spotify_service` add_user call still runs when a Spotify e-mail is given at signup; mobile
-    signup still requires a `musicService` choice.
+    Date" loses a guest's genres; "Change the vibe" restores the city but not the date.
+    _Fixed behind `SPOTIFY_CONNECT_ENABLED=false`:_ the `spotify_service` add_user call at signup
+    and the `musicService` choice in mobile signup. With the flag off, web and mobile signup
+    for users and venues (`/login/users`, `/register`, `/api/mobile/signup`,
+    `/api/mobile/bars/register`) ask for no music service or Spotify e-mail, store none and
+    never call `spotify_service` (add_user / add_bar), even when an older client sends them;
+    `GET /api/mobile/config` tells the app to hide the fields. With the flag on (still the
+    default) nothing changes. Still open in this item: the `/api/delete-user-data`,
+    `user_sessions.genres`, genre cookie and "Change the vibe" gaps, and venue login
+    (`/login/bars`), which still retries add_bar for existing Spotify venues without an app.
 25. **Seed dates move with the seed.** Only the four Berlin nights on 2031-06-21 are pinned;
     tests that need fixed results use `/clubs?date=2031-06-21`.
