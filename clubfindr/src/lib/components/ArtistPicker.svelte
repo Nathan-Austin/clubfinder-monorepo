@@ -41,7 +41,7 @@
 		genres: string[];
 		/** False until the first load has finished (success or failure). */
 		loaded: boolean;
-		/** artists.length is within [min, max]. */
+		/** artists.length >= min. `max` does not affect it: more artists never make it incomplete. */
 		complete: boolean;
 	}
 
@@ -50,8 +50,14 @@
 		endpointBase?: string;
 		/** Fewest artists the caller needs before it considers the picker complete. */
 		min?: number;
-		/** Most artists that may be picked here; null for "no limit beyond the server's". */
+		/**
+		 * Advisory cap for this screen: at `max` the Add buttons are disabled and `atMaxNote` is
+		 * shown. Not enforced by the server, and artists already above it (added elsewhere) stay.
+		 * null for "no limit beyond the server's".
+		 */
 		max?: number | null;
+		/** Replaces the default note shown at the cap (e.g. to point at where to add more). */
+		atMaxNote?: Snippet;
 		/** Show the derived genre list under the favourites. */
 		showGenres?: boolean;
 		/** Called after every load, add and remove. */
@@ -69,6 +75,7 @@
 		endpointBase = '/api/taste',
 		min = 0,
 		max = null,
+		atMaxNote,
 		showGenres = true,
 		onChange,
 		searchLabel = 'Search for an artist',
@@ -103,7 +110,7 @@
 		artists,
 		genres,
 		loaded,
-		complete: artists.length >= min && (max === null || artists.length <= max)
+		complete: artists.length >= min
 	});
 
 	const keyOf = (artist: { source: string; sourceId: string }) =>
@@ -264,9 +271,13 @@
 		<p class="taste-error" role="alert">{error}</p>
 	{/if}
 	{#if atMax}
-		<p class="taste-muted" data-testid="taste-at-max" role="status">
-			That is {max} artists, the most this step takes. Remove one to swap it for another.
-		</p>
+		<div class="taste-muted" data-testid="taste-at-max" role="status">
+			{#if atMaxNote}
+				{@render atMaxNote()}
+			{:else}
+				That is {max} artists, the most this step takes. Remove one to swap it for another.
+			{/if}
+		</div>
 	{/if}
 
 	{#if searching}
