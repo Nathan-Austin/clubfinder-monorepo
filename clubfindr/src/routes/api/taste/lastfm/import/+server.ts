@@ -7,27 +7,17 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { env } from '$env/dynamic/private';
 import { pool } from '$lib/db';
 import { getSessionUserId } from '$lib/taste/sessionUser';
 import { isKnownGenre } from '$lib/taste/genreClassifier';
+import { lastfmOptions } from '$lib/taste/lastfmOptions';
 import {
 	DEFAULT_PERIOD,
 	importLastfmUser,
 	isLastfmPeriod,
 	isValidLastfmUsername,
-	LastfmError,
-	type LastfmOptions
+	LastfmError
 } from '$lib/taste/lastfm';
-
-/** The value .env.example ships with; treated as "no key". */
-const PLACEHOLDER_KEY = 'your-lastfm-api-key';
-
-function lastfmOptions(): LastfmOptions | null {
-	const apiKey = env.LASTFM_API_KEY?.trim();
-	if (!apiKey || apiKey === PLACEHOLDER_KEY) return null;
-	return { apiKey, apiBase: env.LASTFM_API_BASE || undefined };
-}
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
 	const userId = await getSessionUserId(cookies, pool);
