@@ -14,6 +14,9 @@
 #   - fails before touching anything if a requirements*.txt changed: Python
 #     packages are installed by hand, then the deploy is finished with
 #     REQUIREMENTS_INSTALLED=1 (the failure message prints the exact commands)
+#   - likewise if a clubfindr/migrations/*.sql changed: migrations are applied
+#     by hand (they are idempotent), then MIGRATIONS_APPLIED=1, so new code
+#     never goes live against a database that lacks its tables
 #   - fast-forwards the checkout to the commit
 #   - redeploys only components whose code changed (docs and .env.example
 #     changes are ignored): clubfindr is rebuilt and reloaded under PM2,
@@ -94,6 +97,30 @@ if [ -n "$REQS" ] && [ "${REQUIREMENTS_INSTALLED:-0}" != 1 ]; then
 		echo "  REQUIREMENTS_INSTALLED=1 bash <(git show $TARGET:deploy/deploy.sh) $TARGET"
 	} >&2
 	fail "requirements changed; install them manually"
+fi
+
+# SQL migrations: same pattern. The schema must be in place before the code that
+# uses it is built and reloaded, and the database credentials stay out of this
+# script, so stop here and print what to run.
+MIGS=$(echo "$CHANGED" | grep -E '^clubfindr/migrations/[^/]+\.sql$' | sort || true)
+if [ -n "$MIGS" ] && [ "${MIGRATIONS_APPLIED:-0}" != 1 ]; then
+	resume="MIGRATIONS_APPLIED=1"
+	[ -n "$REQS" ] && resume="REQUIREMENTS_INSTALLED=1 $resume"
+	{
+		echo "Database migrations changed:"
+		echo "$MIGS" | sed 's/^/  /'
+		echo
+		echo "Migrations are applied by hand. Nothing has been deployed; the server is"
+		echo "still at ${PREV:0:7}. They are idempotent, so applying one twice is safe."
+		echo "To finish this deploy, on the server (DATABASE_URL as in clubfindr/.env):"
+		echo
+		echo "  cd $REPO"
+		echo "$MIGS" | while read -r f; do
+			echo "  psql \"\$DATABASE_URL\" -v ON_ERROR_STOP=1 -f <(git show $TARGET:$f)"
+		done
+		echo "  $resume bash <(git show $TARGET:deploy/deploy.sh) $TARGET"
+	} >&2
+	fail "migrations changed; apply them manually"
 fi
 
 # Docs and env templates never need a redeploy

@@ -116,7 +116,11 @@ Status: `pm2 ls`, `systemctl status <unit>`.
    tracked files, or the commit is not a fast-forward.
 2. **Fails before changing anything if a `requirements*.txt` changed** in
    barfindr, data_collection or spotify_service. Python packages are installed
-   by hand; the error message lists the commands.
+   by hand; the error message lists the commands. **Likewise if a
+   `clubfindr/migrations/*.sql` changed**: apply the listed migrations with
+   `psql` (they are idempotent), then finish with `MIGRATIONS_APPLIED=1`, so
+   new code never runs against a database that lacks its tables. CI applies
+   every migration too (`clubfindr/dev/check-migrations.sh`).
 3. Checks it can restart the units it will need (passwordless sudo from
    `deploy/sudoers/clubfinder-deploy`), then fast-forwards the checkout.
 4. Redeploys only components whose code changed (changes to `*.md`,
