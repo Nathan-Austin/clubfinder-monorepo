@@ -22,6 +22,9 @@ import { getProfileGenresForSession } from './profileGenres';
 
 const USER = '00000000-0000-4000-8000-000000000001';
 const ARTIST_ID = '11111111-1111-4111-8111-111111111111';
+// user_sessions.session_id is a uuid column, so real session ids look like this
+const SESSION = '33333333-3333-4333-8333-333333333333';
+const OTHER_SESSION = '44444444-4444-4444-8444-444444444444';
 
 /** A Queryable that answers by matching a fragment of the SQL text, recording every call. */
 function fakeDb(handlers: Array<[string, (params: unknown[]) => Record<string, unknown>[]]>) {
@@ -249,13 +252,20 @@ describe('resolveSessionUserId', () => {
 		const { db, calls } = fakeDb([
 			[
 				'FROM clubfindr.user_sessions',
-				(params) => (params[0] === 'good' ? [{ user_id: USER }] : [])
+				(params) => (params[0] === SESSION ? [{ user_id: USER }] : [])
 			]
 		]);
-		await expect(resolveSessionUserId(db, 'good')).resolves.toBe(USER);
-		await expect(resolveSessionUserId(db, 'bad')).resolves.toBeNull();
+		await expect(resolveSessionUserId(db, SESSION)).resolves.toBe(USER);
+		await expect(resolveSessionUserId(db, OTHER_SESSION)).resolves.toBeNull();
 		await expect(resolveSessionUserId(db, null)).resolves.toBeNull();
 		expect(calls).toHaveLength(2);
+	});
+
+	it('never queries for a malformed id, which the uuid column would reject with an error', async () => {
+		const { db, calls } = fakeDb([['FROM clubfindr.user_sessions', () => [{ user_id: USER }]]]);
+		await expect(resolveSessionUserId(db, 'not-a-session')).resolves.toBeNull();
+		await expect(resolveSessionUserId(db, "' OR 1=1 --")).resolves.toBeNull();
+		expect(calls).toHaveLength(0);
 	});
 });
 
@@ -330,7 +340,7 @@ describe('getProfileGenresForSession', () => {
 				() => [artistRow(), artistRow({ id: '2', source_id: 'x', genres: ['Techno'] })]
 			]
 		]);
-		await expect(getProfileGenresForSession(db, 'session')).resolves.toEqual([
+		await expect(getProfileGenresForSession(db, SESSION)).resolves.toEqual([
 			'deep house',
 			'minimal',
 			'techno'
@@ -341,6 +351,6 @@ describe('getProfileGenresForSession', () => {
 
 	it('is empty for a session without a user', async () => {
 		const { db } = fakeDb([['FROM clubfindr.user_sessions', () => []]]);
-		await expect(getProfileGenresForSession(db, 'stale')).resolves.toEqual([]);
+		await expect(getProfileGenresForSession(db, OTHER_SESSION)).resolves.toEqual([]);
 	});
 });

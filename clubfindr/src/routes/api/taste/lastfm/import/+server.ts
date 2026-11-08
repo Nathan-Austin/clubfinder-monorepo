@@ -20,7 +20,7 @@ import {
 } from '$lib/taste/lastfm';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
-	const userId = await getSessionUserId(cookies, pool);
+	const userId = await getSessionUserId(cookies, pool, request);
 	if (!userId) return json({ message: 'Not logged in' }, { status: 401 });
 
 	let body: { username?: unknown; period?: unknown };

@@ -21,8 +21,8 @@ import { spotifyLookupOptions } from '$lib/taste/spotifyOptions';
 const MIN_QUERY_LENGTH = 2;
 const MAX_QUERY_LENGTH = 100;
 
-export const GET: RequestHandler = async ({ cookies, url }) => {
-	const userId = await getSessionUserId(cookies, pool);
+export const GET: RequestHandler = async ({ cookies, request, url }) => {
+	const userId = await getSessionUserId(cookies, pool, request);
 	if (!userId) return json({ message: 'Not logged in' }, { status: 401 });
 
 	const query = (url.searchParams.get('q') ?? '').trim();

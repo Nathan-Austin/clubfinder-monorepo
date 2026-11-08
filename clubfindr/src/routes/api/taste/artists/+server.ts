@@ -35,15 +35,15 @@ const artistLookup = () =>
 		musicbrainz: musicbrainzOptions()
 	});
 
-export const GET: RequestHandler = async ({ cookies }) => {
-	const userId = await getSessionUserId(cookies, pool);
+export const GET: RequestHandler = async ({ cookies, request }) => {
+	const userId = await getSessionUserId(cookies, pool, request);
 	if (!userId) return json({ message: 'Not logged in' }, { status: 401 });
 
 	return json(await listFavouriteArtists(pool, userId));
 };
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
-	const userId = await getSessionUserId(cookies, pool);
+	const userId = await getSessionUserId(cookies, pool, request);
 	if (!userId) return json({ message: 'Not logged in' }, { status: 401 });
 
 	let body: { source?: unknown; sourceId?: unknown };

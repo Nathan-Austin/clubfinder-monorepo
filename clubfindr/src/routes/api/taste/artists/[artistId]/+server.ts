@@ -7,8 +7,8 @@ import { pool } from '$lib/db';
 import { getSessionUserId } from '$lib/taste/sessionUser';
 import { isUuid, listFavouriteArtists, removeFavouriteArtist } from '$lib/taste/favouriteArtists';
 
-export const DELETE: RequestHandler = async ({ cookies, params }) => {
-	const userId = await getSessionUserId(cookies, pool);
+export const DELETE: RequestHandler = async ({ cookies, params, request }) => {
+	const userId = await getSessionUserId(cookies, pool, request);
 	if (!userId) return json({ message: 'Not logged in' }, { status: 401 });
 
 	if (!isUuid(params.artistId)) {
