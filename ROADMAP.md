@@ -38,6 +38,26 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21)
       (the e2e run with the flag off is done, against the mocks; the live check is not)
 
+### Follow-ups from the section 1 work
+
+Things to do by hand or decide, collected while building the items above.
+
+- [ ] **Before the next push to `main`:** apply `clubfindr/migrations/20261108_add_bar_favourite_artists.sql`
+      to production (and `20261017_add_taste_artists.sql` if it never was; both are idempotent).
+      `deploy/deploy.sh` now stops and prints the commands when a migration is in the range
+- [ ] Set `SPOTIFY_CONNECT_ENABLED=false` in the production `.env` when ready (default is on)
+- [ ] Set `MUSICBRAINZ_USER_AGENT` in production to name the deployment and a contact
+- [ ] The two parallel branches each added `bar_favourite_artists` (same table, different
+      migration file names); keep one file when merging
+- [ ] Feed the venue artists (`bar_favourite_artists`) into `/barfindr` matching; it still scores
+      venues from `bar_genre_aggregates`, which `barfindr` fills by polling Spotify
+- [ ] Nudge existing users with fewer than 3 favourite artists towards `/onboarding`; only new
+      accounts are sent there
+- [ ] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the
+      missing event edit route
+- [ ] Verify the reCAPTCHA on the server for `/register` (KNOWN_ISSUES 28)
+- [ ] Fix `app_clubfindr` type checking and add a test runner (KNOWN_ISSUES 29)
+
 ## 2. Genre matching and taste profiles
 
 - [ ] Add a genre alias layer and de-duplicate cluster leaves (KNOWN_ISSUES 18)

@@ -127,7 +127,35 @@ section 4), left open on purpose.
     never call `spotify_service` (add_user / add_bar), even when an older client sends them;
     `GET /api/mobile/config` tells the app to hide the fields. With the flag on (still the
     default) nothing changes. Still open in this item: the `/api/delete-user-data`,
-    `user_sessions.genres`, genre cookie and "Change the vibe" gaps, and venue login
-    (`/login/bars`), which still retries add_bar for existing Spotify venues without an app.
+    `user_sessions.genres`, genre cookie and "Change the vibe" gaps. Venue login (`/login/bars`)
+    no longer retries add_bar or sends a venue through Spotify with the flag off either.
 25. **Seed dates move with the seed.** Only the four Berlin nights on 2031-06-21 are pinned;
     tests that need fixed results use `/clubs?date=2031-06-21`.
+
+## Found during the section 1 work (November 2026)
+
+26. _Partly fixed._ **The mobile bar API let anyone change any venue.** Every write under
+    `/api/mobile/bars/[barId]` (create an event, edit the bar, create or delete a QR code,
+    request a promotion) accepted any caller who knew the bar id. They now require that venue's
+    session token or dashboard cookie (`$lib/server/barAuth`, `tests/mobile-bar-auth.spec.ts`);
+    the reads customers use for discovery stay public. Still open: `POST .../spotify-connect`
+    (left alone: after the in-app Spotify flow the stored token may be a user token, so a guard
+    could silently break the status update) and `GET .../stats` (public, decide whether
+    venue stats should be). Fixed alongside: the session check had two copies with different
+    rules (30-day sliding in `authUtils`, 7-day fixed in the venue taste code); there is one now,
+    and `/api/mobile/bars/login` writes the session row before returning its token, so the
+    app's first request can no longer be refused.
+27. **Editing an event in the app fails.** `EventFormScreen` sends
+    `PUT /api/mobile/bars/:barId/events/:eventId`, a route that does not exist (404); only
+    creating works. The web dashboard edits through `/api/bars/:barId/events/:eventId`.
+28. **Venue registration checks the reCAPTCHA in the browser only.** `/register` calls
+    `/api/verify-captcha` to unlock the form, but `POST /register` never verifies anything, so
+    a script can register venues by posting to it directly.
+29. **`app_clubfindr` type checking hides real errors.** Its `tsconfig.json` maps `"*"` to
+    `node_modules/*`, which makes `react` resolve to its JavaScript with no types: `npx tsc
+--noEmit` reports about 175 errors, almost all of them that. With the mapping removed for a
+    check, five real ones remain (`SearchScreen.tsx` twice, `QRCodeGeneratorScreen.tsx` twice,
+    `EditBarProfileScreen.tsx`). The app also has no test runner.
+30. **`tests/rate-limit.spec.ts` was flaky once** ("entries a client prepends to
+    X-Forwarded-For do not open new buckets" failed, then passed on retry). Not reproduced
+    since; watch for it.
