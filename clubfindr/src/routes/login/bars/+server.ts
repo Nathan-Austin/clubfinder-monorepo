@@ -8,6 +8,7 @@ import { decryptToken, encryptToken } from '$lib/encryptionUtils';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
 import { SPOTIFY_SERVICE_URL } from '$env/static/private';
+import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 import { PUBLIC_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -145,8 +146,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					maxAge: 60 * 60 * 24 * 7 // 1 week
 				});
 
-				// Check if bar uses Spotify and needs authentication
-				if (barData.music_service === 'spotify') {
+				// Check if bar uses Spotify and needs authentication. With SPOTIFY_CONNECT_ENABLED
+				// off a venue is never sent through Spotify, and spotify_service (add_bar) is not
+				// called, matching signup (KNOWN_ISSUES 24)
+				if (isSpotifyConnectEnabled() && barData.music_service === 'spotify') {
 					console.log('Bar uses Spotify as music service');
 
 					// If the bar doesn't have a Spotify app assigned but has a Spotify email,
