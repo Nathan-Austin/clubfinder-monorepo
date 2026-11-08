@@ -7,6 +7,9 @@ import { addUserToSpotifyApp } from '$lib/spotifyService';
 import { cookieManager } from '$lib/cookieManager';
 import { PUBLIC_GOOGLE_OAUTH_CLIENT_ID } from '$env/static/public';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';
+import { pool } from '$lib/db';
+import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
+import { artistOnboardingStatus } from '$lib/taste/onboarding';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('========================');
@@ -326,9 +329,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						id: user_id,
 						email: email || spotifyEmail,
 						name: userName,
-						city: normalizedCityName
+						city: normalizedCityName,
+						// Same as /api/mobile/login, which the app tries first
+						artistOnboarding: artistOnboardingStatus(await countFavouriteArtists(pool, user_id))
 					},
-					token: sessionId
+					token: sessionId,
+					spotifyConnectEnabled: isSpotifyConnectEnabled()
 				}),
 				{
 					status: 200,
