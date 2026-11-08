@@ -1,4 +1,10 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import {
+	test as base,
+	expect,
+	type APIRequest,
+	type APIRequestContext,
+	type Page
+} from '@playwright/test';
 import { isFlagEnabled } from '../src/lib/flagValue';
 
 export type { Page };
@@ -145,3 +151,26 @@ export async function chooseCityAndGenre(page: Page, city: string, genre: string
 	await expect(page.locator('input[name="selectedGenre"]')).toHaveValue(new RegExp(genre));
 	return menu;
 }
+
+let mobileIpCounter = 0;
+
+/**
+ * A request context with no cookies, standing in for the mobile app: only an
+ * `Authorization: Bearer` header can authenticate its calls, so a test cannot pass on a
+ * browser cookie by accident. It gets its own X-Forwarded-For (the per-IP rate limiter), from
+ * a range the browser contexts above never use. Dispose it at the end of the test.
+ */
+export async function mobileApi(
+	playwright: { request: APIRequest },
+	baseURL: string | undefined
+): Promise<APIRequestContext> {
+	mobileIpCounter += 1;
+	return playwright.request.newContext({
+		baseURL,
+		extraHTTPHeaders: {
+			'x-forwarded-for': `10.251.${Math.floor(mobileIpCounter / 250) % 250}.${mobileIpCounter % 250}`
+		}
+	});
+}
+
+export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });

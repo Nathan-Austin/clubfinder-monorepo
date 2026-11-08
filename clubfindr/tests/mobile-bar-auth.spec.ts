@@ -1,5 +1,5 @@
-import { test, expect, login, type Page } from './fixtures';
-import type { APIRequest, APIRequestContext } from '@playwright/test';
+import { test, expect, login, mobileApi, bearer, type Page } from './fixtures';
+import type { APIRequestContext } from '@playwright/test';
 
 // Writes to a venue through the mobile API need that venue's session token
 // ($lib/server/barAuth). They used to accept anyone who knew the bar id. The reads customers
@@ -18,19 +18,6 @@ test.describe.configure({ mode: 'default' });
 const BAR_ID = '00000000-0000-4000-8000-0000000000b1';
 const UNKNOWN_TOKEN = '99999999-9999-4999-8999-999999999999';
 const QR_ID = '88888888-8888-4888-8888-888888888888';
-
-let ipCounter = 0;
-async function mobileApi(playwright: { request: APIRequest }, baseURL: string | undefined) {
-	ipCounter += 1;
-	return playwright.request.newContext({
-		baseURL,
-		extraHTTPHeaders: {
-			'x-forwarded-for': `10.251.${Math.floor(ipCounter / 250)}.${ipCounter % 250}`
-		}
-	});
-}
-
-const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 /** Every write the bar screens of the app make, with a body that would otherwise be valid. */
 const WRITES = [
