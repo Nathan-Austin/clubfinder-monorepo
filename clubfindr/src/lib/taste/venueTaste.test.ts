@@ -117,21 +117,40 @@ describe('bearerToken', () => {
 });
 
 describe('resolveBarSession', () => {
-	it('looks a uuid token up against bar_sessions with an age limit', async () => {
-		const { db, calls } = recordingDb([{ bar_id: BAR }]);
-		expect(await resolveBarSession(db, TOKEN)).toBe(BAR);
-		expect(calls[0].text).toContain('clubfindr.bar_sessions');
-		expect(calls[0].text).toContain('last_accessed');
-		expect(calls[0].params).toEqual([TOKEN, '7']);
+	const NOW = Date.parse('2026-11-08T12:00:00Z');
+	const daysAgo = (days: number) => new Date(NOW - days * 24 * 60 * 60 * 1000);
+	const clock = () => NOW;
+
+	it('returns the venue of a session used within 30 days, and slides the window', async () => {
+		const { db, calls } = recordingDb([{ bar_id: BAR, last_accessed: daysAgo(29) }]);
+		expect(await resolveBarSession(db, TOKEN, clock)).toBe(BAR);
+		expect(calls[0].text).toContain('FROM clubfindr.bar_sessions WHERE session_id = $1');
+		expect(calls[0].params).toEqual([TOKEN]);
+		// last_accessed refreshed to now (in the background)
+		expect(calls[1].text).toContain('UPDATE clubfindr.bar_sessions SET last_accessed');
+		expect(calls[1].params).toEqual([new Date(NOW).toISOString(), TOKEN]);
+	});
+
+	it('deletes and refuses a session unused for more than 30 days', async () => {
+		const { db, calls } = recordingDb([{ bar_id: BAR, last_accessed: daysAgo(31) }]);
+		expect(await resolveBarSession(db, TOKEN, clock)).toBeNull();
+		expect(calls[1].text).toContain('DELETE FROM clubfindr.bar_sessions');
+		expect(calls[1].params).toEqual([TOKEN]);
+		expect(calls.some((c) => c.text.startsWith('UPDATE'))).toBe(false);
+	});
+
+	it('reads last_accessed whether node-pg gives a Date or a string', async () => {
+		const asString = recordingDb([{ bar_id: BAR, last_accessed: daysAgo(1).toISOString() }]);
+		expect(await resolveBarSession(asString.db, TOKEN, clock)).toBe(BAR);
 	});
 
 	it('is null for an unknown session', async () => {
 		const { db } = recordingDb([]);
-		expect(await resolveBarSession(db, TOKEN)).toBeNull();
+		expect(await resolveBarSession(db, TOKEN, clock)).toBeNull();
 	});
 
 	it('never queries for a missing or malformed token', async () => {
-		const { db, calls } = recordingDb([{ bar_id: BAR }]);
+		const { db, calls } = recordingDb([{ bar_id: BAR, last_accessed: daysAgo(1) }]);
 		expect(await resolveBarSession(db, null)).toBeNull();
 		expect(await resolveBarSession(db, 'not-a-uuid')).toBeNull();
 		expect(await resolveBarSession(db, "' OR 1=1 --")).toBeNull();
@@ -161,7 +180,7 @@ describe('canManageBar', () => {
 	});
 
 	it('accepts a mobile token whose session belongs to the venue', async () => {
-		const { db } = recordingDb([{ bar_id: BAR }]);
+		const { db } = recordingDb([{ bar_id: BAR, last_accessed: new Date() }]);
 		expect(
 			await canManageBar(db, BAR, {
 				cookies: fakeCookies({}),
@@ -171,7 +190,7 @@ describe('canManageBar', () => {
 	});
 
 	it("refuses a mobile token for a different venue's session", async () => {
-		const { db } = recordingDb([{ bar_id: OTHER_BAR }]);
+		const { db } = recordingDb([{ bar_id: OTHER_BAR, last_accessed: new Date() }]);
 		expect(
 			await canManageBar(db, BAR, {
 				cookies: fakeCookies({}),

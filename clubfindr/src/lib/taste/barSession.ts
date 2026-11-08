@@ -13,8 +13,13 @@
 import type { Cookies } from '@sveltejs/kit';
 import { isUuid, type Queryable } from './favouriteArtists';
 
-/** Sessions older than this no longer authorise anything (user sessions use 7 days too). */
-export const BAR_SESSION_MAX_AGE_DAYS = 7;
+/**
+ * A mobile bar session stops authorising anything this long after it was last used, and every
+ * use pushes that back (a sliding window). The same rule $lib/authUtils.validateBarToken has
+ * always applied; validateBarToken now calls resolveBarSession, so there is one rule.
+ */
+export const BAR_SESSION_MAX_AGE_DAYS = 30;
+const MAX_AGE_MS = BAR_SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 
 export function bearerToken(request: Request): string | null {
 	const header = request.headers.get('authorization') ?? '';
@@ -23,20 +28,37 @@ export function bearerToken(request: Request): string | null {
 	return token ? token : null;
 }
 
-/** The venue a mobile session token belongs to, or null if it is unknown or too old. */
+/**
+ * The venue a mobile session token belongs to, or null if it is unknown or expired. An expired
+ * session is deleted; a live one has its last_accessed refreshed in the background.
+ */
 export async function resolveBarSession(
 	db: Queryable,
-	token: string | null
+	token: string | null,
+	now: () => number = Date.now
 ): Promise<string | null> {
 	if (!token || !isUuid(token)) return null;
 	const result = await db.query(
-		`SELECT bar_id FROM clubfindr.bar_sessions
-		 WHERE session_id = $1
-		   AND last_accessed > now() - ($2 || ' days')::interval`,
-		[token, String(BAR_SESSION_MAX_AGE_DAYS)]
+		'SELECT bar_id, last_accessed FROM clubfindr.bar_sessions WHERE session_id = $1',
+		[token]
 	);
-	const barId = result.rows[0]?.bar_id;
-	return typeof barId === 'string' && barId ? barId : null;
+	const row = result.rows[0];
+	const barId = row?.bar_id;
+	if (typeof barId !== 'string' || !barId) return null;
+
+	const lastAccessed = Date.parse(
+		row.last_accessed instanceof Date ? row.last_accessed.toISOString() : String(row.last_accessed)
+	);
+	if (!Number.isFinite(lastAccessed) || now() - lastAccessed > MAX_AGE_MS) {
+		await db.query('DELETE FROM clubfindr.bar_sessions WHERE session_id = $1', [token]);
+		return null;
+	}
+
+	db.query('UPDATE clubfindr.bar_sessions SET last_accessed = $1 WHERE session_id = $2', [
+		new Date(now()).toISOString(),
+		token
+	]).catch((error: unknown) => console.error('Failed to update bar session timestamp:', error));
+	return barId;
 }
 
 /**

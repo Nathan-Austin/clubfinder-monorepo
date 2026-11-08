@@ -1,43 +1,16 @@
 // lib/authUtils.ts
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
+import { resolveBarSession } from '$lib/taste/barSession';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '$env/static/private';
 
-// Session validation for bar manager accounts
+// Session validation for bar manager accounts: the token /api/mobile/bars/login returns.
+// One rule for every mobile bar endpoint (30 days since last use, sliding); it lives in
+// $lib/taste/barSession, which the venue taste endpoints use too.
 export async function validateBarToken(token: string): Promise<{ barId: string } | null> {
 	try {
-		// Find the session
-		const result = await query(
-			'SELECT bar_id, last_accessed FROM clubfindr.bar_sessions WHERE session_id = $1',
-			[token]
-		);
-
-		if (!result.rows || result.rows.length === 0) {
-			return null;
-		}
-
-		// Check if session has expired (30 days)
-		const lastAccessed = new Date(result.rows[0].last_accessed);
-		const now = new Date();
-		const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-
-		if (now.getTime() - lastAccessed.getTime() > thirtyDaysInMs) {
-			// Session expired, delete it
-			await query('DELETE FROM clubfindr.bar_sessions WHERE session_id = $1', [token]);
-			return null;
-		}
-
-		// Update last_accessed timestamp in background
-		query('UPDATE clubfindr.bar_sessions SET last_accessed = $1 WHERE session_id = $2', [
-			new Date().toISOString(),
-			token
-		]).catch((error) => {
-			console.error('Failed to update session timestamp:', error);
-		});
-
-		return {
-			barId: result.rows[0].bar_id
-		};
+		const barId = await resolveBarSession(pool, token);
+		return barId ? { barId } : null;
 	} catch (error) {
 		console.error('Token validation error:', error);
 		return null;

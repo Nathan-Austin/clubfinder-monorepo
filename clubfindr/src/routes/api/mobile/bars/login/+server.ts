@@ -169,10 +169,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			website: barData.website || null
 		};
 
-		// Launch session creation in background
-		createBarSession(sessionId, barId, platform, version).catch((error) => {
-			console.error('Background session creation failed:', error);
-		});
+		// The token is only good once its bar_sessions row exists, so write it before answering:
+		// done in the background, the app's first authenticated request could arrive first and
+		// be refused. createBarSession logs its own errors and never throws.
+		await createBarSession(sessionId, barId, platform, version);
 
 		// Create response with relevant Spotify info if needed
 		const responseBody = {
