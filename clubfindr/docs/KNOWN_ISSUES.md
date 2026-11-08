@@ -152,10 +152,16 @@ section 4), left open on purpose.
     `/api/verify-captcha` to unlock the form, but `POST /register` never verifies anything, so
     a script can register venues by posting to it directly.
 29. **`app_clubfindr` type checking hides real errors.** Its `tsconfig.json` maps `"*"` to
-    `node_modules/*`, which makes `react` resolve to its JavaScript with no types: `npx tsc
---noEmit` reports about 175 errors, almost all of them that. With the mapping removed for a
-    check, five real ones remain (`SearchScreen.tsx` twice, `QRCodeGeneratorScreen.tsx` twice,
-    `EditBarProfileScreen.tsx`). The app also has no test runner.
+    `node_modules/*`, which makes `react` resolve to its JavaScript with no types:
+    `npx tsc --noEmit` reports about 175 errors, almost all of them that. With the mapping
+    removed for a check, five real ones remain (`SearchScreen.tsx` twice,
+    `QRCodeGeneratorScreen.tsx` twice, `EditBarProfileScreen.tsx`). The app also has no test
+    runner.
 30. **`tests/rate-limit.spec.ts` was flaky once** ("entries a client prepends to
     X-Forwarded-For do not open new buckets" failed, then passed on retry). Not reproduced
     since; watch for it.
+31. _Fixed._ **`/api/mobile/login` answered 500 for every user without a Spotify app.** It read
+    `spotify_apps.rows[0].client_id` unconditionally; most users have no app (none at all with
+    `SPOTIFY_CONNECT_ENABLED=false`), so it threw, and `LoginScreen` silently fell back to
+    `/login/users` on every login. It also wrote the session row after answering, like the bar
+    login (item 26). Covered by `tests/mobile-taste.spec.ts` now.

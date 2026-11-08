@@ -489,6 +489,16 @@ the original proposal; where it differs from the answers, the answers win.
   use the same endpoints. Not yet wired into matching: `/barfindr` still scores venues from
   `bar_genre_aggregates`.
 
+- Mobile (`app_clubfindr`): the same endpoints, authenticated by the login token as
+  `Authorization: Bearer` (the `user_sessions.session_id` from `/api/mobile/login`; venues use
+  their `bar_sessions` token against `/api/venues/:barId/taste`). Both mobile login responses
+  carry `user.artistOnboarding` (`{ required, min, max, favouriteCount }`, derived like the web
+  step); while `required`, `RootNavigator` shows `ArtistPickerScreen` in place of the tabs.
+  Continue or Skip ends it and is remembered per device, so a user who skips is not asked on
+  every login; the picker stays reachable from the Profile tab, and bar managers get the venue
+  version from their dashboard. Section 5, question 10 said mobile was out of scope; that was
+  for the first version.
+
 - Spotify failures: the development-mode 403 ("user not registered") is explained on `/`,
   `/spotify` loads its sections independently, `SPOTIFY_CONNECT_ENABLED` hides the connect
   buttons. See `HANDOVER.md` for what was not verified against the live APIs.

@@ -18,10 +18,10 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       systemd units, cron jobs and deploy steps
 - [ ] Keep a single Spotify app for server-side artist data lookups only
 - [ ] Make Last.fm import and manual genre picks the main ways to build a taste profile
-- [ ] Artist picker onboarding as the default signup path: the user names 3-5 artists,
+- [x] Artist picker onboarding as the default signup path: the user names 3-5 artists,
       autocomplete goes through the server-side Spotify app (`spotifyArtistLookup.ts`),
       and the genres of those artists feed the taste profile
-      (web done: `/onboarding`; mobile signup still to come)
+      (web: `/onboarding`; app: `ArtistPickerScreen` after login, from `user.artistOnboarding`)
 - [x] Genre fallback for picked artists from Last.fm `toptags` or MusicBrainz tags, in
       case Spotify artist objects stop carrying `genres` (KNOWN_ISSUES 21).
       `$lib/taste/genreFallback.ts`, applied when an artist is added; still only verified
@@ -32,7 +32,7 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 - [x] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)
 - [ ] Venues set their genres and typical artists by hand through the same picker, and
       `barfindr` stops polling venue Spotify playback
-      (picker done: `/api/venues/:barId/taste`, the bar dashboard and the mobile API;
+      (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard;
       `barfindr` still polls)
 - [ ] Verify Spotify and Last.fm responses against the live APIs and run
       `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21)
@@ -56,7 +56,8 @@ Things to do by hand or decide, collected while building the items above.
 - [ ] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the
       missing event edit route
 - [ ] Verify the reCAPTCHA on the server for `/register` (KNOWN_ISSUES 28)
-- [ ] Fix `app_clubfindr` type checking and add a test runner (KNOWN_ISSUES 29)
+- [ ] Fix `app_clubfindr` type checking and add a test runner (KNOWN_ISSUES 29); the app's new
+      artist picker has only been type-checked, never run on a device or simulator
 
 ## 2. Genre matching and taste profiles
 
