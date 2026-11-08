@@ -1,9 +1,14 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { pool } from '$lib/db';
 import { sendEmail } from '$lib/email';
 import { generateQRCodePDF } from '$lib/pdfUtils';
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, cookies }) => {
+	// Only the venue itself may change it (was open to anyone who knew the id)
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
 	try {
 		const barId = params.barId;
 		const qrId = params.qrId;

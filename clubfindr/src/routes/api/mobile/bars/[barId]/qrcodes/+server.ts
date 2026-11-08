@@ -1,6 +1,7 @@
 // routes/api/mobile/bars/[barId]/qrcodes/+server.ts (for GET and POST)
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { pool } from '$lib/db'; // Import your database module
 
 // Get all QR codes for a bar
@@ -38,7 +39,11 @@ export const GET: RequestHandler = async ({ params }) => {
 };
 
 // Create a new QR code for a bar
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, cookies }) => {
+	// Only the venue itself may change it (was open to anyone who knew the id)
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
 	try {
 		const barId = params.barId;
 		const { title, type, barName } = await request.json();

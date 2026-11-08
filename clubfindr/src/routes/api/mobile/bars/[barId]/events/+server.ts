@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 
 // GET handler to retrieve all events for a specific bar
 export const GET: RequestHandler = async ({ params }) => {
@@ -24,7 +25,11 @@ export const GET: RequestHandler = async ({ params }) => {
 };
 
 // POST handler to create a new event for a bar
-export const POST: RequestHandler = async ({ request, params }) => {
+export const POST: RequestHandler = async ({ request, params, cookies }) => {
+	// Only the venue itself may change it (was open to anyone who knew the id)
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
 	const barId = params.barId;
 
 	try {

@@ -2,6 +2,7 @@
 // Get details for a specific bar
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { pool } from '$lib/db';
 import { validateBarUpdate } from '$lib/validators/barValidators';
 
@@ -140,7 +141,11 @@ export const GET: RequestHandler = async ({ params }) => {
  * Update details for a specific bar
  * Endpoint: PATCH /api/mobile/bars/:id
  */
-export const PATCH: RequestHandler = async ({ params, request }) => {
+export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
+	// Only the venue itself may change it (was open to anyone who knew the id)
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
 	try {
 		const { barId } = params;
 		const updates = (await request.json()) as Record<string, unknown>;
