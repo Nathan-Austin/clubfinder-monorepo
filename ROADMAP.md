@@ -34,9 +34,11 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       `barfindr` stops polling venue Spotify playback
       (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard;
       `barfindr` still polls)
-- [ ] Verify Spotify and Last.fm responses against the live APIs and run
-      `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21)
-      (the e2e run with the flag off is done, against the mocks; the live check is not)
+- [x] Run `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21): the whole e2e suite
+      passes with the flag off and with it on, against the mocks, on a database rebuilt from
+      `dev/schema.sql` with every migration applied, following CI's steps (2026-11-08)
+- [ ] Verify Spotify, Last.fm and MusicBrainz responses against the live APIs
+      (KNOWN_ISSUES 21); everything so far is checked against mocks written from the docs
 
 ### Follow-ups from the section 1 work
 
@@ -47,8 +49,9 @@ Things to do by hand or decide, collected while building the items above.
       `deploy/deploy.sh` now stops and prints the commands when a migration is in the range
 - [ ] Set `SPOTIFY_CONNECT_ENABLED=false` in the production `.env` when ready (default is on)
 - [ ] Set `MUSICBRAINZ_USER_AGENT` in production to name the deployment and a contact
-- [ ] The two parallel branches each added `bar_favourite_artists` (same table, different
-      migration file names); keep one file when merging
+- [x] The two parallel branches each added `bar_favourite_artists` (same table, different
+      migration file names); keep one file when merging. Resolved: `main` has only
+      `20261108_add_bar_favourite_artists.sql`
 - [ ] Feed the venue artists (`bar_favourite_artists`) into `/barfindr` matching; it still scores
       venues from `bar_genre_aggregates`, which `barfindr` fills by polling Spotify
 - [ ] Nudge existing users with fewer than 3 favourite artists towards `/onboarding`; only new
@@ -56,8 +59,9 @@ Things to do by hand or decide, collected while building the items above.
 - [ ] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the
       missing event edit route
 - [ ] Verify the reCAPTCHA on the server for `/register` (KNOWN_ISSUES 28)
-- [ ] Fix `app_clubfindr` type checking and add a test runner (KNOWN_ISSUES 29); the app's new
-      artist picker has only been type-checked, never run on a device or simulator
+- [ ] Fix `app_clubfindr` type checking, add a test runner and make its CI able to fail
+      (KNOWN_ISSUES 29). The app's new artist picker is type-checked and its production
+      bundle builds (`npx expo export`), but it has never run on a device or simulator
 
 ## 2. Genre matching and taste profiles
 

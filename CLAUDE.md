@@ -236,6 +236,11 @@ pnpm playwright test tests/specific-test.spec.ts
 pnpm vitest src/lib/specific.test.ts
 ```
 
+The e2e suite runs in both `SPOTIFY_CONNECT_ENABLED` modes: `pnpm test`, then
+`SPOTIFY_CONNECT_ENABLED=false pnpm test` (see `clubfindr/dev/TESTING.md`). All e2e runs share
+the one dev database on port 54329 and ports 4173-4177, so only one checkout or worktree may run
+them at a time, and each `dev/setup.sh` wipes the data.
+
 ### Security Considerations
 
 - CSRF origin check on in `svelte.config.js` (`csrf.trustedOrigins`: clubfindr.com and www); production needs `ORIGIN` set
@@ -259,6 +264,9 @@ When new genres are encountered, they're logged to `missing-genres.txt` for batc
 ### Database Schema Notes
 
 - Uses UUID primary keys with `gen_random_uuid()`
+- Schema changes go in `clubfindr/migrations/` (idempotent SQL) **and** are mirrored into
+  `clubfindr/dev/schema.sql`, which dev and CI databases are built from;
+  `dev/check-migrations.sh` (run in CI) fails if the two drift
 - All tables are in the `clubfindr` schema
 - Artist names are globally unique across all cities
 - Events are partitioned by city
@@ -287,7 +295,7 @@ are copied in `deploy/`. Summary:
 - barfindr: `barfindr`, `barfindr-celery-worker`, `barfindr-celery-beat`; conda `base`
 - Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com) proxies to :3000 (its `/api/user/` → :5000 block matches no Flask route and is unused)
 - Firewall: ufw rules in `deploy/ufw-rules.sh` (80/443 Cloudflare-only)
-- Pushing to `main` deploys to production after Main CI passes (`deploy.yml` runs `deploy/deploy.sh`); Python requirements and `deploy/` files are applied by hand
+- Pushing to `main` deploys to production after Main CI passes (`deploy.yml` runs `deploy/deploy.sh`); Python requirements, SQL migrations and `deploy/` files are applied by hand (the deploy stops and prints the commands when requirements or migrations changed)
 
 ## GitHub Actions CI/CD
 
@@ -302,7 +310,8 @@ The monorepo uses path-based workflow triggering for efficient CI:
 2. **clubfindr-ci.yml**: Web application CI
    - Runs on Node.js 24 (`clubfindr/.nvmrc`), pnpm from `packageManager`
    - Postgres 16 service; `dev/setup.sh` writes `.env` and loads the synthetic seed
-   - Executes: lint, type check, unit tests, build, e2e tests (all must pass)
+   - Executes: migration check (`dev/check-migrations.sh`), lint, type check, unit tests, build,
+     e2e tests twice, with `SPOTIFY_CONNECT_ENABLED` unset and then `=false` (all must pass)
    - Uploads the Playwright report as an artifact on failure
    - Needs no secrets
 
@@ -322,7 +331,8 @@ The monorepo uses path-based workflow triggering for efficient CI:
 
 6. **app-clubfindr-ci.yml**: Mobile app CI (ready for when app is added)
    - Runs on Node.js 18.x and 20.x
-   - Executes: lint, type check, tests, expo-doctor, build preview
+   - Executes: lint, type check, tests, expo-doctor, build preview, but every step is
+     `continue-on-error`, so it never fails (KNOWN_ISSUES 29)
    - Optional: Requires `EXPO_TOKEN` secret for building
 
 ### Running CI Locally
