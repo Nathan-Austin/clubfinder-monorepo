@@ -61,6 +61,12 @@ jobs:
     - name: Seed test database and write .env
       run: dev/setup.sh
 
+    # The database above is built from dev/schema.sql, so on its own CI never runs a
+    # migration. This applies every file in migrations/ (twice: they must be idempotent,
+    # production gets them by hand) and fails if one creates anything schema.sql lacks.
+    - name: Apply migrations and check dev/schema.sql has them
+      run: dev/check-migrations.sh
+
     - name: Run linter
       run: pnpm lint
 
