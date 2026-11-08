@@ -17,7 +17,11 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 - [ ] Retire `spotify_service` (automated Spotify developer app management) and its
       systemd units, cron jobs and deploy steps
 - [ ] Keep a single Spotify app for server-side artist data lookups only
+      (with `SPOTIFY_CONNECT_ENABLED=false` the server-side app is already the only one a user
+      touches; the per-account and venue OAuth code stays behind the flag until it is retired)
 - [ ] Make Last.fm import and manual genre picks the main ways to build a taste profile
+      (the artist picker is the default signup path, and the Last.fm import and genre picker
+      both feed matching; left open until the Spotify paths above actually go)
 - [x] Artist picker onboarding as the default signup path: the user names 3-5 artists,
       autocomplete goes through the server-side Spotify app (`spotifyArtistLookup.ts`),
       and the genres of those artists feed the taste profile
@@ -34,9 +38,13 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       `barfindr` stops polling venue Spotify playback
       (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard;
       `barfindr` still polls)
-- [ ] Verify Spotify and Last.fm responses against the live APIs and run
-      `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21)
-      (the e2e run with the flag off is done, against the mocks; the live check is not)
+- [x] Run `SPOTIFY_CONNECT_ENABLED=false` end to end: the whole Playwright suite passes in
+      both modes against the seeded database, including `signup-journey.spec.ts`, which signs
+      up, picks artists and checks the clubs those genres reach, with no streaming account at
+      any step (`clubfindr/dev/TESTING.md`)
+- [ ] Verify Spotify, Last.fm and MusicBrainz responses against the **live** APIs
+      (KNOWN_ISSUES 21). Everything so far is checked against `tests/mock-*.ts`, which follow
+      the published shapes but were never captured from the services
 
 ### Follow-ups from the section 1 work
 

@@ -158,8 +158,11 @@ section 4), left open on purpose.
     `QRCodeGeneratorScreen.tsx` twice, `EditBarProfileScreen.tsx`). The app also has no test
     runner.
 30. **`tests/rate-limit.spec.ts` was flaky once** ("entries a client prepends to
-    X-Forwarded-For do not open new buckets" failed, then passed on retry). Not reproduced
-    since; watch for it.
+    X-Forwarded-For do not open new buckets" failed, then passed on retry). Not reproduced in
+    any run since; watch for it. (A second flake, in `bars.spec.ts` with the flag off, had a
+    real cause and is fixed: the dashboard tests waited for the Spotify dialog to know the page
+    had hydrated, and with no dialog a click could land too early. `openBarDashboard` in
+    `tests/fixtures.ts` now waits for the page properly.)
 31. _Fixed._ **`/api/mobile/login` answered 500 for every user without a Spotify app.** It read
     `spotify_apps.rows[0].client_id` unconditionally; most users have no app (none at all with
     `SPOTIFY_CONNECT_ENABLED=false`), so it threw, and `LoginScreen` silently fell back to
