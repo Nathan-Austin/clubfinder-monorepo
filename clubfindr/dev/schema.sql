@@ -1059,6 +1059,14 @@ CREATE INDEX idx_events_promoter_id ON clubfindr.events USING btree (promoter_id
 
 
 --
+-- Name: idx_password_resets_reset_token; Type: INDEX; Schema: clubfindr; Owner: -
+-- (see migrations/20261012_add_password_resets.sql; missing here until dev/check-migrations.sh)
+--
+
+CREATE INDEX idx_password_resets_reset_token ON clubfindr.password_resets USING btree (reset_token);
+
+
+--
 -- Name: idx_spotify_task_entity; Type: INDEX; Schema: clubfindr; Owner: -
 --
 
