@@ -1,4 +1,4 @@
-import { test, expect, login, dismissSpotifyDialog, SPOTIFY_CONNECT_ENABLED } from './fixtures';
+import { test, expect, openBarDashboard, SPOTIFY_CONNECT_ENABLED } from './fixtures';
 import type { Page } from './fixtures';
 
 // The artists a venue says it plays (ROADMAP section 1, KNOWN_ISSUES 4): the shared
@@ -17,24 +17,6 @@ const SEEDED_GENRES = ['deep house', 'dub techno', 'minimal', 'minimal techno'];
 /** Only in the mock Spotify catalogue (tests/mock-spotify.ts) */
 const EXTRA = { sourceId: 'devVelvetMeridian00001', name: 'Velvet Meridian', query: 'velvet' };
 
-/**
- * Logs in as the bar manager and waits until the dashboard's own picker request has come
- * back. `login()` resolves as soon as the URL is /bars, and the very first page.request call
- * made that early can go out before the API context has picked up the session cookie (it then
- * answers 403, and the next identical call succeeds). Waiting for the picker to render its
- * loaded state is a real readiness signal, and keeps every assertion below exact.
- */
-async function openDashboard(page: Page) {
-	await login(page, 'bar');
-	await expect(
-		page
-			.locator(
-				'[data-testid="venue-artists"] [data-testid="taste-favourite"], [data-testid="venue-artists"] [data-testid="taste-empty"]'
-			)
-			.first()
-	).toBeVisible();
-}
-
 /** Removes anything the tests added, so the file can be re-run against the same database. */
 async function resetVenueArtists(page: Page) {
 	const response = await page.request.get(`/api/venues/${BAR_ID}/taste/artists`);
@@ -51,7 +33,7 @@ async function resetVenueArtists(page: Page) {
 
 test.describe('venue taste API', () => {
 	test.beforeEach(async ({ page }) => {
-		await openDashboard(page);
+		await openBarDashboard(page);
 		await resetVenueArtists(page);
 	});
 
@@ -121,7 +103,7 @@ test.describe('venue taste API', () => {
 
 test('the venue taste endpoints need a venue login', async ({ page }) => {
 	// No bar cookie and no bearer token; this context never logs in, so there is no cookie to
-	// wait for and a 403 here cannot be the first-request race openDashboard guards against
+	// wait for and a 403 here cannot be the first-request race openBarDashboard guards against
 	for (const path of ['/taste/artists', '/taste/search?q=juno']) {
 		expect((await page.request.get(`/api/venues/${BAR_ID}${path}`)).status()).toBe(403);
 	}
@@ -156,8 +138,7 @@ test('a mobile bar session token works in place of the dashboard cookie', async 
 
 test.describe('venue artists on the dashboard', () => {
 	test.beforeEach(async ({ page }) => {
-		await openDashboard(page);
-		await dismissSpotifyDialog(page);
+		await openBarDashboard(page);
 		await resetVenueArtists(page);
 	});
 

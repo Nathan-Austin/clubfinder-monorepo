@@ -127,7 +127,8 @@ export async function login(page: Page, role: Role) {
  * button redirects to Spotify. It covers the page, so the tests remove its backdrop.
  *
  * With SPOTIFY_CONNECT_ENABLED off there is no such dialog (the dashboard never asks a venue
- * to connect Spotify), so this does nothing and the caller carries on.
+ * to connect Spotify), so this does nothing and the caller carries on. Prefer
+ * openBarDashboard, which also waits for the page to be ready.
  */
 export async function dismissSpotifyDialog(page: Page) {
 	if (!SPOTIFY_CONNECT_ENABLED) return;
@@ -135,6 +136,27 @@ export async function dismissSpotifyDialog(page: Page) {
 	await page.evaluate(() =>
 		document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove())
 	);
+}
+
+/**
+ * Logs in as the bar manager and waits until /bars is ready to be used: the artists picker has
+ * finished its own request, which means the page has hydrated and the session cookie is live.
+ *
+ * Both matter. Clicking before hydration does nothing (the handler is not attached yet), and
+ * the first page.request call made straight after login() can go out before the API context
+ * has the session cookie, which answers 403 once and then succeeds. Waiting on the Spotify
+ * dialog used to hide the first problem, but only while SPOTIFY_CONNECT_ENABLED is on.
+ */
+export async function openBarDashboard(page: Page) {
+	await login(page, 'bar');
+	await dismissSpotifyDialog(page);
+	await expect(
+		page
+			.locator(
+				'[data-testid="venue-artists"] [data-testid="taste-favourite"], [data-testid="venue-artists"] [data-testid="taste-empty"]'
+			)
+			.first()
+	).toBeVisible();
 }
 
 /** On the home page: pick a city, open the genre picker and select one genre by name. */

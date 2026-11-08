@@ -1,4 +1,4 @@
-import { test, expect, login, mobileApi, bearer, type Page } from './fixtures';
+import { test, expect, openBarDashboard, mobileApi, bearer, type Page } from './fixtures';
 import type { APIRequestContext } from '@playwright/test';
 
 // Writes to a venue through the mobile API need that venue's session token
@@ -94,14 +94,6 @@ test('the venue’s own token can create an event; the token works straight afte
 });
 
 async function cleanUp(page: Page, eventId: string) {
-	await login(page, 'bar');
-	// Wait for the dashboard's own request first, so the session cookie is live for page.request
-	await expect(
-		page
-			.locator(
-				'[data-testid="venue-artists"] [data-testid="taste-favourite"], [data-testid="venue-artists"] [data-testid="taste-empty"]'
-			)
-			.first()
-	).toBeVisible();
+	await openBarDashboard(page);
 	expect((await page.request.delete(`/api/bars/${BAR_ID}/events/${eventId}`)).ok()).toBe(true);
 }

@@ -1,4 +1,4 @@
-import { test, expect, login, dismissSpotifyDialog } from './fixtures';
+import { test, expect, openBarDashboard } from './fixtures';
 
 // Bar manager dashboard: BarDetailsModal and BarEventsSection/BarEventModal.
 // Offline there is no Spotify session, but the dashboard still knows its `barId`
@@ -13,8 +13,7 @@ const BAR_ID = '00000000-0000-4000-8000-0000000000b1';
 
 test.describe('bar dashboard modals', () => {
 	test.beforeEach(async ({ page }) => {
-		await login(page, 'bar');
-		await dismissSpotifyDialog(page);
+		await openBarDashboard(page);
 	});
 
 	test('bar details modal is pre-filled and can be edited and cancelled', async ({
