@@ -177,6 +177,18 @@ const ProfileScreen = () => {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Your Artists</Text>
+        <TouchableOpacity
+          style={styles.scannerButton}
+          onPress={() => navigation.navigate('ArtistPicker', { mode: 'profile' })}
+          testID="open-artist-picker"
+        >
+          <Ionicons name="musical-notes-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.scannerButtonText}>Pick the artists you love</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Check-in</Text>
         <TouchableOpacity
           style={styles.scannerButton}

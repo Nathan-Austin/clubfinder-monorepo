@@ -22,7 +22,19 @@ type User = {
   onboardingComplete?: boolean;
   userType?: 'customer' | 'bar';
   music_service?: string;
+  /** The artist picker step, from the login response (server: src/lib/taste/onboarding.ts) */
+  artistOnboarding?: ArtistOnboarding;
 };
+
+type ArtistOnboarding = {
+  required: boolean;
+  min: number;
+  max: number;
+  favouriteCount: number;
+};
+
+/** Set once a user has finished or skipped the artist step on this device */
+const artistOnboardingSeenKey = (userId: string) => `artistOnboardingSeen:${userId}`;
 
 type AuthContextType = {
   user: User | null;
@@ -39,6 +51,8 @@ type AuthContextType = {
   userType: 'customer' | 'bar' | null;
   isBarManager: boolean;
   barLogin: (email: string, password: string) => Promise<void>;
+  /** Ends the artist picker step (Continue or Skip); RootNavigator then shows the tabs */
+  finishArtistOnboarding: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -210,6 +224,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const finishArtistOnboarding = async () => {
+    if (!user) return;
+    await AsyncStorage.setItem(artistOnboardingSeenKey(user.id), '1');
+    const updated: User = {
+      ...user,
+      artistOnboarding: user.artistOnboarding
+        ? { ...user.artistOnboarding, required: false }
+        : undefined
+    };
+    await AsyncStorage.setItem('user', JSON.stringify(updated));
+    setUser(updated);
+  };
+
   // Login with pre-fetched credentials
 
   const loginWithCredentials = async (userData: User, token: string) => {
@@ -218,11 +245,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Always ensure both onboarding fields are set consistently
       const isOnboardingComplete = userData.onboardingComplete === true || userData.onboarding_complete === true;
 
+      // The server asks for the artist step while the user has fewer than 3 favourites. Once it
+      // has been finished or skipped on this device it is not shown again on every login; the
+      // profile still has the picker.
+      const artistStepSeen =
+        userData.id && (await AsyncStorage.getItem(artistOnboardingSeenKey(userData.id))) === '1';
+      const artistOnboarding = userData.artistOnboarding
+        ? { ...userData.artistOnboarding, required: userData.artistOnboarding.required && !artistStepSeen }
+        : undefined;
+
       const normalizedUser = {
         ...userData,
         // Ensure both properties are set correctly
         onboardingComplete: isOnboardingComplete,
-        onboarding_complete: isOnboardingComplete
+        onboarding_complete: isOnboardingComplete,
+        artistOnboarding
       };
 
       // Save token
@@ -518,7 +555,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       refreshAuthState,
       setIsSpotifyConnected,
       userType,
-      isBarManager: userType === 'bar'
+      isBarManager: userType === 'bar',
+      finishArtistOnboarding
     }}>
       {children}
     </AuthContext.Provider>

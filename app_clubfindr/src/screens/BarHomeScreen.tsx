@@ -488,6 +488,14 @@ const BarHomeScreen = () => {
                             <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
                             <Text style={styles.buttonText}>QR Codes</Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.qrButton}
+                            onPress={() => navigation.navigate('VenueArtists')}
+                            testID="open-venue-artists"
+                        >
+                            <Ionicons name="musical-notes-outline" size={18} color="#FFFFFF" />
+                            <Text style={styles.buttonText}>Artists</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
                             <Ionicons name="settings-outline" size={18} color="#FFFFFF" />
                             <Text style={styles.buttonText}>Edit Profile</Text>

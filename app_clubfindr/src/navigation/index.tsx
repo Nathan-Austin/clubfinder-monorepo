@@ -28,6 +28,7 @@ import EventFormScreen from '../screens/EventFormScreen';
 import VenueCacheDebugScreen from '../screens/VenueCacheDebugScreen';
 import QRCodeGeneratorScreen from '../screens/QRCodeGeneratorScreen';
 import QRScannerScreen from '../screens/QRScannerScreen';
+import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPickerScreen';
 
 // Define the types for the various navigators
 export type MainTabParamList = {
@@ -53,6 +54,10 @@ export type RootStackParamList = {
   BarManager: undefined;
   VenueCacheDebug: undefined;
   QRScanner: undefined;
+  /** Artist picker step after login, in place of the tabs (see RootNavigator) */
+  ArtistOnboarding: ArtistPickerParams;
+  /** The same picker from the Profile tab */
+  ArtistPicker: ArtistPickerParams;
 };
 
 
@@ -136,6 +141,12 @@ const BarNavigator = () => (
       component={QRCodeGeneratorScreen}
       options={{ title: 'QR Code Management' }}
     />
+    <BarStack.Screen
+      name="VenueArtists"
+      component={ArtistPickerScreen}
+      initialParams={{ mode: 'venue' }}
+      options={{ title: 'Artists You Play' }}
+    />
   </BarStack.Navigator>
 );
 
@@ -143,6 +154,8 @@ const BarNavigator = () => (
 const RootNavigator = () => {
   const { user, isLoading, userType } = useAuth();
   const isBarManager = userType === 'bar';
+  // The server says so at login (user.artistOnboarding), until finished or skipped on this device
+  const needsArtistOnboarding = !isBarManager && user?.artistOnboarding?.required === true;
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
@@ -199,6 +212,15 @@ const RootNavigator = () => {
             component={BarNavigator}
             options={{ headerShown: false }}
           />
+        ) : needsArtistOnboarding ? (
+          // Artist picker step first: Continue or Skip calls finishArtistOnboarding, which clears
+          // the flag and brings in the tabs below
+          <Stack.Screen
+            name="ArtistOnboarding"
+            component={ArtistPickerScreen}
+            initialParams={{ mode: 'onboarding' }}
+            options={{ title: 'Your Artists', headerLeft: () => null, gestureEnabled: false }}
+          />
         ) : (
           // Main app screens - just show the tab navigator directly
           <Stack.Screen
@@ -242,6 +264,12 @@ const RootNavigator = () => {
               headerStyle: { backgroundColor: '#D35400' },
               headerTintColor: '#FFFFFF'
             }}
+          />
+          <Stack.Screen
+            name="ArtistPicker"
+            component={ArtistPickerScreen}
+            initialParams={{ mode: 'profile' }}
+            options={{ title: 'Your Artists' }}
           />
           <Stack.Screen
             name="QRScanner"
