@@ -17,3 +17,20 @@ export const ONBOARDING_MAX_ARTISTS = 5;
 export function needsOnboarding(favouriteCount: number): boolean {
 	return favouriteCount < ONBOARDING_MIN_ARTISTS;
 }
+
+/** What a client needs to decide whether to show the artist picker step. */
+export interface ArtistOnboardingStatus {
+	required: boolean;
+	min: number;
+	max: number;
+	favouriteCount: number;
+}
+
+export function artistOnboardingStatus(favouriteCount: number): ArtistOnboardingStatus {
+	return {
+		required: needsOnboarding(favouriteCount),
+		min: ONBOARDING_MIN_ARTISTS,
+		max: ONBOARDING_MAX_ARTISTS,
+		favouriteCount
+	};
+}
