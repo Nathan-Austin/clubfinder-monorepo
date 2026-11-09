@@ -117,9 +117,12 @@ section 4), left open on purpose.
     different normalisers). The profile is wired into the two web ones only; the mobile API
     does not read it. `src/lib/taste/genreClassifier.ts` imports `_findClusters` from the
     `/clubs` route module; move it into `$lib` when the matchers are unified.
-23. **`/api/spotify/artists` shares its last result between users.** `lastFetchedGenres` is a
-    module-level variable: GET returns the genres of whichever user's Spotify artists were
-    fetched last, on the single PM2 process.
+23. _Fixed._ **`/api/spotify/artists` shared its last result between users**: `lastFetchedGenres`
+    was a module-level variable, so GET returned the genres of whichever user's Spotify artists
+    were fetched last, on the single PM2 process. POST now stores them in the caller's own
+    `spotify-genres` cookie and GET reads it back; `/selectedGenres` reads the cookie directly.
+    The endpoint's Spotify call also goes through `spotifyApi()` now, so the e2e suite reaches
+    it through the mock (`tests/taste.spec.ts`, "stay with their own visitor").
 24. **Smaller gaps in the existing flows:** `/api/delete-user-data` does not clear
     `preferences` or `interested_events`; `user_sessions.genres` is wiped on every login and
     scoped to the home city; `/clubs` deletes the genre cookies on first read, so "Change

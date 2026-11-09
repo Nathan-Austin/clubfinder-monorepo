@@ -94,7 +94,9 @@ Things to do by hand or decide, collected while building the items above.
 - [ ] Unify the four copies of the cluster matcher into `$lib` and wire the taste
       profile into the mobile API (KNOWN_ISSUES 22)
 - [ ] Match the same artist across providers by more than name (KNOWN_ISSUES 19)
-- [ ] Fix `/api/spotify/artists` sharing its last result between users (KNOWN_ISSUES 23)
+- [x] Fix `/api/spotify/artists` sharing its last result between users (KNOWN_ISSUES 23):
+      the genres now travel in the caller's own `spotify-genres` cookie, and the endpoint's
+      Spotify call goes through `spotifyApi()` so the e2e suite covers it (2026-11-09)
 
 ## 3. More ways to build a taste profile
 
