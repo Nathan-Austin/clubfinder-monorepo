@@ -5,8 +5,17 @@ import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { hashPassword } from '$lib/server/passwordUtils';
 import type { RequestHandler } from '@sveltejs/kit';
+import { clearCaptchaVerified, hasVerifiedCaptcha } from '$lib/server/captcha';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
+	// Same gate as POST /register: the page's captcha alone proved nothing (KNOWN_ISSUES 28)
+	if (!hasVerifiedCaptcha(cookies)) {
+		return json(
+			{ success: false, message: 'Please complete the reCAPTCHA check first.' },
+			{ status: 403 }
+		);
+	}
+
 	const {
 		businessName,
 		contactPerson,
@@ -116,6 +125,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			sameSite: 'lax',
 			maxAge: 3600
 		});
+
+		// One solved captcha admits one registration
+		clearCaptchaVerified(cookies);
 
 		return json({ success: true, redirectUrl: '/register/promoter/confirm' });
 	} catch (error) {

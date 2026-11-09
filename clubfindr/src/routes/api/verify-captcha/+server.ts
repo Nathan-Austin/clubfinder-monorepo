@@ -1,22 +1,18 @@
-// src/routes/api/verify-captcha/+server.js
+// src/routes/api/verify-captcha/+server.ts
+//
+// The registration pages post the reCAPTCHA token here to unlock their form. Success now also
+// marks the visitor with the encrypted cookie POST /register and POST /register/promoter
+// require ($lib/server/captcha, KNOWN_ISSUES 28); before, the check only flipped a flag in
+// the browser and the registration endpoints trusted it.
 import { json } from '@sveltejs/kit';
-import { RECAPTCHA_SECRET_KEY } from '$env/static/private';
+import { markCaptchaVerified, verifyCaptchaToken } from '$lib/server/captcha';
 
-export async function POST({ request }) {
+export async function POST({ request, cookies }) {
 	const { recaptchaResponse } = await request.json();
-	const secretKey = RECAPTCHA_SECRET_KEY;
 
-	const res = await fetch(
-		`https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`,
-		{
-			method: 'POST'
-		}
-	);
-
-	const data = await res.json();
-	if (data.success) {
+	if (await verifyCaptchaToken(recaptchaResponse)) {
+		markCaptchaVerified(cookies);
 		return json({ success: true });
-	} else {
-		return json({ success: false }, { status: 400 });
 	}
+	return json({ success: false }, { status: 400 });
 }

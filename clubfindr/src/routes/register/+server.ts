@@ -12,9 +12,19 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { hashPassword } from '$lib/server/passwordUtils';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';
+import { clearCaptchaVerified, hasVerifiedCaptcha } from '$lib/server/captcha';
 
 // Get the form data
 export const POST: RequestHandler = async ({ request, cookies }) => {
+	// The browser-side check alone proved nothing: a script could skip the form and post here
+	// directly (KNOWN_ISSUES 28). /api/verify-captcha sets this cookie when the token is good.
+	if (!hasVerifiedCaptcha(cookies)) {
+		return json(
+			{ success: false, message: 'Please complete the reCAPTCHA check first.' },
+			{ status: 403 }
+		);
+	}
+
 	const {
 		businessName,
 		contactPerson,
@@ -300,6 +310,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			sameSite: 'lax',
 			maxAge: 3600 // 1 hour
 		});
+
+		// One solved captcha admits one registration
+		clearCaptchaVerified(cookies);
 
 		return json({ success: true });
 	} catch (error) {
