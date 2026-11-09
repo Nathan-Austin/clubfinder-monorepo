@@ -28,6 +28,10 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
    it now keys on `event.getClientAddress()`, i.e. the header the deployment declares with
    `ADDRESS_HEADER`/`XFF_DEPTH` (see `.env.example`). Still per process memory (fine for the
    single PM2 instance), and requests without the trusted header share one bucket.
+   Until 2026-11-09 production's `ADDRESS_HEADER` had a trailing `.`, so that was every
+   request; fixed in the server's `.env`, and `hooks.server.ts` now logs once when the client
+   address is missing. Node listens on 127.0.0.1 only, so every real request comes through
+   nginx with Cloudflare's header; the deploy's local health check is the expected exception.
 6. _Fixed._ Password reset e-mails hard-coded `https://www.clubfindr.com`; the link now uses
    the request origin (`ORIGIN` in production). Mail goes through `$lib/email`, configured
    by `SMTP_*` and `MAIL_TRANSPORT` at runtime (see `.env.example`).

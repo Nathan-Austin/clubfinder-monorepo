@@ -70,6 +70,24 @@ Things to do by hand or decide, collected while building the items above.
       (KNOWN_ISSUES 29). The app's new artist picker is type-checked and its production
       bundle builds (`npx expo export`), but it has never run on a device or simulator
 
+### Done on 2026-11-09 (deploy and operations)
+
+- [x] Section 1 work deployed to production (`0dc724f`, then `fb57d11`), with the
+      `bar_favourite_artists` migration applied
+- [x] `deploy/deploy.sh` applies new `clubfindr/migrations/*.sql` itself, each in a transaction,
+      before the checkout moves; it still stops for destructive or failing migrations and when
+      the database is unreachable (`deploy/README.md`, "Deploys")
+- [x] Rate limiting keys on the real visitor IP again: production's `ADDRESS_HEADER` had a
+      trailing `.`, so every visitor shared the `unknown` bucket (KNOWN_ISSUES 5). The app now
+      logs once when the client address is missing
+- [x] clubfindr listens on `127.0.0.1:3000` only; `deploy/ufw-rules.sh` no longer opens 3000,
+      matching the live firewall (80/443 Cloudflare-only, checked against the live rules)
+- [x] GitGuardian "Generic Password" alerts on the e2e specs: the throwaway accounts' passwords
+      are generated at runtime (`testPassword()` in `tests/fixtures.ts`); the alerts were test
+      credentials only
+- [x] Stale branches and worktrees removed; the `data_vis` exports were already deleted on
+      `main` (`84f60a6`), though they remain in the public repo's history
+
 ## 2. Genre matching and taste profiles
 
 - [ ] Add a genre alias layer and de-duplicate cluster leaves (KNOWN_ISSUES 18)

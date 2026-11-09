@@ -37,6 +37,11 @@ createdb clubfindr
 export DATABASE_URL="postgres://your-db-user:your-db-password@localhost:5432/clubfindr"
 ```
 
+For local development and tests, `clubfindr/dev/setup.sh` builds a separate dev database from
+`clubfindr/dev/schema.sql` with synthetic seed data (see `clubfindr/dev/TESTING.md`). Schema
+changes go in `clubfindr/migrations/` as idempotent SQL, mirrored into `dev/schema.sql`; CI checks
+the two agree, and production deploys apply new migrations automatically.
+
 ### Running Components
 
 Each component can be run independently:
@@ -130,7 +135,7 @@ Each component has its own CI workflow:
 - **spotify-service-ci.yml**: Validates and lints the automation service
 - **app-clubfindr-ci.yml**: Builds and tests the mobile app
 - **main-ci.yml**: Orchestrates all workflows with path filtering
-- **deploy.yml**: Deploys `main` to production after Main CI passes (see `deploy/README.md`, "Deploys")
+- **deploy.yml**: Deploys `main` to production after Main CI passes, applying any new SQL migrations first (see `deploy/README.md`, "Deploys")
 
 Workflows only run when files in their respective directories change, optimizing CI time and resources.
 
