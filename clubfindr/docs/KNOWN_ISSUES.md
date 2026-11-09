@@ -66,16 +66,25 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
     `GMAIL_USER`/`GMAIL_PASS`) instead of going through `$lib/email`, with the same
     `rejectUnauthorized: false`. It is the one endpoint that bypasses the configurable mail
     transport, so it still sends real mail in any environment that has the Gmail credentials.
-17. **Postgres `DATE` columns pass through the server's timezone.** `src/lib/db.ts` sets no
-    type parser, so node-pg turns `event_date` into a JS `Date` at server-local midnight;
-    JSON then serialises it as the previous day's `T22:00Z`/`T23:00Z` (the server is in
-    Germany). `BarEventModal.svelte` (`new Date(eventDetails.event_date).toISOString()`)
-    saves the previous day when an existing bar event is edited, and the mobile API does the
-    same with stored dates (`api/mobile/bars/matching`). The mobile API also still uses the
-    UTC day for "today" (`api/mobile/events`, `api/mobile/bars/matching`,
-    `api/mobile/bars/[barId]/stats`), outside the #1 fix. Likely fix:
-    `types.setTypeParser(1082, (v) => v)` so `DATE` stays a `YYYY-MM-DD` string end to end,
-    plus a client-supplied date for the mobile "today" cases.
+17. _Fixed._ **Postgres `DATE` columns passed through the server's timezone.** `src/lib/db.ts`
+    set no type parser, so node-pg turned `event_date` into a JS `Date` at server-local
+    midnight and JSON serialised it as the previous day's `T22:00Z`/`T23:00Z` (the server is in
+    Germany). `BarEventModal.svelte` (`new Date(eventDetails.event_date).toISOString()`) then
+    saved that previous day whenever an existing bar event was edited, moving it a day earlier
+    on every edit, and the mobile API reported it (`api/mobile/bars/matching`).
+    `$lib/db` now registers an identity parser for OID 1082 (`types.builtins.DATE`), so a
+    calendar date stays the `YYYY-MM-DD` text Postgres sent, end to end. The two places that
+    rebuilt it through `toISOString()` pass it through, and the places that render it parse it
+    with `fromLocalIsoDate` ($lib/localDate) rather than `new Date('YYYY-MM-DD')`, which is UTC
+    midnight and shows the day before west of UTC: `BarEventsSection`, `barfindr`,
+    `promoter-home`, `users-home`. `promoter-home` also splits current from past events by
+    comparing calendar dates, so an event stays current for the whole of its own day.
+    The mobile API's "today" (`api/mobile/events`, `api/mobile/bars/matching`,
+    `api/mobile/bars/[barId]/stats`) now prefers a caller-supplied `YYYY-MM-DD` — `stats` takes
+    a new optional `?date=` — and otherwise uses the server's local day, not the UTC one.
+    Covered by `src/lib/db.test.ts` and `tests/bars.spec.ts` ("editing an event keeps its
+    date"). The mobile app still does not send its own date; until it does, a user far from the
+    server's zone gets the server's day.
 
 ## Taste profile follow-ups
 

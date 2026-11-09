@@ -112,4 +112,60 @@ test.describe('bar dashboard modals', () => {
 		expect((await page.request.delete(`/api/bars/${BAR_ID}/events/${mine!.id}`)).ok()).toBe(true);
 		expect(pageErrors).toEqual([]);
 	});
+
+	// KNOWN_ISSUES 17: node-pg parsed event_date into a Date at the server's local midnight, so
+	// it reached the browser as the previous day's 22:00Z and the modal's
+	// `new Date(...).toISOString()` saved that previous day. Editing anything else about an
+	// event silently moved it a day earlier, and again on every further edit.
+	test('editing an event keeps its date (KNOWN_ISSUES 17)', async ({ page, pageErrors }) => {
+		const theme = `Date Keeper ${Date.now()}`;
+		const EVENT_DATE = '2031-06-21';
+		const section = page.locator('section', { has: page.locator('.add-event-button') });
+
+		// Create one to edit
+		await page.locator('.add-event-button').click();
+		const createForm = page.locator('#event-details-form');
+		await createForm.locator('#themeName').fill(theme);
+		await createForm.locator('#eventDate').fill(EVENT_DATE);
+		await createForm.locator('#startTime').fill('22:00');
+		await createForm.locator('button[type="submit"]').click();
+		await expect(createForm).toHaveCount(0);
+
+		const listed = await (await page.request.get(`/api/bars/${BAR_ID}/events`)).json();
+		const created = (
+			listed.events as { id: string; theme_name: string; event_date: string }[]
+		).find((e) => e.theme_name === theme);
+		expect(created, 'the created event').toBeDefined();
+		// Stored and sent on as a plain calendar date, not a timestamp a day behind
+		expect(created!.event_date, 'event_date as the API returns it').toBe(EVENT_DATE);
+
+		// Reopen it: the date input is pre-filled with the stored day
+		await section
+			.locator('.event-card', { has: page.locator('h3', { hasText: theme }) })
+			.locator('.edit-button')
+			.click();
+		const editForm = page.locator('#event-details-form');
+		await expect(editForm.locator('#eventDate')).toHaveValue(EVENT_DATE);
+
+		// Change only the name and save
+		await editForm.locator('#themeName').fill(`${theme} (edited)`);
+		const saved = page.waitForResponse(
+			(r) => r.request().method() === 'PUT' && r.url().includes(`/api/bars/${BAR_ID}/events/`)
+		);
+		await editForm.locator('button[type="submit"]').click();
+		expect((await saved).status(), 'PUT /api/bars/:barId/events/:eventId').toBe(200);
+		await expect(editForm).toHaveCount(0);
+
+		// The date is untouched after the round trip
+		const after = await (await page.request.get(`/api/bars/${BAR_ID}/events`)).json();
+		const edited = (after.events as { id: string; event_date: string }[]).find(
+			(e) => e.id === created!.id
+		);
+		expect(edited!.event_date, 'event_date after editing the name').toBe(EVENT_DATE);
+
+		expect((await page.request.delete(`/api/bars/${BAR_ID}/events/${created!.id}`)).ok()).toBe(
+			true
+		);
+		expect(pageErrors).toEqual([]);
+	});
 });

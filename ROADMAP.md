@@ -116,8 +116,10 @@ top artists or play counts on the web).
 
 ## 4. Correctness and security (web app)
 
-- [ ] Keep Postgres `DATE` values as `YYYY-MM-DD` end to end and use the local day in the
-      mobile API (KNOWN_ISSUES 17)
+- [x] Keep Postgres `DATE` values as `YYYY-MM-DD` end to end and use the local day in the
+      mobile API (KNOWN_ISSUES 17): `$lib/db` parses OID 1082 as text, the display sites read it
+      with `fromLocalIsoDate`, and the three mobile "today" endpoints prefer a caller-supplied
+      date over the server's local day. The app itself still sends no date (2026-11-09)
 - [ ] Route `/api/request-access` through `$lib/email` and enable SMTP certificate
       verification (KNOWN_ISSUES 15, 16)
 - [ ] `/api/delete-user-data` should also clear preferences and interested events
