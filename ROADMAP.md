@@ -37,7 +37,8 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 - [ ] Venues set their genres and typical artists by hand through the same picker, and
       `barfindr` stops polling venue Spotify playback
       (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard;
-      `barfindr` still polls)
+      those picks now feed matching too, so the polling is no longer the only source of a venue
+      profile — but `barfindr` still polls, and venues cannot set bare genres without an artist)
 - [x] Run `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21): the whole Playwright
       suite passes with the flag off and with it on, against the mocks, on a database rebuilt
       from `dev/schema.sql` with every migration applied, following CI's steps (2026-11-08).
@@ -59,8 +60,11 @@ Things to do by hand or decide, collected while building the items above.
 - [x] The two parallel branches each added `bar_favourite_artists` (same table, different
       migration file names); keep one file when merging. Resolved: `main` has only
       `20261108_add_bar_favourite_artists.sql`
-- [ ] Feed the venue artists (`bar_favourite_artists`) into `/barfindr` matching; it still scores
-      venues from `bar_genre_aggregates`, which `barfindr` fills by polling Spotify
+- [x] Feed the venue artists (`bar_favourite_artists`) into `/barfindr` matching (2026-11-09):
+      both matchers (`/barfindr` and `POST /api/mobile/bars/matching`) fold those artists' genres
+      into the venue profile before clustering, so a venue that never connected Spotify can be
+      matched on its own description of itself instead of scoring 0. `barfindr`'s polling still
+      fills `bar_genre_profiles`; it is now one of two sources rather than the only one
 - [ ] Nudge existing users with fewer than 3 favourite artists towards `/onboarding`; only new
       accounts are sent there
 - [x] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the

@@ -21,9 +21,13 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
    artists a venue says it plays (`VenueArtistsSection`, the shared `ArtistPicker` against
    `/api/venues/:barId/taste`, stored in `bar_favourite_artists`), which is how a venue
    describes itself without connecting anything; with `SPOTIFY_CONNECT_ENABLED=false` the
-   Spotify panels and the reconnect prompt are gone entirely. Still open: `barfindr` continues
-   to poll venue Spotify playback, and `/login/bars` still retries the `spotify_service`
-   add_bar call for venues that already have a Spotify e-mail.
+   Spotify panels and the reconnect prompt are gone entirely. Those picks now also reach
+   matching: both `/barfindr` and `POST /api/mobile/bars/matching` fold the venue artists'
+   genres into its profile, so a venue with no `bar_genre_profiles` row is no longer scored 0
+   and dropped (`listFavouriteGenresForOwners`, `tests/venue-taste.spec.ts`). Still open:
+   `barfindr` continues to poll venue Spotify playback, a venue cannot declare bare genres
+   without naming an artist, and `/login/bars` still retries the `spotify_service` add_bar call
+   for venues that already have a Spotify e-mail.
 5. _Partly fixed._ The rate limiter trusted `X-Forwarded-For` / `CF-Connecting-IP` as sent;
    it now keys on `event.getClientAddress()`, i.e. the header the deployment declares with
    `ADDRESS_HEADER`/`XFF_DEPTH` (see `.env.example`). Still per process memory (fine for the
