@@ -1,10 +1,19 @@
 // routes/api/mobile/bars/[barId]/stats/+server.ts
+//
+// A venue's own visitor counts. Unlike the reads customers use for discovery these are the
+// venue's business figures, so only that venue may fetch them (KNOWN_ISSUES 26): it used to
+// answer anyone who knew the bar id. The app reads /api/mobile/bars/stats instead, which
+// takes the venue from the Bearer token and never trusted the id in the path.
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pool as db } from '$lib/db';
 import { toLocalIsoDate } from '$lib/localDate';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, cookies, request }) => {
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
 	try {
 		const barId = params.barId;
 
@@ -36,32 +45,28 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		// Query for today's visitors
 		const todayResult = await db.query(
-			'SELECT COUNT(DISTINCT user_id) as count FROM user_checkins WHERE bar_id = $1 AND DATE(timestamp) = $2',
+			'SELECT COUNT(DISTINCT user_id) as count FROM clubfindr.user_checkins WHERE bar_id = $1 AND DATE(timestamp) = $2',
 			[barId, today]
 		);
 
 		// Query for this week's visitors
 		const weekResult = await db.query(
-			'SELECT COUNT(DISTINCT user_id) as count FROM user_checkins WHERE bar_id = $1 AND timestamp BETWEEN $2 AND $3',
+			'SELECT COUNT(DISTINCT user_id) as count FROM clubfindr.user_checkins WHERE bar_id = $1 AND timestamp BETWEEN $2 AND $3',
 			[barId, startOfWeek.toISOString(), endOfWeek.toISOString()]
 		);
 
 		// Query for previous week's visitors
 		const prevWeekResult = await db.query(
-			'SELECT COUNT(DISTINCT user_id) as count FROM user_checkins WHERE bar_id = $1 AND timestamp BETWEEN $2 AND $3',
+			'SELECT COUNT(DISTINCT user_id) as count FROM clubfindr.user_checkins WHERE bar_id = $1 AND timestamp BETWEEN $2 AND $3',
 			[barId, startOfPrevWeek.toISOString(), endOfPrevWeek.toISOString()]
 		);
 
-		// Query for genre matches
-		const matchesResult = await db.query(
-			'SELECT COUNT(DISTINCT user_id) as count FROM genre_matches WHERE bar_id = $1',
-			[barId]
-		);
+		// No genre matches here: there is no `genre_matches` table (the same count is commented
+		// out in /api/mobile/bars/stats for that reason), so this used to throw every time.
 
 		const visitorsToday = parseInt(todayResult.rows[0]?.count || '0');
 		const visitorsWeek = parseInt(weekResult.rows[0]?.count || '0');
 		const visitorsPrevWeek = parseInt(prevWeekResult.rows[0]?.count || '0');
-		const matchedUsers = parseInt(matchesResult.rows[0]?.count || '0');
 
 		// Calculate week-over-week change as a percentage
 		let weekOverWeekChange = 0;
@@ -77,8 +82,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 				visitorsToday,
 				visitorsWeek,
 				visitorsPrevWeek,
-				weekOverWeekChange,
-				matchedUsers
+				weekOverWeekChange
 			}
 		});
 	} catch (error) {

@@ -1,7 +1,17 @@
+// Stores the Spotify tokens a venue just obtained in the app, and reports its connection
+// state back. This writes the venue's credentials and returns its Spotify e-mail, so only
+// that venue may call it (KNOWN_ISSUES 26): anyone who knew a bar id could overwrite the
+// tokens and read the address back.
+//
+// The guard was held back in case the caller no longer had a venue session by this point. It
+// does: mobileSpotifyService posts here while the venue is still logged in with its own
+// session token, and the app sends that token on every request. The two AuthContext callers
+// that post only { connected } are refused by the field check below either way.
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { query } from '$lib/db';
 import { encryptToken } from '$lib/encryptionUtils';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 
 interface SpotifyConnectRequest {
 	accessToken: string;
@@ -27,7 +37,10 @@ interface SpotifyConnectResponse {
 	message?: string;
 }
 
-export const POST: RequestHandler = async ({ request, params }) => {
+export const POST: RequestHandler = async ({ request, params, cookies }) => {
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
 	const barId = params.barId;
 	try {
 		const data = (await request.json()) as SpotifyConnectRequest;
