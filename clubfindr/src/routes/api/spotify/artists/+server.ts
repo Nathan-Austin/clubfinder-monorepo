@@ -5,9 +5,9 @@ import { withAccessToken } from '$lib/spotifyUtils';
 import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
+import { spotifyApi } from '$lib/spotifyHosts';
 
-const artistsEndpoint = (ids: string[]) =>
-	`https://api.spotify.com/v1/artists?ids=${ids.join(',')}`;
+const artistsEndpoint = (ids: string[]) => spotifyApi(`/artists?ids=${ids.join(',')}`);
 
 // The genres of the caller's last POST, carried per visitor in this cookie (a module-level
 // variable here returned whichever user's genres were fetched last, to everyone)

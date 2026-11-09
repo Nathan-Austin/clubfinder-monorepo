@@ -1,8 +1,9 @@
 // A stand-in for the two Spotify hosts the app talks to from the server, for the e2e suite.
 //
-// Covers what the taste endpoints use (client-credentials token, artist search, artist by id)
-// and the user flow behind "Connect with Spotify": the authorization-code exchange, token
-// refresh, /v1/me and the three listening endpoints of /spotify. Playwright's request
+// Covers what the taste endpoints use (client-credentials token, artist search, artist by id,
+// several artists by ids) and the user flow behind "Connect with Spotify": the
+// authorization-code exchange, token refresh, /v1/me and the three listening endpoints of
+// /spotify. Playwright's request
 // interception cannot see server-side calls, so playwright.config.ts starts this server and
 // points the app at it with SPOTIFY_ACCOUNTS_BASE / SPOTIFY_API_BASE. The catalogue is
 // invented, like everything in dev/seed.sql; ids are Spotify-shaped (22 base-62 chars).
@@ -245,6 +246,15 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 		const limit = Number(url.searchParams.get('limit') ?? 20);
 		const items = q ? MOCK_ARTISTS.filter((a) => a.name.toLowerCase().includes(q)) : [];
 		return sendJson(res, 200, { artists: { items: items.slice(0, limit), total: items.length } });
+	}
+
+	// Several artists at once (/v1/artists?ids=a,b): Spotify answers null for an unknown id
+	if (url.pathname === '/v1/artists') {
+		const ids = (url.searchParams.get('ids') ?? '').split(',').filter(Boolean);
+		if (ids.length === 0) return spotifyError(res, 400, 'invalid request');
+		return sendJson(res, 200, {
+			artists: ids.map((id) => MOCK_ARTISTS.find((a) => a.id === id) ?? null)
+		});
 	}
 
 	const artistMatch = url.pathname.match(/^\/v1\/artists\/([0-9A-Za-z]{22})$/);

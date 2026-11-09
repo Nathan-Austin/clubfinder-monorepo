@@ -3,6 +3,7 @@ import {
 	expect,
 	login,
 	acceptCookies,
+	mobileApi,
 	USERS,
 	SPOTIFY_CONNECT_ENABLED,
 	type Page
@@ -620,6 +621,35 @@ test.describe('Spotify connect against the mock', () => {
 		await expect(page.locator('.section.artists .item')).toHaveCount(3);
 		await expect(page.locator('.section.tracks .item')).toHaveCount(1);
 		expect(pageErrors).toEqual([]);
+	});
+
+	test('the genres of ticked artists stay with their own visitor (KNOWN_ISSUES 23)', async ({
+		page,
+		playwright,
+		baseURL
+	}) => {
+		await login(page, 'newcomer');
+		await completeSpotifyLogin(page, 'mock-code-ok');
+		await expect(page).toHaveURL(/\/spotify$/);
+
+		// What /spotify posts when the user ticks artists and carries on
+		const post = await page.request.post('/api/spotify/artists', {
+			data: { selectedIds: ['devJunoPaperplane00001', 'devVelvetMeridian00001'] }
+		});
+		expect(post.status()).toBe(200);
+		const posted = (await post.json()).genresList.toSorted();
+		expect(posted).toEqual(['deep house', 'italo disco', 'minimal', 'nu disco']);
+
+		// The same visitor reads them back (what the /selectedGenres load does)
+		const mine = await (await page.request.get('/api/spotify/artists')).json();
+		expect(mine.genresList.toSorted()).toEqual(posted);
+
+		// A visitor without that cookie gets nothing: the genres used to live in a module-level
+		// variable, so anyone's GET returned whichever user's artists were fetched last
+		const stranger = await mobileApi(playwright, baseURL);
+		const theirs = await (await stranger.get('/api/spotify/artists')).json();
+		expect(theirs.genresList).toEqual([]);
+		await stranger.dispose();
 	});
 
 	test('one failing Spotify call leaves the other sections on /spotify', async ({
