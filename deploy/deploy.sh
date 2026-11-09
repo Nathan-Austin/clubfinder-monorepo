@@ -14,9 +14,11 @@
 #   - fails before touching anything if a requirements*.txt changed: Python
 #     packages are installed by hand, then the deploy is finished with
 #     REQUIREMENTS_INSTALLED=1 (the failure message prints the exact commands)
-#   - likewise if a clubfindr/migrations/*.sql changed: migrations are applied
-#     by hand (they are idempotent), then MIGRATIONS_APPLIED=1, so new code
-#     never goes live against a database that lacks its tables
+#   - applies new clubfindr/migrations/*.sql with psql (connection from
+#     clubfindr/.env), each in a transaction, before the checkout moves, so new
+#     code never goes live against a database that lacks its tables. Stops
+#     instead, printing the manual commands, if one drops, truncates, deletes or
+#     renames, or fails; finish those with MIGRATIONS_APPLIED=1
 #   - fast-forwards the checkout to the commit
 #   - redeploys only components whose code changed (docs and .env.example
 #     changes are ignored): clubfindr is rebuilt and reloaded under PM2,
@@ -99,28 +101,58 @@ if [ -n "$REQS" ] && [ "${REQUIREMENTS_INSTALLED:-0}" != 1 ]; then
 	fail "requirements changed; install them manually"
 fi
 
-# SQL migrations: same pattern. The schema must be in place before the code that
-# uses it is built and reloaded, and the database credentials stay out of this
-# script, so stop here and print what to run.
+# SQL migrations: new or changed files in clubfindr/migrations/ are applied
+# automatically, in file-name order, after every other preflight check passes
+# and before the checkout moves, so new code never goes live without its schema.
+# The old code keeps serving while they run, so only additive migrations are
+# applied this way. One that drops, truncates, deletes or renames stops the
+# deploy for a human, as does MIGRATIONS_APPLIED=1 skipping them entirely.
 MIGS=$(echo "$CHANGED" | grep -E '^clubfindr/migrations/[^/]+\.sql$' | sort || true)
-if [ -n "$MIGS" ] && [ "${MIGRATIONS_APPLIED:-0}" != 1 ]; then
-	resume="MIGRATIONS_APPLIED=1"
+[ "${MIGRATIONS_APPLIED:-0}" = 1 ] && MIGS=""
+
+manual_migrations() {
+	local resume="MIGRATIONS_APPLIED=1"
 	[ -n "$REQS" ] && resume="REQUIREMENTS_INSTALLED=1 $resume"
 	{
-		echo "Database migrations changed:"
-		echo "$MIGS" | sed 's/^/  /'
+		echo "$1"
 		echo
-		echo "Migrations are applied by hand. Nothing has been deployed; the server is"
-		echo "still at ${PREV:0:7}. They are idempotent, so applying one twice is safe."
-		echo "To finish this deploy, on the server (DATABASE_URL as in clubfindr/.env):"
+		echo "Nothing has been deployed; the server is still at ${PREV:0:7}. Apply the"
+		echo "migrations by hand (they are idempotent), then finish the deploy:"
 		echo
 		echo "  cd $REPO"
 		echo "$MIGS" | while read -r f; do
-			echo "  psql \"\$DATABASE_URL\" -v ON_ERROR_STOP=1 -f <(git show $TARGET:$f)"
+			echo "  psql \"\$DATABASE_URL\" -v ON_ERROR_STOP=1 --single-transaction -f <(git show $TARGET:$f)"
 		done
 		echo "  $resume bash <(git show $TARGET:deploy/deploy.sh) $TARGET"
 	} >&2
-	fail "migrations changed; apply them manually"
+	fail "$2"
+}
+
+if [ -n "$MIGS" ]; then
+	log "Migrations to apply:"
+	echo "$MIGS" | sed 's/^/  /'
+
+	# Comments stripped first, so a migration explaining what it does not drop is fine
+	risky=$(echo "$MIGS" | while read -r f; do
+		git show "$TARGET:$f" | sed 's/--.*$//' |
+			grep -qiwE 'drop|truncate|delete|rename' && echo "  $f"
+	done || true)
+	[ -z "$risky" ] ||
+		manual_migrations "These migrations drop, truncate, delete or rename, which the running code may still need:
+$risky" "destructive migration; review and apply it by hand"
+
+	# Same database and role the app uses, read from clubfindr/.env without
+	# sourcing it. libpq takes them from the environment, so the password never
+	# appears on a command line.
+	ENV_FILE="$REPO/clubfindr/.env"
+	[ -r "$ENV_FILE" ] || fail "$ENV_FILE not readable; cannot apply migrations"
+	env_val() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -1 | sed -E "s/^([\"'])(.*)\1\$/\2/"; }
+	export PGHOST="$(env_val PG_HOST)" PGPORT="$(env_val PG_PORT)" PGDATABASE="$(env_val PG_DB)"
+	export PGUSER="$(env_val PG_USERNAME)" PGPASSWORD="$(env_val PG_PASSWORD)"
+	command -v psql >/dev/null || fail "psql not found; cannot apply migrations"
+	psql -qAtX -c 'select 1' >/dev/null ||
+		manual_migrations "Cannot connect to $PGDATABASE on $PGHOST:$PGPORT as $PGUSER with clubfindr/.env." \
+			"database connection for migrations failed"
 fi
 
 # Docs and env templates never need a redeploy
@@ -166,6 +198,21 @@ if [ ${#need_units[@]} -gt 0 ]; then
 fi
 
 # --- Deploy ---
+
+# Each file in its own transaction: one that fails leaves no half-applied
+# schema, and the deploy stops before the checkout moves.
+if [ -n "$MIGS" ]; then
+	echo "$MIGS" | while read -r f; do
+		log "Applying $f"
+		if [ "$DRY_RUN" = 1 ]; then
+			echo "[dry-run] psql --single-transaction -f <(git show ${TARGET:0:7}:$f)"
+		else
+			git show "$TARGET:$f" | psql -qX -v ON_ERROR_STOP=1 --single-transaction -f - ||
+				manual_migrations "Migration $f failed (rolled back; files before it stayed applied)." \
+					"migration $f failed"
+		fi
+	done
+fi
 
 log "Fast-forwarding checkout"
 run git merge --ff-only --quiet "$TARGET"

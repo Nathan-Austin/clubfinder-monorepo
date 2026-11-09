@@ -2,7 +2,7 @@
 # Applies every file in migrations/ to the dev database and checks two things:
 #
 #   1. Each migration runs without error on a database built from dev/schema.sql, and again
-#      on top of itself (they are meant to be idempotent: production gets them by hand,
+#      on top of itself (they are meant to be idempotent: deploy.sh applies them, and
 #      possibly more than once).
 #   2. dev/schema.sql already contains everything the migrations create. The catalog of the
 #      clubfindr schema (columns, indexes, constraints) is snapshotted before and after; any
