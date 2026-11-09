@@ -51,9 +51,9 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 
 Things to do by hand or decide, collected while building the items above.
 
-- [ ] **Before the next push to `main`:** apply `clubfindr/migrations/20261108_add_bar_favourite_artists.sql`
-      to production (and `20261017_add_taste_artists.sql` if it never was; both are idempotent).
-      `deploy/deploy.sh` now stops and prints the commands when a migration is in the range
+- [x] Apply `clubfindr/migrations/20261108_add_bar_favourite_artists.sql` to production: applied
+      by hand with the deploy of `0dc724f` (2026-11-09). From the next deploy on, `deploy/deploy.sh`
+      applies new migrations itself and only stops for destructive or failing ones
 - [ ] Set `SPOTIFY_CONNECT_ENABLED=false` in the production `.env` when ready (default is on)
 - [ ] Set `MUSICBRAINZ_USER_AGENT` in production to name the deployment and a contact
 - [x] The two parallel branches each added `bar_favourite_artists` (same table, different
