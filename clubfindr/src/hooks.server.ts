@@ -17,10 +17,19 @@ const RESET_INTERVAL = 60 * 1000; // 1 minute
  * socket. Nothing the client sends is read directly. A request that lacks the trusted header
  * (local health check, direct hit) lands in one shared bucket instead of erroring.
  */
+let warnedAddress = false;
 function clientAddress(event: RequestEvent): string {
 	try {
 		return event.getClientAddress();
-	} catch {
+	} catch (err) {
+		// Once per process: a misconfigured ADDRESS_HEADER (a typo, say) puts every client in
+		// this one bucket, and nothing else would show it.
+		if (!warnedAddress) {
+			warnedAddress = true;
+			console.warn(
+				`Client address unavailable, rate limiting as 'unknown' (check ADDRESS_HEADER): ${err instanceof Error ? err.message : err}`
+			);
+		}
 		return 'unknown';
 	}
 }

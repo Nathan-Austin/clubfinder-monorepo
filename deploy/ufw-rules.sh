@@ -16,11 +16,10 @@ ufw logging low
 ufw allow OpenSSH
 ufw allow 22/tcp
 
-# clubfindr (node) is open to the internet on 3000, bypassing nginx/TLS and
-# the Cloudflare-only rule below. Recorded as-is; consider removing these and
-# binding node to 127.0.0.1 instead.
-ufw allow 3000/tcp
-ufw allow 3000
+# clubfindr (node) listens on 127.0.0.1:3000 only (HOST in ecosystem.config.cjs);
+# nginx is the way in. This script used to open 3000 to the internet, bypassing
+# nginx, TLS and the Cloudflare-only rule below. On a server that still has it:
+#   ufw delete allow 3000/tcp && ufw delete allow 3000
 
 # PostgreSQL: localhost and the Docker networks only
 ufw allow from 127.0.0.1 to any port 5432

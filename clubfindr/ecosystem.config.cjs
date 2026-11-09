@@ -14,7 +14,11 @@ module.exports = {
 			env: {
 				NODE_ENV: 'production',
 				PORT: 3000,
-				...process.env
+				...process.env,
+				// Loopback only: nginx (deploy/nginx/sveltekit.config) is the way in, so every
+				// request carries Cloudflare's CF-Connecting-IP for the rate limiter. Set after
+				// the spread so a stray HOST in the environment cannot re-open it to the internet.
+				HOST: '127.0.0.1'
 			},
 			// Logging
 			error_file: '/home/nathan/.pm2/logs/clubfindr-error-0.log',
