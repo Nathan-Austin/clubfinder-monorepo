@@ -211,7 +211,7 @@ because `node --env-file` never overrides what is already in the environment, an
 it through `SPOTIFY_CONNECT_ENABLED` in `tests/fixtures.ts`, parsed with the server's own
 `isFlagEnabled`. Tests that only make sense in one mode skip themselves in the other: the two
 on-only tests in `taste.spec.ts` and the two blocks of `spotify-connect-flag.spec.ts`. Re-run
-`dev/setup.sh` between runs if you want both to start from the seed. The database and ports
+`dev/setup.sh` between runs if you want both to start from the seed. CI runs both, re-seeding in between. The database and ports
 are shared, so two checkouts must not run the suite at the same time.
 
 Tests that drive the bar dashboard should start from `openBarDashboard` (`tests/fixtures.ts`),

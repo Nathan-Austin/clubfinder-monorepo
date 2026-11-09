@@ -156,7 +156,11 @@ section 4), left open on purpose.
     `npx tsc --noEmit` reports about 175 errors, almost all of them that. With the mapping
     removed for a check, five real ones remain (`SearchScreen.tsx` twice,
     `QRCodeGeneratorScreen.tsx` twice, `EditBarProfileScreen.tsx`). The app also has no test
-    runner.
+    runner, and its CI (`.github/workflows/app-clubfindr-ci.yml`) cannot fail: every step is
+    `continue-on-error`, `npm run lint` and `npm test` name scripts that do not exist, and its
+    Node 18 job is below what React Native 0.81 and Metro require (`>= 20.19.4`).
+    `npx expo export --platform android` does build the bundle and would be a cheap first
+    real check.
 30. **`tests/rate-limit.spec.ts` was flaky once** ("entries a client prepends to
     X-Forwarded-For do not open new buckets" failed, then passed on retry). Not reproduced in
     any run since; watch for it. (A second flake, in `bars.spec.ts` with the flag off, had a
