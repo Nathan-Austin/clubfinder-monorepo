@@ -162,6 +162,12 @@ test.describe('with Spotify connect off', () => {
 		const name = unique('Connect Off Bar');
 		const email = `${unique('venue-off')}@clubfindr.test`;
 		const startedAt = Date.now();
+		// POST /register needs a captcha pass now (tests/register-captcha.spec.ts); the mock
+		// verifier accepts this token and the response sets the cookie on this context
+		const verified = await page.request.post('/api/verify-captcha', {
+			data: { recaptchaResponse: 'mock-captcha-ok' }
+		});
+		expect(verified.status()).toBe(200);
 		const response = await page.request.post('/register', {
 			data: venue(name, email, {
 				musicService: 'Spotify',

@@ -8,7 +8,8 @@ import { MAIL_CAPTURE_FILE } from './tests/mail';
 // The app's server-side Spotify calls (taste profile: token, artist search, artist by id) go
 // to tests/mock-spotify.ts on :4175 instead of Spotify, through the SPOTIFY_*_BASE overrides,
 // its Last.fm calls (taste profile import, genre fallback) to tests/mock-lastfm.ts on :4176,
-// and its MusicBrainz calls (genre fallback) to tests/mock-musicbrainz.ts on :4177.
+// its MusicBrainz calls (genre fallback) to tests/mock-musicbrainz.ts on :4177, and its
+// reCAPTCHA checks (registration) to tests/mock-recaptcha.ts on :4178.
 //
 // PW_SKIP_BUILD=1 reuses the existing build/ output instead of rebuilding first.
 const port = 4173;
@@ -18,18 +19,20 @@ const cfPort = 4174;
 const mockSpotifyPort = 4175;
 const mockLastfmPort = 4176;
 const mockMusicbrainzPort = 4177;
+const mockRecaptchaPort = 4178;
 const serve = `node --env-file=.env build/index.js`;
 // Process env set here wins over .env (node --env-file never overrides an existing variable)
 const serverEnv = {
 	// Never send real e-mail from the suite: the app writes it to the capture file instead
 	MAIL_TRANSPORT: 'capture',
 	MAIL_CAPTURE_FILE,
-	// Never call the real Spotify or Last.fm: the mock servers below answer instead
+	// Never call the real Spotify, Last.fm or Google: the mock servers below answer instead
 	SPOTIFY_API_BASE: `http://127.0.0.1:${mockSpotifyPort}`,
 	SPOTIFY_ACCOUNTS_BASE: `http://127.0.0.1:${mockSpotifyPort}`,
 	LASTFM_API_BASE: `http://127.0.0.1:${mockLastfmPort}`,
 	LASTFM_API_KEY: 'mock-lastfm-key',
-	MUSICBRAINZ_API_BASE: `http://127.0.0.1:${mockMusicbrainzPort}`
+	MUSICBRAINZ_API_BASE: `http://127.0.0.1:${mockMusicbrainzPort}`,
+	RECAPTCHA_VERIFY_BASE: `http://127.0.0.1:${mockRecaptchaPort}`
 };
 
 export default defineConfig({
@@ -76,6 +79,13 @@ export default defineConfig({
 			command: `node tests/mock-musicbrainz.ts`,
 			port: mockMusicbrainzPort,
 			env: { MOCK_MUSICBRAINZ_PORT: String(mockMusicbrainzPort) },
+			reuseExistingServer: !process.env.CI,
+			timeout: 30_000
+		},
+		{
+			command: `node tests/mock-recaptcha.ts`,
+			port: mockRecaptchaPort,
+			env: { MOCK_RECAPTCHA_PORT: String(mockRecaptchaPort) },
 			reuseExistingServer: !process.env.CI,
 			timeout: 30_000
 		},
