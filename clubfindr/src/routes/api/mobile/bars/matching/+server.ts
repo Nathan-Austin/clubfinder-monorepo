@@ -6,6 +6,7 @@ import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { toLocalIsoDate } from '$lib/localDate';
+import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
 
 // Helper functions for genre matching
 const normalizeGenre = (genre: string): string => {
@@ -72,23 +73,36 @@ function expandCompoundGenres(genres: string[]): string[] {
 }
 
 // Function to combine genres from events with bar profile
+/**
+ * Adds genres to a venue's profile.
+ *
+ * The weight only orders the genres reported for a venue (getTopGenres above); matching scores
+ * clusters as sets, so whether a genre is present is what decides a match.
+ */
 function combineGenreProfiles(
 	barProfile: { [key: string]: number } | null,
-	eventGenres: string[]
+	extraGenres: string[],
+	weight = 0.5
 ): { [key: string]: number } {
 	// Start with the bar's profile or an empty object if null
 	const combinedProfile: { [key: string]: number } = { ...(barProfile || {}) };
 
-	// Add event genres with a weight of 0.5 (half the importance of the bar's regular genres)
-	eventGenres.forEach((genre) => {
+	extraGenres.forEach((genre) => {
 		const normalizedGenre = normalizeGenre(genre);
 		if (!shouldIgnoreGenre(normalizedGenre) && normalizedGenre.length > 2) {
-			combinedProfile[normalizedGenre] = (combinedProfile[normalizedGenre] || 0) + 0.5;
+			combinedProfile[normalizedGenre] = (combinedProfile[normalizedGenre] || 0) + weight;
 		}
 	});
 
 	return combinedProfile;
 }
+
+/**
+ * What a venue says it plays, through the artist picker on its dashboard
+ * (clubfindr.bar_favourite_artists). A standing statement rather than one night's line-up, so
+ * it is weighted like the venue's own rolling profile rather than like an event.
+ */
+const VENUE_ARTIST_GENRE_WEIGHT = 1;
 
 interface ClusterResult {
 	genre: string;
@@ -392,6 +406,23 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		console.log(`Found ${barsResult.rows.length} total bars in ${normalizedCity}`);
+
+		// Fold in the artists each venue says it plays, so a venue that never connected Spotify
+		// (and so has no bar_genre_profiles row) can still match on its own description of itself
+		const venueArtistGenres = await listFavouriteGenresForOwners(
+			pool,
+			Array.from(barsMap.keys()),
+			'bar'
+		);
+		venueArtistGenres.forEach((venueGenres, barId) => {
+			const bar = barsMap.get(barId);
+			if (!bar || venueGenres.length === 0) return;
+			bar.rolling_genre_profile = combineGenreProfiles(
+				bar.rolling_genre_profile,
+				venueGenres,
+				VENUE_ARTIST_GENRE_WEIGHT
+			);
+		});
 
 		// Get events for the requested date
 		const eventsQuery = `

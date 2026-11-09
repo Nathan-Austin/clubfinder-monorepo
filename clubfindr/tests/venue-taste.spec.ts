@@ -86,6 +86,62 @@ test.describe('venue taste API', () => {
 		expect((await page.request.get(`/api/venues/${BAR_ID}/taste/search?q=a`)).status()).toBe(400);
 	});
 
+	// ROADMAP section 1: matching used to score venues from bar_genre_profiles only, which
+	// barfindr fills by polling venue Spotify — so what a venue says it plays changed nothing,
+	// and a venue that never connected Spotify could not be matched at all.
+	test('the artists a venue says it plays drive matching', async ({ page, context }) => {
+		// Reggaeton is in the clusters but in no seeded venue's Spotify profile, and the mock
+		// Spotify artist "Basement Omnivore" has it (tests/mock-spotify.ts)
+		const search = { city: 'Berlin', genres: ['reggaeton'] };
+		const lantern = async () => {
+			const response = await page.request.post('/api/mobile/bars/matching', { data: search });
+			expect(response.status(), await response.text()).toBe(200);
+			const bars = (await response.json()) as {
+				id: string;
+				similarity: number;
+				matchingGenres: string[];
+				topGenres: string[];
+			}[];
+			const found = bars.find((bar) => bar.id === BAR_ID);
+			expect(found, 'The Copper Lantern is among the Berlin venues').toBeDefined();
+			return found!;
+		};
+
+		// The seeded venue artists already reach the profile: "minimal techno" comes from
+		// Kasimir Low and is in no bar_genre_profiles row for this venue
+		const before = await lantern();
+		expect(before.topGenres, 'genres the venue itself declared').toContain('minimal techno');
+		expect(before.similarity, 'nothing reggaeton about it yet').toBe(0);
+		expect(before.matchingGenres).toEqual([]);
+
+		const added = await page.request.post(`/api/venues/${BAR_ID}/taste/artists`, {
+			data: { sourceId: 'devBasementOmnivore001' }
+		});
+		expect(added.status(), await added.text()).toBe(201);
+
+		const after = await lantern();
+		expect(after.similarity, 'now matches a reggaeton search').toBeGreaterThan(0);
+		expect(after.matchingGenres).toContain('reggaeton');
+
+		// And on the web page, which scores venues the same way
+		await context.addCookies(
+			['city', 'date', 'selected-genres'].map((name, i) => ({
+				name,
+				value: ['Berlin', '2031-06-21', 'reggaeton'][i],
+				url: new URL(page.url() || 'http://localhost').origin
+			}))
+		);
+		await page.goto('/barfindr');
+		await expect(page.locator('.club-value', { hasText: 'The Copper Lantern' })).toBeVisible();
+
+		// Taking the artist away takes the match with it
+		const artistId = (await added.json()).artist.id;
+		expect(
+			(await page.request.delete(`/api/venues/${BAR_ID}/taste/artists/${artistId}`)).ok()
+		).toBe(true);
+		expect((await lantern()).similarity, 'back to no reggaeton').toBe(0);
+	});
+
 	test('a venue cannot read or change another venue, and a bad id is a 400', async ({ page }) => {
 		for (const path of ['/taste/artists', '/taste/search?q=juno']) {
 			expect((await page.request.get(`/api/venues/${OTHER_BAR_ID}${path}`)).status()).toBe(403);
