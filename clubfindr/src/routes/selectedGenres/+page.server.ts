@@ -1,26 +1,12 @@
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ fetch, cookies }) => {
-	// Get the genres that were just fetched from the Spotify API
-	const response = await fetch('/api/spotify/artists', {
-		method: 'GET'
-	});
-
-	if (!response.ok) {
-		throw new Error('Failed to fetch genres');
-	}
-
-	const data = await response.json();
-	const genresList = data.genresList || [];
-
-	// Store these Spotify-generated genres in a new cookie called 'spotify-genres'
-	// This allows us to keep them separate from user-selected genres
-	cookies.set('spotify-genres', genresList.join(','), {
-		path: '/',
-		maxAge: 60 * 60 * 24 // 24 hours
-	});
+export const load: PageServerLoad = async ({ cookies }) => {
+	// The genres of this visitor's last POST /api/spotify/artists, stored there as a cookie
+	// (kept until /clubs or /barfindr reads and deletes it)
+	const stored = cookies.get('spotify-genres');
+	const genresList = stored ? stored.split(',').filter((genre) => genre.length > 0) : [];
 
 	return {
-		genresList: genresList
+		genresList
 	};
 };

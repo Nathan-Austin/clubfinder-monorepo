@@ -9,11 +9,15 @@ import { cookieManager } from '$lib/cookieManager';
 const artistsEndpoint = (ids: string[]) =>
 	`https://api.spotify.com/v1/artists?ids=${ids.join(',')}`;
 
-// Store genres temporarily in memory
-let lastFetchedGenres: string[] = [];
+// The genres of the caller's last POST, carried per visitor in this cookie (a module-level
+// variable here returned whichever user's genres were fetched last, to everyone)
+const GENRES_COOKIE = 'spotify-genres';
+const GENRES_COOKIE_MAX_AGE = 60 * 60 * 24;
 
-export const GET: RequestHandler = async () => {
-	return svelteJson({ genresList: lastFetchedGenres });
+export const GET: RequestHandler = async ({ cookies }) => {
+	const stored = cookies.get(GENRES_COOKIE);
+	const genresList = stored ? stored.split(',').filter((genre) => genre.length > 0) : [];
+	return svelteJson({ genresList });
 };
 
 export const OPTIONS: RequestHandler = async () => {
@@ -70,7 +74,10 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 		});
 
 		const genresArray = Array.from(genresList);
-		lastFetchedGenres = genresArray;
+		cookies.set(GENRES_COOKIE, genresArray.join(','), {
+			path: '/',
+			maxAge: GENRES_COOKIE_MAX_AGE
+		});
 
 		// Handle user session if not a search-only request
 		const searchCookie = cookies.get('search');
@@ -78,7 +85,6 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			const sessionId = cookieManager.get(cookies, 'sessionId');
 			let city = cookies.get('city');
 			const date = cookies.get('date');
-			console.log(city, date, sessionId);
 
 			if (sessionId && city && date) {
 				city = city.toLowerCase();
