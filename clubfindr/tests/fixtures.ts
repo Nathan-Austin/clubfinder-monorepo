@@ -5,9 +5,25 @@ import {
 	type APIRequestContext,
 	type Page
 } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 import { isFlagEnabled } from '../src/lib/flagValue';
 
 export type { Page };
+
+/**
+ * A fresh password for the throwaway accounts a spec signs up, generated at runtime so the
+ * repo holds no password literals for secret scanners to flag. It meets validatePassword()
+ * (src/lib/passwordUtils.ts): the prefix supplies each required character class, and the
+ * random part is letters only, so it cannot form a blocked pattern such as "123456".
+ * Specs call it once at module level, so each worker gets its own value: fine as long as a test
+ * only logs in to accounts it signed up itself, never one another test created.
+ */
+export function testPassword() {
+	const letters = randomBytes(18)
+		.toString('base64')
+		.replace(/[^A-Za-z]/g, '');
+	return `Tp1!${letters}`;
+}
 
 /**
  * SPOTIFY_CONNECT_ENABLED as the server under test sees it. playwright.config.ts starts the

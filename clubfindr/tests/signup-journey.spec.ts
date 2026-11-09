@@ -1,4 +1,4 @@
-import { test, expect, acceptCookies, SPOTIFY_CONNECT_ENABLED } from './fixtures';
+import { test, expect, acceptCookies, SPOTIFY_CONNECT_ENABLED, testPassword } from './fixtures';
 
 // The whole point of ROADMAP section 1, in one go: someone signs up, names a few artists and
 // gets personalised results, without connecting any streaming account at any step.
@@ -10,7 +10,7 @@ import { test, expect, acceptCookies, SPOTIFY_CONNECT_ENABLED } from './fixtures
 // Runs in both modes: with Spotify connect on it also checks that nothing on the way asked for
 // Spotify, and with it off that the connect buttons are gone entirely.
 
-const PASSWORD = 'Journey#2026';
+const PASSWORD = testPassword();
 
 /**
  * Three artists from the mock Spotify catalogue (tests/mock-spotify.ts), whose genres are the

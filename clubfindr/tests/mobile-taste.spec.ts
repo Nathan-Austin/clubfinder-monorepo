@@ -1,4 +1,4 @@
-import { test, expect, mobileApi, bearer, SPOTIFY_CONNECT_ENABLED } from './fixtures';
+import { test, expect, mobileApi, bearer, SPOTIFY_CONNECT_ENABLED, testPassword } from './fixtures';
 import type { APIRequestContext } from '@playwright/test';
 
 // The mobile app's side of the taste profile (ROADMAP section 1, mobile parity):
@@ -14,7 +14,7 @@ import type { APIRequestContext } from '@playwright/test';
 // tests/taste.spec.ts running in parallel. Calls go through a cookie-less context
 // (tests/fixtures.ts mobileApi), so only the Bearer header can authenticate them.
 
-const PASSWORD = 'MobileTaste#2026';
+const PASSWORD = testPassword();
 /** Mock Spotify artists (tests/mock-spotify.ts) */
 const PICKS = ['devPerihelionChoir0001', 'devVelvetMeridian00001', 'devGlassAnvil000000001'];
 const UNKNOWN_TOKEN = '99999999-9999-4999-8999-999999999999';

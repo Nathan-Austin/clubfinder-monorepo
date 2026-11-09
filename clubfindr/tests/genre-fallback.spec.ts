@@ -1,4 +1,4 @@
-import { test, expect, type Page } from './fixtures';
+import { test, expect, type Page, testPassword } from './fixtures';
 
 // Genre fallback for picked artists (KNOWN_ISSUES 21, src/lib/taste/genreFallback.ts).
 //
@@ -15,7 +15,7 @@ import { test, expect, type Page } from './fixtures';
 // Each test signs up its own throwaway account, so it never shares a session with the seeded
 // users that tests/taste.spec.ts relies on (see the note in tests/fixtures.ts).
 
-const PASSWORD = 'Fallback#2026';
+const PASSWORD = testPassword();
 const NO_GENRE_ARTIST = { sourceId: 'devCassetteMirage00001', name: 'Cassette Mirage' };
 const SPOTIFY_GENRE_ARTIST = { sourceId: 'devGlassAnvil000000001', name: 'Glass Anvil' };
 

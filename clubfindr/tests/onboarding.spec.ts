@@ -1,11 +1,11 @@
-import { test, expect, acceptCookies, type Page } from './fixtures';
+import { test, expect, acceptCookies, type Page, testPassword } from './fixtures';
 
 // Artist picker onboarding (ROADMAP section 1, src/routes/onboarding). Every test signs up its
 // own throwaway account, so it never logs in as a seeded user that another spec relies on
 // (see the session note in tests/fixtures.ts) and the tests can run in parallel. Artist search
 // and lookups go to tests/mock-spotify.ts, whose artists are invented.
 
-const PASSWORD = 'Onboard#2026';
+const PASSWORD = testPassword();
 
 /** Mock Spotify artists (tests/mock-spotify.ts), picked through the onboarding search. */
 const PICKS = [

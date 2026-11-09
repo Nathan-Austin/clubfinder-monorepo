@@ -1,4 +1,11 @@
-import { test, expect, acceptCookies, SPOTIFY_CONNECT_ENABLED, type Page } from './fixtures';
+import {
+	test,
+	expect,
+	acceptCookies,
+	SPOTIFY_CONNECT_ENABLED,
+	type Page,
+	testPassword
+} from './fixtures';
 import { capturedMail, waitForMail } from './mail';
 
 // SPOTIFY_CONNECT_ENABLED (src/lib/featureFlags.ts, KNOWN_ISSUES 24). The suite runs once per
@@ -12,7 +19,7 @@ import { capturedMail, waitForMail } from './mail';
 function unique(prefix: string) {
 	return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
-const PASSWORD = 'Connect#2026';
+const PASSWORD = testPassword();
 
 async function signUpWeb(page: Page, email: string, spotifyEmail?: string) {
 	return page.request.post('/login/users', {
