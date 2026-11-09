@@ -176,9 +176,15 @@ section 4), left open on purpose.
     venue's event as a 404. The app also read the returned `event_date` with `new Date(...)`
     (UTC midnight) and wrote it back from the local parts, which would have saved the previous
     day west of UTC: `app_clubfindr/src/utils/localDate.ts` now parses it as a local day.
-28. **Venue registration checks the reCAPTCHA in the browser only.** `/register` calls
-    `/api/verify-captcha` to unlock the form, but `POST /register` never verifies anything, so
-    a script can register venues by posting to it directly.
+28. _Fixed._ **Venue registration checked the reCAPTCHA in the browser only.** `/register`
+    called `/api/verify-captcha` to unlock the form, but `POST /register` (and
+    `POST /register/promoter`) never verified anything, so a script could register venues by
+    posting directly. reCAPTCHA tokens are single-use and expire within minutes while the form
+    is being filled in, so `/api/verify-captcha` now marks a good token with a short-lived
+    encrypted cookie (`$lib/server/captcha`), both registration endpoints refuse without it,
+    and a successful registration spends it. In the e2e suite the token is judged by
+    `tests/mock-recaptcha.ts` on :4178 via `RECAPTCHA_VERIFY_BASE` (unset in production);
+    covered by `tests/register-captcha.spec.ts`.
 29. **`app_clubfindr` type checking hides real errors.** Its `tsconfig.json` maps `"*"` to
     `node_modules/*`, which makes `react` resolve to its JavaScript with no types:
     `npx tsc --noEmit` reports about 175 errors, almost all of them that. With the mapping

@@ -238,7 +238,7 @@ pnpm vitest src/lib/specific.test.ts
 
 The e2e suite runs in both `SPOTIFY_CONNECT_ENABLED` modes: `pnpm test`, then
 `SPOTIFY_CONNECT_ENABLED=false pnpm test` (see `clubfindr/dev/TESTING.md`). All e2e runs share
-the one dev database on port 54329 and ports 4173-4177, so only one checkout or worktree may run
+the one dev database on port 54329 and ports 4173-4178, so only one checkout or worktree may run
 them at a time, and each `dev/setup.sh` wipes the data.
 
 ### Security Considerations
