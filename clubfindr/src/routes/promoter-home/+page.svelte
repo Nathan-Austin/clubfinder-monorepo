@@ -4,7 +4,7 @@
 	import GenreSelector from './components/GenreSelector.svelte';
 	import ArtistSearchForm from './components/ArtistSearchForm.svelte';
 	import type { Performer } from '$lib/$types';
-	import { toLocalIsoDate } from '$lib/localDate';
+	import { toLocalIsoDate, fromLocalIsoDate } from '$lib/localDate';
 
 	import { Search } from 'lucide-svelte';
 
@@ -755,7 +755,9 @@
 						{/if}
 						<h3 class="text-xl font-bold mb-2">{event.event_name}</h3>
 						<p class="text-gray-600 mb-2">{event.club_name}</p>
-						<p class="text-gray-600 mb-2">{new Date(event.event_date).toLocaleDateString()}</p>
+						<p class="text-gray-600 mb-2">
+							{fromLocalIsoDate(event.event_date).toLocaleDateString()}
+						</p>
 						<p class="text-gray-600 mb-2">
 							{event.start_time} - {event.end_time}
 						</p>
@@ -791,7 +793,9 @@
 						{/if}
 						<h3 class="text-xl font-bold mb-2">{event.event_name}</h3>
 						<p class="text-gray-600 mb-2">{event.club_name}</p>
-						<p class="text-gray-600 mb-2">{new Date(event.event_date).toLocaleDateString()}</p>
+						<p class="text-gray-600 mb-2">
+							{fromLocalIsoDate(event.event_date).toLocaleDateString()}
+						</p>
 						<p class="text-gray-600 mb-2">
 							{event.start_time} - {event.end_time}
 						</p>

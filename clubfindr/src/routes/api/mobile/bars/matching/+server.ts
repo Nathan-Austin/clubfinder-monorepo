@@ -523,7 +523,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					id: event.id,
 					name: event.theme_name,
 					description: event.description,
-					date: new Date(event.event_date).toISOString().split('T')[0], // Ensure consistent YYYY-MM-DD format
+					// Already YYYY-MM-DD ($lib/db keeps DATE columns as strings); rebuilding it with
+					// `new Date(...).toISOString()` reported the previous day (KNOWN_ISSUES 17)
+					date: event.event_date,
 					startTime: event.start_time,
 					endTime: event.end_time,
 					genres: event.special_genres || []

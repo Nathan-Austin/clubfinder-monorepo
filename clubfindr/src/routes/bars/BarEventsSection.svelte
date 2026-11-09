@@ -4,7 +4,7 @@
 	import BarEventModal from './BarEventModal.svelte';
 
 	import type { EventDetails } from '$lib/types/events';
-	import { toLocalIsoDate } from '$lib/localDate';
+	import { toLocalIsoDate, fromLocalIsoDate } from '$lib/localDate';
 	interface Props {
 		barId: string;
 	}
@@ -30,7 +30,8 @@
 	let modalError = $state('');
 	let validationErrors: string[] = $state([]);
 
-	// Format date for display
+	// Format date for display. The server sends a YYYY-MM-DD calendar date, which has to be read
+	// as a local day: `new Date('2031-06-21')` is UTC midnight and shows 20 June west of UTC.
 	function formatDate(dateString: string): string {
 		const options: Intl.DateTimeFormatOptions = {
 			weekday: 'long',
@@ -38,7 +39,7 @@
 			month: 'long',
 			day: 'numeric'
 		};
-		return new Date(dateString).toLocaleDateString('en-US', options);
+		return fromLocalIsoDate(dateString).toLocaleDateString('en-US', options);
 	}
 
 	// Format time for display

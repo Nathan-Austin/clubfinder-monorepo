@@ -4,7 +4,7 @@
 	import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { DatePicker } from 'date-picker-svelte';
-	import { toLocalIsoDate } from '$lib/localDate';
+	import { toLocalIsoDate, fromLocalIsoDate } from '$lib/localDate';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import { getDistance } from 'geolib';
 	import LastfmImport from '$lib/components/LastfmImport.svelte';
@@ -837,7 +837,7 @@
 					<li>
 						<h4>{event.event_name}</h4>
 						<p>At: {event.club_name}</p>
-						<p>On: {new Date(event.event_date).toLocaleDateString()}</p>
+						<p>On: {fromLocalIsoDate(event.event_date).toLocaleDateString()}</p>
 						<div class="feedback">
 							<label>
 								Did you attend?

@@ -3,6 +3,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { query } from '$lib/db';
+import { toLocalIsoDate } from '$lib/localDate';
 
 export const load: PageServerLoad = async ({ cookies }) => {
 	// Not logged in as a promoter: to the partner login (outside the try below, whose catch
@@ -58,10 +59,13 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
 		const venues = await query(venuesQuery, [promoterId]);
 
-		// Split events into current and past
-		const now = new Date();
-		const currentEvents = events.rows.filter((event) => new Date(event.event_date) >= now);
-		const pastEvents = events.rows.filter((event) => new Date(event.event_date) < now);
+		// Split events into current and past. Both sides are YYYY-MM-DD calendar dates, so they
+		// compare as text: an event is "current" for the whole of its own day, where comparing a
+		// parsed date against the current time dropped it at midnight (or at 01:00/02:00 once
+		// DATE columns stopped being parsed into local-midnight Dates).
+		const today = toLocalIsoDate();
+		const currentEvents = events.rows.filter((event) => event.event_date >= today);
+		const pastEvents = events.rows.filter((event) => event.event_date < today);
 
 		return {
 			currentEvents: currentEvents.map((event) => ({

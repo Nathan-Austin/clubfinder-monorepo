@@ -72,7 +72,10 @@
 		const formattedEvent = {
 			...eventDetails,
 			bar_id: barId,
-			event_date: new Date(eventDetails.event_date).toISOString().split('T')[0],
+			// Already the YYYY-MM-DD the date input holds (and what the server sends back for a
+			// stored event). It used to be rebuilt with `new Date(...).toISOString()`, which saved
+			// the previous day for an edited event (KNOWN_ISSUES 17).
+			event_date: eventDetails.event_date,
 			// Only include time fields if they have values
 			start_time: eventDetails.start_time || null,
 			end_time: eventDetails.end_time || null,

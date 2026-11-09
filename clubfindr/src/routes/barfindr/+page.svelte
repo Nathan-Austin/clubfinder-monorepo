@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { EventDetails } from '$lib/types/events';
+	import { fromLocalIsoDate } from '$lib/localDate';
 
 	type BarData = {
 		bar_id: string;
@@ -112,9 +113,10 @@
 		return Math.round(similarity * 100) + '%';
 	}
 
-	// Format date for display
+	// Format date for display. The server sends a YYYY-MM-DD calendar date, which has to be read
+	// as a local day: `new Date('2031-06-21')` is UTC midnight and shows 20 June west of UTC.
 	function formatDate(dateString: string): string {
-		const date = new Date(dateString);
+		const date = fromLocalIsoDate(dateString);
 		const today = new Date();
 		const tomorrow = new Date(today);
 		tomorrow.setDate(today.getDate() + 1);
@@ -217,8 +219,9 @@
 			return `${todayEvents.length} Event${todayEvents.length > 1 ? 's' : ''} Today`;
 		} else {
 			// Sort events by date and return the earliest upcoming one
-			const sortedEvents = [...result.events].sort(
-				(a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+			// YYYY-MM-DD sorts correctly as text, no parsing needed
+			const sortedEvents = [...result.events].sort((a, b) =>
+				a.event_date.localeCompare(b.event_date)
 			);
 
 			return `Next Event: ${formatDate(sortedEvents[0].event_date)}`;
