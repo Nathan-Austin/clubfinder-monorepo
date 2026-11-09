@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BarStatsDashboard from '../components/BarStatsDashboard';
 import * as mobileSpotifyService from '../services/mobileSpotifyService';
 import BarSpotifyConnect from '../components/BarSpotifyConnect';
+import { fromLocalIsoDate } from '../utils/localDate';
 
 // Types for bar events
 interface BarEvent {
@@ -433,7 +434,8 @@ const BarHomeScreen = () => {
             month: 'long',
             day: 'numeric'
         };
-        return new Date(dateString).toLocaleDateString('en-US', options);
+        // A YYYY-MM-DD calendar date read as a local day, not UTC midnight
+        return fromLocalIsoDate(dateString).toLocaleDateString('en-US', options);
     };
 
     // Format time for display

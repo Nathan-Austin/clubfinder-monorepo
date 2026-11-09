@@ -21,6 +21,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import axiosClient from '../api/axiosClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fromLocalIsoDate, toLocalIsoDate } from '../utils/localDate';
 
 // Types
 interface BarEvent {
@@ -58,7 +59,9 @@ const EventFormScreen = () => {
     // State for form fields
     const [themeName, setThemeName] = useState(initialEvent?.theme_name || '');
     const [description, setDescription] = useState(initialEvent?.description || '');
-    const [eventDate, setEventDate] = useState(initialEvent?.event_date ? new Date(initialEvent.event_date) : new Date());
+    // Read as a local day: `new Date('2031-06-21')` is UTC midnight, and formatDateToString
+    // below uses the local parts, so editing would save the previous day west of UTC.
+    const [eventDate, setEventDate] = useState(initialEvent?.event_date ? fromLocalIsoDate(initialEvent.event_date) : new Date());
     const [startTime, setStartTime] = useState(initialEvent?.start_time ? parseTimeString(initialEvent.start_time) : new Date());
     const [endTime, setEndTime] = useState(initialEvent?.end_time ? parseTimeString(initialEvent.end_time) : new Date());
     const [hasStartTime, setHasStartTime] = useState(!!initialEvent?.start_time);
@@ -92,13 +95,8 @@ const EventFormScreen = () => {
         return date;
     }
 
-    // Format Date to YYYY-MM-DD
-    function formatDateToString(date: Date): string {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
+    // Format Date to YYYY-MM-DD (local parts, pairing with fromLocalIsoDate above)
+    const formatDateToString = toLocalIsoDate;
 
     // Format time from Date object to HH:MM
     function formatTimeToString(date: Date): string {
