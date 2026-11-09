@@ -7,6 +7,7 @@ import {
 	isArtistSource,
 	isUuid,
 	listFavouriteArtists,
+	listFavouriteGenresForOwners,
 	MAX_FAVOURITE_ARTISTS,
 	mergeSearchResults,
 	searchTasteArtists,
@@ -352,5 +353,61 @@ describe('getProfileGenresForSession', () => {
 	it('is empty for a session without a user', async () => {
 		const { db } = fakeDb([['FROM clubfindr.user_sessions', () => []]]);
 		await expect(getProfileGenresForSession(db, OTHER_SESSION)).resolves.toEqual([]);
+	});
+});
+
+describe('listFavouriteGenresForOwners', () => {
+	const BAR_A = '00000000-0000-4000-8000-0000000000b1';
+	const BAR_B = '00000000-0000-4000-8000-0000000000b2';
+
+	it('collects each venue’s artists into one de-duplicated genre set, in one query', async () => {
+		const { db, calls } = fakeDb([
+			[
+				'FROM clubfindr.bar_favourite_artists f',
+				() => [
+					{ owner_id: BAR_A, genres: ['Deep House', 'minimal'] },
+					{ owner_id: BAR_A, genres: ['deep house', 'dub techno'] },
+					{ owner_id: BAR_B, genres: ['ambient'] }
+				]
+			]
+		]);
+
+		const byBar = await listFavouriteGenresForOwners(db, [BAR_A, BAR_B], 'bar');
+		expect(byBar.get(BAR_A)).toEqual(['deep house', 'minimal', 'dub techno']);
+		expect(byBar.get(BAR_B)).toEqual(['ambient']);
+		// One round trip however many venues are on the page
+		expect(calls).toHaveLength(1);
+		expect(calls[0].params).toEqual([[BAR_A, BAR_B]]);
+	});
+
+	it('leaves venues without artists out of the map', async () => {
+		const { db } = fakeDb([
+			['FROM clubfindr.bar_favourite_artists f', () => [{ owner_id: BAR_A, genres: ['techno'] }]]
+		]);
+		const byBar = await listFavouriteGenresForOwners(db, [BAR_A, BAR_B], 'bar');
+		expect(byBar.has(BAR_B)).toBe(false);
+		expect(byBar.size).toBe(1);
+	});
+
+	it('asks nothing when there is no usable id', async () => {
+		const { db, calls } = fakeDb([]);
+		await expect(listFavouriteGenresForOwners(db, [], 'bar')).resolves.toEqual(new Map());
+		await expect(listFavouriteGenresForOwners(db, ['not-a-uuid'], 'bar')).resolves.toEqual(
+			new Map()
+		);
+		expect(calls).toHaveLength(0);
+	});
+
+	it('de-duplicates the ids it is given', async () => {
+		const { db, calls } = fakeDb([['FROM clubfindr.bar_favourite_artists f', () => []]]);
+		await listFavouriteGenresForOwners(db, [BAR_A, BAR_A, BAR_B], 'bar');
+		expect(calls[0].params).toEqual([[BAR_A, BAR_B]]);
+	});
+
+	it('reads the user table for the user scope', async () => {
+		const { db, calls } = fakeDb([['FROM clubfindr.user_favourite_artists f', () => []]]);
+		await listFavouriteGenresForOwners(db, [USER], 'user');
+		expect(calls[0].text).toContain('clubfindr.user_favourite_artists');
+		expect(calls[0].text).toContain('f.user_id = ANY($1)');
 	});
 });

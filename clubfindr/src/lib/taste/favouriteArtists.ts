@@ -116,6 +116,42 @@ export async function listFavouriteArtists(
 	return { artists, genres: deriveProfileGenres(artists) };
 }
 
+/**
+ * The favourites' genres for several owners at once, as `ownerId -> genres`.
+ *
+ * Venue matching scores many venues in one page load, so it cannot call
+ * listFavouriteArtists per venue. Owners with no favourites are simply absent from the map.
+ */
+export async function listFavouriteGenresForOwners(
+	db: Queryable,
+	ownerIds: string[],
+	owner: FavouriteOwner = 'bar'
+): Promise<Map<string, string[]>> {
+	const genresByOwner = new Map<string, string[]>();
+	const ids = [...new Set(ownerIds.filter(isUuid))];
+	if (ids.length === 0) return genresByOwner;
+
+	const { table, column } = scope(owner);
+	const result = await db.query(
+		`SELECT f.${column} AS owner_id, a.genres
+		 FROM ${table} f
+		 JOIN clubfindr.taste_artists a ON a.id = f.artist_id
+		 WHERE f.${column} = ANY($1)`,
+		[ids]
+	);
+
+	for (const row of result.rows) {
+		const ownerId = String(row.owner_id);
+		const existing = genresByOwner.get(ownerId) ?? [];
+		genresByOwner.set(ownerId, existing.concat(normalizeGenres(row.genres)));
+	}
+	// De-duplicate across the owner's artists, keeping a stable order
+	for (const [ownerId, genres] of genresByOwner) {
+		genresByOwner.set(ownerId, [...new Set(genres)]);
+	}
+	return genresByOwner;
+}
+
 /** Catalogue artists whose name contains the query (case-insensitive), for offline search. */
 export async function searchTasteArtists(
 	db: Queryable,
