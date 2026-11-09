@@ -150,20 +150,32 @@ section 4), left open on purpose.
 
 ## Found during the section 1 work (November 2026)
 
-26. _Partly fixed._ **The mobile bar API let anyone change any venue.** Every write under
+26. _Fixed._ **The mobile bar API let anyone change any venue.** Every write under
     `/api/mobile/bars/[barId]` (create an event, edit the bar, create or delete a QR code,
     request a promotion) accepted any caller who knew the bar id. They now require that venue's
     session token or dashboard cookie (`$lib/server/barAuth`, `tests/mobile-bar-auth.spec.ts`);
-    the reads customers use for discovery stay public. Still open: `POST .../spotify-connect`
-    (left alone: after the in-app Spotify flow the stored token may be a user token, so a guard
-    could silently break the status update) and `GET .../stats` (public, decide whether
-    venue stats should be). Fixed alongside: the session check had two copies with different
-    rules (30-day sliding in `authUtils`, 7-day fixed in the venue taste code); there is one now,
-    and `/api/mobile/bars/login` writes the session row before returning its token, so the
-    app's first request can no longer be refused.
-27. **Editing an event in the app fails.** `EventFormScreen` sends
-    `PUT /api/mobile/bars/:barId/events/:eventId`, a route that does not exist (404); only
-    creating works. The web dashboard edits through `/api/bars/:barId/events/:eventId`.
+    the reads customers use for discovery stay public. Fixed alongside: the session check had
+    two copies with different rules (30-day sliding in `authUtils`, 7-day fixed in the venue
+    taste code); there is one now, and `/api/mobile/bars/login` writes the session row before
+    returning its token, so the app's first request can no longer be refused.
+    The last two, held back at the time, are closed as well:
+    `POST .../spotify-connect` (it let anyone overwrite a venue's stored Spotify tokens and read
+    its Spotify e-mail back; the worry was that the caller might no longer hold a venue session
+    by then, but `mobileSpotifyService` posts while the venue is logged in and the app sends its
+    token on every request) and `GET .../stats`. The latter also never worked: its tables were
+    not schema-qualified and it counted a `genre_matches` table that does not exist, so it
+    answered 500 to everyone — which is why the app reads `/api/mobile/bars/stats`, the
+    token-based route where that same count is commented out. Both are fixed.
+    `GET /api/mobile/bars/[barId]/stats` now duplicates `/api/mobile/bars/stats`; it could be
+    removed once nothing is known to call it.
+27. _Fixed._ **Editing an event in the app failed.** `EventFormScreen` sends
+    `PUT /api/mobile/bars/:barId/events/:eventId`, a route that did not exist (404), so only
+    creating worked; `BarHomeScreen` stubbed out deletion ("until proper endpoint is
+    available") for the same reason. The route exists now with `PUT` and `DELETE`, guarded like
+    the other writes, answering in the shape the app already expects and treating another
+    venue's event as a 404. The app also read the returned `event_date` with `new Date(...)`
+    (UTC midnight) and wrote it back from the local parts, which would have saved the previous
+    day west of UTC: `app_clubfindr/src/utils/localDate.ts` now parses it as a local day.
 28. **Venue registration checks the reCAPTCHA in the browser only.** `/register` calls
     `/api/verify-captcha` to unlock the form, but `POST /register` never verifies anything, so
     a script can register venues by posting to it directly.

@@ -63,8 +63,11 @@ Things to do by hand or decide, collected while building the items above.
       venues from `bar_genre_aggregates`, which `barfindr` fills by polling Spotify
 - [ ] Nudge existing users with fewer than 3 favourite artists towards `/onboarding`; only new
       accounts are sent there
-- [ ] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the
-      missing event edit route
+- [x] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the
+      missing event edit route. All three done (2026-11-09): the event route exists with `PUT`
+      and `DELETE`, both remaining endpoints are behind `denyUnlessBarManager`, and `stats` also
+      had to be repaired (unqualified tables, a `genre_matches` table that does not exist) since
+      it had been answering 500 to everyone
 - [ ] Verify the reCAPTCHA on the server for `/register` (KNOWN_ISSUES 28)
 - [ ] Fix `app_clubfindr` type checking, add a test runner and make its CI able to fail
       (KNOWN_ISSUES 29). The app's new artist picker is type-checked and its production
