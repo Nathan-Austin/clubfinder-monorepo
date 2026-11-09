@@ -2,13 +2,19 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pool as db } from '$lib/db';
+import { toLocalIsoDate } from '$lib/localDate';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
 	try {
 		const barId = params.barId;
 
-		// Get today's date in YYYY-MM-DD format
-		const today = new Date().toISOString().split('T')[0];
+		// The venue's own calendar date if the caller sends one (?date=YYYY-MM-DD), else the
+		// server's local day. The UTC day used to be counted as "today", so after 22:00/23:00
+		// local the counter jumped to tomorrow and showed no visitors (KNOWN_ISSUES 17).
+		const requestedDate = url.searchParams.get('date');
+		const today = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate ?? '')
+			? (requestedDate as string)
+			: toLocalIsoDate();
 
 		// Get start and end of current week
 		const now = new Date();

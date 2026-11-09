@@ -5,6 +5,7 @@ import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
+import { toLocalIsoDate } from '$lib/localDate';
 
 // Helper functions for genre matching
 const normalizeGenre = (genre: string): string => {
@@ -326,8 +327,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		const normalizedCity = normalizeCityName(city);
-		const today = new Date().toISOString().split('T')[0];
-		const date = requestedDate || today;
+		// The app should send its own calendar date; without one, fall back to the server's local
+		// day rather than the UTC one, which is already tomorrow here late in the evening
+		// (KNOWN_ISSUES 17)
+		const date = requestedDate || toLocalIsoDate();
 
 		// Expand any genre group names to their individual genres
 		// e.g., "Reggaeton and Dembow" -> ["Reggaeton", "Dembow", "Trap Latino", ...]

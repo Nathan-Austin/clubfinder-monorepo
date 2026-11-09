@@ -4,13 +4,16 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { query } from '$lib/db';
 import { geocodeAddress } from '$lib/geocoding'; // You'll need to implement this
+import { toLocalIsoDate } from '$lib/localDate';
 
 // Keep the existing GET handler for web usage
 export const GET: RequestHandler = async ({ url }) => {
 	try {
 		// Extract parameters from query
 		const city = url.searchParams.get('city')?.toLowerCase();
-		const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+		// The caller should send its own calendar date; without one, fall back to the server's
+		// local day rather than the UTC one (KNOWN_ISSUES 17)
+		const date = url.searchParams.get('date') || toLocalIsoDate();
 		const nearby = url.searchParams.get('nearby') === 'true';
 
 		if (!city) {
@@ -131,7 +134,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const data = await request.json();
 		console.log('Request data received:', data);
 
-		const { city, date = new Date().toISOString().split('T')[0], nearby } = data;
+		const { city, date = toLocalIsoDate(), nearby } = data;
 		console.log('Parsed parameters:', { city, date, nearby });
 		// Basic validation
 		if (!city) {
