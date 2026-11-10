@@ -79,6 +79,20 @@ describe('isGenreMatch', () => {
 
 	it('allows small typos via fuzzy matching', () => {
 		expect(isGenreMatch('techno', 'tekno')).toBe(true);
+		expect(isGenreMatch('deep house', 'deep hause')).toBe(true);
+	});
+
+	it('does not treat a different word as a typo', () => {
+		// The fuzzy pass is for slips of the keyboard, not for guessing at meaning: each of these
+		// is one edit or one word from the other and a different kind of music (KNOWN_ISSUES 18).
+		expect(isGenreMatch('funk', 'punk')).toBe(false);
+		expect(isGenreMatch('hip hop', 'trip hop')).toBe(false);
+		expect(isGenreMatch('dnb', 'dub')).toBe(false);
+		expect(isGenreMatch('edm', 'idm')).toBe(false);
+	});
+
+	it('treats a hyphen as a word separator', () => {
+		expect(isGenreMatch('hip-hop', 'hip hop')).toBe(true);
 	});
 });
 
