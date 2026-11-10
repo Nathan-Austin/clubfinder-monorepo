@@ -336,6 +336,32 @@ export function findWeightedClusters(profile: Record<string, number>): ClusterEn
 }
 
 /**
+ * Scales a profile so its strongest genre weighs 1. Combining sources needs this first: a
+ * venue's rolling profile holds play counts that dwarf the fixed weights other sources add
+ * (an event's genres, the venue's declared artists), so without it a year of polling drowns
+ * out tonight's line-up no matter what weight the line-up is given.
+ */
+export function scaleProfileToUnit(profile: Record<string, number>): Record<string, number> {
+	let maxWeight = 0;
+	for (const weight of Object.values(profile)) {
+		if (Number.isFinite(weight) && weight > maxWeight) {
+			maxWeight = weight;
+		}
+	}
+	if (maxWeight <= 0) {
+		// Nothing usable to scale by: every named genre counts fully.
+		return Object.fromEntries(Object.keys(profile).map((genre) => [genre, 1]));
+	}
+
+	return Object.fromEntries(
+		Object.entries(profile).map(([genre, weight]) => [
+			genre,
+			Number.isFinite(weight) && weight > 0 ? weight / maxWeight : 0
+		])
+	);
+}
+
+/**
  * Runs a caller's genre expansion (group names → members, compound genres → parts) over a
  * weighted profile, each expanded genre inheriting the weight of the genre it came from — the
  * best weight, when two sources expand to the same genre. Keeps expansion, which is caller

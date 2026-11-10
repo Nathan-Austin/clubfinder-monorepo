@@ -14,6 +14,7 @@ import {
 	findClusters,
 	findWeightedClusters,
 	normalizeGenre,
+	scaleProfileToUnit,
 	shouldIgnoreGenre
 } from '$lib/server/genreMatching';
 
@@ -93,11 +94,20 @@ function combineGenreProfiles(
 }
 
 /**
- * What a venue says it plays, through the artist picker on its dashboard
- * (clubfindr.bar_favourite_artists). A standing statement rather than one night's line-up, so
- * it is weighted like the venue's own rolling profile rather than like an event.
+ * What is actually on tonight beats any standing description of the venue, so an event's
+ * genres carry the full weight of the profile's strongest genre (the rolling profile is scaled
+ * to a unit maximum before anything is combined with it).
  */
-const VENUE_ARTIST_GENRE_WEIGHT = 1;
+const EVENT_GENRE_WEIGHT = 1;
+
+/**
+ * What a venue says it plays, through the artist picker on its dashboard
+ * (clubfindr.bar_favourite_artists). A standing statement: on a day the venue has an event with
+ * genres, the line-up speaks for the night and the self-description is a whisper beside it; on
+ * a day without one it is the best information there is and counts fully.
+ */
+const VENUE_ARTIST_GENRE_WEIGHT_WITH_EVENT = 0.25;
+const VENUE_ARTIST_GENRE_WEIGHT_WITHOUT_EVENT = 1;
 
 // Function to expand subsubgenre group names to their individual genres
 const expandGenreGroups = (genres: string[]): string[] => {
@@ -263,28 +273,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			barsMap.set(bar.id, {
 				...bar,
 				events: [],
-				rolling_genre_profile: bar.rolling_genre_profile || {}
+				hasEventGenres: false,
+				// Play counts, scaled so the strongest genre weighs 1 and the fixed weights of the
+				// other sources below mean something next to them
+				rolling_genre_profile: scaleProfileToUnit(bar.rolling_genre_profile || {})
 			});
 		});
 
 		console.log(`Found ${barsResult.rows.length} total bars in ${normalizedCity}`);
-
-		// Fold in the artists each venue says it plays, so a venue that never connected Spotify
-		// (and so has no bar_genre_profiles row) can still match on its own description of itself
-		const venueArtistGenres = await listFavouriteGenresForOwners(
-			pool,
-			Array.from(barsMap.keys()),
-			'bar'
-		);
-		venueArtistGenres.forEach((venueGenres, barId) => {
-			const bar = barsMap.get(barId);
-			if (!bar || venueGenres.length === 0) return;
-			bar.rolling_genre_profile = combineGenreProfiles(
-				bar.rolling_genre_profile,
-				venueGenres,
-				VENUE_ARTIST_GENRE_WEIGHT
-			);
-		});
 
 		// Get events for the requested date
 		const eventsQuery = `
@@ -333,17 +329,41 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						// Add event to the bar
 						bar.events.push(event);
 
-						// Combine event genres with bar profile if event has special genres
+						// Combine event genres with bar profile if event has special genres; what is
+						// on tonight beats the standing profile
 						if (event.special_genres && event.special_genres.length > 0) {
 							bar.rolling_genre_profile = combineGenreProfiles(
 								bar.rolling_genre_profile,
-								event.special_genres
+								event.special_genres,
+								EVENT_GENRE_WEIGHT
 							);
+							bar.hasEventGenres = true;
 						}
 					}
 				}
 			);
 		}
+
+		// Fold in the artists each venue says it plays, so a venue that never connected Spotify
+		// (and so has no bar_genre_profiles row) can still match on its own description of itself.
+		// After the events above because the weight depends on them: a venue with an event tonight
+		// is described by its line-up, not its self-description.
+		const venueArtistGenres = await listFavouriteGenresForOwners(
+			pool,
+			Array.from(barsMap.keys()),
+			'bar'
+		);
+		venueArtistGenres.forEach((venueGenres, barId) => {
+			const bar = barsMap.get(barId);
+			if (!bar || venueGenres.length === 0) return;
+			bar.rolling_genre_profile = combineGenreProfiles(
+				bar.rolling_genre_profile,
+				venueGenres,
+				bar.hasEventGenres
+					? VENUE_ARTIST_GENRE_WEIGHT_WITH_EVENT
+					: VENUE_ARTIST_GENRE_WEIGHT_WITHOUT_EVENT
+			);
+		});
 
 		const bars = Array.from(barsMap.values());
 
@@ -376,9 +396,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// Calculate similarity for each bar
 		const matchingBars = bars.map((bar) => {
-			// Process bar genres including event genres
-			// The profile is a genre -> weight map; the matcher takes the genres it names
-			const venueClusters = findClusters(Object.keys(bar.rolling_genre_profile ?? {}));
+			// Process bar genres including event genres. The profile is a genre -> weight map and
+			// the weights now count: the strongest genre weighs 1, the rest their share of it
+			// (KNOWN_ISSUES 32)
+			const venueClusters = findWeightedClusters(bar.rolling_genre_profile ?? {});
 
 			// Log genre matching details
 			console.log(`Bar ${bar.name}:`);

@@ -7,7 +7,8 @@ import {
 	calculateClusterSimilarity,
 	expandWeightedProfile,
 	findClusters,
-	findWeightedClusters
+	findWeightedClusters,
+	scaleProfileToUnit
 } from './genreMatching';
 
 vi.mock('node:fs', () => {
@@ -292,6 +293,29 @@ describe('weighted profiles (KNOWN_ISSUES 32)', () => {
 		const before = findClusters(['techno', 'salsa']).map((e) => e.weight);
 		findWeightedClusters({ techno: 10, salsa: 1 });
 		expect(findClusters(['techno', 'salsa']).map((e) => e.weight)).toEqual(before);
+	});
+
+	it('scales a profile of play counts so the strongest genre weighs 1', () => {
+		expect(scaleProfileToUnit({ techno: 500, salsa: 125, pop: -3 })).toEqual({
+			techno: 1,
+			salsa: 0.25,
+			pop: 0
+		});
+	});
+
+	it('scales a profile with no usable weight to every genre counting fully', () => {
+		expect(scaleProfileToUnit({ techno: 0, salsa: NaN })).toEqual({ techno: 1, salsa: 1 });
+	});
+
+	it('lets a fixed event weight stand beside a scaled rolling profile', () => {
+		// The point of scaling before combining: a venue polled into the hundreds would otherwise
+		// drown out an event's +1 however the event was weighted.
+		const scaled = scaleProfileToUnit({ techno: 480, salsa: 20 });
+		const withEvent = { ...scaled, 'afro house': (scaled['afro house'] ?? 0) + 1 };
+		const user = findClusters(['afro house']);
+		const { similarity } = calculateClusterSimilarity(user, findWeightedClusters(withEvent));
+		// Afro house (1) next to techno (1) and salsa (~0.04): tonight's genre carries fully.
+		expect(similarity).toBeGreaterThan(0.45);
 	});
 
 	it('carries weights through a caller expansion, children inheriting their source', () => {
