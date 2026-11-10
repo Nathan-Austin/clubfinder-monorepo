@@ -30,20 +30,87 @@ function homeOf(genre: string) {
 
 describe('umbrella genres', () => {
 	// These are the tags the providers return most often, and every one of them used to be
-	// guessed at or dropped.
+	// guessed at or dropped. Each resolves to its whole family at full weight.
 	it.each([
-		['house', 'Electronic/Dance (EDM)', 'Classic House'],
-		['trance', 'Electronic/Dance (EDM)', 'Trance Variants'],
-		['edm', 'Electronic/Dance (EDM)', 'Modern House'],
-		['hip hop', 'Hip-Hop/Rap', 'East Coast, West Coast, and Midwest'],
-		['rock', 'Rock Music', 'Classic Rock'],
-		['metal', 'Rock Music', 'Heavy Metal'],
-		['reggae', 'Reggae and Roots', 'Roots Reggae Foundations'],
-		['blues', 'Blues', 'Post-War Blues'],
-		['country', 'Country', 'Traditional and Classic Country'],
-		['latin', 'Latin/Latino Music', 'Classic Latin']
-	])('places %s in %s / %s at full weight', (genre, cluster, subCluster) => {
-		expect(homeOf(genre)).toEqual({ cluster, subCluster, weight: 1.0 });
+		['house', 'Electronic/Dance (EDM)', 4],
+		['techno', 'Electronic/Dance (EDM)', 3],
+		['trance', 'Electronic/Dance (EDM)', 1],
+		['edm', 'Electronic/Dance (EDM)', 1],
+		['hip hop', 'Hip-Hop/Rap', 7],
+		['rock', 'Rock Music', 6],
+		['metal', 'Rock Music', 2],
+		['reggae', 'Reggae and Roots', 4],
+		['blues', 'Blues', 4],
+		['country', 'Country', 6],
+		['latin', 'Latin/Latino Music', 24]
+	])('reads %s as its %s family (%i sub-clusters) at full weight', (genre, cluster, size) => {
+		const [entry] = findClusters([genre as string]);
+		expect(entry.cluster).toBe(cluster);
+		expect(entry.weight).toBe(1.0);
+		expect(entry.familySubClusters).toHaveLength(size as number);
+	});
+
+	it('matches an umbrella fully against any one member of its family', () => {
+		// The family must not inflate the denominator: a "house" user at a pure acid-house venue
+		// is wholly satisfied, whichever of the four house sub-clusters the venue is in.
+		for (const venueGenre of ['acid house', 'progressive house', 'amapiano', 'tech house']) {
+			const { similarity } = calculateClusterSimilarity(
+				findClusters(['house']),
+				findClusters([venueGenre])
+			);
+			expect(similarity).toBe(1);
+		}
+	});
+
+	it('absorbs a venue that plays the whole family', () => {
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['house']),
+			findClusters(['acid house', 'big room house', 'amapiano', 'deep house'])
+		);
+		expect(similarity).toBe(1);
+	});
+
+	it('matches the same umbrella on both sides', () => {
+		const { similarity, matchingGenres } = calculateClusterSimilarity(
+			findClusters(['house']),
+			findClusters(['house'])
+		);
+		expect(similarity).toBe(1);
+		expect(matchingGenres).toEqual(['house']);
+	});
+
+	it('works the other way round: a specific user at a venue that just says "house"', () => {
+		const { similarity, matchingGenres } = calculateClusterSimilarity(
+			findClusters(['deep house']),
+			findClusters(['house'])
+		);
+		expect(similarity).toBe(1);
+		expect(matchingGenres).toEqual(['deep house']);
+	});
+
+	it('does not reach outside its family', () => {
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['house']),
+			findClusters(['salsa'])
+		);
+		expect(similarity).toBe(0);
+	});
+
+	it('keeps an unmatched umbrella counting against the score', () => {
+		// A user who wants house and techno at a venue that only covers house.
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['house', 'techno']),
+			findClusters(['acid house'])
+		);
+		expect(similarity).toBe(0.5);
+	});
+
+	it('does not score past 1 when an umbrella and a member overlap on one side', () => {
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['house', 'deep house']),
+			findClusters(['house'])
+		);
+		expect(similarity).toBe(1);
 	});
 });
 

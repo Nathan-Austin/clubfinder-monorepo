@@ -134,44 +134,174 @@ export const GENRE_ALIASES: Record<string, string> = {
 	'singer songwriter': 'singer-songwriter'
 };
 
+export type UmbrellaFamily = {
+	cluster: string;
+	/** Every sub-cluster the umbrella covers. One entry makes it behave like a plain home. */
+	subClusters: string[];
+};
+
 /**
- * Broad genres that are not leaves of `genreClusters.json`, and the sub-cluster each should
- * count as. These are the most common tags the providers return, so getting them to a plausible
- * cluster matters more than getting them to a perfect one.
+ * Broad genres and the *family* of sub-clusters each one covers. These are the most common tags
+ * the providers return: "house" means house, not one kind of house, so it matches a venue in any
+ * of the four house sub-clusters (KNOWN_ISSUES 18, umbrella breadth).
  *
- * An umbrella necessarily loses detail: "house" is placed in Classic House, so a user who says
- * "house" matches venues tagged house, deep house, acid house or disco house, but not the
- * Modern House or Cultural House sub-clusters. Spreading an umbrella across every sub-cluster of
- * its family needs the scoring change tracked in KNOWN_ISSUES 32 — otherwise the extra clusters
- * inflate the similarity denominator and a user who names only umbrellas scores worse than one
- * who names specifics.
+ * The matcher scores a family by what it actually matched — an umbrella counts in the
+ * similarity denominator for the amount it matched on the other side, never less than its own
+ * weight — so naming "house" against a pure acid-house venue still scores 1, and spreading a
+ * family wide carries no penalty for either side (see calculateClusterSimilarity).
+ *
+ * A key here takes precedence over a leaf of the same name on purpose: "techno" the leaf lives
+ * in Minimal and Techno, but a person who says techno means the whole family. The leaf stays in
+ * genreClusters.json as a fuzzy target for typos, and the validation test requires the leaf's
+ * own home to be one of the family members so the two never point apart.
  */
-export const UMBRELLA_HOMES: Record<string, ClusterHome> = {
+export const UMBRELLA_FAMILIES: Record<string, UmbrellaFamily> = {
 	// Electronic.
-	house: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Classic House' },
-	trance: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Trance Variants' },
-	edm: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Modern House' },
-	bass: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Dubstep and Bass' },
+	house: {
+		cluster: 'Electronic/Dance (EDM)',
+		subClusters: ['Classic House', 'Modern House', 'Cultural House', 'Deep/Tech House']
+	},
+	techno: {
+		cluster: 'Electronic/Dance (EDM)',
+		subClusters: ['Minimal and Techno', 'Dark and Industrial Techno', 'Regional Techno Styles']
+	},
+	trance: { cluster: 'Electronic/Dance (EDM)', subClusters: ['Trance Variants'] },
+	edm: { cluster: 'Electronic/Dance (EDM)', subClusters: ['Modern House'] },
+	bass: {
+		cluster: 'Electronic/Dance (EDM)',
+		subClusters: ['Dubstep and Bass', 'Future Bass and Beats', 'Experimental Bass']
+	},
 
-	// Rock family. "Rock Music" is the one rock cluster since 2026-11-10; "Alternative Rock and
-	// Punk" covered the same ground and was folded into it.
-	rock: { cluster: 'Rock Music', subCluster: 'Classic Rock' },
-	metal: { cluster: 'Rock Music', subCluster: 'Heavy Metal' },
-	indie: { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	goth: { cluster: 'Rock Music', subCluster: 'Gothic and Wave' },
-	// "Indie Pop" names a cluster rather than a style, so it is an umbrella and not a leaf.
-	'indie pop': { cluster: 'Indie Pop', subCluster: 'Dream Pop and Bedroom Pop' },
+	// Rock family. "Rock Music" is the one rock cluster since 2026-11-10. "rock" covers the
+	// rock-proper sub-clusters; metal, punk and goth have umbrellas of their own.
+	rock: {
+		cluster: 'Rock Music',
+		subClusters: [
+			'Early Rock and Roll',
+			'Classic Rock',
+			'Art and Progressive',
+			'Alternative Rock',
+			'Contemporary Rock',
+			'Experimental and Post-Rock'
+		]
+	},
+	metal: { cluster: 'Rock Music', subClusters: ['Heavy Metal', 'Modern Hard and Heavy'] },
+	punk: { cluster: 'Rock Music', subClusters: ['Punk and Hardcore'] },
+	indie: { cluster: 'Rock Music', subClusters: ['Alternative Rock'] },
+	goth: { cluster: 'Rock Music', subClusters: ['Gothic and Wave'] },
+	// "Indie Pop" names a cluster rather than a style.
+	'indie pop': {
+		cluster: 'Indie Pop',
+		subClusters: [
+			'Dream Pop and Bedroom Pop',
+			'Indie Folk Pop',
+			'Synth-Based Indie Pop',
+			'Lo-Fi Indie Pop',
+			'Chamber Pop'
+		]
+	},
 
-	// Hip hop.
-	'hip hop': { cluster: 'Hip-Hop/Rap', subCluster: 'East Coast, West Coast, and Midwest' },
+	// Hip hop: the whole cluster.
+	'hip hop': {
+		cluster: 'Hip-Hop/Rap',
+		subClusters: [
+			'East Coast, West Coast, and Midwest',
+			'Modern Trap and Drill',
+			'Cloud Rap and SoundCloud Rap',
+			'Abstract/Experimental Hip-Hop',
+			'Pop Rap and Melodic Rap',
+			'Alternative and Conscious',
+			'Latin and Regional Variants'
+		]
+	},
 
 	// Roots.
-	reggae: { cluster: 'Reggae and Roots', subCluster: 'Roots Reggae Foundations' },
-	soca: { cluster: 'Reggae and Roots', subCluster: 'Caribbean Roots Music' },
-	blues: { cluster: 'Blues', subCluster: 'Post-War Blues' },
-	country: { cluster: 'Country', subCluster: 'Traditional and Classic Country' },
-	latin: { cluster: 'Latin/Latino Music', subCluster: 'Classic Latin' },
-	world: { cluster: 'Electronic Folk Fusion', subCluster: 'World Music Fusion' }
+	reggae: {
+		cluster: 'Reggae and Roots',
+		subClusters: [
+			'Roots Reggae Foundations',
+			'Reggae Fusion and Modern Variations',
+			'Rhythmic Transformations',
+			'Cultural and Regional Reggae'
+		]
+	},
+	soca: { cluster: 'Reggae and Roots', subClusters: ['Caribbean Roots Music'] },
+	blues: {
+		cluster: 'Blues',
+		subClusters: [
+			'Pre-War Blues',
+			'Post-War Blues',
+			'Contemporary Blues',
+			'Regional and Specialty Blues'
+		]
+	},
+	country: {
+		cluster: 'Country',
+		subClusters: [
+			'Traditional and Classic Country',
+			'Progressive Country',
+			'Modern Commercial Country',
+			'Country Trap/Hick Hop',
+			'Alt-Country and Insurgent Country',
+			'Bluegrass and Related'
+		]
+	},
+	world: {
+		cluster: 'Electronic Folk Fusion',
+		subClusters: ['World Music Fusion', 'Traditional-Electronic Fusion']
+	},
+
+	// Latin: the whole cluster. A person who says "latin" is open to all of it.
+	latin: {
+		cluster: 'Latin/Latino Music',
+		subClusters: [
+			'Classic Latin',
+			'Mariachi and Traditional Mexican',
+			'Andean and South American Folk',
+			'Banda and Sinaloan Styles',
+			'Norteño and Conjunto',
+			'Corridos and Narrative',
+			'Duranguense and Contemporary Regional',
+			'Salsa Styles',
+			'Bachata Variations',
+			'Merengue and Dominican Styles',
+			'Cumbia Variants',
+			'Other Tropical Styles',
+			'Reggaeton',
+			'Trap Latino and Urban',
+			'Dembow and Caribbean Urban',
+			'Urbano Latino Fusion',
+			'Latin Pop',
+			'Rock en Español',
+			'Alternative and Indie Latino',
+			'Electronic Cumbia and Tropical',
+			'Latin House and Club',
+			'Experimental Latin Electronic',
+			'Latin Jazz',
+			'Afro-Latin Rhythms'
+		]
+	},
+
+	// The 2026-11-10 clusters: their generic names are also leaves, kept as fuzzy targets, but a
+	// person naming the genre means the family.
+	pop: {
+		cluster: 'Pop',
+		subClusters: ['Mainstream Pop', 'Electronic Pop', 'Global Pop', 'European Pop']
+	},
+	jazz: {
+		cluster: 'Jazz',
+		subClusters: [
+			'Traditional Jazz',
+			'Bebop and Modern Jazz',
+			'Free and Spiritual Jazz',
+			'Contemporary Jazz'
+		]
+	},
+	soul: { cluster: 'Soul, Funk and Disco', subClusters: ['Classic Soul', 'Contemporary R&B'] },
+	classical: {
+		cluster: 'Classical',
+		subClusters: ['Orchestral and Chamber', 'Modern Classical']
+	}
 };
 
 /**

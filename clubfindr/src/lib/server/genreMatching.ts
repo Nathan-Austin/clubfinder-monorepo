@@ -38,7 +38,7 @@
 import {
 	CANONICAL_HOMES,
 	NO_HOME_GENRE_SET,
-	UMBRELLA_HOMES,
+	UMBRELLA_FAMILIES,
 	UNSCORED_GENRE_SET,
 	resolveAlias
 } from '$lib/data/genreAliases';
@@ -50,8 +50,15 @@ import path from 'node:path';
 export type ClusterEntry = {
 	genre: string;
 	cluster: string;
+	/** For an umbrella family this is the first member, kept for display; scoring uses the family. */
 	subCluster: string;
 	weight: number;
+	/**
+	 * Set for an umbrella genre ("house", "jazz"): every sub-cluster the genre covers. Scoring
+	 * matches such an entry against any of its members on the other side instead of one fixed
+	 * sub-cluster (see calculateClusterSimilarity).
+	 */
+	familySubClusters?: string[];
 };
 
 type ClusterIndexEntry = {
@@ -246,28 +253,40 @@ export function findClusters(genres: string[]): ClusterEntry[] {
 			});
 		};
 
-		// 1. An exact leaf of genreClusters.json.
+		const pushFamily = (family: { cluster: string; subClusters: string[] }) => {
+			clusters.push({
+				genre,
+				cluster: family.cluster,
+				subCluster: family.subClusters[0],
+				weight: EXACT_MATCH_WEIGHT,
+				familySubClusters: [...family.subClusters]
+			});
+		};
+
+		// 1. An umbrella family. Deliberately before the leaf lookup: "techno" is also a leaf of
+		//    Minimal and Techno, but a person who says techno means the whole family; the leaf
+		//    stays as a target for typos and for the other leaves' company.
+		const aliased = resolveAlias(normalizedGenre);
+		const family = UMBRELLA_FAMILIES[normalizedGenre] ?? UMBRELLA_FAMILIES[aliased];
+		if (family) {
+			pushFamily(family);
+			return;
+		}
+
+		// 2. An exact leaf of genreClusters.json.
 		const exactEntries = genreToClusterIndex.get(normalizedGenre);
 		if (exactEntries && exactEntries.length > 0) {
 			push(pickHome(normalizedGenre, exactEntries), EXACT_MATCH_WEIGHT);
 			return;
 		}
 
-		// 2. A spelling variant or synonym of one.
-		const aliased = resolveAlias(normalizedGenre);
+		// 3. A spelling variant or synonym of one.
 		if (aliased !== normalizedGenre) {
 			const aliasedEntries = genreToClusterIndex.get(aliased);
 			if (aliasedEntries && aliasedEntries.length > 0) {
 				push(pickHome(aliased, aliasedEntries), EXACT_MATCH_WEIGHT);
 				return;
 			}
-		}
-
-		// 3. A broad term that names a sub-cluster rather than a leaf.
-		const umbrella = UMBRELLA_HOMES[aliased];
-		if (umbrella) {
-			push({ cluster: umbrella.cluster, subCluster: umbrella.subCluster }, EXACT_MATCH_WEIGHT);
-			return;
 		}
 
 		// 4. Nowhere to put it, or too broad to mean anything. Guessing here is worse than
@@ -387,27 +406,109 @@ export function expandWeightedProfile(
 const UNCATEGORIZED_CLUSTER_ID = makeClusterId('Uncategorized', 'Other');
 
 /**
- * A side's clusters and their weights. Entries in the same cluster add up, capped at 1 — two
- * deep-house genres make the venue more of a Deep/Tech House venue, not twice one — and
- * Uncategorized is dropped: unknown genres carry no information (see above).
+ * A side's clusters and umbrella families, each with its aggregated weight. Entries in the same
+ * cluster (or family) add up, capped at 1 — two deep-house genres make the venue more of a
+ * Deep/Tech House venue, not twice one — and Uncategorized is dropped: unknown genres carry no
+ * information (see above).
  */
-function aggregateClusterWeights(entries: ClusterEntry[]): Map<string, number> {
-	const weights = new Map<string, number>();
+type SideAggregate = {
+	subs: Map<string, number>;
+	families: Map<string, { weight: number; memberIds: string[] }>;
+};
+
+function aggregateSide(entries: ClusterEntry[]): SideAggregate {
+	const subs = new Map<string, number>();
+	const families = new Map<string, { weight: number; memberIds: string[] }>();
 
 	for (const entry of entries) {
+		if (entry.familySubClusters && entry.familySubClusters.length > 0) {
+			const memberIds = entry.familySubClusters
+				.map((subCluster) => makeClusterId(entry.cluster, subCluster))
+				.sort();
+			const familyId = JSON.stringify(memberIds);
+			const existing = families.get(familyId);
+			if (existing) {
+				existing.weight = Math.min(1, existing.weight + entry.weight);
+			} else {
+				families.set(familyId, { weight: Math.min(1, entry.weight), memberIds });
+			}
+			continue;
+		}
+
 		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
 		if (clusterId === UNCATEGORIZED_CLUSTER_ID) continue;
-		weights.set(clusterId, Math.min(1, (weights.get(clusterId) ?? 0) + entry.weight));
+		subs.set(clusterId, Math.min(1, (subs.get(clusterId) ?? 0) + entry.weight));
 	}
 
-	return weights;
+	return { subs, families };
+}
+
+/**
+ * What one side's umbrella families matched on the other side.
+ *
+ * A family matches the other side's weight in any of its member sub-clusters, and the other
+ * side's identical family. Two rules keep the sums honest:
+ *
+ *   - a member the family's own side also names directly is skipped — that overlap was already
+ *     counted sub-cluster against sub-cluster;
+ *   - a matched sub-cluster is consumed, so two overlapping families on one side ("rock" and
+ *     "indie") cannot both claim the same Alternative Rock weight. Families are visited in
+ *     sorted order so the winner is deterministic.
+ *
+ * In the denominator a family counts for what it matched, never less than its own weight
+ * (`max(weight, matched)`). That is the point of families: naming "house" against a pure
+ * acid-house venue scores 1 — the umbrella is wholly satisfied — while against a venue playing
+ * every kind of house the family absorbs all of it instead of capping the match at 1 and
+ * leaving three house sub-clusters to count as unmatched.
+ */
+function matchFamilies(
+	side: SideAggregate,
+	other: SideAggregate,
+	consumedOther: Set<string>,
+	matchedFamilyIds: Set<string>,
+	countFamilyPairs: boolean
+): { matched: number; denominator: number } {
+	let matched = 0;
+	let denominator = 0;
+
+	for (const familyId of [...side.families.keys()].sort()) {
+		const family = side.families.get(familyId)!;
+		let memberMatched = 0;
+
+		for (const memberId of family.memberIds) {
+			if (side.subs.has(memberId)) continue; // already counted sub against sub
+			if (consumedOther.has(memberId)) continue;
+			const otherWeight = other.subs.get(memberId);
+			if (otherWeight === undefined) continue;
+			memberMatched += Math.min(family.weight, otherWeight);
+			consumedOther.add(memberId);
+		}
+
+		// The same umbrella on both sides matches directly. It reaches the score once (the first
+		// pass), but it belongs in BOTH families' denominators: a family's denominator must cover
+		// everything it matched, or a side matching through members and the pair at once would
+		// push the score past 1.
+		let pairMatch = 0;
+		const otherFamily = other.families.get(familyId);
+		if (otherFamily) {
+			pairMatch = Math.min(family.weight, otherFamily.weight);
+			if (pairMatch > 0) matchedFamilyIds.add(familyId);
+		}
+
+		matched += memberMatched + (countFamilyPairs ? pairMatch : 0);
+		denominator += Math.max(family.weight, memberMatched + pairMatch);
+		if (memberMatched > 0) matchedFamilyIds.add(familyId);
+	}
+
+	return { matched, denominator };
 }
 
 /**
  * Weighted Jaccard overlap of two cluster sets, and the caller's genres that matched.
  *
  * Each side's entries are aggregated per cluster (summed, capped at 1), Uncategorized is
- * dropped from both, and the score is the shared weight over the combined weight. Equal sets of
+ * dropped from both, umbrella families match any of their member sub-clusters (see
+ * matchFamilies), and the score is the shared weight over the combined weight. Equal sets of
  * exact matches score 1; no shared cluster scores 0. Through findWeightedClusters the entry
  * weights carry how much of each genre a side plays, so a venue that played one track of
  * afrobeats no longer ranks beside one whose every set is afrobeats (KNOWN_ISSUES 32).
@@ -416,36 +517,59 @@ export function calculateClusterSimilarity(
 	userClusters: ClusterEntry[],
 	clubClusters: ClusterEntry[]
 ): { similarity: number; matchingGenres: string[] } {
-	const userClusterWeights = aggregateClusterWeights(userClusters);
-	const clubClusterWeights = aggregateClusterWeights(clubClusters);
+	const user = aggregateSide(userClusters);
+	const club = aggregateSide(clubClusters);
 
 	let userWeightedSum = 0;
-	for (const weight of userClusterWeights.values()) {
+	for (const weight of user.subs.values()) {
 		userWeightedSum += weight;
 	}
 
 	let clubWeightedSum = 0;
-	for (const weight of clubClusterWeights.values()) {
+	for (const weight of club.subs.values()) {
 		clubWeightedSum += weight;
 	}
 
 	const matchingClusterIds = new Set<string>();
 	let matchingWeightedSum = 0;
-	for (const [clusterId, userWeight] of userClusterWeights) {
-		const clubWeight = clubClusterWeights.get(clusterId);
+	for (const [clusterId, userWeight] of user.subs) {
+		const clubWeight = club.subs.get(clusterId);
 		if (clubWeight !== undefined) {
 			matchingClusterIds.add(clusterId);
 			matchingWeightedSum += Math.min(userWeight, clubWeight);
 		}
 	}
 
-	const denominator = userWeightedSum + clubWeightedSum - matchingWeightedSum;
-	const similarityScore = denominator === 0 ? 0 : matchingWeightedSum / denominator;
+	// Family matches. Sub-clusters a family absorbs are consumed per side, and a family pair
+	// present on both sides is scored once (countFamilyPairs on the first pass only).
+	const matchedFamilyIds = new Set<string>();
+	const consumedClub = new Set<string>();
+	const consumedUser = new Set<string>();
+	const userFamilies = matchFamilies(user, club, consumedClub, matchedFamilyIds, true);
+	const clubFamilies = matchFamilies(club, user, consumedUser, matchedFamilyIds, false);
+
+	const totalMatch = matchingWeightedSum + userFamilies.matched + clubFamilies.matched;
+	const denominator =
+		userWeightedSum +
+		userFamilies.denominator +
+		clubWeightedSum +
+		clubFamilies.denominator -
+		totalMatch;
+	const similarityScore = denominator === 0 ? 0 : totalMatch / denominator;
 
 	const matchingGenres = [
 		...new Set(
 			userClusters
-				.filter((uc) => matchingClusterIds.has(makeClusterId(uc.cluster, uc.subCluster)))
+				.filter((uc) => {
+					if (uc.familySubClusters && uc.familySubClusters.length > 0) {
+						const familyId = JSON.stringify(
+							uc.familySubClusters.map((sc) => makeClusterId(uc.cluster, sc)).sort()
+						);
+						return matchedFamilyIds.has(familyId);
+					}
+					const clusterId = makeClusterId(uc.cluster, uc.subCluster);
+					return matchingClusterIds.has(clusterId) || consumedUser.has(clusterId);
+				})
 				.map((uc) => uc.genre)
 		)
 	];

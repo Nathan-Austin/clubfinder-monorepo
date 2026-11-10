@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	CANONICAL_HOMES,
 	GENRE_ALIASES,
-	UMBRELLA_HOMES,
+	UMBRELLA_FAMILIES,
 	UNSCORED_GENRES,
 	UNSCORED_GENRE_SET,
 	resolveAlias,
@@ -57,7 +57,7 @@ describe('alias table keys', () => {
 	it('are all in normalizeGenre form', () => {
 		const keys = [
 			...Object.keys(GENRE_ALIASES),
-			...Object.keys(UMBRELLA_HOMES),
+			...Object.keys(UMBRELLA_FAMILIES),
 			...Object.keys(CANONICAL_HOMES),
 			...UNSCORED_GENRE_SET
 		];
@@ -70,7 +70,7 @@ describe('alias table keys', () => {
 		// both an alias key and an umbrella/unscored key would make one of them unreachable.
 		const aliasKeys = new Set(Object.keys(GENRE_ALIASES));
 		const overlaps = [
-			...Object.keys(UMBRELLA_HOMES),
+			...Object.keys(UMBRELLA_FAMILIES),
 			...Object.keys(CANONICAL_HOMES),
 			...UNSCORED_GENRE_SET
 		].filter((key) => aliasKeys.has(key));
@@ -89,7 +89,7 @@ describe('GENRE_ALIASES', () => {
 			const target = resolveAlias(alias);
 			return (
 				!leafHomes.has(target) &&
-				UMBRELLA_HOMES[target] === undefined &&
+				UMBRELLA_FAMILIES[target] === undefined &&
 				!UNSCORED_GENRE_SET.has(target)
 			);
 		});
@@ -109,17 +109,44 @@ describe('GENRE_ALIASES', () => {
 	});
 });
 
-describe('UMBRELLA_HOMES', () => {
-	it('names a sub-cluster that exists', () => {
-		const missing = Object.entries(UMBRELLA_HOMES)
-			.filter(([, home]) => !homeExists(home))
+describe('UMBRELLA_FAMILIES', () => {
+	it('names only sub-clusters that exist, each in its own cluster', () => {
+		const missing = Object.entries(UMBRELLA_FAMILIES)
+			.filter(([, family]) =>
+				family.subClusters.some(
+					(subCluster) => !homeExists({ cluster: family.cluster, subCluster })
+				)
+			)
 			.map(([genre]) => genre);
 		expect(missing).toEqual([]);
 	});
 
-	it('only covers genres that are not already leaves', () => {
-		const redundant = Object.keys(UMBRELLA_HOMES).filter((genre) => leafHomes.has(genre));
-		expect(redundant).toEqual([]);
+	it('lists every member once and never an empty family', () => {
+		const broken = Object.entries(UMBRELLA_FAMILIES)
+			.filter(
+				([, family]) =>
+					family.subClusters.length === 0 ||
+					new Set(family.subClusters).size !== family.subClusters.length
+			)
+			.map(([genre]) => genre);
+		expect(broken).toEqual([]);
+	});
+
+	it('covers the leaf it shadows', () => {
+		// An umbrella takes precedence over a leaf of the same name ("techno", "jazz"); that is
+		// only safe when the leaf's own home is one of the family members, so the two readings
+		// never point apart.
+		const divergent = Object.entries(UMBRELLA_FAMILIES)
+			.filter(([genre, family]) => {
+				const homes = leafHomes.get(genre);
+				if (!homes) return false;
+				const canonical = CANONICAL_HOMES[genre] ?? homes[0];
+				return (
+					canonical.cluster !== family.cluster || !family.subClusters.includes(canonical.subCluster)
+				);
+			})
+			.map(([genre]) => genre);
+		expect(divergent).toEqual([]);
 	});
 });
 
@@ -153,7 +180,7 @@ describe('CANONICAL_HOMES', () => {
 describe('UNSCORED_GENRES', () => {
 	it('lists no genre that already has a home', () => {
 		const housed = [...UNSCORED_GENRE_SET].filter(
-			(genre) => leafHomes.has(genre) || UMBRELLA_HOMES[genre] !== undefined
+			(genre) => leafHomes.has(genre) || UMBRELLA_FAMILIES[genre] !== undefined
 		);
 		expect(housed).toEqual([]);
 	});
