@@ -107,36 +107,86 @@ describe('contested leaves', () => {
 	});
 });
 
+describe('the clusters added on 2026-11-10', () => {
+	// Every one of these was Uncategorized or confidently wrong before the Pop, "Soul, Funk and
+	// Disco", Jazz, "African Popular Music", Classical and "Folk and Singer-Songwriter" clusters
+	// existed.
+	it.each([
+		['pop', 'Pop', 'Mainstream Pop'],
+		['k-pop', 'Pop', 'Global Pop'],
+		['schlager', 'Pop', 'European Pop'],
+		['soul', 'Soul, Funk and Disco', 'Classic Soul'],
+		['funk', 'Soul, Funk and Disco', 'Funk'],
+		['disco', 'Soul, Funk and Disco', 'Disco'],
+		['nu disco', 'Soul, Funk and Disco', 'Disco'],
+		['gospel', 'Soul, Funk and Disco', 'Gospel and Spiritual'],
+		['jazz', 'Jazz', 'Traditional Jazz'],
+		['bebop', 'Jazz', 'Bebop and Modern Jazz'],
+		['afrobeats', 'African Popular Music', 'West African Pop'],
+		['highlife', 'African Popular Music', 'West African Pop'],
+		['classical', 'Classical', 'Orchestral and Chamber'],
+		['folk', 'Folk and Singer-Songwriter', 'Folk']
+	])('places %s in %s / %s at full weight', (genre, cluster, subCluster) => {
+		expect(homeOf(genre)).toEqual({ cluster, subCluster, weight: 1.0 });
+	});
+
+	it('moves R&B out of Hip-Hop/Rap and in with soul', () => {
+		expect(homeOf('r&b')).toEqual({
+			cluster: 'Soul, Funk and Disco',
+			subCluster: 'Contemporary R&B',
+			weight: 1.0
+		});
+		expect(homeOf('rnb')).toEqual(homeOf('r&b'));
+	});
+
+	it('matches a soul fan to a venue that plays motown', () => {
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['soul']),
+			findClusters(['motown'])
+		);
+		expect(similarity).toBe(1);
+	});
+
+	it('keeps disco apart from disco house', () => {
+		// "Disco House" is a house leaf and stays one; a disco night is not a house night.
+		expect(homeOf('disco house').cluster).toBe('Electronic/Dance (EDM)');
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['disco']),
+			findClusters(['disco house'])
+		);
+		expect(similarity).toBe(0);
+	});
+});
+
 describe('genres with nowhere to go', () => {
-	it('leaves an unhoused genre Uncategorized instead of guessing', () => {
-		// genreClusters.json has no cluster for any of these yet. Uncategorized is dropped from
-		// both sides of the similarity, so they carry no weight rather than a wrong one.
-		for (const genre of ['pop', 'soul', 'funk', 'jazz', 'disco', 'afrobeats', 'classical']) {
+	it('leaves a tag that is merely too broad Uncategorized', () => {
+		for (const genre of ['electronic', 'dance', 'club music', 'various']) {
 			expect(homeOf(genre).cluster).toBe('Uncategorized');
 		}
 	});
 
-	it('does not let two unhoused genres match each other', () => {
+	it('does not let two Uncategorized genres match each other', () => {
 		const { similarity } = calculateClusterSimilarity(
-			findClusters(['jazz']),
-			findClusters(['pop'])
+			findClusters(['electronic']),
+			findClusters(['various'])
 		);
 		expect(similarity).toBe(0);
 	});
 
-	it('still reports an unhoused genre to missing-genres.txt', async () => {
+	it('reports a genre no cluster knows to missing-genres.txt', async () => {
 		const fs = await import('node:fs');
-		findClusters(['highlife']);
+		findClusters(['zzzz-no-such-genre-41287']);
 		expect(vi.mocked(fs.appendFileSync)).toHaveBeenCalledWith(
 			expect.stringContaining('missing-genres.txt'),
-			'highlife\n',
+			'zzzz-no-such-genre-41287\n',
 			'utf8'
 		);
 	});
 
-	it('does not report a tag that is merely too broad', () => {
-		const genre = 'club music';
-		expect(homeOf(genre).cluster).toBe('Uncategorized');
+	it('does not report a tag that is merely too broad', async () => {
+		const fs = await import('node:fs');
+		findClusters(['club music']);
+		expect(vi.mocked(fs.appendFileSync)).not.toHaveBeenCalled();
 	});
 });
 

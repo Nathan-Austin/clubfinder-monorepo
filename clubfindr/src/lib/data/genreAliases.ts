@@ -103,26 +103,35 @@ export const GENRE_ALIASES: Record<string, string> = {
 	'world music': 'world',
 	worldbeat: 'world beat',
 
-	// Genres with no home yet (see UNSCORED_GENRES): fold the variants onto one key so the
-	// decision about where they belong only has to be taken once.
+	// Pop, soul, funk, disco, jazz, African pop, classical and folk — all leaves of their own
+	// clusters since 2026-11-10, so these are ordinary spelling variants now.
 	'afro beats': 'afrobeats',
 	'afro-beats': 'afrobeats',
-	afrobeat: 'afrobeats',
-	'afro beat': 'afrobeats',
+	'afro beat': 'afrobeat',
 	'k pop': 'k-pop',
 	kpop: 'k-pop',
 	'j pop': 'j-pop',
 	jpop: 'j-pop',
+	'c pop': 'c-pop',
+	cpop: 'c-pop',
 	'nu-disco': 'nu disco',
 	nudisco: 'nu disco',
 	'italo-disco': 'italo disco',
-	'neo soul': 'soul',
-	'neo-soul': 'soul',
-	'northern soul': 'soul',
-	motown: 'soul',
+	'neo-soul': 'neo soul',
+	neosoul: 'neo soul',
 	'soul music': 'soul',
 	'jazz music': 'jazz',
-	'pop music': 'pop'
+	'pop music': 'pop',
+	'classical music': 'classical',
+	'folk music': 'folk',
+	'gospel music': 'gospel',
+	'p funk': 'p-funk',
+	pfunk: 'p-funk',
+	'nu-jazz': 'nu jazz',
+	'jazz funk': 'jazz-funk',
+	'coupé-décalé': 'coupe-decale',
+	'coupe decale': 'coupe-decale',
+	'singer songwriter': 'singer-songwriter'
 };
 
 /**
@@ -309,6 +318,14 @@ export const CANONICAL_HOMES: Record<string, ClusterHome> = {
 	// --- Remaining internal contests ---
 	'melodic trap': { cluster: 'Hip-Hop/Rap', subCluster: 'Modern Trap and Drill' },
 	'modern blues': { cluster: 'Blues', subCluster: 'Contemporary Blues' },
+
+	// --- Leaves the new clusters took over from an older home (2026-11-10) ---
+	// R&B sat in Hip-Hop/Rap "Pop Rap and Melodic Rap" because that was the only sub-cluster
+	// naming it. It belongs with soul.
+	'r and b': { cluster: 'Soul, Funk and Disco', subCluster: 'Contemporary R&B' },
+	// Electropop reads as mainstream pop far more often than as the indie synth-pop of
+	// "Synth-Based Indie Pop", which keeps its own, more specific leaves.
+	electropop: { cluster: 'Pop', subCluster: 'Electronic Pop' },
 	'cumbia norteña': { cluster: 'Latin/Latino Music', subCluster: 'Cumbia Variants' },
 	mambo: { cluster: 'Latin/Latino Music', subCluster: 'Merengue and Dominican Styles' }
 };
@@ -320,37 +337,19 @@ export const CANONICAL_HOMES: Record<string, ClusterHome> = {
  * `calculateClusterSimilarity` drops Uncategorized from both sides — a genre here neither
  * matches anything nor dilutes a score, whereas a wrong cluster actively misranks venues.
  *
- * `noHome`: real, common genres that `genreClusters.json` has no cluster for at all. Until that
- * is decided they were producing the worst mismatches in the matcher (funk → Traditional Punk,
- * country → Hip-Hop/Rap, classical → Chamber Pop, jazz → nothing). They are still written to
- * missing-genres.txt so the genre-maintenance script keeps reporting them.
+ * `noHome`: real, common genres that `genreClusters.json` has no cluster for at all. This list is
+ * empty: pop, soul, funk, disco, jazz, afrobeats, classical, gospel, k-pop, schlager and folk
+ * were all on it until the Pop, "Soul, Funk and Disco", Jazz, "African Popular Music", Classical
+ * and "Folk and Singer-Songwriter" clusters were added on 2026-11-10, and they are leaves now.
+ * The mechanism stays for the next genre that turns out to have nowhere to go: put it here and it
+ * carries no weight instead of being guessed at, and it is still written to missing-genres.txt so
+ * the genre-maintenance script keeps reporting it.
  *
  * `tooBroad`: tags that name no style at all. Placing them anywhere invents a preference the
  * user never expressed.
  */
 export const UNSCORED_GENRES: { noHome: string[]; tooBroad: string[] } = {
-	noHome: [
-		'pop',
-		'soul',
-		'funk',
-		'disco',
-		'nu disco',
-		'italo disco',
-		'jazz',
-		'afrobeats',
-		'highlife',
-		'amapiano gospel',
-		'gospel',
-		'classical',
-		'k-pop',
-		'j-pop',
-		'c-pop',
-		'schlager',
-		'chanson',
-		'folk',
-		'singer-songwriter',
-		'eurodance'
-	],
+	noHome: [],
 	tooBroad: [
 		'electronic',
 		'dance',
