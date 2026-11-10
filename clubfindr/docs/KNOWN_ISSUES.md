@@ -362,5 +362,30 @@ you supplied could not be found", links: []}`. The client classifies that as
     what's-on-tonight product. `getTopGenres` ordering is unchanged in spirit; the weights it
     sorts by are now the same ones the score uses.
 
-    This also unblocks the umbrella-breadth item of #18: an umbrella genre can now be spread
-    across its family with its weight split, instead of inflating the similarity denominator.
+    This made the umbrella-breadth item of #18 possible, but **not by splitting an umbrella's
+    weight across its family**. That was tried on a parallel branch on 2026-11-10 and measured:
+    a "house" fan scored 0.14 at an acid-house, tech-house or amapiano night and 0.23 at one
+    playing every kind of house, against 1.0 for the specific genre. What shipped is
+    `UMBRELLA_FAMILIES` with family-aware scoring (#18): a family counts in the denominator for
+    what it matched, never less than its own weight. Any change to umbrella scoring should keep
+    those cases at 1.0 and "house" against salsa at 0.
+
+33. **Real production secrets sit in env files in the working copy.** Besides the
+    `clubfindr/.env` that `dev/setup.sh` writes (dev values only), the checkout holds
+    `clubfindr/.env.bak`, `clubfindr/.env.pre-hardening`, `data_collection/.env` and
+    `spotify_service/.env.local`, which contain live credentials (mail passwords, OpenAI and
+    Grok keys, OAuth and JWT secrets). They are gitignored and, since 2026-11-10, readable only
+    by their owner. Agents and scripts must not open, print, copy or summarise them, nor create
+    new env files with real keys; the e2e suite needs nothing but `clubfindr/.env` and the mocks.
+    Whether to keep the backups at all is the owner's call.
+34. **`app_clubfindr/` contains a nested `.git`**, the app's history from before the monorepo.
+    The monorepo tracks the app's files normally, but a git command run from inside
+    `app_clubfindr/` uses the nested repository: `git status` there reports unrelated changes and
+    a commit there lands in the wrong repo. Run git from the repository root (or with
+    `git -C <root>`) until it is moved out, e.g. into `.git-backups/` with the other old histories.
+35. **Ten Expo packages are a patch release behind SDK 54** (`npx expo install --check`, 2026-11-10):
+    `expo` 54.0.32 → 54.0.37, `expo-auth-session`, `expo-constants`, `expo-crypto`,
+    `expo-dev-client`, `expo-linking`, `expo-notifications`, `expo-router` 6.0.22 → 6.0.24,
+    `expo-updates` 29.0.16 → 29.0.20 and `expo-web-browser`. This is why `expo-doctor` is
+    report-only in CI. Upgrading them with `npx expo install --fix`, then making `expo-doctor`
+    a failing step, needs the app's four CI checks to pass and ideally a device run.

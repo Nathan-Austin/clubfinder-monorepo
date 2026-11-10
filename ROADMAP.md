@@ -213,3 +213,12 @@ See [`docs/analysis/barfindr-technical-analysis.md`](docs/analysis/barfindr-tech
 - [ ] Swap `jsonwebtoken` for `jose` before the next Node upgrade (KNOWN_ISSUES 10)
 - [ ] One documented convention for runtime vs build-time config (KNOWN_ISSUES 20)
 - [ ] Bring `docs/analysis/` up to date with what has been fixed since January
+- [ ] Move `app_clubfindr/.git` (the pre-monorepo history) out of the tree, e.g. into
+      `.git-backups/`, so git commands run inside the app folder use the monorepo
+      (KNOWN_ISSUES 34)
+- [ ] Upgrade the ten Expo packages a patch behind SDK 54 and make `expo-doctor` a failing CI
+      step (KNOWN_ISSUES 35)
+- [ ] Owner's decision: the `data_vis` CSV exports were deleted from `main` (`84f60a6`) but are
+      still in the public repo's history; removing them means rewriting history and a force push
+- [ ] Owner's decision: keep or delete the env backups holding production secrets
+      (KNOWN_ISSUES 33). Agents must not open them either way
