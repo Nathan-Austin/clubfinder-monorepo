@@ -1,4 +1,5 @@
 import { test, expect, acceptCookies, chooseCityAndGenre, login } from './fixtures';
+import unifiedGenres from '../static/lib/unified-genres.json' with { type: 'json' };
 
 test.describe('home page search', () => {
 	test('city + genre -> /clubs lists matching events', async ({ page, pageErrors }) => {
@@ -68,7 +69,9 @@ test.describe('genre picker', () => {
 
 		// category -> subgenre level
 		const categories = menu.locator('.dropdown-list button');
-		await expect(categories).toHaveCount(14);
+		// Counted from the picker's own data rather than hard-coded, so adding a genre cluster
+		// does not fail this test while a picker that drops one still does.
+		await expect(categories).toHaveCount(unifiedGenres.categories.length);
 		await categories.first().click();
 		await expect(menu.locator('button', { hasText: 'Back to Categories' })).toBeVisible();
 		await menu.locator('button', { hasText: 'Select All' }).click();

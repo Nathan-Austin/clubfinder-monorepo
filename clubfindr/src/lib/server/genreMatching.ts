@@ -109,6 +109,19 @@ function addGenreToIndex(genre: string, cluster: string, subCluster: string): vo
 	}
 }
 
+/**
+ * Sub-cluster names, which are genres a user can actually pick: the genre picker offers them as
+ * the second level of its menu ("Minimal and Techno", "Gothic and Wave"), and `/clubs` passes
+ * what was picked straight to the matcher without expanding groups. They are indexed after the
+ * leaves and never over one, so a name that is also a leaf keeps the leaf's home.
+ *
+ * Without this they resolved only by luck. "Classic House" and "Heavy Metal" happen to be leaves
+ * too, so they worked; "Minimal and Techno" reached its cluster through a fuzzy match on
+ * "minimal techno" that tightening the fuzzy pass to real typos correctly stopped making, and
+ * "Gothic and Wave" and "Mainstream Pop" never had a leaf to be mistaken for at all.
+ */
+const groupNameHomes: { name: string; cluster: string; subCluster: string }[] = [];
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function indexSubClusters(subClusters: any[], clusterName: string): void {
 	for (const subCluster of subClusters) {
@@ -117,6 +130,15 @@ function indexSubClusters(subClusters: any[], clusterName: string): void {
 
 		for (const genre of genres) {
 			addGenreToIndex(genre, clusterName, subClusterName);
+		}
+
+		// A group that only holds other groups is a heading, not something to match on.
+		if (genres.length > 0) {
+			groupNameHomes.push({
+				name: subClusterName,
+				cluster: clusterName,
+				subCluster: subClusterName
+			});
 		}
 
 		if (subCluster.sub_clusters) {
@@ -128,6 +150,12 @@ function indexSubClusters(subClusters: any[], clusterName: string): void {
 function buildGenreIndex(): void {
 	for (const cluster of genreClusters.clusters) {
 		indexSubClusters(cluster.sub_clusters, cluster.name);
+	}
+
+	for (const group of groupNameHomes) {
+		if (!genreToClusterIndex.has(normalizeGenre(group.name))) {
+			addGenreToIndex(group.name, group.cluster, group.subCluster);
+		}
 	}
 }
 
