@@ -117,10 +117,16 @@ Things to do by hand or decide, collected while building the items above.
       "Gothic and Wave" sub-cluster for the goth and wave leaves it had no home for. An `emo` fan
       now matches a `post-hardcore` venue instead of scoring 0, and 36 of the 92 `CANONICAL_HOMES`
       entries were retired because they existed only to arbitrate between the two copies
-- [ ] Count how much of a genre a venue actually plays towards its score, not just that it
-      appears (KNOWN_ISSUES 32): the profile weights only order the genres shown for a venue.
-      Do this before widening an umbrella genre across a whole family (KNOWN_ISSUES 18), since
-      extra clusters inflate the similarity denominator until the weights count
+- [x] Count how much of a genre each side actually plays towards its score (KNOWN_ISSUES 32),
+      done 2026-11-10: `findWeightedClusters` scales every profile by its own strongest genre, the
+      taste profile weighs genres by how many favourite artists carry them, an event's genres
+      outweigh the venue's standing self-description (declared artists drop to 0.25 on a day with
+      an event, stay 1 without one), and the rolling play counts are scaled to a unit maximum so
+      the fixed weights mean something. Explicit genre picks stay unweighted. Not yet run against
+      the e2e suite or on production data
+- [ ] Widen umbrella genres across their whole family with the weight split between the
+      sub-clusters (KNOWN_ISSUES 18, unblocked by the scoring change above): "house" should reach
+      Modern and Cultural House too, not only Classic House
 - [x] Unify the four copies of the cluster matcher into `$lib` and wire the taste
       profile into the mobile API (KNOWN_ISSUES 22), done 2026-11-10: one matcher in
       `$lib/server/genreMatching` (the `/clubs` one, the only weighted version), and the two

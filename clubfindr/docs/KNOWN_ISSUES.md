@@ -289,16 +289,31 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `SPOTIFY_CONNECT_ENABLED=false`), so it threw, and `LoginScreen` silently fell back to
     `/login/users` on every login. It also wrote the session row after answering, like the bar
     login (item 26). Covered by `tests/mobile-taste.spec.ts` now.
-32. **Cluster matching ignores how much of a genre a venue plays.** `findClusters` is given the
-    genre _names_ of a venue profile (`Object.keys`), and `calculateClusterSimilarity` weights
-    only how a genre reached its cluster (exact 1.0, fuzzy 0.8, word-boundary 0.6), never the
-    profile weight beside it. So `bar_genre_profiles.rolling_genre_profile`'s weights, the
-    +0.5 an event's genres add and the +1 a venue's declared artists add
-    (`VENUE_ARTIST_GENRE_WEIGHT`) change only the order of the genres _shown_ for a venue
-    (`getTopGenres`), not whether or how well it matches: one track of afrobeats counts for as
-    much as a whole night of it, and a venue that declared one artist ranks beside one whose
-    every set is that genre. Making the profile weight part of the score is a real change to
-    `calculateClusterSimilarity` — probably multiplying each side's cluster weight by the
-    normalised profile weight — and is best done together with the alias layer of #18, since
-    both change what a venue's genre set really is. Until then, treat the weights in
-    `combineGenreProfiles` as display ordering only.
+32. _Fixed 2026-11-10._ **Cluster matching ignored how much of a genre a venue plays.**
+    `findClusters` was given only the genre _names_ of a profile (`Object.keys`), so one track of
+    afrobeats counted for as much as a whole night of it, and the user side had no weights at
+    all — `listFavouriteArtists` flattened the favourites' genres into a de-duplicated list, so
+    three techno artists and one salsa artist read as equal parts techno and salsa.
+
+    Both sides carry weights now. `findWeightedClusters` (`$lib/server/genreMatching`) takes a
+    `genre → weight` profile and multiplies each entry's match weight (exact 1.0, fuzzy 0.8,
+    word-boundary 0.6) by the genre's share of the profile's strongest weight — normalising by
+    each side's own maximum keeps a year of play counts and three picked artists comparable, and
+    keeps the score symmetric. Per cluster, entries sum and cap at 1, so a half-deep-house,
+    half-tech-house profile is wholly a Deep/Tech House one. The user side weighs each genre by
+    how many favourite artists carry it (`FavouriteArtistsProfile.genreWeights`), applied in all
+    four matchers when the taste profile is the genre source; explicit picks (cookies, genres the
+    app sends) stay unweighted, since naming a genre is asking for it.
+    `expandWeightedProfile` carries the weights through the callers' genre expansions.
+
+    The venue profile assembly changed with it, in `/barfindr` and
+    `POST /api/mobile/bars/matching`: the rolling profile is scaled to a unit maximum before
+    other sources are combined in (raw play counts drowned out any fixed weight); an event's
+    genres carry full weight (1, was 0.5), since what is on tonight beats a standing
+    description; and the venue's declared artists weigh 0.25 on a day the venue has an event
+    with genres but 1 on a day without one — the old flat 1 was backwards for a
+    what's-on-tonight product. `getTopGenres` ordering is unchanged in spirit; the weights it
+    sorts by are now the same ones the score uses.
+
+    This also unblocks the umbrella-breadth item of #18: an umbrella genre can now be spread
+    across its family with its weight split, instead of inflating the similarity denominator.
