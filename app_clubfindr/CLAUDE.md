@@ -35,19 +35,20 @@ eas submit
 ```
 
 ### Code Quality
+CI (`.github/workflows/app-clubfindr-ci.yml`, Node 24 from `.nvmrc`) runs all four of these and
+fails on any of them; a failure blocks the web deploy too, so run them before committing:
 ```bash
-# Run ESLint (no dedicated script, use directly)
-npx eslint src --ext .ts,.tsx
-
-# TypeScript type checking
-npx tsc --noEmit
+npm run lint        # ESLint; errors fail, warnings do not
+npm run typecheck   # tsc --noEmit
+npm test            # Jest (jest-expo preset)
+npx expo export --platform android --output-dir /tmp/expo-export   # bundles the whole app
 ```
 
 ## Architecture
 
 ### Tech Stack
-- **React Native 0.76.9** with **Expo SDK 52**
-- **TypeScript 5.3.3** with strict mode
+- **React Native 0.81** with **Expo SDK 54** (see `package.json`)
+- **TypeScript 5.9** with strict mode
 - **React Navigation v7** for routing
 - **React Context API** for state management
 - **Axios** with interceptors for API calls
@@ -128,12 +129,15 @@ Environment variables are loaded from `.env` using `react-native-dotenv`:
 
 ## Testing
 
-Tests use Jest with React Native Testing Library. Run tests with:
+Tests use Jest (`jest-expo` preset, config in `package.json`) with React Native Testing
+Library. Run tests with:
 ```bash
 npm test
 ```
 
-Test files follow the pattern `*.test.tsx` in `__tests__` folders.
+Test files follow the pattern `*.test.ts(x)` in `__tests__` folders (e.g.
+`src/utils/__tests__/localDate.test.ts`). Nothing runs on a device in CI, so put logic that
+matters (dates, matching, parsing) in plain functions with unit tests.
 
 ## Development Notes
 

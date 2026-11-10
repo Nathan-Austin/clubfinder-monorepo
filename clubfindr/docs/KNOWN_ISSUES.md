@@ -205,7 +205,14 @@ section 4), left open on purpose.
     and a successful registration spends it. In the e2e suite the token is judged by
     `tests/mock-recaptcha.ts` on :4178 via `RECAPTCHA_VERIFY_BASE` (unset in production);
     covered by `tests/register-captcha.spec.ts`.
-29. **`app_clubfindr` type checking hides real errors.** Its `tsconfig.json` maps `"*"` to
+29. _Fixed 2026-11-10, apart from device testing._ CI (`.github/workflows/app-clubfindr-ci.yml`)
+    now fails on lint errors, `npm run typecheck`, `npm test` (Jest via `jest-expo`) and
+    `npx expo export --platform android`, on Node 24 (`app_clubfindr/.nvmrc`); `expo-doctor`
+    is report-only, since it flags Expo packages a patch behind the SDK. The `"*"` mapping is
+    gone and the real errors fixed: QR sharing called `expo-file-system/next` APIs that do not
+    exist (now `expo-file-system/legacy`), plus the `Main` route's params, a city
+    `autoComplete` value and the unused `src/api/client.ts`. Nothing has run on a device yet.
+    The original finding: **`app_clubfindr` type checking hid real errors.** Its `tsconfig.json` maps `"*"` to
     `node_modules/*`, which makes `react` resolve to its JavaScript with no types:
     `npx tsc --noEmit` reports about 175 errors, almost all of them that. With the mapping
     removed for a check, five real ones remain (`SearchScreen.tsx` twice,

@@ -13,9 +13,6 @@
     "module": "ESNext",
     "baseUrl": ".",
     "paths": {
-      "*": [
-        "node_modules/*"
-      ],
       "src/*": [
         "src/*"
       ],

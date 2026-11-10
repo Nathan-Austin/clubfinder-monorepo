@@ -289,7 +289,7 @@ const EditBarProfileScreen = () => {
                             onChangeText={(value) => updateField('city', value)}
                             placeholder="City"
                             placeholderTextColor="#888"
-                            autoComplete="address-level2"
+                            autoComplete="postal-address-locality"
                             textContentType="addressCity"
                             importantForAutofill="yes"
                         />

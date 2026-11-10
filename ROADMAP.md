@@ -75,9 +75,9 @@ Things to do by hand or decide, collected while building the items above.
 - [x] Verify the reCAPTCHA on the server for `/register` (KNOWN_ISSUES 28), and for
       `/register/promoter`: a good token sets a short-lived encrypted cookie, registration
       requires and spends it; tests judge tokens against `tests/mock-recaptcha.ts` (2026-11-09)
-- [ ] Fix `app_clubfindr` type checking, add a test runner and make its CI able to fail
-      (KNOWN_ISSUES 29). The app's new artist picker is type-checked and its production
-      bundle builds (`npx expo export`), but it has never run on a device or simulator
+- [x] Fix `app_clubfindr` type checking, add a test runner and make its CI able to fail
+      (KNOWN_ISSUES 29, 2026-11-10): lint errors, `tsc`, Jest and the Android bundle build now
+      fail CI, and so block the deploy. Still never run on a device or simulator
 
 ### Done on 2026-11-09 (deploy and operations)
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, type NavigatorScreenParams } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
@@ -42,7 +42,8 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
-  Main: undefined;
+  /** The tab navigator; navigate('Main', { screen, params }) targets a tab */
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   EmailVerification: { email: string };
   VenueDetails: { venue: Venue };
   Terms: undefined;

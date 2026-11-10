@@ -11,7 +11,8 @@ module.exports = [
                 module: 'readonly',
                 __dirname: 'readonly',
                 exports: 'readonly',
-                global: 'readonly'
+                global: 'readonly',
+                process: 'readonly'
             }
         },
         rules: {

@@ -13,7 +13,9 @@ import {
     ScrollView
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import * as FileSystem from 'expo-file-system/next';
+// The classic API: the `next` one has no cacheDirectory or static File.write, so sharing
+// a QR code threw before it reached the share sheet.
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import axiosClient from '../api/axiosClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -115,8 +117,8 @@ const QRCodeGeneratorScreen = () => {
                     const dataURL = await getDataURL();
                     const filePath = `${FileSystem.cacheDirectory}qrcode-${qrCode.id}.png`;
                     const data = (dataURL as string).split(',')[1];
-                    await FileSystem.File.write(filePath, data, {
-                        encoding: 'base64',
+                    await FileSystem.writeAsStringAsync(filePath, data, {
+                        encoding: FileSystem.EncodingType.Base64,
                     });
 
                     if (await Sharing.isAvailableAsync()) {

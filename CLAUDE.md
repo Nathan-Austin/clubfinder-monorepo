@@ -329,11 +329,11 @@ The monorepo uses path-based workflow triggering for efficient CI:
    - Runs on Python 3.10 and 3.11
    - Executes: lint, file validation, shellcheck, security scan
 
-6. **app-clubfindr-ci.yml**: Mobile app CI (ready for when app is added)
-   - Runs on Node.js 18.x and 20.x
-   - Executes: lint, type check, tests, expo-doctor, build preview, but every step is
-     `continue-on-error`, so it never fails (KNOWN_ISSUES 29)
-   - Optional: Requires `EXPO_TOKEN` secret for building
+6. **app-clubfindr-ci.yml**: Mobile app CI
+   - Runs on Node.js 24 (`app_clubfindr/.nvmrc`), npm
+   - Executes: lint (errors only), type check, Jest unit tests, Android bundle build
+     (`npx expo export`); all must pass, and a failure blocks the deploy via Main CI.
+     `expo-doctor` is report-only
 
 ### Running CI Locally
 
