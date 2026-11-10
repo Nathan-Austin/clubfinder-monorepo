@@ -88,5 +88,23 @@ module.exports = [
             'no-var': 'error',
             'prefer-const': 'warn'
         }
+    },
+    // Jest test files (jest-expo): the test globals, and Node's process for TZ switching
+    {
+        files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+        languageOptions: {
+            globals: {
+                describe: 'readonly',
+                it: 'readonly',
+                test: 'readonly',
+                expect: 'readonly',
+                jest: 'readonly',
+                beforeAll: 'readonly',
+                afterAll: 'readonly',
+                beforeEach: 'readonly',
+                afterEach: 'readonly',
+                process: 'readonly'
+            }
+        }
     }
 ];
