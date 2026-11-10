@@ -3,29 +3,13 @@ import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
+import {
+	calculateClusterSimilarity,
+	findClusters,
+	normalizeGenre
+} from '$lib/server/genreMatching';
 
 // Helper functions for genre matching - same as web implementation
-const normalizeGenre = (genre: string): string => {
-	return genre
-		.toLowerCase()
-		.trim()
-		.replace(/\s*\/\s*/g, ' ') // Replace slashes with spaces
-		.replace(/[&']/g, '') // Remove & and '
-		.replace(/\s+/g, ' '); // Normalize spaces
-};
-
-const shouldIgnoreGenre = (genre: string): boolean => {
-	const ignoredGenres = [
-		'none',
-		'soft porn',
-		'vaa',
-		'idiotic'
-		// Add other terms you want to ignore
-	];
-
-	return ignoredGenres.some((ignored) => genre.toLowerCase().includes(ignored.toLowerCase()));
-};
-
 // Function to expand subsubgenre group names to their individual genres
 const expandGenreGroups = (genres: string[]): string[] => {
 	const expandedGenres: string[] = [];
@@ -84,117 +68,6 @@ const expandGenreGroups = (genres: string[]): string[] => {
 	}
 
 	return expandedGenres;
-};
-
-interface ClusterResult {
-	genre: string;
-	cluster: string;
-	subCluster: string;
-}
-
-const findGenreClusters = (genres: string[]): ClusterResult[] => {
-	const clusters: ClusterResult[] = [];
-	const missingGenres = new Set<string>();
-
-	// Helper function to match a genre in subclusters
-	const matchGenreInSubClusters = (
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		subClusters: any[],
-		genre: string,
-		clusterName: string
-	): boolean => {
-		const normalizedInputGenre = normalizeGenre(genre);
-
-		// Skip processing for ignored genres
-		if (shouldIgnoreGenre(normalizedInputGenre)) {
-			return true;
-		}
-
-		for (const subCluster of subClusters) {
-			const normalizedSubGenres = subCluster.genres?.map((g: string) => normalizeGenre(g));
-
-			if (
-				normalizedSubGenres?.some(
-					(g: string) =>
-						g === normalizedInputGenre ||
-						g.includes(normalizedInputGenre) ||
-						normalizedInputGenre.includes(g)
-				)
-			) {
-				clusters.push({
-					genre,
-					cluster: clusterName,
-					subCluster: subCluster.name
-				});
-				return true;
-			}
-
-			// Recursively search in nested sub_clusters
-			if (subCluster.sub_clusters) {
-				const foundInNested = matchGenreInSubClusters(subCluster.sub_clusters, genre, clusterName);
-				if (foundInNested) return true;
-			}
-		}
-		return false;
-	};
-
-	genres.forEach((genre) => {
-		const normalizedGenre = genre.toLowerCase().trim();
-
-		// Skip empty genres or very short strings
-		if (!normalizedGenre || normalizedGenre.length < 2) {
-			return;
-		}
-
-		// Skip ignored genres without logging
-		if (shouldIgnoreGenre(normalizedGenre)) {
-			return;
-		}
-
-		let found = false;
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		genreClusters.clusters.forEach((cluster: any) => {
-			if (matchGenreInSubClusters(cluster.sub_clusters, normalizedGenre, cluster.name)) {
-				found = true;
-			}
-		});
-
-		if (!found && !missingGenres.has(normalizedGenre)) {
-			console.warn(`Genre ${normalizedGenre} not found in any cluster`);
-			missingGenres.add(normalizedGenre);
-		}
-	});
-
-	return clusters;
-};
-
-const calculateClusterSimilarity = (
-	userClusters: ClusterResult[],
-	eventClusters: ClusterResult[]
-): { similarity: number; matchingGenres: string[] } => {
-	// Deduplicate cluster names using Sets to prevent similarity scores > 1.0
-	const userClusterNames = [...new Set(userClusters.map((c) => c.cluster + c.subCluster))];
-	const eventClusterNames = [...new Set(eventClusters.map((c) => c.cluster + c.subCluster))];
-
-	const intersection = userClusterNames.filter((value) => eventClusterNames.includes(value));
-	const union = new Set([...userClusterNames, ...eventClusterNames]);
-
-	// Prevent division by zero
-	if (union.size === 0) {
-		return { similarity: 0, matchingGenres: [] };
-	}
-
-	const similarityScore = intersection.length / union.size;
-
-	// Find the matching genres based on the clusters
-	const matchingGenres = userClusters
-		.filter((uc) =>
-			eventClusters.some((ec) => uc.cluster + uc.subCluster === ec.cluster + ec.subCluster)
-		)
-		.map((uc) => uc.genre);
-
-	return { similarity: similarityScore, matchingGenres };
 };
 
 // Helper for price conversion
@@ -320,7 +193,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.log(`Found ${events.length} events, now calculating genre matches`);
 
 		// Find genre clusters for expanded user genres
-		const userClusters = findGenreClusters(expandedGenres);
+		const userClusters = findClusters(expandedGenres);
 
 		if (userClusters.length === 0) {
 			console.log('No clusters found for user genres, returning all events without matching');
@@ -340,7 +213,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const matchingEvents = events.map((event) => {
 			// Process event genres
 			const eventGenres = Array.isArray(event.genres) ? event.genres : [];
-			const eventClusters = findGenreClusters(eventGenres);
+			const eventClusters = findClusters(eventGenres);
 
 			// Calculate similarity
 			const { similarity, matchingGenres } = calculateClusterSimilarity(

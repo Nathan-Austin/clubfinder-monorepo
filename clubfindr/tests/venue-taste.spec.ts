@@ -121,7 +121,9 @@ test.describe('venue taste API', () => {
 
 		const after = await lantern();
 		expect(after.similarity, 'now matches a reggaeton search').toBeGreaterThan(0);
-		expect(after.matchingGenres).toContain('reggaeton');
+		// Reported as the matcher was given it, which after group expansion is the cluster
+		// data's own spelling ("Reggaeton")
+		expect(after.matchingGenres.map((g) => g.toLowerCase())).toContain('reggaeton');
 
 		// And on the web page, which scores venues the same way
 		await context.addCookies(

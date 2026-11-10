@@ -7,22 +7,14 @@ import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { toLocalIsoDate } from '$lib/localDate';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
+import {
+	calculateClusterSimilarity,
+	findClusters,
+	normalizeGenre,
+	shouldIgnoreGenre
+} from '$lib/server/genreMatching';
 
 // Helper functions for genre matching
-const normalizeGenre = (genre: string): string => {
-	return genre
-		.toLowerCase()
-		.trim()
-		.replace(/\s*\/\s*/g, ' ') // Replace slashes with spaces
-		.replace(/[&']/g, '') // Remove & and '
-		.replace(/\s+/g, ' '); // Normalize spaces
-};
-
-const shouldIgnoreGenre = (genre: string): boolean => {
-	const ignoredGenres = ['none', 'soft porn', 'vaa', 'idiotic', 'new', 'the'];
-	return ignoredGenres.some((ignored) => genre.toLowerCase().includes(ignored.toLowerCase()));
-};
-
 // Function to get top genres from rolling profile
 function getTopGenres(profile: { [key: string]: number }): string[] {
 	// Convert profile to array of [genre, weight] pairs
@@ -104,12 +96,6 @@ function combineGenreProfiles(
  */
 const VENUE_ARTIST_GENRE_WEIGHT = 1;
 
-interface ClusterResult {
-	genre: string;
-	cluster: string;
-	subCluster: string;
-}
-
 // Function to expand subsubgenre group names to their individual genres
 const expandGenreGroups = (genres: string[]): string[] => {
 	const expandedGenres: string[] = [];
@@ -168,148 +154,6 @@ const expandGenreGroups = (genres: string[]): string[] => {
 	}
 
 	return expandedGenres;
-};
-
-const findGenreClusters = (genres: string[] | { [key: string]: number }): ClusterResult[] => {
-	const clusters: ClusterResult[] = [];
-	const missingGenres = new Set<string>();
-
-	// Normalize input to an array of genres
-	const genreList = Array.isArray(genres) ? genres : Object.keys(genres);
-
-	// Helper function to match a genre in subclusters
-	interface SubCluster {
-		name: string;
-		genres?: string[];
-		sub_clusters?: SubCluster[];
-	}
-
-	const matchGenreInSubClusters = (
-		subClusters: SubCluster[],
-		genre: string,
-		clusterName: string
-	): boolean => {
-		const normalizedInputGenre = normalizeGenre(genre);
-
-		// Skip processing for ignored genres
-		if (shouldIgnoreGenre(normalizedInputGenre)) {
-			return true;
-		}
-
-		for (const subCluster of subClusters) {
-			const normalizedSubGenres = subCluster.genres?.map((g: string) => normalizeGenre(g));
-
-			if (
-				normalizedSubGenres?.some(
-					(g: string) =>
-						g === normalizedInputGenre ||
-						(g.includes('house') && normalizedInputGenre.includes('house')) ||
-						(g.includes('techno') && normalizedInputGenre.includes('techno')) ||
-						(g.includes('rock') && normalizedInputGenre.includes('rock')) ||
-						(g.includes('metal') && normalizedInputGenre.includes('metal'))
-				)
-			) {
-				clusters.push({
-					genre,
-					cluster: clusterName,
-					subCluster: subCluster.name
-				});
-				return true;
-			}
-
-			// Recursively search in nested sub_clusters
-			if (subCluster.sub_clusters) {
-				const foundInNested = matchGenreInSubClusters(subCluster.sub_clusters, genre, clusterName);
-				if (foundInNested) return true;
-			}
-		}
-		return false;
-	};
-
-	// Process each genre
-	for (const genre of genreList) {
-		const normalizedGenre = genre.toLowerCase().trim();
-
-		// Skip empty genres or very short strings
-		if (!normalizedGenre || normalizedGenre.length < 2) {
-			continue;
-		}
-
-		// Skip ignored genres without logging
-		if (shouldIgnoreGenre(normalizedGenre)) {
-			continue;
-		}
-
-		let found = false;
-
-		for (const cluster of genreClusters.clusters as Array<{
-			name: string;
-			genres?: string[];
-			sub_clusters: SubCluster[];
-		}>) {
-			// First check cluster-level genres (e.g., "Rock" at top level of "Rock Music" cluster)
-			if (cluster.genres) {
-				const normalizedClusterGenres = cluster.genres.map((g: string) => normalizeGenre(g));
-				if (
-					normalizedClusterGenres.some(
-						(g: string) =>
-							g === normalizedGenre ||
-							(g.includes('rock') && normalizedGenre.includes('rock')) ||
-							(g.includes('metal') && normalizedGenre.includes('metal'))
-					)
-				) {
-					clusters.push({
-						genre,
-						cluster: cluster.name,
-						subCluster: cluster.name // Use cluster name as subCluster for top-level genres
-					});
-					found = true;
-					break;
-				}
-			}
-
-			// Then check sub_clusters
-			if (matchGenreInSubClusters(cluster.sub_clusters, normalizedGenre, cluster.name)) {
-				found = true;
-				break;
-			}
-		}
-
-		if (!found && !missingGenres.has(normalizedGenre)) {
-			console.warn(`Genre ${normalizedGenre} not found in any cluster`);
-			missingGenres.add(normalizedGenre);
-		}
-	}
-
-	return clusters;
-};
-
-const calculateClusterSimilarity = (
-	userClusters: ClusterResult[],
-	venueClusters: ClusterResult[]
-): { similarity: number; matchingGenres: string[] } => {
-	// Deduplicate cluster names using Sets to prevent similarity scores > 1.0
-	const userClusterNames = [...new Set(userClusters.map((c) => c.cluster + c.subCluster))];
-	const venueClusterNames = [...new Set(venueClusters.map((c) => c.cluster + c.subCluster))];
-
-	const intersection = userClusterNames.filter((value) => venueClusterNames.includes(value));
-	const union = new Set([...userClusterNames, ...venueClusterNames]);
-
-	// Prevent division by zero
-	if (union.size === 0) {
-		return { similarity: 0, matchingGenres: [] };
-	}
-
-	const similarityScore = intersection.length / union.size;
-
-	// Find the matching genres based on the clusters
-	const matchingGenres = userClusters
-		.filter((uc) =>
-			venueClusters.some((cc) => uc.cluster + uc.subCluster === cc.cluster + cc.subCluster)
-		)
-		.map((uc) => uc.genre);
-
-	return { similarity: similarityScore, matchingGenres };
 };
 
 /**
@@ -497,7 +341,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.log('Fully expanded user genres:', fullyExpandedGenres);
 
 		// Find genre clusters for expanded user genres
-		const userClusters = findGenreClusters(fullyExpandedGenres);
+		const userClusters = findClusters(fullyExpandedGenres);
 
 		if (userClusters.length === 0) {
 			console.log('No clusters found for user genres, returning all bars without matching');
@@ -507,7 +351,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Calculate similarity for each bar
 		const matchingBars = bars.map((bar) => {
 			// Process bar genres including event genres
-			const venueClusters = findGenreClusters(bar.rolling_genre_profile || {});
+			// The profile is a genre -> weight map; the matcher takes the genres it names
+			const venueClusters = findClusters(Object.keys(bar.rolling_genre_profile ?? {}));
 
 			// Log genre matching details
 			console.log(`Bar ${bar.name}:`);
