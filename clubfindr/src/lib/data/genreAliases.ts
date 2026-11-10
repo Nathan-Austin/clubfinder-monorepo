@@ -153,17 +153,14 @@ export const UMBRELLA_HOMES: Record<string, ClusterHome> = {
 	edm: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Modern House' },
 	bass: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Dubstep and Bass' },
 
-	// Rock family. `genreClusters.json` carries two overlapping rock trees — "Rock Music" and
-	// "Alternative Rock and Punk" — and the fuller one is "Rock Music", so the umbrellas and the
-	// contested leaves below both resolve there. Merging the two clusters is a taxonomy change,
-	// not an alias one.
+	// Rock family. "Rock Music" is the one rock cluster since 2026-11-10; "Alternative Rock and
+	// Punk" covered the same ground and was folded into it.
 	rock: { cluster: 'Rock Music', subCluster: 'Classic Rock' },
 	metal: { cluster: 'Rock Music', subCluster: 'Heavy Metal' },
-	// Without this, a bare "indie" word-boundary-matched into Alternative Rock and Punk while
-	// "indie rock" and "shoegaze" resolve to Rock Music, so the two scored nothing against each
-	// other. The same mismatch remains for the other leaves that are unique to the alternative
-	// tree (emo, for one), and only merging the two trees fixes it properly.
 	indie: { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
+	goth: { cluster: 'Rock Music', subCluster: 'Gothic and Wave' },
+	// "Indie Pop" names a cluster rather than a style, so it is an umbrella and not a leaf.
+	'indie pop': { cluster: 'Indie Pop', subCluster: 'Dream Pop and Bedroom Pop' },
 
 	// Hip hop.
 	'hip hop': { cluster: 'Hip-Hop/Rap', subCluster: 'East Coast, West Coast, and Midwest' },
@@ -178,12 +175,15 @@ export const UMBRELLA_HOMES: Record<string, ClusterHome> = {
 };
 
 /**
- * Leaves that `genreClusters.json` lists under more than one sub-cluster (92 of them). Without
- * an entry here the winner is whichever the JSON happens to list first, so `deep house` counted
- * as Classic House and `reggaeton` as Reggae rather than Urban Latino.
+ * Leaves that `genreClusters.json` lists under more than one sub-cluster. Without an entry here
+ * the winner is whichever the JSON happens to list first, so `deep house` counted as Classic
+ * House and `reggaeton` as Reggae rather than Urban Latino.
+ *
+ * There were 92 of these. Folding "Alternative Rock and Punk" into "Rock Music" retired 36 of
+ * them outright — they were only ever contested because the two rock clusters described the same
+ * music — so the table is now the remaining 56.
  *
  * The rules used, in order:
- *   - "Rock Music" wins over "Alternative Rock and Punk" (the two overlapping rock trees).
  *   - The more specific cluster wins over the more general one: Industrial over Rock,
  *     Latin/Latino over Electronic, Country and Blues over Reggae-and-Roots' folk sub-cluster,
  *     Experimental/Avant-Garde over Electronic.
@@ -191,50 +191,20 @@ export const UMBRELLA_HOMES: Record<string, ClusterHome> = {
  *     rather than Minimal and Techno).
  */
 export const CANONICAL_HOMES: Record<string, ClusterHome> = {
-	// --- Alternative Rock and Punk vs Rock Music: Rock Music wins ---
-	'alternative metal': { cluster: 'Rock Music', subCluster: 'Modern Hard and Heavy' },
-	'anarcho-punk': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
-	'art punk': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
-	'art rock': { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
-	'avant-rock': { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
-	c86: { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	'college rock': { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	'crossover thrash': { cluster: 'Rock Music', subCluster: 'Modern Hard and Heavy' },
-	'crust punk': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
-	'd-beat': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
+	// --- Contested between Rock Music's own sub-clusters ---
 	'experimental rock': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
-	'garage rock': { cluster: 'Rock Music', subCluster: 'Early Rock and Roll' },
-	grunge: { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	'hardcore punk': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
-	'indie rock': { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
 	'instrumental rock': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
-	krautrock: { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
 	'math rock': { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	'neo-psychedelia': { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	'noise rock': { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
-	'post-grunge': { cluster: 'Rock Music', subCluster: 'Contemporary Rock' },
-	'post-hardcore': { cluster: 'Rock Music', subCluster: 'Modern Hard and Heavy' },
-	'post-metal': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
-	'post-punk': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
-	'post-rock': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
 	'progressive rock': { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
-	'proto-punk': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
-	'psychedelic rock': { cluster: 'Rock Music', subCluster: 'Classic Rock' },
-	screamo: { cluster: 'Rock Music', subCluster: 'Modern Hard and Heavy' },
-	shoegaze: { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
 	'space rock': { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
-	'street punk': { cluster: 'Rock Music', subCluster: 'Punk and Hardcore' },
-	'surf rock': { cluster: 'Rock Music', subCluster: 'Early Rock and Roll' },
 	'blues rock': { cluster: 'Rock Music', subCluster: 'Classic Rock' },
 
-	// --- Industrial wins over the rock trees ---
+	// --- Industrial wins over rock ---
 	'industrial metal': { cluster: 'Industrial', subCluster: 'Industrial Rock and Metal' },
-	'industrial rock': { cluster: 'Industrial', subCluster: 'Industrial Rock and Metal' },
 	noise: { cluster: 'Industrial', subCluster: 'Traditional Industrial' },
 
-	// --- Goth stays with the goth tree ---
-	darkwave: { cluster: 'Alternative Rock and Punk', subCluster: 'Gothic Rock' },
-	'gothic metal': { cluster: 'Alternative Rock and Punk', subCluster: 'Gothic Rock' },
+	// --- Goth stays with the goth leaves, which are rock's "Gothic and Wave" now ---
+	darkwave: { cluster: 'Rock Music', subCluster: 'Gothic and Wave' },
 
 	// --- Latin/Latino wins over Electronic and Reggae ---
 	reggaeton: { cluster: 'Latin/Latino Music', subCluster: 'Reggaeton' },
@@ -249,7 +219,6 @@ export const CANONICAL_HOMES: Record<string, ClusterHome> = {
 	americana: { cluster: 'Country', subCluster: 'Progressive Country' },
 	bluegrass: { cluster: 'Country', subCluster: 'Bluegrass and Related' },
 	'traditional country': { cluster: 'Country', subCluster: 'Traditional and Classic Country' },
-	cowpunk: { cluster: 'Country', subCluster: 'Alt-Country and Insurgent Country' },
 	'delta blues': { cluster: 'Blues', subCluster: 'Pre-War Blues' },
 
 	// --- Experimental/Avant-Garde wins over Electronic for sound-art leaves ---
@@ -258,17 +227,12 @@ export const CANONICAL_HOMES: Record<string, ClusterHome> = {
 	'field recordings': { cluster: 'Experimental/Avant-Garde', subCluster: 'Sound Art' },
 
 	// --- Indie Pop keeps the pop leaves ---
-	'bedroom pop': { cluster: 'Indie Pop', subCluster: 'Dream Pop and Bedroom Pop' },
 	'dream pop': { cluster: 'Indie Pop', subCluster: 'Dream Pop and Bedroom Pop' },
-	'indie folk': { cluster: 'Indie Pop', subCluster: 'Indie Folk Pop' },
 	'noise pop': { cluster: 'Indie Pop', subCluster: 'Lo-Fi Indie Pop' },
 	'modern folk': { cluster: 'Indie Pop', subCluster: 'Indie Folk Pop' },
 
 	// --- Psychedelia ---
-	'psych folk': { cluster: 'Neo-Psychedelia', subCluster: 'Modern Psychedelic' },
 	'psychedelic folk': { cluster: 'Neo-Psychedelia', subCluster: 'Modern Psychedelic' },
-	'psychedelic pop': { cluster: 'Neo-Psychedelia', subCluster: 'Modern Psychedelic' },
-	'space electronic': { cluster: 'Neo-Psychedelia', subCluster: 'Electronic Psychedelia' },
 	psytrance: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Trance Variants' },
 
 	// --- Electronic internal contests, and the electronic/other contests that stay electronic ---

@@ -158,6 +158,61 @@ describe('the clusters added on 2026-11-10', () => {
 	});
 });
 
+describe('the single rock tree', () => {
+	// "Rock Music" and "Alternative Rock and Punk" described the same music, so they split the
+	// rock audience in half: a leaf unique to one tree scored 0 against its counterpart in the
+	// other. The alternative tree was folded in on 2026-11-10.
+	it('no longer has an Alternative Rock and Punk cluster', () => {
+		for (const genre of ['punk', 'emo', 'shoegaze', 'grunge', 'post-punk', 'new wave']) {
+			expect(homeOf(genre).cluster).not.toBe('Alternative Rock and Punk');
+		}
+	});
+
+	it('matches an emo fan to a post-hardcore venue', () => {
+		// `emo` was in the alternative tree only and `post-hardcore` resolved to Rock Music, so
+		// these two scored nothing against each other.
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['emo']),
+			findClusters(['post-hardcore'])
+		);
+		expect(similarity).toBe(1);
+	});
+
+	it('matches a goth night to a darkwave one', () => {
+		expect(homeOf('darkwave')).toEqual({
+			cluster: 'Rock Music',
+			subCluster: 'Gothic and Wave',
+			weight: 1.0
+		});
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['goth']),
+			findClusters(['deathrock', 'coldwave'])
+		);
+		expect(similarity).toBe(1);
+	});
+
+	it('matches a bare "indie" to indie rock and shoegaze', () => {
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['indie']),
+			findClusters(['indie rock', 'shoegaze'])
+		);
+		expect(similarity).toBe(1);
+	});
+
+	it('reads "indie pop" as the Indie Pop cluster, not as rock', () => {
+		expect(homeOf('indie pop').cluster).toBe('Indie Pop');
+	});
+
+	it('keeps the leaves that belonged in another cluster all along', () => {
+		expect(homeOf('cowpunk').cluster).toBe('Country');
+		expect(homeOf('industrial rock').cluster).toBe('Industrial');
+		expect(homeOf('bedroom pop').cluster).toBe('Indie Pop');
+		expect(homeOf('psych folk').cluster).toBe('Neo-Psychedelia');
+		expect(homeOf('anti-folk').cluster).toBe('Folk and Singer-Songwriter');
+		expect(homeOf('gothic metal').subCluster).toBe('Heavy Metal');
+	});
+});
+
 describe('genres with nowhere to go', () => {
 	it('leaves a tag that is merely too broad Uncategorized', () => {
 		for (const genre of ['electronic', 'dance', 'club music', 'various']) {
