@@ -44,9 +44,15 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       from `dev/schema.sql` with every migration applied, following CI's steps (2026-11-08).
       That includes `signup-journey.spec.ts`, which signs up, picks artists and checks the
       clubs those genres reach, with no streaming account at any step (`clubfindr/dev/TESTING.md`)
-- [ ] Verify Spotify, Last.fm and MusicBrainz responses against the **live** APIs
-      (KNOWN_ISSUES 21). Everything so far is checked against `tests/mock-*.ts`, which follow
-      the published shapes but were never captured from the services
+- [x] Verify Spotify, Last.fm and MusicBrainz responses against the **live** APIs
+      (KNOWN_ISSUES 21), done by hand 2026-11-10 with production keys, outside the repo. The
+      shapes match the mocks; the differences are listed in KNOWN_ISSUES 21. Not something to
+      automate here: no live calls from tests or scripts, and no API keys in committed files
+- [ ] Act on the live-API findings (KNOWN_ISSUES 21), mock first so the e2e suite shows each
+      one, then the client: retry MusicBrainz 503s once or twice; Last.fm error 6 on
+      `artist.gettoptags` means "no tags", not an outage; drop Last.fm's placeholder star image;
+      prefer Spotify's 320px image. Mocks to bring in line: empty Spotify `genres` on common
+      artists, `error_description` on token errors, MusicBrainz counts of 0 or below, unsorted
 
 ### Follow-ups from the section 1 work
 

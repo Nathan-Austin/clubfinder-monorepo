@@ -181,21 +181,54 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `SPOTIFY_CONNECT_ENABLED` use `$env/dynamic/private` at runtime, so tests can switch them
     without a rebuild and a missing optional key cannot break a build. Either document both
     conventions or move the optional keys to required placeholders.
-21. _Partly fixed._ **Spotify and Last.fm responses were never checked against the live APIs.**
-    The mocks (`tests/mock-spotify.ts`, `tests/mock-lastfm.ts`, `tests/mock-musicbrainz.ts`)
-    follow the public documentation: the development-mode 403 body, whether search and artist
-    objects still carry `genres`, Last.fm error codes and HTTP statuses, the `toptags` count
-    scale, the MusicBrainz search shape and its vote counts. That is still all that has been
-    checked; nothing here has been run against the live services.
-    An artist Spotify returns without `genres` no longer ends up with none: adding it falls
-    back to Last.fm `artist.gettoptags` and then MusicBrainz tags
-    (`src/lib/taste/genreFallback.ts`, wired into `POST /api/taste/artists`), so the profile
-    survives Spotify dropping the field. The fallback runs only when an artist is added, and
-    the result is stored in `taste_artists` like any other genres. MusicBrainz needs no key
-    (`MUSICBRAINZ_ENABLED=false` switches it off) but does need a descriptive
-    `MUSICBRAINZ_USER_AGENT` in production, and is held to one request a second.
-    The full e2e suite now also runs with `SPOTIFY_CONNECT_ENABLED=false` (`dev/TESTING.md`),
-    against the same mocks.
+21. _Checked against the live APIs 2026-11-10; follow-ups open._ **Spotify, Last.fm and
+    MusicBrainz responses had only been checked against the mocks** (`tests/mock-spotify.ts`,
+    `tests/mock-lastfm.ts`, `tests/mock-musicbrainz.ts`), which follow the public docs.
+    On 2026-11-10 the app's own client functions (`spotifyArtistLookup.ts`, `lastfm.ts`,
+    `musicbrainz.ts`) were run by hand against the live services with production keys, from
+    outside the repo. **Do not repeat this from tests or scripts in the repo, and never put API
+    keys in any committed file**; the mocks are the test boundary. What it showed:
+    - Matches the mocks: Spotify's token response, search and artist shapes, and its
+      `{error: {status, message}}` 404 body; Last.fm `topartists` (`playcount` and `@attr.rank`
+      as strings), the `toptags` 0-100 count scale, unknown user (HTTP 404, error 6) and
+      invalid key (HTTP 403, error 10); the MusicBrainz search shape (`count`, `artists[]` by
+      descending `score`, `tags[{count, name}]`) and its 403 without a User-Agent.
+    - **Spotify `genres` is often empty**, on search results and artist lookups alike (Bicep
+      and RÜFÜS DU SOL came back with `[]`, Fred again.. and Daft Punk with genres). The
+      fallback below is the main path for many artists, not an edge case; in the live run
+      Last.fm supplied Bicep's (`House` 100, `Disco` 95, `techno` 58).
+    - **MusicBrainz answers 503 intermittently**, under load, whatever the User-Agent and well
+      inside one request a second: one in two to one in four first calls in the run. The
+      client gives up at once, and since genres are stored when an artist is added, one 503
+      leaves that artist without MusicBrainz genres for good. Follow-up: retry a 503 once or
+      twice after about a second.
+    - **Last.fm reports an unknown artist as HTTP 200** with `{error: 6, message: "The artist
+you supplied could not be found", links: []}`. The client classifies that as
+      `unavailable` ("Last.fm is not answering"); the fallback still moves on to MusicBrainz,
+      so the only harm is a misleading warning. Follow-up: treat error 6 on `artist.gettoptags`
+      as "no tags".
+    - **Last.fm artist images are a placeholder.** Every `user.gettopartists` image is the same
+      grey star (hash `2a96cbd8b46e442fc41c2b86b821562f`; Last.fm stopped serving artist
+      images in 2019), so imported artists get that as `imageUrl`. Follow-up: treat that hash
+      as no image.
+    - Smaller: Spotify images are now 640/320/160 wide, so `parseSpotifyArtist`'s preference for
+      `width === 300` never hits and it takes the 640 one (320 would do); a bad client secret
+      gets `400 {error, error_description}`, where the mock sends only `error`; MusicBrainz tag
+      counts can be 0 or negative and arrive unsorted (`tagsToGenres` already filters and
+      sorts, but the mock only has positive counts).
+    - Not checked: Spotify's development-mode 403 for unregistered users, which needs a user
+      OAuth login and stops mattering once `SPOTIFY_CONNECT_ENABLED=false`.
+      Each follow-up should change the mock to the observed behaviour first, so the e2e suite
+      shows the failure, then fix the client.
+      An artist Spotify returns without `genres` no longer ends up with none: adding it falls
+      back to Last.fm `artist.gettoptags` and then MusicBrainz tags
+      (`src/lib/taste/genreFallback.ts`, wired into `POST /api/taste/artists`), so the profile
+      survives Spotify dropping the field. The fallback runs only when an artist is added, and
+      the result is stored in `taste_artists` like any other genres. MusicBrainz needs no key
+      (`MUSICBRAINZ_ENABLED=false` switches it off) but does need a descriptive
+      `MUSICBRAINZ_USER_AGENT` in production, and is held to one request a second.
+      The full e2e suite now also runs with `SPOTIFY_CONNECT_ENABLED=false` (`dev/TESTING.md`),
+      against the same mocks.
 22. _Fixed._ **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile
     endpoints, three different normalisers), and the profile was wired into the two web ones
     only. There is one matcher now, `$lib/server/genreMatching` (server-only: a genre no
