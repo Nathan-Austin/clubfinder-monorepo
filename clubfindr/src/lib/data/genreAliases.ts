@@ -12,7 +12,7 @@
 //
 //   GENRE_ALIASES    spelling variants and synonyms → another genre string (a leaf, an umbrella
 //                    key, or another alias; chains are resolved).
-//   UMBRELLA_HOMES   a broad genre that is not a leaf → the sub-cluster it should count as.
+//   UMBRELLA_FAMILIES a broad genre → every sub-cluster of the family it names.
 //   CANONICAL_HOMES  a leaf that `genreClusters.json` lists under several sub-clusters → the one
 //                    home it resolves to, so the answer does not depend on JSON order.
 //   UNSCORED_GENRES  genres that are real but have nowhere sensible to go, or are too broad to

@@ -18,7 +18,7 @@
 //   1. an exact leaf of genreClusters.json, its home taken from CANONICAL_HOMES when the JSON
 //      lists the leaf under several sub-clusters;
 //   2. the same, after following GENRE_ALIASES (spelling variants and synonyms);
-//   3. UMBRELLA_HOMES, for broad terms that are sub-cluster names rather than leaves;
+//   3. UMBRELLA_FAMILIES, for broad terms that name a family of sub-clusters;
 //   4. UNSCORED_GENRES, for genres with no home in the tree and for tags too broad to mean
 //      anything — these go straight to Uncategorized rather than being guessed at;
 //   5. the fuzzy pass, then the word-boundary pass, each taking the best candidate rather than

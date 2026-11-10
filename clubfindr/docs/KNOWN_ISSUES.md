@@ -109,7 +109,7 @@ section 4), left open on purpose.
     tables, applied by `$lib/server/genreMatching` before any fuzzy guessing, and validated
     against the cluster tree by `genreAliases.test.ts`:
     `GENRE_ALIASES` (spelling variants: `dnb`, `rnb`, `hip-hop`, `drum n bass`),
-    `UMBRELLA_HOMES` (broad terms that name a sub-cluster rather than a leaf: `house`, `rock`,
+    `UMBRELLA_FAMILIES` (broad terms that name a family of sub-clusters: `house`, `rock`,
     `metal`, `trance`, `edm`, `reggae`, `blues`, `country`, `latin`, `indie`),
     `CANONICAL_HOMES` (all 92 contested leaves, so `deep house` no longer depends on JSON order
     and `reggaeton` files under Urban Latino rather than Reggae), and
@@ -162,6 +162,15 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       ~0.14 that naive weight-splitting would have produced. An umbrella also takes precedence
       over a leaf of the same name ("techno", "jazz", "pop", "soul", "classical"), with the leaf
       kept as a fuzzy target and a test requiring the leaf's home to be a family member.
+    - _Fixed 2026-11-10._ **The picker's own group names did not resolve.** The genre picker
+      offers sub-cluster names as its second menu level and `/clubs` passes the pick straight to
+      the matcher without expanding groups, so "Minimal and Techno" has to work as a genre. It
+      did only through a fuzzy match onto the leaf "minimal techno", which tightening the fuzzy
+      pass to real typos correctly stopped, after which `/clubs` answered "Sorry, we couldn't find
+      any matches". Group names are indexed now, after the leaves and never over one, so a name
+      that is also a leaf keeps the leaf's home. "Gothic and Wave" and "Mainstream Pop" had never
+      worked at all. Found by the e2e suite, as was `genreWeights` leaking into the taste API's
+      response (`toPublicProfile` strips it).
 
 19. **The same artist from two providers is only matched by name.** The Last.fm import reuses
     a `taste_artists` row with the same name from any source; a spelling difference gives two

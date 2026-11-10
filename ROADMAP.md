@@ -129,7 +129,13 @@ Things to do by hand or decide, collected while building the items above.
       against any of its members, counting it in the denominator for what it matched rather than
       splitting its weight — so "house" reaches all four house sub-clusters and still scores 1 at
       a venue playing only one of them. Umbrellas now shadow same-named leaves (techno, jazz,
-      pop, soul, classical) on purpose. Not yet verified against live API data
+      pop, soul, classical) on purpose. The picker's own group names ("Minimal and Techno")
+      resolve as genres again. Not yet verified against live API data
+- [ ] Revisit the absolute similarity cut-off now that scores are weighted. `/clubs` keeps
+      matches above 0.05 and `/barfindr` filters on the same figure, set when every exact match
+      scored 1.0. Weighted profiles (artist counts, event vs self-description) spread a side's
+      weight, so a broad profile against a venue with many genres can fall under it and vanish
+      rather than rank low. Ranking is unaffected; only the cut-off measures something new
 - [x] Unify the four copies of the cluster matcher into `$lib` and wire the taste
       profile into the mobile API (KNOWN_ISSUES 22), done 2026-11-10: one matcher in
       `$lib/server/genreMatching` (the `/clubs` one, the only weighted version), and the two
