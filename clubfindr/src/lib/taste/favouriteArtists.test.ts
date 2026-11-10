@@ -3,6 +3,7 @@ import {
 	ARTIST_REFRESH_AFTER_MS,
 	addFavouriteArtist,
 	deriveProfileGenres,
+	deriveProfileGenreWeights,
 	FavouriteLimitError,
 	isArtistSource,
 	isUuid,
@@ -82,6 +83,28 @@ describe('deriveProfileGenres', () => {
 
 	it('is empty without artists', () => {
 		expect(deriveProfileGenres([])).toEqual([]);
+	});
+});
+
+describe('deriveProfileGenreWeights', () => {
+	it('counts how many artists carry each genre', () => {
+		expect(
+			deriveProfileGenreWeights([
+				{ genres: ['techno', 'dub techno'] },
+				{ genres: ['Deep House', 'techno'] },
+				{ genres: ['techno'] }
+			])
+		).toEqual({ techno: 3, 'dub techno': 1, 'deep house': 1 });
+	});
+
+	it('counts a genre once per artist however often the artist repeats it', () => {
+		expect(deriveProfileGenreWeights([{ genres: ['techno', 'Techno', ' techno '] }])).toEqual({
+			techno: 1
+		});
+	});
+
+	it('is empty without artists', () => {
+		expect(deriveProfileGenreWeights([])).toEqual({});
 	});
 });
 

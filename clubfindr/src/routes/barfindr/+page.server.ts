@@ -4,11 +4,13 @@ import { pool } from '$lib/db';
 import type { PageServerLoad } from './$types';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
-import { getProfileGenresForSession } from '$lib/taste/profileGenres';
+import { getProfileGenreWeightsForSession } from '$lib/taste/profileGenres';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
 import {
 	calculateClusterSimilarity,
+	expandWeightedProfile,
 	findClusters,
+	findWeightedClusters,
 	normalizeGenre,
 	shouldIgnoreGenre
 } from '$lib/server/genreMatching';
@@ -119,6 +121,10 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 	const address = cookies.get('address');
 	let genresList: string[] = [];
+	// Set when the taste profile is the genre source: how many favourite artists carry each
+	// genre, so matching can weight a mostly-techno profile as mostly techno (KNOWN_ISSUES 32).
+	// Explicit picks (the cookie sources above) stay unweighted: naming a genre is asking for it.
+	let profileGenreWeights: Record<string, number> | null = null;
 
 	// No search yet (or the one-hour search cookies expired): start over on the home page.
 	// No "today" fallback here: the server's clock is not the visitor's.
@@ -221,8 +227,10 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	//    above win; this is what logged-in users without Spotify get.
 	if (genresList.length === 0 && sessionId) {
 		try {
-			genresList = await getProfileGenresForSession(pool, sessionId);
+			const weights = await getProfileGenreWeightsForSession(pool, sessionId);
+			genresList = Object.keys(weights).sort();
 			if (genresList.length > 0) {
+				profileGenreWeights = weights;
 				console.log('Using genres from the taste profile:', genresList);
 			}
 		} catch (error) {
@@ -237,8 +245,12 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		// genresList = ['electronic', 'house'];
 	}
 
-	// Expand compound genres for better matching
+	// Expand compound genres for better matching; a weighted profile keeps its weights, each
+	// expanded genre inheriting the weight of the genre it came from
 	const expandedGenresList = expandCompoundGenres(genresList);
+	const expandedGenreWeights = profileGenreWeights
+		? expandWeightedProfile(profileGenreWeights, expandCompoundGenres)
+		: null;
 	console.log('Expanded genres list:', expandedGenresList);
 
 	try {
@@ -428,7 +440,9 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		}
 
 		// Find clusters for user genres
-		const userClusters = findClusters(expandedGenresList);
+		const userClusters = expandedGenreWeights
+			? findWeightedClusters(expandedGenreWeights)
+			: findClusters(expandedGenresList);
 
 		// Calculate similarity for each bar
 		const processedBars = Array.from(barsMap.values()).map((bar) => {

@@ -62,6 +62,12 @@ export interface FavouriteArtistsProfile {
 	artists: TasteArtist[];
 	/** Union of the favourites' genres, lower-cased, de-duplicated and sorted. */
 	genres: string[];
+	/**
+	 * How many of the favourites carry each genre. Three techno artists out of five make a
+	 * mostly-techno profile, which the flat `genres` set cannot say; the matchers normalise
+	 * these counts by the largest one (findWeightedClusters, KNOWN_ISSUES 32).
+	 */
+	genreWeights: Record<string, number>;
 }
 
 export function isArtistSource(value: unknown): value is ArtistSource {
@@ -83,6 +89,22 @@ export function normalizeGenres(genres: unknown): string[] {
 /** The genre profile of a set of favourite artists: a plain, sorted set of genre strings. */
 export function deriveProfileGenres(artists: Pick<ArtistDetails, 'genres'>[]): string[] {
 	return [...new Set(artists.flatMap((artist) => normalizeGenres(artist.genres)))].sort();
+}
+
+/**
+ * The same profile with how many artists carry each genre. A genre counts once per artist, so
+ * an artist tagged with a genre twice does not weigh double.
+ */
+export function deriveProfileGenreWeights(
+	artists: Pick<ArtistDetails, 'genres'>[]
+): Record<string, number> {
+	const weights: Record<string, number> = {};
+	for (const artist of artists) {
+		for (const genre of normalizeGenres(artist.genres)) {
+			weights[genre] = (weights[genre] ?? 0) + 1;
+		}
+	}
+	return weights;
 }
 
 export function rowToTasteArtist(row: Record<string, unknown>): TasteArtist {
@@ -113,7 +135,11 @@ export async function listFavouriteArtists(
 		[ownerId]
 	);
 	const artists = result.rows.map(rowToTasteArtist);
-	return { artists, genres: deriveProfileGenres(artists) };
+	return {
+		artists,
+		genres: deriveProfileGenres(artists),
+		genreWeights: deriveProfileGenreWeights(artists)
+	};
 }
 
 /**

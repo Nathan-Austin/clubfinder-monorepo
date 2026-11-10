@@ -5,12 +5,13 @@ import type { PageServerLoad } from './$types';
 import type { DbDataRow } from '$lib/$types';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
-import { getProfileGenresForSession } from '$lib/taste/profileGenres';
+import { getProfileGenreWeightsForSession } from '$lib/taste/profileGenres';
 import { genreOverlap } from '$lib/genreSimilarity';
 import {
 	calculateClusterSimilarity,
 	createClusterCacheKey,
 	findClusters,
+	findWeightedClusters,
 	genreToClusterIndex,
 	normalizeGenre
 } from '$lib/server/genreMatching';
@@ -115,6 +116,10 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 	const address = cookies.get('address');
 	let genresList: string[] = [];
+	// Set when the taste profile is the genre source: how many favourite artists carry each
+	// genre, so matching can weight a mostly-techno profile as mostly techno (KNOWN_ISSUES 32).
+	// Explicit picks (the cookie sources above) stay unweighted: naming a genre is asking for it.
+	let profileGenreWeights: Record<string, number> | null = null;
 
 	// No search yet (or the one-hour search cookies expired): start over on the home page
 	if (!city || !date) {
@@ -199,8 +204,10 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	//    above win; this is what logged-in users without Spotify get.
 	if (genresList.length === 0 && sessionId) {
 		try {
-			genresList = await getProfileGenresForSession(pool, sessionId);
+			const weights = await getProfileGenreWeightsForSession(pool, sessionId);
+			genresList = Object.keys(weights).sort();
 			if (genresList.length > 0) {
+				profileGenreWeights = weights;
 				console.log('Using genres from the taste profile:', genresList);
 			}
 		} catch (error) {
@@ -285,7 +292,9 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		const DEFAULT_SIMILARITY_THRESHOLD = 0.1;
 		const DIVERSITY_WEIGHT = 0.3;
 
-		const userClusters = findClusters(genresList);
+		const userClusters = profileGenreWeights
+			? findWeightedClusters(profileGenreWeights)
+			: findClusters(genresList);
 
 		const clubSimilarities = processedData.map((club) => {
 			const clubClusters = findClusters(club.genres);

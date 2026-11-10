@@ -3,10 +3,12 @@ import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
-import { getProfileGenresForRequest } from '$lib/taste/profileGenres';
+import { getProfileGenreWeightsForRequest } from '$lib/taste/profileGenres';
 import {
 	calculateClusterSimilarity,
+	expandWeightedProfile,
 	findClusters,
+	findWeightedClusters,
 	normalizeGenre
 } from '$lib/server/genreMatching';
 
@@ -139,8 +141,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		// taste profile instead, the way /clubs and /barfindr already do it (KNOWN_ISSUES 22).
 		// The app authenticates with the Bearer token from its login.
 		const sentGenres = Array.isArray(genres) ? genres.filter((g) => typeof g === 'string') : [];
-		const profileGenres =
-			sentGenres.length > 0 ? [] : await getProfileGenresForRequest(pool, cookies, request);
+		// The profile comes with how many favourite artists carry each genre, so matching can
+		// weight a mostly-techno profile as mostly techno (KNOWN_ISSUES 32). Sent genres stay
+		// unweighted: naming a genre is asking for it.
+		const profileGenreWeights =
+			sentGenres.length > 0 ? {} : await getProfileGenreWeightsForRequest(pool, cookies, request);
+		const profileGenres = Object.keys(profileGenreWeights).sort();
 		const effectiveGenres = sentGenres.length > 0 ? sentGenres : profileGenres;
 
 		if (effectiveGenres.length === 0) {
@@ -205,7 +211,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		console.log(`Found ${events.length} events, now calculating genre matches`);
 
 		// Find genre clusters for expanded user genres
-		const userClusters = findClusters(expandedGenres);
+		const userClusters =
+			profileGenres.length > 0
+				? findWeightedClusters(expandWeightedProfile(profileGenreWeights, expandGenreGroups))
+				: findClusters(expandedGenres);
 
 		if (userClusters.length === 0) {
 			console.log('No clusters found for user genres, returning all events without matching');

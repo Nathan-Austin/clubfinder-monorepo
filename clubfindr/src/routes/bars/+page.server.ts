@@ -258,7 +258,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		// its taste profile, which needs no streaming account either.
 		let venueArtists: Awaited<ReturnType<typeof listFavouriteArtists>> = {
 			artists: [],
-			genres: []
+			genres: [],
+			genreWeights: {}
 		};
 		try {
 			venueArtists = await listFavouriteArtists(pool, barId, 'bar');

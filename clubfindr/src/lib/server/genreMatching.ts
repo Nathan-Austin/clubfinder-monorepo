@@ -335,6 +335,25 @@ export function findWeightedClusters(profile: Record<string, number>): ClusterEn
 	});
 }
 
+/**
+ * Runs a caller's genre expansion (group names → members, compound genres → parts) over a
+ * weighted profile, each expanded genre inheriting the weight of the genre it came from — the
+ * best weight, when two sources expand to the same genre. Keeps expansion, which is caller
+ * input preparation, out of the matcher while letting an expanded profile stay weighted.
+ */
+export function expandWeightedProfile(
+	profile: Record<string, number>,
+	expand: (genres: string[]) => string[]
+): Record<string, number> {
+	const expanded: Record<string, number> = {};
+	for (const [genre, weight] of Object.entries(profile)) {
+		for (const expandedGenre of expand([genre])) {
+			expanded[expandedGenre] = Math.max(expanded[expandedGenre] ?? 0, weight);
+		}
+	}
+	return expanded;
+}
+
 // Genres no cluster knows all land in this one fallback id. It must never count as a match:
 // otherwise any two unknown genres "match" each other (["Hip-Hop/Rap"] vs ["schlager"] scored
 // 1.0, see docs/taste-profile-design.md section 3). Unknown genres carry no information, so

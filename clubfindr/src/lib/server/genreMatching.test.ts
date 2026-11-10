@@ -3,7 +3,12 @@
 // this file pins the behaviour a user or a venue actually sees.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { calculateClusterSimilarity, findClusters, findWeightedClusters } from './genreMatching';
+import {
+	calculateClusterSimilarity,
+	expandWeightedProfile,
+	findClusters,
+	findWeightedClusters
+} from './genreMatching';
 
 vi.mock('node:fs', () => {
 	const appendFileSync = vi.fn();
@@ -287,6 +292,23 @@ describe('weighted profiles (KNOWN_ISSUES 32)', () => {
 		const before = findClusters(['techno', 'salsa']).map((e) => e.weight);
 		findWeightedClusters({ techno: 10, salsa: 1 });
 		expect(findClusters(['techno', 'salsa']).map((e) => e.weight)).toEqual(before);
+	});
+
+	it('carries weights through a caller expansion, children inheriting their source', () => {
+		const expanded = expandWeightedProfile({ 'melodic/afro house': 3, salsa: 1 }, (genres) =>
+			genres.flatMap((g) => [g, ...g.split(/[/\s]+/)])
+		);
+		expect(expanded['melodic/afro house']).toBe(3);
+		expect(expanded['melodic']).toBe(3);
+		expect(expanded['house']).toBe(3);
+		expect(expanded['salsa']).toBe(1);
+	});
+
+	it('keeps the best weight when two sources expand to the same genre', () => {
+		const expanded = expandWeightedProfile({ 'deep house': 5, 'tech house': 2 }, (genres) =>
+			genres.flatMap((g) => [g, ...g.split(/\s+/)])
+		);
+		expect(expanded['house']).toBe(5);
 	});
 
 	it('adds genres in the same cluster up to at most 1', () => {

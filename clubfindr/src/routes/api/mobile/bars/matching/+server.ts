@@ -7,10 +7,12 @@ import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { toLocalIsoDate } from '$lib/localDate';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
-import { getProfileGenresForRequest } from '$lib/taste/profileGenres';
+import { getProfileGenreWeightsForRequest } from '$lib/taste/profileGenres';
 import {
 	calculateClusterSimilarity,
+	expandWeightedProfile,
 	findClusters,
+	findWeightedClusters,
 	normalizeGenre,
 	shouldIgnoreGenre
 } from '$lib/server/genreMatching';
@@ -179,8 +181,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		// taste profile instead, the way /clubs and /barfindr already do it (KNOWN_ISSUES 22).
 		// The app authenticates with the Bearer token from its login.
 		const sentGenres = Array.isArray(genres) ? genres.filter((g) => typeof g === 'string') : [];
-		const profileGenres =
-			sentGenres.length > 0 ? [] : await getProfileGenresForRequest(pool, cookies, request);
+		// The profile comes with how many favourite artists carry each genre, so matching can
+		// weight a mostly-techno profile as mostly techno (KNOWN_ISSUES 32). Sent genres stay
+		// unweighted: naming a genre is asking for it.
+		const profileGenreWeights =
+			sentGenres.length > 0 ? {} : await getProfileGenreWeightsForRequest(pool, cookies, request);
+		const profileGenres = Object.keys(profileGenreWeights).sort();
 		const effectiveGenres = sentGenres.length > 0 ? sentGenres : profileGenres;
 
 		if (effectiveGenres.length === 0) {
@@ -352,8 +358,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const fullyExpandedGenres = expandCompoundGenres(expandedGenres);
 		console.log('Fully expanded user genres:', fullyExpandedGenres);
 
-		// Find genre clusters for expanded user genres
-		const userClusters = findClusters(fullyExpandedGenres);
+		// Find genre clusters for expanded user genres; the taste profile keeps its weights
+		// through expansion, each expanded genre inheriting the weight of its source
+		const userClusters =
+			profileGenres.length > 0
+				? findWeightedClusters(
+						expandWeightedProfile(profileGenreWeights, (g) =>
+							expandCompoundGenres(expandGenreGroups(g))
+						)
+					)
+				: findClusters(fullyExpandedGenres);
 
 		if (userClusters.length === 0) {
 			console.log('No clusters found for user genres, returning all bars without matching');
