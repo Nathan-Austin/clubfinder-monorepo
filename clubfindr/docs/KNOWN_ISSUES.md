@@ -153,10 +153,15 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       This retired 36 of the 92 `CANONICAL_HOMES` entries outright: they existed only because the
       two clusters described the same music, and the table is the remaining 56. `goth` and
       `indie pop` became umbrella entries, since each names a cluster or a scene, not a leaf.
-    - **Umbrella breadth.** An umbrella resolves to one sub-cluster, so `house` matches Classic
-      House but not Modern or Cultural House. Spreading it across a family needs the scoring
-      change in item 32 first, or the extra clusters inflate the similarity denominator and
-      naming umbrellas scores worse than naming specifics.
+    - _Fixed 2026-11-10._ **Umbrella breadth.** An umbrella resolved to one sub-cluster, so
+      `house` matched Classic House but not Modern, Cultural or Deep/Tech House — amapiano and
+      tech house nights were invisible to a "house" user. `UMBRELLA_FAMILIES` now names every
+      sub-cluster each umbrella covers, and scoring matches a family against any of its members:
+      the family counts in the similarity denominator for what it actually matched, never less
+      than its own weight, so naming "house" at a pure acid-house venue scores 1 rather than the
+      ~0.14 that naive weight-splitting would have produced. An umbrella also takes precedence
+      over a leaf of the same name ("techno", "jazz", "pop", "soul", "classical"), with the leaf
+      kept as a fuzzy target and a test requiring the leaf's home to be a family member.
 
 19. **The same artist from two providers is only matched by name.** The Last.fm import reuses
     a `taste_artists` row with the same name from any source; a spelling difference gives two

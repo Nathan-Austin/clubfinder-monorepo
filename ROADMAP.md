@@ -124,9 +124,12 @@ Things to do by hand or decide, collected while building the items above.
       an event, stay 1 without one), and the rolling play counts are scaled to a unit maximum so
       the fixed weights mean something. Explicit genre picks stay unweighted. Not yet run against
       the e2e suite or on production data
-- [ ] Widen umbrella genres across their whole family with the weight split between the
-      sub-clusters (KNOWN_ISSUES 18, unblocked by the scoring change above): "house" should reach
-      Modern and Cultural House too, not only Classic House
+- [x] Widen umbrella genres across their whole family (KNOWN_ISSUES 18), done 2026-11-10:
+      `UMBRELLA_FAMILIES` names every sub-cluster an umbrella covers and scoring matches a family
+      against any of its members, counting it in the denominator for what it matched rather than
+      splitting its weight — so "house" reaches all four house sub-clusters and still scores 1 at
+      a venue playing only one of them. Umbrellas now shadow same-named leaves (techno, jazz,
+      pop, soul, classical) on purpose. Not yet verified against live API data
 - [x] Unify the four copies of the cluster matcher into `$lib` and wire the taste
       profile into the mobile API (KNOWN_ISSUES 22), done 2026-11-10: one matcher in
       `$lib/server/genreMatching` (the `/clubs` one, the only weighted version), and the two
