@@ -2061,6 +2061,323 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "Pop",
+			"subgenres": [
+				{
+					"name": "Mainstream Pop",
+					"genres": ["Pop", "Dance Pop", "Teen Pop"],
+					"subsubgenres": [
+						{
+							"name": "Mainstream Pop",
+							"genres": [
+								"Pop",
+								"Dance Pop",
+								"Teen Pop",
+								"Bubblegum Pop",
+								"Power Pop",
+								"Adult Contemporary",
+								"Commercial Pop",
+								"Radio Pop"
+							]
+						}
+					]
+				},
+				{
+					"name": "Electronic Pop",
+					"genres": ["Electropop", "Electro Pop", "Dance-Pop"],
+					"subsubgenres": [
+						{
+							"name": "Electronic Pop",
+							"genres": ["Electropop", "Electro Pop", "Dance-Pop", "Pop EDM", "Tropical Pop"]
+						}
+					]
+				},
+				{
+					"name": "Global Pop",
+					"genres": ["K-Pop", "J-Pop", "C-Pop"],
+					"subsubgenres": [
+						{
+							"name": "Global Pop",
+							"genres": [
+								"K-Pop",
+								"J-Pop",
+								"C-Pop",
+								"Mandopop",
+								"Cantopop",
+								"City Pop",
+								"Korean Pop",
+								"Japanese Pop"
+							]
+						}
+					]
+				},
+				{
+					"name": "European Pop",
+					"genres": ["Schlager", "Chanson", "Europop"],
+					"subsubgenres": [
+						{
+							"name": "European Pop",
+							"genres": ["Schlager", "Chanson", "Europop", "Eurodance", "Italo Pop", "Discofox"]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Soul, Funk and Disco",
+			"subgenres": [
+				{
+					"name": "Classic Soul",
+					"genres": ["Soul", "Motown", "Northern Soul"],
+					"subsubgenres": [
+						{
+							"name": "Classic Soul",
+							"genres": [
+								"Soul",
+								"Motown",
+								"Northern Soul",
+								"Southern Soul",
+								"Memphis Soul",
+								"Deep Soul",
+								"Philly Soul"
+							]
+						}
+					]
+				},
+				{
+					"name": "Funk",
+					"genres": ["Funk", "P-Funk", "Electro Funk"],
+					"subsubgenres": [
+						{
+							"name": "Funk",
+							"genres": [
+								"Funk",
+								"P-Funk",
+								"Electro Funk",
+								"Boogie",
+								"Go-Go",
+								"Funk Rock",
+								"Afro-Funk"
+							]
+						}
+					]
+				},
+				{
+					"name": "Disco",
+					"genres": ["Disco", "Italo Disco", "Nu Disco"],
+					"subsubgenres": [
+						{
+							"name": "Disco",
+							"genres": [
+								"Disco",
+								"Italo Disco",
+								"Nu Disco",
+								"Euro Disco",
+								"Disco Funk",
+								"Hi-NRG",
+								"Cosmic Disco"
+							]
+						}
+					]
+				},
+				{
+					"name": "Contemporary R&B",
+					"genres": ["R&B", "Contemporary R&B", "Neo Soul"],
+					"subsubgenres": [
+						{
+							"name": "Contemporary R&B",
+							"genres": [
+								"R&B",
+								"Contemporary R&B",
+								"Neo Soul",
+								"New Jack Swing",
+								"Quiet Storm",
+								"Alternative R&B"
+							]
+						}
+					]
+				},
+				{
+					"name": "Gospel and Spiritual",
+					"genres": ["Gospel", "Contemporary Gospel", "Spirituals"],
+					"subsubgenres": [
+						{
+							"name": "Gospel and Spiritual",
+							"genres": ["Gospel", "Contemporary Gospel", "Spirituals", "Soul Gospel"]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Jazz",
+			"subgenres": [
+				{
+					"name": "Traditional Jazz",
+					"genres": ["Jazz", "New Orleans Jazz", "Dixieland"],
+					"subsubgenres": [
+						{
+							"name": "Traditional Jazz",
+							"genres": [
+								"Jazz",
+								"New Orleans Jazz",
+								"Dixieland",
+								"Swing",
+								"Big Band",
+								"Ragtime",
+								"Gypsy Jazz"
+							]
+						}
+					]
+				},
+				{
+					"name": "Bebop and Modern Jazz",
+					"genres": ["Bebop", "Hard Bop", "Cool Jazz"],
+					"subsubgenres": [
+						{
+							"name": "Bebop and Modern Jazz",
+							"genres": ["Bebop", "Hard Bop", "Cool Jazz", "Modal Jazz", "Post-Bop"]
+						}
+					]
+				},
+				{
+					"name": "Free and Spiritual Jazz",
+					"genres": ["Free Jazz", "Avant-Garde Jazz", "Spiritual Jazz"],
+					"subsubgenres": [
+						{
+							"name": "Free and Spiritual Jazz",
+							"genres": ["Free Jazz", "Avant-Garde Jazz", "Spiritual Jazz"]
+						}
+					]
+				},
+				{
+					"name": "Contemporary Jazz",
+					"genres": ["Smooth Jazz", "Contemporary Jazz", "Soul Jazz"],
+					"subsubgenres": [
+						{
+							"name": "Contemporary Jazz",
+							"genres": ["Smooth Jazz", "Contemporary Jazz", "Soul Jazz", "Jazz-Funk"]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "African Popular Music",
+			"subgenres": [
+				{
+					"name": "West African Pop",
+					"genres": ["Afrobeats", "Afrobeat", "Highlife"],
+					"subsubgenres": [
+						{
+							"name": "West African Pop",
+							"genres": [
+								"Afrobeats",
+								"Afrobeat",
+								"Highlife",
+								"Hiplife",
+								"Azonto",
+								"Juju",
+								"Fuji",
+								"Makossa"
+							]
+						}
+					]
+				},
+				{
+					"name": "East and Central African Pop",
+					"genres": ["Bongo Flava", "Soukous", "Rumba Congolaise"],
+					"subsubgenres": [
+						{
+							"name": "East and Central African Pop",
+							"genres": [
+								"Bongo Flava",
+								"Soukous",
+								"Rumba Congolaise",
+								"Ndombolo",
+								"Coupe-Decale",
+								"Mbalax"
+							]
+						}
+					]
+				},
+				{
+					"name": "Afro-Pop and Fusion",
+					"genres": ["Afro-Pop", "Afro Fusion", "Afro-Soul"],
+					"subsubgenres": [
+						{
+							"name": "Afro-Pop and Fusion",
+							"genres": ["Afro-Pop", "Afro Fusion", "Afro-Soul", "Maskandi", "Mbaqanga", "Benga"]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Classical",
+			"subgenres": [
+				{
+					"name": "Orchestral and Chamber",
+					"genres": ["Classical", "Baroque", "Romantic"],
+					"subsubgenres": [
+						{
+							"name": "Orchestral and Chamber",
+							"genres": [
+								"Classical",
+								"Baroque",
+								"Romantic",
+								"Symphony",
+								"Chamber Music",
+								"Opera",
+								"Early Music"
+							]
+						}
+					]
+				},
+				{
+					"name": "Modern Classical",
+					"genres": ["Contemporary Classical", "Minimalism", "Neoclassical"],
+					"subsubgenres": [
+						{
+							"name": "Modern Classical",
+							"genres": [
+								"Contemporary Classical",
+								"Minimalism",
+								"Neoclassical",
+								"Modern Composition",
+								"Film Score"
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Folk and Singer-Songwriter",
+			"subgenres": [
+				{
+					"name": "Folk",
+					"genres": ["Folk", "Folk Revival", "Acoustic Folk"],
+					"subsubgenres": [
+						{
+							"name": "Folk",
+							"genres": ["Folk", "Folk Revival", "Acoustic Folk"]
+						}
+					]
+				},
+				{
+					"name": "Singer-Songwriter",
+					"genres": ["Singer-Songwriter", "Songwriter", "Acoustic Ballads"],
+					"subsubgenres": [
+						{
+							"name": "Singer-Songwriter",
+							"genres": ["Singer-Songwriter", "Songwriter", "Acoustic Ballads"]
+						}
+					]
+				}
+			]
 		}
 	]
 }
