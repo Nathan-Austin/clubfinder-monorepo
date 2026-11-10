@@ -112,11 +112,11 @@ Things to do by hand or decide, collected while building the items above.
       jazz, afrobeats, classical, gospel, k-pop, schlager and folk resolve at full weight instead
       of being dropped. `r&b` moved out of Hip-Hop/Rap and in with soul. The pickers were
       regenerated with `pnpm convert-genres`
-- [ ] Decide what to do about the two overlapping rock trees (KNOWN_ISSUES 18): "Rock Music" and
-      "Alternative Rock and Punk" cover the same ground, and 40 of the 92 contested leaves are
-      contested between exactly those two. `CANONICAL_HOMES` sends them all to "Rock Music", but
-      leaves unique to the alternative tree (`emo`, `deathrock`, `coldwave`) still cannot match
-      their counterparts
+- [x] Fold the two overlapping rock trees into one (KNOWN_ISSUES 18), done 2026-11-10:
+      "Alternative Rock and Punk" is gone and "Rock Music" is the one rock cluster, with a new
+      "Gothic and Wave" sub-cluster for the goth and wave leaves it had no home for. An `emo` fan
+      now matches a `post-hardcore` venue instead of scoring 0, and 36 of the 92 `CANONICAL_HOMES`
+      entries were retired because they existed only to arbitrate between the two copies
 - [ ] Count how much of a genre a venue actually plays towards its score, not just that it
       appears (KNOWN_ISSUES 32): the profile weights only order the genres shown for a venue.
       Do this before widening an umbrella genre across a whole family (KNOWN_ISSUES 18), since

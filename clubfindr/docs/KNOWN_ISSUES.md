@@ -138,11 +138,21 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       House", where amapiano, gqom, kwaito and kuduro were already leaves.
       `static/lib/unified-genres.json` and `app_clubfindr/src/constants/unified-genres.json` were
       regenerated with `pnpm convert-genres`, so the pickers offer the new clusters too.
-    - **Two overlapping rock trees.** 40 of the 92 contested leaves are contested between
-      "Rock Music" and "Alternative Rock and Punk", which cover the same ground.
-      `CANONICAL_HOMES` sends them all to "Rock Music" consistently, but leaves unique to the
-      alternative tree (`emo`, for one) still cannot match their counterparts in the other.
-      Merging the two clusters is a taxonomy change.
+    - _Fixed 2026-11-10._ **Two overlapping rock trees.** "Rock Music" and "Alternative Rock and
+      Punk" covered the same ground, so they split the rock audience in half: a leaf living in
+      only one of them scored 0 against its counterpart in the other, and `emo` matched nothing
+      at a `post-hardcore` venue. The alternative tree is folded into "Rock Music" now. Of its 90
+      leaves, 36 were already there; 54 moved (punk into "Punk and Hardcore", emo into "Modern
+      Hard and Heavy", grunge and lo-fi into "Alternative Rock", garage into "Contemporary Rock",
+      no-wave into "Experimental and Post-Rock", and goth and wave into a new "Gothic and Wave",
+      which rock had no home for at all); nine were dropped because another cluster was always
+      the better home and the alternative tree was only ever a second copy — `bedroom pop` and
+      `indie folk` (Indie Pop), `cowpunk` (Country), `industrial rock` (Industrial), `psych folk`,
+      `psychedelic pop`, `space electronic` (Neo-Psychedelia), `gothic metal` (Heavy Metal) — and
+      `anti-folk` went to Folk and Singer-Songwriter.
+      This retired 36 of the 92 `CANONICAL_HOMES` entries outright: they existed only because the
+      two clusters described the same music, and the table is the remaining 56. `goth` and
+      `indie pop` became umbrella entries, since each names a cluster or a scene, not a leaf.
     - **Umbrella breadth.** An umbrella resolves to one sub-cluster, so `house` matches Classic
       House but not Modern or Cultural House. Spreading it across a family needs the scoring
       change in item 32 first, or the extra clusters inflate the similarity denominator and
