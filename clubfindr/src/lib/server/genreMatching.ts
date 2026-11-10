@@ -13,12 +13,35 @@
 // Server-only ($lib/server): a missing genre is appended to missing-genres.txt for the
 // genre-maintenance script, so this module touches the filesystem.
 //
-// Known limits, both tracked in KNOWN_ISSUES 18: the fuzzy pass makes false friends
-// (funk → punk, hip hop → trip hop, edm → idm), and genres no leaf knows at all land in
-// Uncategorized, which is excluded from scoring and so simply carries no weight.
+// A genre is resolved in this order (KNOWN_ISSUES 18):
+//
+//   1. an exact leaf of genreClusters.json, its home taken from CANONICAL_HOMES when the JSON
+//      lists the leaf under several sub-clusters;
+//   2. the same, after following GENRE_ALIASES (spelling variants and synonyms);
+//   3. UMBRELLA_HOMES, for broad terms that are sub-cluster names rather than leaves;
+//   4. UNSCORED_GENRES, for genres with no home in the tree and for tags too broad to mean
+//      anything — these go straight to Uncategorized rather than being guessed at;
+//   5. the fuzzy pass, then the word-boundary pass, each taking the best candidate rather than
+//      the first one the index happens to yield;
+//   6. Uncategorized, which scoring excludes, plus a line in missing-genres.txt.
+//
+// Steps 1-4 are the alias layer; before it existed everything broad fell through to step 5 and
+// produced false friends (funk → Traditional Punk, hip hop → Trip Hop, dnb → Dub,
+// country → Hip-Hop/Rap "Latin and Regional Variants", classical → Chamber Pop).
+//
+// Still open, tracked in KNOWN_ISSUES 32: how much of a genre a venue plays does not reach the
+// score, only how the genre reached its cluster. See UMBRELLA_HOMES' note on why umbrellas
+// resolve to one sub-cluster rather than a whole family until that changes.
 
+import {
+	CANONICAL_HOMES,
+	NO_HOME_GENRE_SET,
+	UMBRELLA_HOMES,
+	UNSCORED_GENRE_SET,
+	resolveAlias
+} from '$lib/data/genreAliases';
 import { genreClusters } from '$lib/data/validatedGenreClusters';
-import { isFuzzyMatch, isWordBoundaryPartialMatch, makeClusterId } from '$lib/genreSimilarity';
+import { fuzzyMatchScore, makeClusterId, wordBoundaryMatchScore } from '$lib/genreSimilarity';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -113,6 +136,73 @@ export function shouldIgnoreGenre(genre: string): boolean {
 	return ignoredGenres.some((ignored) => genre.toLowerCase().includes(ignored.toLowerCase()));
 }
 
+/**
+ * The home a leaf resolves to. A leaf that `genreClusters.json` lists under several sub-clusters
+ * takes its CANONICAL_HOMES entry; without one the first index entry wins, which is JSON order.
+ */
+function pickHome(normalizedGenre: string, entries: ClusterIndexEntry[]): ClusterIndexEntry {
+	if (entries.length > 1) {
+		const canonical = CANONICAL_HOMES[normalizedGenre];
+		if (canonical) {
+			return { cluster: canonical.cluster, subCluster: canonical.subCluster };
+		}
+	}
+
+	return entries[0];
+}
+
+/** The best fuzzy candidate in the index, or null. Ties break on the candidate name. */
+function findBestFuzzyHome(normalizedGenre: string): ClusterIndexEntry | null {
+	let bestScore = 0;
+	let bestGenre = '';
+	let best: ClusterIndexEntry[] | null = null;
+
+	for (const [candidateGenre, entries] of genreToClusterIndex) {
+		const score = fuzzyMatchScore(normalizedGenre, candidateGenre);
+		if (score > bestScore || (score > 0 && score === bestScore && candidateGenre < bestGenre)) {
+			bestScore = score;
+			bestGenre = candidateGenre;
+			best = entries;
+		}
+	}
+
+	return best ? pickHome(bestGenre, best) : null;
+}
+
+/** The best word-boundary candidate in the index, or null. Ties break on the candidate name. */
+function findBestWordBoundaryHome(normalizedGenre: string): ClusterIndexEntry | null {
+	let bestScore = 0;
+	let bestGenre = '';
+	let best: ClusterIndexEntry[] | null = null;
+
+	for (const [candidateGenre, entries] of genreToClusterIndex) {
+		const score = wordBoundaryMatchScore(normalizedGenre, candidateGenre);
+		if (score > bestScore || (score > 0 && score === bestScore && candidateGenre < bestGenre)) {
+			bestScore = score;
+			bestGenre = candidateGenre;
+			best = entries;
+		}
+	}
+
+	return best ? pickHome(bestGenre, best) : null;
+}
+
+function logMissingGenre(normalizedGenre: string): void {
+	if (missingGenresCache.has(normalizedGenre)) {
+		return;
+	}
+
+	console.warn(`Genre "${normalizedGenre}" not found in any cluster`);
+	missingGenresCache.add(normalizedGenre);
+
+	try {
+		const logPath = path.join(process.cwd(), 'missing-genres.txt');
+		fs.appendFileSync(logPath, `${normalizedGenre}\n`, 'utf8');
+	} catch (error) {
+		console.error('Failed to log missing genre to file:', error);
+	}
+}
+
 export function findClusters(genres: string[]): ClusterEntry[] {
 	// Check cache first
 	const cacheKey = createClusterCacheKey(genres);
@@ -136,72 +226,74 @@ export function findClusters(genres: string[]): ClusterEntry[] {
 			return;
 		}
 
-		let found = false;
-
-		const exactEntries = genreToClusterIndex.get(normalizedGenre);
-		if (exactEntries && exactEntries.length > 0) {
-			const entry = exactEntries[0];
+		const push = (home: ClusterIndexEntry, weight: number) => {
 			clusters.push({
 				genre,
-				cluster: entry.cluster,
-				subCluster: entry.subCluster,
-				weight: EXACT_MATCH_WEIGHT
+				cluster: home.cluster,
+				subCluster: home.subCluster,
+				weight
 			});
-			found = true;
-		}
+		};
 
-		if (!found) {
-			for (const [candidateGenre, entries] of genreToClusterIndex) {
-				if (isFuzzyMatch(normalizedGenre, candidateGenre)) {
-					const entry = entries[0];
-					clusters.push({
-						genre,
-						cluster: entry.cluster,
-						subCluster: entry.subCluster,
-						weight: FUZZY_MATCH_WEIGHT
-					});
-					found = true;
-					break;
-				}
-			}
-		}
-
-		if (!found) {
-			for (const [candidateGenre, entries] of genreToClusterIndex) {
-				if (isWordBoundaryPartialMatch(normalizedGenre, candidateGenre)) {
-					const entry = entries[0];
-					clusters.push({
-						genre,
-						cluster: entry.cluster,
-						subCluster: entry.subCluster,
-						weight: WORD_BOUNDARY_MATCH_WEIGHT
-					});
-					found = true;
-					break;
-				}
-			}
-		}
-
-		if (!found) {
-			if (!missingGenresCache.has(normalizedGenre)) {
-				console.warn(`Genre "${normalizedGenre}" not found in any cluster`);
-				missingGenresCache.add(normalizedGenre);
-
-				try {
-					const logPath = path.join(process.cwd(), 'missing-genres.txt');
-					fs.appendFileSync(logPath, `${normalizedGenre}\n`, 'utf8');
-				} catch (error) {
-					console.error('Failed to log missing genre to file:', error);
-				}
-			}
-
+		const uncategorized = () => {
 			clusters.push({
 				genre,
 				cluster: 'Uncategorized',
 				subCluster: 'Other',
 				weight: UNCATEGORIZED_WEIGHT
 			});
+		};
+
+		// 1. An exact leaf of genreClusters.json.
+		const exactEntries = genreToClusterIndex.get(normalizedGenre);
+		if (exactEntries && exactEntries.length > 0) {
+			push(pickHome(normalizedGenre, exactEntries), EXACT_MATCH_WEIGHT);
+			return;
 		}
+
+		// 2. A spelling variant or synonym of one.
+		const aliased = resolveAlias(normalizedGenre);
+		if (aliased !== normalizedGenre) {
+			const aliasedEntries = genreToClusterIndex.get(aliased);
+			if (aliasedEntries && aliasedEntries.length > 0) {
+				push(pickHome(aliased, aliasedEntries), EXACT_MATCH_WEIGHT);
+				return;
+			}
+		}
+
+		// 3. A broad term that names a sub-cluster rather than a leaf.
+		const umbrella = UMBRELLA_HOMES[aliased];
+		if (umbrella) {
+			push({ cluster: umbrella.cluster, subCluster: umbrella.subCluster }, EXACT_MATCH_WEIGHT);
+			return;
+		}
+
+		// 4. Nowhere to put it, or too broad to mean anything. Guessing here is worse than
+		//    carrying no weight, since a wrong cluster actively misranks venues.
+		if (UNSCORED_GENRE_SET.has(aliased)) {
+			if (NO_HOME_GENRE_SET.has(aliased)) {
+				logMissingGenre(aliased);
+			}
+			uncategorized();
+			return;
+		}
+
+		// 5. Typo tolerance, then a shared whole word.
+		const fuzzyHome = findBestFuzzyHome(normalizedGenre);
+		if (fuzzyHome) {
+			push(fuzzyHome, FUZZY_MATCH_WEIGHT);
+			return;
+		}
+
+		const wordBoundaryHome = findBestWordBoundaryHome(normalizedGenre);
+		if (wordBoundaryHome) {
+			push(wordBoundaryHome, WORD_BOUNDARY_MATCH_WEIGHT);
+			return;
+		}
+
+		// 6. Unknown. Scoring excludes Uncategorized, so this carries no weight either way.
+		logMissingGenre(normalizedGenre);
+		uncategorized();
 	});
 
 	// Cache the result before returning
