@@ -438,190 +438,6 @@
 			]
 		},
 		{
-			"name": "Alternative Rock and Punk",
-			"subgenres": [
-				{
-					"name": "Punk and Hardcore",
-					"genres": [
-						"Punk",
-						"Britpunk",
-						"Hardcore Punk"
-					],
-					"subsubgenres": [
-						{
-							"name": "Traditional Punk",
-							"genres": [
-								"Punk",
-								"Britpunk",
-								"Hardcore Punk",
-								"Crust Punk",
-								"Street Punk",
-								"Anarcho-punk",
-								"UK82",
-								"Oi",
-								"Raw Punk",
-								"D-beat",
-								"Political Punk"
-							]
-						},
-						{
-							"name": "Emo and Post-Hardcore",
-							"genres": [
-								"Emotional Hardcore (Emo / Emocore)",
-								"Post-Hardcore",
-								"Screamo",
-								"Midwest Emo",
-								"Skramz",
-								"Emotive Hardcore",
-								"Emo Revival",
-								"5th Wave Emo",
-								"DIY Emo",
-								"Emo Punk"
-							]
-						},
-						{
-							"name": "Folk and Fusion Punk",
-							"genres": [
-								"Folk Punk",
-								"Cowpunk",
-								"Crossover Thrash",
-								"Celtic Punk",
-								"Gypsy Punk",
-								"Acoustic Punk",
-								"Anti-folk",
-								"Punk Blues",
-								"Punk Folk"
-							]
-						}
-					]
-				},
-				{
-					"name": "Alternative Rock",
-					"genres": [
-						"Indie Rock",
-						"Lo-fi",
-						"College Rock"
-					],
-					"subsubgenres": [
-						{
-							"name": "Indie and Lo-Fi Rock",
-							"genres": [
-								"Indie Rock",
-								"Lo-fi",
-								"College Rock",
-								"Shoegaze",
-								"Dream Pop",
-								"Bedroom Pop",
-								"Indie Folk",
-								"Indie Pop",
-								"C86",
-								"Jangle Pop"
-							]
-						},
-						{
-							"name": "Grunge and Post-Grunge",
-							"genres": [
-								"Grunge",
-								"Post-Grunge",
-								"Alternative Metal",
-								"Grunge Pop",
-								"Grunge Revival",
-								"Underground Grunge",
-								"Seattle Sound"
-							]
-						},
-						{
-							"name": "Post-Rock and Math Rock",
-							"genres": [
-								"Post-Rock",
-								"Math Rock",
-								"Instrumental Rock",
-								"Experimental Rock",
-								"Art Rock",
-								"Progressive Rock",
-								"Space Rock",
-								"Krautrock",
-								"Post-metal"
-							]
-						},
-						{
-							"name": "Noise Rock and No Wave",
-							"genres": [
-								"Noise Rock",
-								"No Wave",
-								"Industrial Rock",
-								"Noise Pop",
-								"Experimental Rock",
-								"Art Punk",
-								"Avant-rock",
-								"Japanese Noise Rock"
-							]
-						},
-						{
-							"name": "Space Rock and Psychedelic",
-							"genres": [
-								"Space Rock",
-								"Neo-Psychedelia",
-								"Psychedelic Rock",
-								"Cosmic Rock",
-								"Progressive Rock",
-								"Psych Folk",
-								"Psychedelic Pop",
-								"Space Electronic"
-							]
-						},
-						{
-							"name": "Garage Rock Revival",
-							"genres": [
-								"Garage Rock",
-								"Garage Punk",
-								"Blues Rock",
-								"Proto-Punk",
-								"Surf Rock",
-								"Garage Revival",
-								"Garage Psych",
-								"Lo-fi Garage"
-							]
-						}
-					]
-				},
-				{
-					"name": "Gothic and Dark Rock",
-					"genres": [
-						"Goth / Gothic Rock",
-						"Deathrock",
-						"Gothic Metal"
-					],
-					"subsubgenres": [
-						{
-							"name": "Gothic Rock",
-							"genres": [
-								"Goth / Gothic Rock",
-								"Deathrock",
-								"Gothic Metal",
-								"Dark Wave",
-								"Ethereal Wave",
-								"Coldwave",
-								"Darkwave"
-							]
-						},
-						{
-							"name": "New Wave and Post-Punk",
-							"genres": [
-								"New Wave",
-								"Post-Punk",
-								"Dark Post-punk",
-								"Cold Wave",
-								"Minimal Wave",
-								"Synth Punk",
-								"Art Punk"
-							]
-						}
-					]
-				}
-			]
-		},
-		{
 			"name": "Industrial",
 			"subgenres": [
 				{
@@ -1760,7 +1576,21 @@
 								"Straight Edge",
 								"Melodic Hardcore",
 								"Horror Punk",
-								"Powerviolence"
+								"Powerviolence",
+								"Punk",
+								"Britpunk",
+								"Raw Punk",
+								"Political Punk",
+								"UK82",
+								"Oi",
+								"Folk Punk",
+								"Celtic Punk",
+								"Gypsy Punk",
+								"Acoustic Punk",
+								"Punk Blues",
+								"Punk Folk",
+								"Garage Punk",
+								"Synth Punk"
 							]
 						},
 						{
@@ -1781,7 +1611,15 @@
 								"Crossover Thrash",
 								"Grindcore",
 								"Sludge Metal",
-								"Stoner Metal"
+								"Stoner Metal",
+								"Emotional Hardcore (Emo / Emocore)",
+								"Midwest Emo",
+								"Skramz",
+								"Emotive Hardcore",
+								"Emo Revival",
+								"5th Wave Emo",
+								"DIY Emo",
+								"Emo Punk"
 							]
 						}
 					]
@@ -1812,7 +1650,13 @@
 								"Madchester",
 								"Neo-Psychedelia",
 								"Paisley Underground",
-								"Alternative Pop Rock"
+								"Alternative Pop Rock",
+								"Grunge Pop",
+								"Grunge Revival",
+								"Underground Grunge",
+								"Seattle Sound",
+								"Jangle Pop",
+								"Lo-fi"
 							]
 						},
 						{
@@ -1833,7 +1677,10 @@
 								"Festival Rock",
 								"Indie Folk Rock",
 								"Chamber Pop Rock",
-								"Piano Rock"
+								"Piano Rock",
+								"Garage Revival",
+								"Lo-fi Garage",
+								"Garage Psych"
 							]
 						},
 						{
@@ -1854,7 +1701,25 @@
 								"Electronic Rock",
 								"Cinematic Rock",
 								"Instrumental Rock",
-								"Free Rock"
+								"Free Rock",
+								"No Wave",
+								"Japanese Noise Rock",
+								"Cosmic Rock"
+							]
+						},
+						{
+							"name": "Gothic and Wave",
+							"genres": [
+								"Goth / Gothic Rock",
+								"Deathrock",
+								"Dark Wave",
+								"Darkwave",
+								"Ethereal Wave",
+								"Coldwave",
+								"Cold Wave",
+								"New Wave",
+								"Dark Post-punk",
+								"Minimal Wave"
 							]
 						}
 					]
@@ -2732,7 +2597,8 @@
 							"genres": [
 								"Singer-Songwriter",
 								"Songwriter",
-								"Acoustic Ballads"
+								"Acoustic Ballads",
+								"Anti-folk"
 							]
 						}
 					]
