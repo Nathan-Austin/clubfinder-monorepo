@@ -29,9 +29,11 @@
 // produced false friends (funk → Traditional Punk, hip hop → Trip Hop, dnb → Dub,
 // country → Hip-Hop/Rap "Latin and Regional Variants", classical → Chamber Pop).
 //
-// Still open, tracked in KNOWN_ISSUES 32: how much of a genre a venue plays does not reach the
-// score, only how the genre reached its cluster. See UMBRELLA_HOMES' note on why umbrellas
-// resolve to one sub-cluster rather than a whole family until that changes.
+// Weights (KNOWN_ISSUES 32): each ClusterEntry carries a weight that is the product of two
+// things — how the genre reached its cluster (exact 1.0, fuzzy 0.8, word-boundary 0.6) and,
+// through findWeightedClusters, how much of the genre the profile says its side plays,
+// normalised so each side's strongest genre counts 1. findClusters alone leaves the second
+// factor at 1, which is the right reading of a plain list: every genre named counts fully.
 
 import {
 	CANONICAL_HOMES,
@@ -301,6 +303,38 @@ export function findClusters(genres: string[]): ClusterEntry[] {
 	return clusters;
 }
 
+/**
+ * findClusters for a weighted profile (`genre → weight`), e.g. a venue's rolling genre profile
+ * or a user's artist counts. Each entry's match weight is multiplied by the genre's share of the
+ * profile's strongest weight, so the side's dominant genre counts 1 and one stray track of
+ * something counts almost nothing — regardless of whether the raw numbers are play counts from
+ * a year of polling or three picked artists (KNOWN_ISSUES 32).
+ *
+ * Weights that are not positive finite numbers count as 0. A profile with no usable weight at
+ * all falls back to findClusters' plain reading: every genre counts fully.
+ */
+export function findWeightedClusters(profile: Record<string, number>): ClusterEntry[] {
+	const genres = Object.keys(profile);
+	const entries = findClusters(genres);
+
+	let maxWeight = 0;
+	for (const weight of Object.values(profile)) {
+		if (Number.isFinite(weight) && weight > maxWeight) {
+			maxWeight = weight;
+		}
+	}
+	if (maxWeight <= 0) {
+		return entries;
+	}
+
+	// findClusters caches and returns the cached array, so scale into new objects.
+	return entries.map((entry) => {
+		const raw = profile[entry.genre];
+		const share = Number.isFinite(raw) && raw > 0 ? raw / maxWeight : 0;
+		return { ...entry, weight: entry.weight * share };
+	});
+}
+
 // Genres no cluster knows all land in this one fallback id. It must never count as a match:
 // otherwise any two unknown genres "match" each other (["Hip-Hop/Rap"] vs ["schlager"] scored
 // 1.0, see docs/taste-profile-design.md section 3). Unknown genres carry no information, so
@@ -308,36 +342,37 @@ export function findClusters(genres: string[]): ClusterEntry[] {
 const UNCATEGORIZED_CLUSTER_ID = makeClusterId('Uncategorized', 'Other');
 
 /**
+ * A side's clusters and their weights. Entries in the same cluster add up, capped at 1 — two
+ * deep-house genres make the venue more of a Deep/Tech House venue, not twice one — and
+ * Uncategorized is dropped: unknown genres carry no information (see above).
+ */
+function aggregateClusterWeights(entries: ClusterEntry[]): Map<string, number> {
+	const weights = new Map<string, number>();
+
+	for (const entry of entries) {
+		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
+		if (clusterId === UNCATEGORIZED_CLUSTER_ID) continue;
+		weights.set(clusterId, Math.min(1, (weights.get(clusterId) ?? 0) + entry.weight));
+	}
+
+	return weights;
+}
+
+/**
  * Weighted Jaccard overlap of two cluster sets, and the caller's genres that matched.
  *
- * Each side keeps the best weight it found per cluster, Uncategorized is dropped from both,
- * and the score is the shared weight over the combined weight. Equal sets of exact matches
- * score 1; no shared cluster scores 0.
+ * Each side's entries are aggregated per cluster (summed, capped at 1), Uncategorized is
+ * dropped from both, and the score is the shared weight over the combined weight. Equal sets of
+ * exact matches score 1; no shared cluster scores 0. Through findWeightedClusters the entry
+ * weights carry how much of each genre a side plays, so a venue that played one track of
+ * afrobeats no longer ranks beside one whose every set is afrobeats (KNOWN_ISSUES 32).
  */
 export function calculateClusterSimilarity(
 	userClusters: ClusterEntry[],
 	clubClusters: ClusterEntry[]
 ): { similarity: number; matchingGenres: string[] } {
-	const userClusterWeights = new Map<string, number>();
-	const clubClusterWeights = new Map<string, number>();
-
-	for (const entry of userClusters) {
-		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
-		if (clusterId === UNCATEGORIZED_CLUSTER_ID) continue;
-		const existing = userClusterWeights.get(clusterId) ?? 0;
-		if (entry.weight > existing) {
-			userClusterWeights.set(clusterId, entry.weight);
-		}
-	}
-
-	for (const entry of clubClusters) {
-		const clusterId = makeClusterId(entry.cluster, entry.subCluster);
-		if (clusterId === UNCATEGORIZED_CLUSTER_ID) continue;
-		const existing = clubClusterWeights.get(clusterId) ?? 0;
-		if (entry.weight > existing) {
-			clubClusterWeights.set(clusterId, entry.weight);
-		}
-	}
+	const userClusterWeights = aggregateClusterWeights(userClusters);
+	const clubClusterWeights = aggregateClusterWeights(clubClusters);
 
 	let userWeightedSum = 0;
 	for (const weight of userClusterWeights.values()) {

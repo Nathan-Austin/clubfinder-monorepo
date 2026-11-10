@@ -3,7 +3,7 @@
 // this file pins the behaviour a user or a venue actually sees.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { calculateClusterSimilarity, findClusters } from './genreMatching';
+import { calculateClusterSimilarity, findClusters, findWeightedClusters } from './genreMatching';
 
 vi.mock('node:fs', () => {
 	const appendFileSync = vi.fn();
@@ -242,6 +242,60 @@ describe('genres with nowhere to go', () => {
 		const fs = await import('node:fs');
 		findClusters(['club music']);
 		expect(vi.mocked(fs.appendFileSync)).not.toHaveBeenCalled();
+	});
+});
+
+describe('weighted profiles (KNOWN_ISSUES 32)', () => {
+	it('normalises a profile by its strongest genre, whatever the scale', () => {
+		// A year of play counts and three picked artists must be comparable.
+		const counts = findWeightedClusters({ techno: 400, salsa: 100 });
+		const picks = findWeightedClusters({ techno: 4, salsa: 1 });
+		expect(counts).toEqual(picks);
+		expect(counts.find((e) => e.genre === 'techno')?.weight).toBe(1);
+		expect(counts.find((e) => e.genre === 'salsa')?.weight).toBe(0.25);
+	});
+
+	it('ranks the venue that plays a genre all night above the one-track venue', () => {
+		const user = findClusters(['afro house']);
+		const allNight = findWeightedClusters({ 'afro house': 90, salsa: 10 });
+		const oneTrack = findWeightedClusters({ salsa: 90, 'afro house': 1 });
+		const strong = calculateClusterSimilarity(user, allNight).similarity;
+		const weak = calculateClusterSimilarity(user, oneTrack).similarity;
+		expect(strong).toBeGreaterThan(weak);
+		expect(weak).toBeGreaterThan(0);
+	});
+
+	it('keeps a plain genre list meaning every genre counts fully', () => {
+		const plain = findClusters(['techno', 'salsa']);
+		for (const entry of plain) {
+			expect(entry.weight).toBe(1);
+		}
+	});
+
+	it('falls back to the plain reading when no weight is usable', () => {
+		expect(findWeightedClusters({ techno: 0, salsa: NaN })).toEqual(
+			findClusters(['techno', 'salsa'])
+		);
+	});
+
+	it('gives a non-finite or negative weight no share instead of guessing', () => {
+		const entries = findWeightedClusters({ techno: 10, salsa: -5 });
+		expect(entries.find((e) => e.genre === 'salsa')?.weight).toBe(0);
+	});
+
+	it('does not mutate the findClusters cache', () => {
+		const before = findClusters(['techno', 'salsa']).map((e) => e.weight);
+		findWeightedClusters({ techno: 10, salsa: 1 });
+		expect(findClusters(['techno', 'salsa']).map((e) => e.weight)).toEqual(before);
+	});
+
+	it('adds genres in the same cluster up to at most 1', () => {
+		// Two half-weight deep-house genres make a Deep/Tech House venue, not half of one.
+		const split = findWeightedClusters({ 'deep house': 50, 'tech house': 50, salsa: 100 });
+		const user = findClusters(['deep house']);
+		const { similarity } = calculateClusterSimilarity(user, split);
+		// Deep/Tech House carries 0.5 + 0.5 = 1 next to Salsa Styles' 1.
+		expect(similarity).toBe(0.5);
 	});
 });
 
