@@ -126,10 +126,26 @@ section 4), left open on purpose.
     `MUSICBRAINZ_USER_AGENT` in production, and is held to one request a second.
     The full e2e suite now also runs with `SPOTIFY_CONNECT_ENABLED=false` (`dev/TESTING.md`),
     against the same mocks.
-22. **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile endpoints, three
-    different normalisers). The profile is wired into the two web ones only; the mobile API
-    does not read it. `src/lib/taste/genreClassifier.ts` imports `_findClusters` from the
-    `/clubs` route module; move it into `$lib` when the matchers are unified.
+22. _Fixed._ **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile
+    endpoints, three different normalisers), and the profile was wired into the two web ones
+    only. There is one matcher now, `$lib/server/genreMatching` (server-only: a genre no
+    cluster knows is appended to `missing-genres.txt`), and `$lib/taste/genreClassifier` imports
+    it instead of reaching into the `/clubs` route module. `/clubs` keeps its `_` re-exports so
+    `src/lib/clubs-page-server.test.ts` still pins the behaviour; the version kept is the
+    `/clubs` one, the only one that weighted its matches and the only one that kept unknown
+    genres out of the score. Callers keep their own input preparation (`expandGenreGroups`,
+    `expandCompoundGenres`, `combineGenreProfiles`), which is not matching.
+    Two behaviour changes came with it, both for the three non-`/clubs` callers: they gained
+    the weighted passes (exact 1.0, fuzzy 0.8, word-boundary 0.6) and lost a blanket rule in
+    the mobile copies whereby any genre containing "house", "techno", "rock" or "metal" matched
+    any cluster genre containing the same word, which collapsed those four families into
+    whichever sub-cluster was found first. `matchingGenres` now echoes the genre as the matcher
+    was given it, so after group expansion it is the cluster data's own spelling ("Reggaeton").
+    The mobile matching endpoints now read the caller's taste profile when no genres are sent
+    (`getProfileGenresForRequest`, by session cookie or the app's Bearer token), the precedence
+    the web pages already used; `tests/mobile-taste.spec.ts` covers it.
+    Note `src/lib/data/genre-classifier.ts` still has its own normaliser — that is the
+    cosine-similarity classifier for the genre-maintenance script, not a matcher.
 23. _Fixed._ **`/api/spotify/artists` shared its last result between users**: `lastFetchedGenres`
     was a module-level variable, so GET returned the genres of whichever user's Spotify artists
     were fetched last, on the single PM2 process. POST now stores them in the caller's own
@@ -210,3 +226,16 @@ section 4), left open on purpose.
     `SPOTIFY_CONNECT_ENABLED=false`), so it threw, and `LoginScreen` silently fell back to
     `/login/users` on every login. It also wrote the session row after answering, like the bar
     login (item 26). Covered by `tests/mobile-taste.spec.ts` now.
+32. **Cluster matching ignores how much of a genre a venue plays.** `findClusters` is given the
+    genre _names_ of a venue profile (`Object.keys`), and `calculateClusterSimilarity` weights
+    only how a genre reached its cluster (exact 1.0, fuzzy 0.8, word-boundary 0.6), never the
+    profile weight beside it. So `bar_genre_profiles.rolling_genre_profile`'s weights, the
+    +0.5 an event's genres add and the +1 a venue's declared artists add
+    (`VENUE_ARTIST_GENRE_WEIGHT`) change only the order of the genres _shown_ for a venue
+    (`getTopGenres`), not whether or how well it matches: one track of afrobeats counts for as
+    much as a whole night of it, and a venue that declared one artist ranks beside one whose
+    every set is that genre. Making the profile weight part of the score is a real change to
+    `calculateClusterSimilarity` — probably multiplying each side's cluster weight by the
+    normalised profile weight — and is best done together with the alias layer of #18, since
+    both change what a venue's genre set really is. Until then, treat the weights in
+    `combineGenreProfiles` as display ordering only.

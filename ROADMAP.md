@@ -99,9 +99,14 @@ Things to do by hand or decide, collected while building the items above.
 
 ## 2. Genre matching and taste profiles
 
-- [ ] Add a genre alias layer and de-duplicate cluster leaves (KNOWN_ISSUES 18)
-- [ ] Unify the four copies of the cluster matcher into `$lib` and wire the taste
-      profile into the mobile API (KNOWN_ISSUES 22)
+- [ ] Add a genre alias layer and de-duplicate cluster leaves (KNOWN_ISSUES 18). Now a change
+      in one place; worth doing together with the scoring weights below
+- [ ] Count how much of a genre a venue actually plays towards its score, not just that it
+      appears (KNOWN_ISSUES 32): the profile weights only order the genres shown for a venue
+- [x] Unify the four copies of the cluster matcher into `$lib` and wire the taste
+      profile into the mobile API (KNOWN_ISSUES 22), done 2026-11-10: one matcher in
+      `$lib/server/genreMatching` (the `/clubs` one, the only weighted version), and the two
+      mobile matching endpoints fall back to the caller's profile when it sends no genres
 - [ ] Match the same artist across providers by more than name (KNOWN_ISSUES 19)
 - [x] Fix `/api/spotify/artists` sharing its last result between users (KNOWN_ISSUES 23):
       the genres now travel in the caller's own `spotify-genres` cookie, and the endpoint's
