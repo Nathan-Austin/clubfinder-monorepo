@@ -95,13 +95,49 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
 From the taste profile work (`docs/HANDOVER.md` section 4, `docs/taste-profile-design.md`
 section 4), left open on purpose.
 
-18. **Raw genre tags the clusters do not know are dropped or misplaced.** `genreClusters.json`
-    has no leaf for `house`, `hip hop`, `pop`, `nu disco`, `dnb`, `funk`, `soul`, `trance`,
-    `rock`, `metal`, `edm`, `afrobeats` and others, and the fuzzy fallback makes false friends
-    (`funk → punk`, `hip hop → trip hop`, `edm → idm`). Such tags end up `Uncategorized`
-    (ignored in scoring) or in the wrong cluster, which limits how much a taste profile or a
-    Last.fm import changes results. Proposed fix: an alias layer (`genre_aliases`, design doc
-    section 2.2), plus de-duplicating the 92 leaves that sit in several sub-clusters.
+18. _Partly fixed 2026-11-10._ **Raw genre tags the clusters do not know are dropped or
+    misplaced.** `genreClusters.json` has no leaf for `house`, `hip hop`, `pop`, `nu disco`,
+    `dnb`, `funk`, `soul`, `trance`, `rock`, `metal`, `edm`, `afrobeats` and others, and the
+    fuzzy fallback made false friends. The damage was worse than this item recorded: `country`
+    resolved to Hip-Hop/Rap "Latin and Regional Variants", `dnb` to Reggae and Roots via `dub`,
+    `classical` to Indie Pop "Chamber Pop", `blues` to "Folk and Fusion Punk" and `house` to
+    "Ambient with Rhythmic Elements" — so the most common tags the providers return were
+    confidently wrong rather than merely absent.
+
+    `$lib/data/genreAliases.ts` is the alias layer (a module, not the `genre_aliases` table the
+    design doc proposed; the data is hand-curated and belongs beside `genreClusters.json`). Four
+    tables, applied by `$lib/server/genreMatching` before any fuzzy guessing, and validated
+    against the cluster tree by `genreAliases.test.ts`:
+    `GENRE_ALIASES` (spelling variants: `dnb`, `rnb`, `hip-hop`, `drum n bass`),
+    `UMBRELLA_HOMES` (broad terms that name a sub-cluster rather than a leaf: `house`, `rock`,
+    `metal`, `trance`, `edm`, `reggae`, `blues`, `country`, `latin`, `indie`),
+    `CANONICAL_HOMES` (all 92 contested leaves, so `deep house` no longer depends on JSON order
+    and `reggaeton` files under Urban Latino rather than Reggae), and
+    `UNSCORED_GENRES` (genres with no home at all, and tags too broad to mean anything).
+
+    The fuzzy pass is now typo tolerance only: genres are compared word by word with hyphens as
+    separators, word counts must agree, and a word under five characters is never fuzzy-matched.
+    `techno`/`tekno` and `Hip-Hop/Rap`/`Hip Hop/Rap` still match; `funk`/`punk`, `hip hop`/`trip
+    hop`, `dnb`/`dub` and `edm`/`idm` no longer do. The fuzzy and word-boundary passes also take
+    the best candidate instead of the first one the index happens to yield, so a near miss no
+    longer depends on JSON order either.
+
+    Three things are left open:
+    - **Genres with no cluster at all**: `pop`, `soul`, `funk`, `disco`, `jazz`, `afrobeats`,
+      `classical`, `k-pop`, `gospel`, `folk` and others have nowhere in the tree to go, so they
+      resolve to Uncategorized and carry no weight. That is deliberate — Uncategorized is dropped
+      from both sides of the similarity, so no weight beats wrong weight — but it means a user
+      whose profile is mostly those genres still gets little out of matching. Fixing it means
+      adding clusters to `genreClusters.json`, which changes results for everyone.
+    - **Two overlapping rock trees.** 40 of the 92 contested leaves are contested between
+      "Rock Music" and "Alternative Rock and Punk", which cover the same ground.
+      `CANONICAL_HOMES` sends them all to "Rock Music" consistently, but leaves unique to the
+      alternative tree (`emo`, for one) still cannot match their counterparts in the other.
+      Merging the two clusters is a taxonomy change.
+    - **Umbrella breadth.** An umbrella resolves to one sub-cluster, so `house` matches Classic
+      House but not Modern or Cultural House. Spreading it across a family needs the scoring
+      change in item 32 first, or the extra clusters inflate the similarity denominator and
+      naming umbrellas scores worse than naming specifics.
 19. **The same artist from two providers is only matched by name.** The Last.fm import reuses
     a `taste_artists` row with the same name from any source; a spelling difference gives two
     rows. Catalogue rows nobody favourites any more are never removed.

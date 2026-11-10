@@ -99,10 +99,19 @@ Things to do by hand or decide, collected while building the items above.
 
 ## 2. Genre matching and taste profiles
 
-- [ ] Add a genre alias layer and de-duplicate cluster leaves (KNOWN_ISSUES 18). Now a change
-      in one place; worth doing together with the scoring weights below
+- [x] Add a genre alias layer and de-duplicate cluster leaves (KNOWN_ISSUES 18), done 2026-11-10:
+      `$lib/data/genreAliases.ts` resolves spelling variants and umbrella terms before any fuzzy
+      guessing, gives all 92 contested leaves one home, and sends genres with nowhere to go
+      straight to Uncategorized instead of letting the fuzzy pass invent an answer. The fuzzy pass
+      is typo tolerance only now (word by word, nothing under five characters), so `funk → punk`,
+      `hip hop → trip hop`, `dnb → dub` and `country → Hip-Hop/Rap` are gone. Still open, and both
+      are decisions rather than code: `genreClusters.json` has no cluster at all for pop, soul,
+      funk, disco, jazz, afrobeats, classical or k-pop, and its two rock trees ("Rock Music" and
+      "Alternative Rock and Punk") overlap. Not yet run against the e2e suite
 - [ ] Count how much of a genre a venue actually plays towards its score, not just that it
-      appears (KNOWN_ISSUES 32): the profile weights only order the genres shown for a venue
+      appears (KNOWN_ISSUES 32): the profile weights only order the genres shown for a venue.
+      Do this before widening an umbrella genre across a whole family (KNOWN_ISSUES 18), since
+      extra clusters inflate the similarity denominator until the weights count
 - [x] Unify the four copies of the cluster matcher into `$lib` and wire the taste
       profile into the mobile API (KNOWN_ISSUES 22), done 2026-11-10: one matcher in
       `$lib/server/genreMatching` (the `/clubs` one, the only weighted version), and the two
