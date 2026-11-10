@@ -70,6 +70,18 @@ export interface FavouriteArtistsProfile {
 	genreWeights: Record<string, number>;
 }
 
+/**
+ * The profile as the taste API returns it: artists and genres, without `genreWeights`. The
+ * weights are a matching detail (KNOWN_ISSUES 32) that no client asks for, so they stay out of
+ * the API's shape rather than widening it for nothing.
+ */
+export function toPublicProfile(profile: FavouriteArtistsProfile): {
+	artists: TasteArtist[];
+	genres: string[];
+} {
+	return { artists: profile.artists, genres: profile.genres };
+}
+
 export function isArtistSource(value: unknown): value is ArtistSource {
 	return typeof value === 'string' && (ARTIST_SOURCES as readonly string[]).includes(value);
 }

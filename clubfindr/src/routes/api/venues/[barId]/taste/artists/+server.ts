@@ -18,6 +18,7 @@ import {
 	isArtistSource,
 	isUuid,
 	listFavouriteArtists,
+	toPublicProfile,
 	resolveTasteArtist
 } from '$lib/taste/favouriteArtists';
 import { makeArtistLookup, SpotifyLookupError } from '$lib/taste/spotifyArtistLookup';
@@ -42,7 +43,7 @@ export const GET: RequestHandler = async ({ cookies, params, request }) => {
 		return json({ message: 'Not logged in as this venue' }, { status: 403 });
 	}
 
-	return json(await listFavouriteArtists(pool, barId, 'bar'));
+	return json(toPublicProfile(await listFavouriteArtists(pool, barId, 'bar')));
 };
 
 export const POST: RequestHandler = async ({ cookies, params, request }) => {

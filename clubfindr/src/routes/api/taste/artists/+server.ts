@@ -18,6 +18,7 @@ import {
 	FavouriteLimitError,
 	isArtistSource,
 	listFavouriteArtists,
+	toPublicProfile,
 	resolveTasteArtist
 } from '$lib/taste/favouriteArtists';
 import { makeArtistLookup, SpotifyLookupError } from '$lib/taste/spotifyArtistLookup';
@@ -39,7 +40,7 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
 	const userId = await getSessionUserId(cookies, pool, request);
 	if (!userId) return json({ message: 'Not logged in' }, { status: 401 });
 
-	return json(await listFavouriteArtists(pool, userId));
+	return json(toPublicProfile(await listFavouriteArtists(pool, userId)));
 };
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
