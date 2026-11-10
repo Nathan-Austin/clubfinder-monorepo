@@ -118,17 +118,26 @@ section 4), left open on purpose.
     The fuzzy pass is now typo tolerance only: genres are compared word by word with hyphens as
     separators, word counts must agree, and a word under five characters is never fuzzy-matched.
     `techno`/`tekno` and `Hip-Hop/Rap`/`Hip Hop/Rap` still match; `funk`/`punk`, `hip hop`/`trip
-    hop`, `dnb`/`dub` and `edm`/`idm` no longer do. The fuzzy and word-boundary passes also take
+hop`, `dnb`/`dub` and `edm`/`idm` no longer do. The fuzzy and word-boundary passes also take
     the best candidate instead of the first one the index happens to yield, so a near miss no
     longer depends on JSON order either.
 
     Three things are left open:
-    - **Genres with no cluster at all**: `pop`, `soul`, `funk`, `disco`, `jazz`, `afrobeats`,
-      `classical`, `k-pop`, `gospel`, `folk` and others have nowhere in the tree to go, so they
-      resolve to Uncategorized and carry no weight. That is deliberate — Uncategorized is dropped
-      from both sides of the similarity, so no weight beats wrong weight — but it means a user
-      whose profile is mostly those genres still gets little out of matching. Fixing it means
-      adding clusters to `genreClusters.json`, which changes results for everyone.
+    - _Fixed 2026-11-10._ **Genres with no cluster at all**: `pop`, `soul`, `funk`, `disco`,
+      `jazz`, `afrobeats`, `classical`, `k-pop`, `gospel` and `folk` had nowhere in the tree to go
+      and resolved to Uncategorized, which scoring drops — so a user whose taste was mostly soul
+      and funk got nothing out of matching. Six clusters now cover them: Pop, "Soul, Funk and
+      Disco", Jazz, "African Popular Music", Classical and "Folk and Singer-Songwriter", 115
+      leaves across 20 sub-clusters, and `UNSCORED_GENRES.noHome` is empty as a result.
+      Two leaves moved out of an older home on purpose: `r&b`, which sat in Hip-Hop/Rap "Pop Rap
+      and Melodic Rap" only because that was the one sub-cluster naming it, and `electropop`,
+      which reads as mainstream pop more often than as the indie synth-pop of "Synth-Based Indie
+      Pop". Six others collided and were left where they already were, since that was the better
+      home: `pop rock`, `future pop` (futurepop is EBM, not pop), `jazz rap`, `contemporary
+folk`, `folk pop` and `traditional folk`. The southern African styles stay in "Cultural
+      House", where amapiano, gqom, kwaito and kuduro were already leaves.
+      `static/lib/unified-genres.json` and `app_clubfindr/src/constants/unified-genres.json` were
+      regenerated with `pnpm convert-genres`, so the pickers offer the new clusters too.
     - **Two overlapping rock trees.** 40 of the 92 contested leaves are contested between
       "Rock Music" and "Alternative Rock and Punk", which cover the same ground.
       `CANONICAL_HOMES` sends them all to "Rock Music" consistently, but leaves unique to the
@@ -138,6 +147,7 @@ section 4), left open on purpose.
       House but not Modern or Cultural House. Spreading it across a family needs the scoring
       change in item 32 first, or the extra clusters inflate the similarity denominator and
       naming umbrellas scores worse than naming specifics.
+
 19. **The same artist from two providers is only matched by name.** The Last.fm import reuses
     a `taste_artists` row with the same name from any source; a spelling difference gives two
     rows. Catalogue rows nobody favourites any more are never removed.

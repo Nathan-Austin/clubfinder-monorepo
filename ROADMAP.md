@@ -104,10 +104,19 @@ Things to do by hand or decide, collected while building the items above.
       guessing, gives all 92 contested leaves one home, and sends genres with nowhere to go
       straight to Uncategorized instead of letting the fuzzy pass invent an answer. The fuzzy pass
       is typo tolerance only now (word by word, nothing under five characters), so `funk → punk`,
-      `hip hop → trip hop`, `dnb → dub` and `country → Hip-Hop/Rap` are gone. Still open, and both
-      are decisions rather than code: `genreClusters.json` has no cluster at all for pop, soul,
-      funk, disco, jazz, afrobeats, classical or k-pop, and its two rock trees ("Rock Music" and
-      "Alternative Rock and Punk") overlap. Not yet run against the e2e suite
+      `hip hop → trip hop`, `dnb → dub` and `country → Hip-Hop/Rap` are gone. Not yet run against
+      the e2e suite
+- [x] Add the clusters the tree had no home for at all (KNOWN_ISSUES 18), done 2026-11-10: Pop,
+      "Soul, Funk and Disco", Jazz, "African Popular Music", Classical and
+      "Folk and Singer-Songwriter" — 115 leaves across 20 sub-clusters, so pop, soul, funk, disco,
+      jazz, afrobeats, classical, gospel, k-pop, schlager and folk resolve at full weight instead
+      of being dropped. `r&b` moved out of Hip-Hop/Rap and in with soul. The pickers were
+      regenerated with `pnpm convert-genres`
+- [ ] Decide what to do about the two overlapping rock trees (KNOWN_ISSUES 18): "Rock Music" and
+      "Alternative Rock and Punk" cover the same ground, and 40 of the 92 contested leaves are
+      contested between exactly those two. `CANONICAL_HOMES` sends them all to "Rock Music", but
+      leaves unique to the alternative tree (`emo`, `deathrock`, `coldwave`) still cannot match
+      their counterparts
 - [ ] Count how much of a genre a venue actually plays towards its score, not just that it
       appears (KNOWN_ISSUES 32): the profile weights only order the genres shown for a venue.
       Do this before widening an umbrella genre across a whole family (KNOWN_ISSUES 18), since
