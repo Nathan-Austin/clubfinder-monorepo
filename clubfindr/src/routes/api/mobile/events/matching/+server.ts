@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
+import { getProfileGenresForRequest } from '$lib/taste/profileGenres';
 import {
 	calculateClusterSimilarity,
 	findClusters,
@@ -110,7 +111,7 @@ const convertPriceToNumeric = (priceStr: string | null): number => {
  * Get club events that match user's music preferences
  * Endpoint: POST /api/mobile/events/matching
  */
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		const { city, date, genres } = await request.json();
 
@@ -134,7 +135,15 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		if (!genres || !Array.isArray(genres) || genres.length === 0) {
+		// Genres the caller picked win; a logged-in caller that sends none is matched on its
+		// taste profile instead, the way /clubs and /barfindr already do it (KNOWN_ISSUES 22).
+		// The app authenticates with the Bearer token from its login.
+		const sentGenres = Array.isArray(genres) ? genres.filter((g) => typeof g === 'string') : [];
+		const profileGenres =
+			sentGenres.length > 0 ? [] : await getProfileGenresForRequest(pool, cookies, request);
+		const effectiveGenres = sentGenres.length > 0 ? sentGenres : profileGenres;
+
+		if (effectiveGenres.length === 0) {
 			return json(
 				{
 					success: false,
@@ -143,15 +152,18 @@ export const POST: RequestHandler = async ({ request }) => {
 				{ status: 400 }
 			);
 		}
+		if (profileGenres.length > 0) {
+			console.log(`Using the caller's taste profile: ${profileGenres.length} genres`);
+		}
 
 		const normalizedCity = normalizeCityName(city);
 
 		// Expand any genre group names to their individual genres
 		// e.g., "Reggaeton and Dembow" -> ["Reggaeton", "Dembow", "Trap Latino", ...]
-		const expandedGenres = expandGenreGroups(genres);
+		const expandedGenres = expandGenreGroups(effectiveGenres);
 
 		console.log(
-			`Finding matching events in ${normalizedCity} for date ${date} with ${genres.length} genres (expanded to ${expandedGenres.length})`
+			`Finding matching events in ${normalizedCity} for date ${date} with ${effectiveGenres.length} genres (expanded to ${expandedGenres.length})`
 		);
 
 		// Get all events for the specified city and date

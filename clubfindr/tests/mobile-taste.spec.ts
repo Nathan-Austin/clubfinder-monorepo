@@ -151,3 +151,65 @@ test('the taste API refuses a missing, unknown or malformed token', async ({
 	);
 	await api.dispose();
 });
+
+// KNOWN_ISSUES 22: the two mobile matching endpoints never read the taste profile, so the app
+// had to send genres or get a 400 — a user whose profile drives /clubs and /barfindr on the
+// web got nothing from the app. The picks below are deliberately away from the seeded Berlin
+// venues' house/techno so the profile has to be what reaches the result.
+test('mobile matching falls back to the caller’s taste profile', async ({
+	playwright,
+	baseURL
+}) => {
+	const api = await mobileApi(playwright, baseURL);
+	const email = uniqueEmail('matching');
+	await signUp(api, email);
+	const { token } = await mobileLogin(api, email);
+	const auth = bearer(token);
+
+	const matchBars = (data: Record<string, unknown>, headers: Record<string, string> = {}) =>
+		api.post('/api/mobile/bars/matching', { data, headers });
+
+	// With no genres and nothing to fall back on, the answer is still the old 400
+	expect((await matchBars({ city: 'Berlin' }, auth)).status(), 'empty profile').toBe(400);
+	expect((await matchBars({ city: 'Berlin' })).status(), 'not logged in at all').toBe(400);
+
+	// Build a profile: Perihelion Choir is ambient / modern classical (tests/mock-spotify.ts)
+	const added = await api.post('/api/taste/artists', {
+		data: { sourceId: 'devPerihelionChoir0001' },
+		headers: auth
+	});
+	expect(added.status(), await added.text()).toBe(201);
+	expect((await added.json()).genres).toContain('ambient');
+
+	// Now the same call is answered, and matches what the profile says
+	const response = await matchBars({ city: 'Berlin' }, auth);
+	expect(response.status(), await response.text()).toBe(200);
+	const bars = (await response.json()) as { name: string; similarity: number }[];
+	const best = bars.filter((bar) => bar.similarity > 0).map((bar) => bar.name);
+	expect(best, 'the ambient venue, not the house and techno ones').toContain('Fern & Feedback');
+
+	// A caller that sends its own genres is unaffected by its profile
+	const explicit = await matchBars({ city: 'Berlin', genres: ['deep house'] }, auth);
+	expect(explicit.status()).toBe(200);
+	const byPick = (await explicit.json()) as { name: string; similarity: number }[];
+	expect(byPick.filter((bar) => bar.similarity > 0).map((bar) => bar.name)).toContain(
+		'The Copper Lantern'
+	);
+
+	// The events endpoint reads the profile the same way
+	const events = await api.post('/api/mobile/events/matching', {
+		data: { city: 'Berlin', date: '2031-06-21' },
+		headers: auth
+	});
+	expect(events.status(), await events.text()).toBe(200);
+	expect(
+		(
+			await api.post('/api/mobile/events/matching', {
+				data: { city: 'Berlin', date: '2031-06-21' }
+			})
+		).status(),
+		'no token, no profile'
+	).toBe(400);
+
+	await api.dispose();
+});

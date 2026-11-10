@@ -7,6 +7,7 @@ import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { toLocalIsoDate } from '$lib/localDate';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
+import { getProfileGenresForRequest } from '$lib/taste/profileGenres';
 import {
 	calculateClusterSimilarity,
 	findClusters,
@@ -160,7 +161,7 @@ const expandGenreGroups = (genres: string[]): string[] => {
  * Find bars matching user's genre preferences
  * Endpoint: POST /api/mobile/bars/matching
  */
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		const { city, date: requestedDate, genres } = await request.json();
 
@@ -174,7 +175,15 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		if (!genres || !Array.isArray(genres) || genres.length === 0) {
+		// Genres the caller picked win; a logged-in caller that sends none is matched on its
+		// taste profile instead, the way /clubs and /barfindr already do it (KNOWN_ISSUES 22).
+		// The app authenticates with the Bearer token from its login.
+		const sentGenres = Array.isArray(genres) ? genres.filter((g) => typeof g === 'string') : [];
+		const profileGenres =
+			sentGenres.length > 0 ? [] : await getProfileGenresForRequest(pool, cookies, request);
+		const effectiveGenres = sentGenres.length > 0 ? sentGenres : profileGenres;
+
+		if (effectiveGenres.length === 0) {
 			return json(
 				{
 					success: false,
@@ -182,6 +191,9 @@ export const POST: RequestHandler = async ({ request }) => {
 				},
 				{ status: 400 }
 			);
+		}
+		if (profileGenres.length > 0) {
+			console.log(`Using the caller's taste profile: ${profileGenres.length} genres`);
 		}
 
 		const normalizedCity = normalizeCityName(city);
@@ -192,10 +204,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Expand any genre group names to their individual genres
 		// e.g., "Reggaeton and Dembow" -> ["Reggaeton", "Dembow", "Trap Latino", ...]
-		const expandedGenres = expandGenreGroups(genres);
+		const expandedGenres = expandGenreGroups(effectiveGenres);
 
 		console.log(
-			`Finding matching bars in ${normalizedCity} for date ${date} with ${genres.length} genres (expanded to ${expandedGenres.length})`
+			`Finding matching bars in ${normalizedCity} for date ${date} with ${effectiveGenres.length} genres (expanded to ${expandedGenres.length})`
 		);
 
 		// Get all bars for the specified city with their most recent genre profiles
