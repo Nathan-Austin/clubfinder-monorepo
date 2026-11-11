@@ -24,6 +24,34 @@ export const pool = new Pool({
 	port: Number(PG_PORT)
 });
 
+/**
+ * Runs `fn` inside one transaction on one connection: BEGIN, then COMMIT if `fn` resolves or
+ * ROLLBACK if it throws, and the connection goes back to the pool either way.
+ *
+ * Use this instead of `query('BEGIN')` … `query('COMMIT')`. `query()` takes a connection, runs one
+ * statement and releases it, so those three calls are not one transaction: BEGIN goes back to
+ * the pool still open, the statements after it run on whichever connection is free, and an error
+ * between BEGIN and COMMIT leaves a connection "idle in transaction" for an unrelated request to
+ * inherit. It looks fine when traffic is quiet only because the pool hands back the connection it
+ * was just given.
+ */
+export async function withTransaction<T>(fn: (client: pkg.PoolClient) => Promise<T>): Promise<T> {
+	const client = await pool.connect();
+	try {
+		await client.query('BEGIN');
+		const result = await fn(client);
+		await client.query('COMMIT');
+		return result;
+	} catch (err) {
+		await client.query('ROLLBACK').catch((rollbackErr) => {
+			console.error('Rollback failed:', rollbackErr);
+		});
+		throw err;
+	} finally {
+		client.release();
+	}
+}
+
 export async function query(
 	text: string,
 	params?: (string | number | boolean | null | (string | number)[])[]
