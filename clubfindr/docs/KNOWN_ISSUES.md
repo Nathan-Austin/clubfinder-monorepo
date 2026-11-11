@@ -197,11 +197,16 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       and RÜFÜS DU SOL came back with `[]`, Fred again.. and Daft Punk with genres). The
       fallback below is the main path for many artists, not an edge case; in the live run
       Last.fm supplied Bicep's (`House` 100, `Disco` 95, `techno` 58).
-    - **MusicBrainz answers 503 intermittently**, under load, whatever the User-Agent and well
-      inside one request a second: one in two to one in four first calls in the run. The
-      client gives up at once, and since genres are stored when an artist is added, one 503
-      leaves that artist without MusicBrainz genres for good. Follow-up: retry a 503 once or
-      twice after about a second.
+    - _Fixed 2026-11-11._ **MusicBrainz answers 503 intermittently**, under load, whatever the
+      User-Agent and well inside one request a second: one in two to one in four first calls in
+      the run. The client gave up at once, and since genres are stored when an artist is added
+      and reused for 30 days, one 503 left that artist without MusicBrainz genres for good.
+      `fetchMusicbrainzTags` now makes up to `MUSICBRAINZ_MAX_ATTEMPTS` (3) attempts, retrying
+      only a 503 — a 400, a 404 or an unreachable host would answer the same way again — and the
+      waits come from the existing rate limiter, so a retry is about a second later and the
+      one-request-a-second budget still holds. `tests/mock-musicbrainz.ts` answers 503 twice for
+      "Faint Transmission" before answering properly, which is what makes the retry visible to
+      the e2e suite (`tests/genre-fallback.spec.ts`).
     - **Last.fm reports an unknown artist as HTTP 200** with `{error: 6, message: "The artist
 you supplied could not be found", links: []}`. The client classifies that as
       `unavailable` ("Last.fm is not answering"); the fallback still moves on to MusicBrainz,
