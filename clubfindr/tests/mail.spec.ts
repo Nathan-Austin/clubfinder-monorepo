@@ -44,3 +44,20 @@ test.describe('password reset e-mail', () => {
 		expect(pageErrors).toEqual([]);
 	});
 });
+
+// KNOWN_ISSUES 16: /api/request-access built its own Gmail transport, so it was the one place
+// that ignored MAIL_TRANSPORT and sent real mail in any environment holding Gmail credentials,
+// tests included. It goes through $lib/email now, so the suite's capture transport sees it.
+test('an access request goes through the configured mail transport', async ({ page }) => {
+	const marker = `access-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+	const requestedAt = Date.now();
+	const response = await page.request.post('/api/request-access', {
+		data: { name: 'Access Tester', email: `${marker}@clubfindr.test`, reason: marker }
+	});
+	expect(response.status(), await response.text()).toBe(200);
+
+	const mail = await waitForMail((m) => m.text.includes(marker) && Date.parse(m.at) >= requestedAt);
+	expect(mail, 'the access request in the capture file').toBeDefined();
+	expect(mail!.to).toBe('admin@clubfindr.com');
+	expect(mail!.text).toContain('Access Tester');
+});
