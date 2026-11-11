@@ -263,7 +263,6 @@
 								"Tribal House",
 								"Latin House",
 								"Brazilian House",
-								"UK Garage",
 								"Amapiano",
 								"Gqom",
 								"Kuduro",
@@ -355,6 +354,7 @@
 							"name": "Dubstep and Bass",
 							"genres": [
 								"Dubstep",
+								"UK Garage",
 								"Future Garage",
 								"Post-Dubstep",
 								"Brostep",
