@@ -3,6 +3,7 @@ import type { ArtistDetails } from './favouriteArtists';
 import { resolveGenresWithFallback, withGenreFallback } from './genreFallback';
 import {
 	fetchMusicbrainzTags,
+	MUSICBRAINZ_MAX_ATTEMPTS,
 	MUSICBRAINZ_USER_AGENT,
 	MusicbrainzError,
 	parseMusicbrainzTags,
@@ -129,6 +130,63 @@ describe('fetchMusicbrainzTags', () => {
 		await expect(
 			fetchMusicbrainzTags('A', { ...mbTestOptions, fetch: broken })
 		).rejects.toBeInstanceOf(MusicbrainzError);
+	});
+
+	// The live service 503s at random (KNOWN_ISSUES 21) and genres are stored once, when the
+	// artist is added, so giving up on the first 503 lost that artist's genres for good.
+	it('retries a 503 and uses the tags of the attempt that succeeds', async () => {
+		let attempts = 0;
+		const { impl } = fakeFetch(() => {
+			attempts += 1;
+			if (attempts < MUSICBRAINZ_MAX_ATTEMPTS) return [503, {}];
+			return [200, mbArtists([{ name: 'A', tags: [{ name: 'techno', count: 2 }] }])];
+		});
+		expect(await fetchMusicbrainzTags('A', { ...mbTestOptions, fetch: impl })).toEqual([
+			{ name: 'techno', count: 2 }
+		]);
+		expect(attempts).toBe(MUSICBRAINZ_MAX_ATTEMPTS);
+	});
+
+	it('gives up after MUSICBRAINZ_MAX_ATTEMPTS, waiting the rate limit between them', async () => {
+		const slept: number[] = [];
+		let clock = 0;
+		const { impl, calls } = fakeFetch(() => [503, {}]);
+		await expect(
+			fetchMusicbrainzTags('A', {
+				fetch: impl,
+				now: () => clock,
+				sleep: async (ms: number) => {
+					slept.push(ms);
+					clock += ms;
+				}
+			})
+		).rejects.toMatchObject({ status: 429 });
+		expect(calls).toHaveLength(MUSICBRAINZ_MAX_ATTEMPTS);
+		// the first attempt is free, every retry waits out the one-request-a-second limit
+		expect(slept).toEqual(Array(MUSICBRAINZ_MAX_ATTEMPTS - 1).fill(1000));
+	});
+
+	it('does not retry a failure that would answer the same way again', async () => {
+		for (const status of [400, 404, 500]) {
+			const { impl, calls } = fakeFetch(() => [status, {}]);
+			await expect(
+				fetchMusicbrainzTags('A', { ...mbTestOptions, fetch: impl })
+			).rejects.toMatchObject({ status: 502 });
+			expect(calls).toHaveLength(1);
+		}
+
+		const failing = (async () => {
+			throw new TypeError('connect ECONNREFUSED');
+		}) as unknown as typeof fetch;
+		let networkCalls = 0;
+		const counted = (async (...args: Parameters<typeof fetch>) => {
+			networkCalls += 1;
+			return failing(...args);
+		}) as unknown as typeof fetch;
+		await expect(
+			fetchMusicbrainzTags('A', { ...mbTestOptions, fetch: counted })
+		).rejects.toMatchObject({ status: 502 });
+		expect(networkCalls).toBe(1);
 	});
 
 	it('reports an unreachable host as a 502 rather than letting fetch reject', async () => {

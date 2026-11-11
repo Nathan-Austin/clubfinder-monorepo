@@ -24,6 +24,19 @@ export const MIN_MUSICBRAINZ_TAG_COUNT = 1;
 /** One request a second, as the API asks. Shared by every caller in this process. */
 export const MUSICBRAINZ_MIN_INTERVAL_MS = 1000;
 
+/**
+ * How many times a search is attempted before giving up, counting the first try.
+ *
+ * The live service answers 503 at random, well inside one request a second: one in two to one
+ * in four first calls in the 2026-11-10 run (KNOWN_ISSUES 21). Genres are stored when an artist
+ * is added and reused for 30 days, so a single 503 used to leave that artist without MusicBrainz
+ * genres for good. Only 503 is retried — a 400 or a 404 would say the same thing again — and
+ * the waits come from the rate limiter, so a retry is about a second later and still inside the
+ * one-request-a-second budget. Three attempts is the point where retrying stops paying: it
+ * leaves roughly a 1-in-60 chance of losing an artist's genres at the worst rate seen.
+ */
+export const MUSICBRAINZ_MAX_ATTEMPTS = 3;
+
 export interface MusicbrainzOptions {
 	fetch?: typeof fetch;
 	/** Override the host (tests point this at tests/mock-musicbrainz.ts). */
@@ -114,25 +127,37 @@ export async function fetchMusicbrainzTags(
 		limit: '3'
 	}).toString();
 
-	await waitForRateLimit(options);
+	// A 503 is retried (see MUSICBRAINZ_MAX_ATTEMPTS); waitForRateLimit spaces the attempts,
+	// so the retry is about a second later and the rate limit still holds.
+	let response: Response | null = null;
+	for (let attempt = 1; attempt <= MUSICBRAINZ_MAX_ATTEMPTS; attempt += 1) {
+		await waitForRateLimit(options);
 
-	let response: Response;
-	try {
-		response = await fetchImpl(url.toString(), {
-			headers: {
-				Accept: 'application/json',
-				'User-Agent': options.userAgent ?? MUSICBRAINZ_USER_AGENT
-			}
-		});
-	} catch (error) {
-		throw new MusicbrainzError(
-			`MusicBrainz could not be reached (${error instanceof Error ? error.message : String(error)})`,
-			502
-		);
+		try {
+			response = await fetchImpl(url.toString(), {
+				headers: {
+					Accept: 'application/json',
+					'User-Agent': options.userAgent ?? MUSICBRAINZ_USER_AGENT
+				}
+			});
+		} catch (error) {
+			throw new MusicbrainzError(
+				`MusicBrainz could not be reached (${error instanceof Error ? error.message : String(error)})`,
+				502
+			);
+		}
+
+		if (response.status !== 503) break;
+		if (attempt === MUSICBRAINZ_MAX_ATTEMPTS) {
+			throw new MusicbrainzError(
+				`MusicBrainz is rate limiting us (${MUSICBRAINZ_MAX_ATTEMPTS} attempts)`,
+				429
+			);
+		}
 	}
 
-	if (response.status === 503) {
-		throw new MusicbrainzError('MusicBrainz is rate limiting us', 429);
+	if (!response) {
+		throw new MusicbrainzError('MusicBrainz was never asked', 502);
 	}
 	if (!response.ok) {
 		throw new MusicbrainzError(`MusicBrainz search failed (${response.status})`, 502);
