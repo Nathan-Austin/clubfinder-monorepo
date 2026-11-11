@@ -58,6 +58,28 @@ interface SpotifyImage {
 	height?: number;
 }
 
+/**
+ * Smallest artist image still wide enough for the picker's chips and the profile lists.
+ *
+ * Chosen by width rather than by an exact size: the live API serves 640/320/160, so looking for
+ * exactly 300 (as this did) never matched and every artist got the 640 one, several times the
+ * pixels any of our views use (KNOWN_ISSUES 21). Spotify has changed these sizes before, hence
+ * a threshold instead of another fixed number. When every image is smaller than the threshold
+ * the largest is the best available, and images without a width are taken in order, since
+ * sorting on a missing width would be guesswork.
+ */
+export const MIN_ARTIST_IMAGE_WIDTH = 300;
+
+function pickSpotifyImage(images: SpotifyImage[]): string | null {
+	const usable = images.filter((image) => typeof image.url === 'string' && image.url);
+	if (usable.length === 0) return null;
+	const measured = usable.filter((image) => typeof image.width === 'number' && image.width > 0);
+	if (measured.length === 0) return usable[0].url ?? null;
+	const byWidth = [...measured].sort((a, b) => (a.width ?? 0) - (b.width ?? 0));
+	const bigEnough = byWidth.find((image) => (image.width ?? 0) >= MIN_ARTIST_IMAGE_WIDTH);
+	return (bigEnough ?? byWidth[byWidth.length - 1]).url ?? null;
+}
+
 /** Shapes a Spotify artist object into our ArtistDetails; null when it is not one. */
 export function parseSpotifyArtist(raw: unknown): ArtistDetails | null {
 	if (!raw || typeof raw !== 'object') return null;
@@ -66,15 +88,12 @@ export function parseSpotifyArtist(raw: unknown): ArtistDetails | null {
 		return null;
 	}
 	const images = Array.isArray(artist.images) ? (artist.images as SpotifyImage[]) : [];
-	const preferred =
-		images.find((image) => image.width === 300 && typeof image.url === 'string') ??
-		images.find((image) => typeof image.url === 'string');
 	return {
 		source: 'spotify',
 		sourceId: artist.id,
 		name: artist.name.trim(),
 		genres: normalizeGenres(artist.genres),
-		imageUrl: preferred?.url ?? null
+		imageUrl: pickSpotifyImage(images)
 	};
 }
 
