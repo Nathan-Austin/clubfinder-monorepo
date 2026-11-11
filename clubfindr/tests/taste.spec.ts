@@ -521,6 +521,26 @@ test.describe('Last.fm import on /users-home', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
+	// Last.fm answers error 6 with HTTP 200 for an artist it has no tags for (KNOWN_ISSUES 21).
+	// Read as an outage, that dropped the artist from the import altogether.
+	test('an artist Last.fm has no tags for is imported without genres', async ({ page }) => {
+		const form = await importUser(page, 'tagless_fan');
+		const result = form.getByTestId('lastfm-result');
+		await expect(result).toBeVisible();
+		await expect(result).toContainText('Imported 1 artist from tagless_fan: Hollow Carillon.');
+		await expect(result).toContainText('No recognisable genres for: Hollow Carillon');
+		await expect(result).not.toContainText('tags unavailable');
+
+		const profile = await (await page.request.get('/api/taste/artists')).json();
+		const imported = profile.artists.find((a: { name: string }) => a.name === 'Hollow Carillon') as
+			{ genres: string[]; imageUrl: string | null } | undefined;
+		expect(imported?.genres).toEqual([]);
+		// Last.fm serves the same grey star for every artist (KNOWN_ISSUES 21): an imported
+		// artist gets no image rather than that placeholder. Asserted on this artist because it
+		// is new here, and a catalogue row that already exists keeps the image it was made with.
+		expect(imported?.imageUrl).toBeNull();
+	});
+
 	test('importing again adds nothing new', async ({ page }) => {
 		await importUser(page, 'solo_listener');
 		await expect(page.getByTestId('lastfm-result')).toContainText('Imported 1 artist');

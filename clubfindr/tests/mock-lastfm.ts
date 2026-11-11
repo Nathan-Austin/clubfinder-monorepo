@@ -64,6 +64,17 @@ const ARTISTS: MockArtist[] = [
 ];
 
 /**
+ * The one image the live API serves for every artist: a grey star, at all four sizes
+ * (KNOWN_ISSUES 21). Imported artists used to get this as their `imageUrl`, which is why the
+ * client drops it; keeping the real hash here is what lets the e2e suite see that.
+ */
+const PLACEHOLDER_IMAGE_HASH = '2a96cbd8b46e442fc41c2b86b821562f';
+const PLACEHOLDER_IMAGES = ['small', 'medium', 'large', 'extralarge'].map((size) => ({
+	'#text': `https://lastfm.freetls.fastly.net/i/u/${size === 'small' ? '34s' : size === 'medium' ? '64s' : size === 'large' ? '174s' : '300x300'}/${PLACEHOLDER_IMAGE_HASH}.png`,
+	size
+}));
+
+/**
  * Artists with tags but no listener: artist.gettoptags knows them, user.gettopartists never
  * returns them, so adding one here does not change what an import imports.
  */
@@ -88,10 +99,24 @@ const TAG_ONLY_ARTISTS: MockArtist[] = [
 	}
 ];
 
+/**
+ * Listed by user.gettopartists but unknown to artist.gettoptags, which is what the live API
+ * answers error 6 for (KNOWN_ISSUES 21). Deliberately absent from ARTISTS and TAG_ONLY_ARTISTS,
+ * so the tag lookup below falls through to its error-6 branch.
+ */
+const UNTAGGED_ARTIST: MockArtist = {
+	name: 'Hollow Carillon',
+	mbid: '',
+	playcount: 140,
+	tags: []
+};
+
 /** username -> top artists, or a canned failure */
 const USERS: Record<string, MockArtist[] | { error: number; message: string; status: number }> = {
 	fanatic: ARTISTS,
 	solo_listener: [ARTISTS[2]],
+	// One artist Last.fm has no tags for: it must still be imported, just without genres
+	tagless_fan: [UNTAGGED_ARTIST],
 	nobody_here: { error: 6, message: 'User not found', status: 404 },
 	ratelimited: {
 		error: 29,
@@ -137,7 +162,9 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 					url: `https://www.last.fm/music/${encodeURIComponent(a.name).replace(/%20/g, '+')}`,
 					playcount: String(a.playcount),
 					'@attr': { rank: String(i + 1) },
-					image: [{ '#text': '', size: 'large' }]
+					// What the live API actually sends: the same grey star for every artist, at
+					// every size (Last.fm stopped serving artist images in 2019; KNOWN_ISSUES 21)
+					image: PLACEHOLDER_IMAGES
 				})),
 				'@attr': { user, page: '1', perPage: String(limit), total: String(entry.length) }
 			}
@@ -148,9 +175,12 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 		const name = (url.searchParams.get('artist') ?? '').toLowerCase();
 		const artist = [...ARTISTS, ...TAG_ONLY_ARTISTS].find((a) => a.name.toLowerCase() === name);
 		if (!artist)
-			return sendJson(res, 404, {
+			// The live API reports an unknown artist as HTTP 200 with error 6, not as a 404
+			// (KNOWN_ISSUES 21): "no tags for this artist", not "Last.fm is down"
+			return sendJson(res, 200, {
 				error: 6,
-				message: 'The artist you supplied could not be found'
+				message: 'The artist you supplied could not be found',
+				links: []
 			});
 		return sendJson(res, 200, {
 			toptags: {
