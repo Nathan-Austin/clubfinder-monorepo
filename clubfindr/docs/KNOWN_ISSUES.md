@@ -271,8 +271,9 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `spotify-genres` cookie and GET reads it back; `/selectedGenres` reads the cookie directly.
     The endpoint's Spotify call also goes through `spotifyApi()` now, so the e2e suite reaches
     it through the mock (`tests/taste.spec.ts`, "stay with their own visitor").
-24. **Smaller gaps in the existing flows:** `/api/delete-user-data` does not clear
-    `preferences` or `interested_events`; `user_sessions.genres` is wiped on every login and
+24. **Smaller gaps in the existing flows:** _(fixed 2026-11-11, see the end of this item)_
+    `/api/delete-user-data` does not clear `preferences` or `interested_events`;
+    `user_sessions.genres` is wiped on every login and
     scoped to the home city; `/clubs` deletes the genre cookies on first read, so "Change
     Date" loses a guest's genres; "Change the vibe" restores the city but not the date.
     _Fixed behind `SPOTIFY_CONNECT_ENABLED=false`:_ the `spotify_service` add_user call at signup
@@ -281,9 +282,23 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `/api/mobile/bars/register`) ask for no music service or Spotify e-mail, store none and
     never call `spotify_service` (add_user / add_bar), even when an older client sends them;
     `GET /api/mobile/config` tells the app to hide the fields. With the flag on (still the
-    default) nothing changes. Still open in this item: the `/api/delete-user-data`,
-    `user_sessions.genres`, genre cookie and "Change the vibe" gaps. Venue login (`/login/bars`)
-    no longer retries add_bar or sends a venue through Spotify with the flag off either.
+    default) nothing changes. Still open in this item: the `user_sessions.genres`, genre cookie
+    and "Change the vibe" gaps. Venue login (`/login/bars`) no longer retries add_bar or sends a
+    venue through Spotify with the flag off either.
+    _Fixed 2026-11-11: `/api/delete-user-data`._ It left far more than the two columns named
+    above. Besides `preferences` and `interested_events` it kept the city, the Spotify app name,
+    the unspent confirmation code, the taste profile (`user_favourite_artists`), outstanding
+    password resets and **every session**, so the browser that asked for deletion stayed logged
+    in — and through the session cache in `hooks.server.ts`, which holds the name and e-mail, a
+    replayed session id kept reaching `/update-info` for up to five minutes. Worst, it kept
+    `google_id` and `facebook_id`, which social sign-in looks the account up by, so the next
+    "Continue with Google" would have walked straight back into the deleted account. All of it
+    goes now, in one transaction (`withTransaction` in `$lib/db`), with the cached sessions
+    evicted after the commit (`$lib/server/sessionCache`) and the cookies cleared;
+    `tests/delete-user-data.spec.ts` checks the outcome in the database through `tests/db.ts`.
+    Left in place on purpose: `user_checkins` (venue statistics count them and `user_id` is
+    NOT NULL; with the account anonymised they no longer identify anyone) and any bar the user
+    manages. `city` is emptied rather than cleared, being NOT NULL.
 25. **Seed dates move with the seed.** Only the four Berlin nights on 2031-06-21 are pinned;
     tests that need fixed results use `/clubs?date=2031-06-21`.
 
@@ -441,3 +456,23 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     similarity cut-off. Still open: the rest of the garage family is spread about — Speed Garage,
     4x4 Garage, Bassline House and UK Funky sit in "Footwork/Juke" — so a speed-garage fan and a
     UK-garage fan still score 0 against each other.
+
+39. **`query('BEGIN')` … `query('COMMIT')` is not a transaction.** `$lib/db`'s `query()` takes a
+    connection from the pool, runs one statement and releases it, so `BEGIN` goes back to the
+    pool still open and the statements after it run on whichever connection is free. Eight
+    places do this: `api/send-delete-confirmation-code`, `api/mobile/spotify/register`,
+    `api/mobile/bars/register`, `promoter-home/events` and `promoter-home/events/[eventId]`,
+    `register/promoter`, `register` and `spotify/login`. It has not visibly broken because the
+    pool hands back the connection it was just given, so in quiet traffic the statements happen
+    to share one; under concurrency another request can take that connection mid-sequence, and
+    any error between `BEGIN` and `COMMIT` leaves a connection "idle in transaction" for an
+    unrelated request to inherit, its writes then never committed. Demonstrated against the dev
+    database on 2026-11-11. `withTransaction` in `$lib/db` is the replacement, so far used only by
+    `api/delete-user-data`.
+40. **`App.Locals.user.id` is typed `number`**, but `users.id` is a uuid, so every `locals.user.id`
+    is a string at runtime. Hidden while the session cache was an untyped `Map`; the cache is
+    typed by `App.Locals` now (`$lib/server/sessionCache`), which keeps the existing contract.
+    Correcting `app.d.ts` means checking each reader of `locals.user`.
+41. **Logout does not evict the session cache.** `/logout` deletes the session row and the
+    cookies, but not the `hooks.server.ts` cache entry, so a copy of the session id keeps working
+    for up to five minutes. `evictSessions` (`$lib/server/sessionCache`) is the one-line fix.

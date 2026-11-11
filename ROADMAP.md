@@ -201,8 +201,12 @@ top artists or play counts on the web).
       date over the server's local day. The app itself still sends no date (2026-11-09)
 - [ ] Route `/api/request-access` through `$lib/email` and enable SMTP certificate
       verification (KNOWN_ISSUES 15, 16)
-- [ ] `/api/delete-user-data` should also clear preferences and interested events
-      (KNOWN_ISSUES 24)
+- [x] `/api/delete-user-data` should also clear preferences and interested events
+      (KNOWN_ISSUES 24), done 2026-11-11 — and much more it had left behind, including every
+      session and the Google and Facebook ids social sign-in would have used to reopen the
+      account. One transaction, with the session cache evicted
+- [ ] Replace the eight `query('BEGIN')` … `query('COMMIT')` sequences with `withTransaction`
+      (KNOWN_ISSUES 39): on a pooled connection they are not transactions at all
 - [ ] Store the refreshed Spotify token expiry (KNOWN_ISSUES 2), or drop the flow with section 1
 - [ ] Input validation on all API endpoints and an audit of raw SQL
 - [ ] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12)
