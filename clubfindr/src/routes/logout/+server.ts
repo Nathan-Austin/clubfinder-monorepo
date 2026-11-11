@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
 import { dev } from '$app/environment';
+import { evictSessions } from '$lib/server/sessionCache';
 
 export const GET: RequestHandler = async ({ cookies, locals, url }) => {
 	try {
@@ -18,6 +19,9 @@ export const GET: RequestHandler = async ({ cookies, locals, url }) => {
 			if (deleteResult.rowCount === 0) {
 				console.warn(`No session found for sessionId: ${sessionId}`);
 			}
+			// The row is gone, but hooks.server.ts may still hold the session in memory for up to
+			// five minutes; without this a copied session id keeps working after logout
+			evictSessions([sessionId]);
 		}
 
 		// Clear all authentication-related cookies with enhanced security
