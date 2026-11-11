@@ -1,10 +1,11 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
-
-// Simple in-memory session cache to avoid database hits
-const SESSION_CACHE = new Map();
-const SESSION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+import {
+	SESSION_CACHE_TTL,
+	sessionCache as SESSION_CACHE,
+	type CachedSessionUser
+} from '$lib/server/sessionCache';
 
 // Rate limiting for security
 const RATE_LIMIT = new Map();
@@ -139,13 +140,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		try {
 			// Check in-memory cache first
 			const now = Date.now();
-			let userData = null;
+			let userData: CachedSessionUser | null = null;
 
-			if (SESSION_CACHE.has(sessionId)) {
-				const cachedData = SESSION_CACHE.get(sessionId);
-				if (now - cachedData.timestamp < SESSION_CACHE_TTL) {
-					userData = cachedData.user;
-				}
+			const cachedData = SESSION_CACHE.get(sessionId);
+			if (cachedData && now - cachedData.timestamp < SESSION_CACHE_TTL) {
+				userData = cachedData.user;
 			}
 
 			// If not in cache, check database
