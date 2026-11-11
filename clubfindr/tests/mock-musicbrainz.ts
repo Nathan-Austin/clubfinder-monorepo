@@ -30,11 +30,15 @@ const ARTISTS: MockArtist[] = [
 		id: 'b0000000-0000-4000-8000-000000000001',
 		name: 'Cassette Mirage',
 		score: 100,
+		// Deliberately not in count order, and with the 0 and negative counts the live service
+		// sends (KNOWN_ISSUES 21): tagsToGenres has to sort and filter these itself
 		tags: [
-			['dub techno', 3],
 			['ambient', 2],
 			['seen live', 5], // stoplisted, however many votes it has
-			['Cassette Mirage', 2] // the artist's own name is dropped
+			['dub techno', 3],
+			['Cassette Mirage', 2], // the artist's own name is dropped
+			['acid house', 0], // 0 votes: as good as untagged
+			['hard techno', -1] // voted down
 		]
 	},
 	{

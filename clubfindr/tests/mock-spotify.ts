@@ -32,13 +32,25 @@ interface MockArtist {
 	images: { url: string; width: number; height: number }[];
 }
 
+/**
+ * The three widths the live API serves (640, 320, 160; KNOWN_ISSUES 21) — notably not the 300
+ * `parseSpotifyArtist` used to look for. Given to one artist so the suite covers a real image
+ * set; the rest keep none, which is the other case the parser has to handle.
+ */
+const liveImageSizes = (slug: string) =>
+	[640, 320, 160].map((width) => ({
+		url: `https://i.scdn.co/image/${slug}-${width}`,
+		width,
+		height: width
+	}));
+
 /** Two overlap with dev/seed.sql's taste_artists (same ids), the rest are only known here. */
 export const MOCK_ARTISTS: MockArtist[] = [
 	{
 		id: 'devJunoPaperplane00001',
 		name: 'Juno Paperplane',
 		genres: ['deep house', 'minimal'],
-		images: []
+		images: liveImageSizes('juno-paperplane')
 	},
 	{
 		id: 'devPerihelionChoir0001',
@@ -67,6 +79,10 @@ export const MOCK_ARTISTS: MockArtist[] = [
 		genres: ['reggaeton', 'salsa', 'dancehall', 'dubstep', 'jungle', 'post-punk', 'shoegaze'],
 		images: []
 	},
+	// Empty `genres` is common on the live API, not an edge case: it came back that way for
+	// well-known acts in the 2026-11-10 run (KNOWN_ISSUES 21), which is why the fallback below
+	// is a main path. These three artists are the suite's genre-less ones; the others keep
+	// genres so the tests that need a known profile still have one.
 	{ id: 'devNoGenresAtAll000001', name: 'Unlabelled Static', genres: [], images: [] },
 	// Also without genres, but reserved for tests/genre-fallback.spec.ts: adding it must reach
 	// the Last.fm and MusicBrainz fallback. Kept apart from Unlabelled Static, which the Last.fm
@@ -120,7 +136,11 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 	// accounts.spotify.com: tokens (client credentials, authorization code, refresh)
 	if (url.pathname === '/api/token') {
 		if (req.method !== 'POST' || !req.headers.authorization?.startsWith('Basic ')) {
-			return sendJson(res, 400, { error: 'invalid_client' });
+			// The live API sends error_description alongside error here too (KNOWN_ISSUES 21)
+			return sendJson(res, 400, {
+				error: 'invalid_client',
+				error_description: 'Invalid client secret'
+			});
 		}
 		const form = new URLSearchParams(await readBody(req));
 		const grant = form.get('grant_type');

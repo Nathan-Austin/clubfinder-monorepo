@@ -81,6 +81,45 @@ describe('parseSpotifyArtist', () => {
 		});
 	});
 
+	// The live API serves 640/320/160, so a hard-coded preference for exactly 300 never matched
+	// and the 640 was taken for every artist (KNOWN_ISSUES 21).
+	it('takes the smallest image still big enough at the live widths', () => {
+		expect(
+			parseSpotifyArtist({
+				id: ID,
+				name: 'Live Widths',
+				images: [
+					{ url: 'https://i.scdn.co/640', width: 640, height: 640 },
+					{ url: 'https://i.scdn.co/320', width: 320, height: 320 },
+					{ url: 'https://i.scdn.co/160', width: 160, height: 160 }
+				]
+			})
+		).toMatchObject({ imageUrl: 'https://i.scdn.co/320' });
+	});
+
+	it('takes the largest image when every one is too small, whatever the order', () => {
+		expect(
+			parseSpotifyArtist({
+				id: ID,
+				name: 'Small',
+				images: [
+					{ url: 'https://i.scdn.co/64', width: 64, height: 64 },
+					{ url: 'https://i.scdn.co/160', width: 160, height: 160 }
+				]
+			})
+		).toMatchObject({ imageUrl: 'https://i.scdn.co/160' });
+	});
+
+	it('copes with images that carry no width', () => {
+		expect(
+			parseSpotifyArtist({
+				id: ID,
+				name: 'Widthless',
+				images: [{ url: 'https://i.scdn.co/unknown' }]
+			})
+		).toMatchObject({ imageUrl: 'https://i.scdn.co/unknown' });
+	});
+
 	it('falls back to the first image and an empty genre list', () => {
 		expect(
 			parseSpotifyArtist({
