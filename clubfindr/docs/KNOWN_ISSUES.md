@@ -500,3 +500,11 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     an `event_genres` table that does not exist (genres are an array column on `events`). Nothing in
     the web app or the mobile app calls it. Its transaction was converted with the rest
     (KNOWN_ISSUES 39) without changing its behaviour; deleting the route is likely the right fix.
+44. _Fixed 2026-11-12._ **`/barfindr` only ever scored the first 50 venues of a city by name.** The
+    candidate query ended `ORDER BY name LIMIT 50`, before any scoring, so in a city with more than
+    50 venues one whose name sorted late could never be shown however well it matched. Every venue
+    is scored now and the cap (100, as on `/clubs`) applies to the ranked results;
+    `tests/barfindr-ranking.spec.ts` builds its own city to prove it. Found because a day of e2e
+    runs without a reseed left 52 throwaway Berlin venues and pushed the seeded "The Copper
+    Lantern" to 51st, failing four `/barfindr` tests. Those leftovers are harmless now — venues
+    sharing no cluster with a search are dropped — but every registration test still adds one.
