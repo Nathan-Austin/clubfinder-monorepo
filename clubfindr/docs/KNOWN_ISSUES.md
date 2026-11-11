@@ -223,11 +223,15 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       carries that hash (matched by hash, since the URL differs by size), leaving `imageUrl`
       null unless a real picture is offered. Note a catalogue row keeps the image it was created
       with, so artists imported before this still carry the star.
-    - Smaller: Spotify images are now 640/320/160 wide, so `parseSpotifyArtist`'s preference for
-      `width === 300` never hits and it takes the 640 one (320 would do); a bad client secret
-      gets `400 {error, error_description}`, where the mock sends only `error`; MusicBrainz tag
-      counts can be 0 or negative and arrive unsorted (`tagsToGenres` already filters and
-      sorts, but the mock only has positive counts).
+    - _Fixed 2026-11-11._ Smaller points, all four closed. Spotify images are 640/320/160 wide,
+      so `parseSpotifyArtist`'s preference for `width === 300` never hit and every artist got the
+      640 one; it now takes the smallest image at least `MIN_ARTIST_IMAGE_WIDTH` (300) wide, so
+      320 at today's sizes, falling back to the largest when all are smaller and to document
+      order when an image carries no width — a threshold rather than another fixed size, since
+      Spotify has changed these before. `tests/mock-spotify.ts` serves one artist at the live
+      widths, sends `error_description` with `invalid_client`, and says in writing that empty
+      `genres` is the common case; `tests/mock-musicbrainz.ts` now sends tag counts of 0 and -1,
+      out of count order, which `tagsToGenres` filters and sorts as it always claimed to.
     - Not checked: Spotify's development-mode 403 for unregistered users, which needs a user
       OAuth login and stops mattering once `SPOTIFY_CONNECT_ENABLED=false`.
       Each follow-up should change the mock to the observed behaviour first, so the e2e suite
@@ -416,3 +420,15 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     session with other work can get on with it; `run --wait` blocks for the lease instead, which
     is what to use when the suite is all that is left. Still open: a bare `pnpm test` is not
     guarded, so it relies on the convention of calling it through `dev/e2e-lock.sh run`.
+
+37. _Fixed 2026-11-11._ **Two logins by the same user at the same moment made one of them
+    fail.** `user_sessions.user_id` is UNIQUE and both `/login/users` and
+    `POST /api/mobile/login` replaced the session row with a `DELETE` followed by an `INSERT`.
+    The two statements are not atomic, so two logins by one account at once — two devices, or a
+    double submit — raced, and whichever `INSERT` lost violated the constraint and answered 500
+    to a perfectly valid login. Both are one `INSERT ... ON CONFLICT (user_id) DO UPDATE` now,
+    resetting the columns a new session must not inherit (`genres`, the Spotify tokens,
+    `spotify_app_id`, `created_at`), which is what the `DELETE` used to take care of. Found by
+    the e2e suite: `tests/timezone.spec.ts` logs in as the same seeded user from two parallel
+    tests, which failed once in a run on 2026-11-11 and was reproduced deterministically by
+    `tests/auth.spec.ts`, "two logins at the same moment both succeed".
