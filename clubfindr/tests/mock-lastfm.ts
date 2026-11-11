@@ -77,6 +77,14 @@ const TAG_ONLY_ARTISTS: MockArtist[] = [
 			['seen live', 100],
 			['favourites', 60]
 		]
+	},
+	{
+		// tests/genre-fallback.spec.ts again: noise only, so the MusicBrainz step (which 503s
+		// for this artist before it answers) is the one that decides the genres
+		name: 'Faint Transmission',
+		mbid: '',
+		playcount: 0,
+		tags: [['seen live', 100]]
 	}
 ];
 

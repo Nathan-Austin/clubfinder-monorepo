@@ -71,7 +71,10 @@ export const MOCK_ARTISTS: MockArtist[] = [
 	// Also without genres, but reserved for tests/genre-fallback.spec.ts: adding it must reach
 	// the Last.fm and MusicBrainz fallback. Kept apart from Unlabelled Static, which the Last.fm
 	// import test needs to stay genre-less in the shared taste_artists catalogue.
-	{ id: 'devCassetteMirage00001', name: 'Cassette Mirage', genres: [], images: [] }
+	{ id: 'devCassetteMirage00001', name: 'Cassette Mirage', genres: [], images: [] },
+	// Likewise genre-less, and tests/mock-musicbrainz.ts answers 503 for it twice before
+	// answering properly: adding it only gets genres if the client retries (KNOWN_ISSUES 21)
+	{ id: 'devFaintTransmission01', name: 'Faint Transmission', genres: [], images: [] }
 ];
 
 type MockUser = 'ok' | 'unregistered' | 'partial';

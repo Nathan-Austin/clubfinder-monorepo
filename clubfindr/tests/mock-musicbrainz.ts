@@ -49,8 +49,25 @@ const ARTISTS: MockArtist[] = [
 		name: 'Glass Anvil',
 		score: 100,
 		tags: [['industrial techno', 4]]
+	},
+	{
+		// tests/genre-fallback.spec.ts: answers 503 the first FLAKY_503_ATTEMPTS times it is
+		// asked for, then normally, so the retry is what gets these tags (see below)
+		id: 'b0000000-0000-4000-8000-000000000004',
+		name: 'Faint Transmission',
+		score: 100,
+		tags: [['deep house', 2]]
 	}
 ];
+
+// The live service answers 503 at random, well inside one request a second (KNOWN_ISSUES 21):
+// one in two to one in four first calls in the 2026-11-10 run. Since genres are stored when an
+// artist is added, a single 503 used to leave that artist without MusicBrainz genres for good,
+// so the client retries. This artist fails that many times and then succeeds, which is what
+// makes the retry visible to the e2e suite: without it the first 503 is final.
+const FLAKY_503_ARTIST = 'faint transmission';
+const FLAKY_503_ATTEMPTS = 2;
+let flakyAttempts = 0;
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
 	res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -79,6 +96,10 @@ function handle(req: IncomingMessage, res: ServerResponse) {
 
 	const name = queriedName(url.searchParams.get('query') ?? '');
 	if (name === 'rate limited act') {
+		return sendJson(res, 503, { error: 'Your requests are exceeding the allowable rate limit.' });
+	}
+	if (name === FLAKY_503_ARTIST && flakyAttempts < FLAKY_503_ATTEMPTS) {
+		flakyAttempts += 1;
 		return sendJson(res, 503, { error: 'Your requests are exceeding the allowable rate limit.' });
 	}
 

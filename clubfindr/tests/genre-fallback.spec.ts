@@ -18,6 +18,8 @@ import { test, expect, type Page, testPassword } from './fixtures';
 const PASSWORD = testPassword();
 const NO_GENRE_ARTIST = { sourceId: 'devCassetteMirage00001', name: 'Cassette Mirage' };
 const SPOTIFY_GENRE_ARTIST = { sourceId: 'devGlassAnvil000000001', name: 'Glass Anvil' };
+// tests/mock-musicbrainz.ts 503s for this one twice before answering, as the live service does
+const FLAKY_503_ARTIST = { sourceId: 'devFaintTransmission01', name: 'Faint Transmission' };
 
 function uniqueEmail(testName: string) {
 	const slug = testName
@@ -60,6 +62,28 @@ test('an artist Spotify has no genres for gets them from the fallback chain', as
 	// The genres are stored on the catalogue row, so listing never calls a provider again
 	const profile = await (await page.request.get('/api/taste/artists')).json();
 	expect(profile.artists[0].genres).toEqual(['dub techno', 'ambient']);
+});
+
+test('a MusicBrainz 503 is retried, not taken as final (KNOWN_ISSUES 21)', async ({
+	page
+}, testInfo) => {
+	await signUp(page, uniqueEmail(testInfo.title));
+
+	// tests/mock-musicbrainz.ts answers 503 for this artist twice before answering properly,
+	// the way the live service does at random. Genres are stored when the artist is added, so
+	// without a retry that first 503 would leave it genre-less for good.
+	//
+	// That storing is also why a failure here repeats on the next run against the same database:
+	// the genre-less taste_artists row is reused for 30 days, so the second run reports no
+	// genres without asking MusicBrainz at all. Re-run dev/setup.sh (or delete that one row)
+	// before reading a repeat failure as the retry being broken.
+	const response = await page.request.post('/api/taste/artists', {
+		data: { sourceId: FLAKY_503_ARTIST.sourceId }
+	});
+	expect(response.status()).toBe(201);
+	const body = await response.json();
+	expect(body.artist.name).toBe(FLAKY_503_ARTIST.name);
+	expect(body.artist.genres).toEqual(['deep house']);
 });
 
 test("an artist Spotify does have genres for keeps Spotify's", async ({ page }, testInfo) => {
