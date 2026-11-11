@@ -68,4 +68,20 @@ test.describe('login', () => {
 		await page.goto('/update-info');
 		await expect(page.locator('body')).not.toContainText('Update Profile');
 	});
+
+	// user_sessions.user_id is UNIQUE, and the session row used to be replaced with a DELETE
+	// followed by an INSERT: two logins by the same user at the same moment (two devices, or a
+	// double submit) raced, and whichever INSERT lost answered 500 to a valid login. It is one
+	// upsert now. Posting the form directly, since this is about concurrent requests rather
+	// than the page.
+	test('two logins at the same moment both succeed', async ({ page }) => {
+		const { email, password } = USERS.listener;
+		const data = { provider: 'local', email, password };
+		const [first, second] = await Promise.all([
+			page.request.post('/login/users', { data }),
+			page.request.post('/login/users', { data })
+		]);
+		expect([first.status(), second.status()]).toEqual([200, 200]);
+		expect([(await first.json()).success, (await second.json()).success]).toEqual([true, true]);
+	});
 });
