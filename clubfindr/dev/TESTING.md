@@ -236,8 +236,13 @@ dev/e2e-lock.sh release                             # when the whole run is fini
   session that died never blocks the others. **Keep each command under that**: if the suite
   runs longer, split it by spec file, with `PW_SKIP_BUILD=1` after the first chunk, e.g.
   `dev/e2e-lock.sh run pnpm exec playwright test tests/auth.spec.ts tests/bars.spec.ts`.
-- When another checkout holds the lease, `run` refuses with exit code 75 and names it. It never
-  waits by itself: check `status` again later, and do not start your own setup meanwhile.
+- When another checkout holds the lease, `run` refuses with exit code 75 and names it, so a
+  caller with other work to do is not left hanging. Do not start your own setup meanwhile.
+- **If the suite is all that is left to do, wait for the lease rather than giving up**:
+  `dev/e2e-lock.sh run --wait <command>` blocks until it is free (up to
+  `E2E_LEASE_WAIT_SECONDS`, default 1800, reporting the holder as it goes), and
+  `dev/e2e-lock.sh wait` blocks without claiming anything. Both are ordinary foreground
+  commands, so give the shell running them a timeout longer than the wait.
 - If the lease lapsed during your command and another checkout took it, `run` warns afterwards
   (its setup may have reseeded the database under you); treat that run's results as suspect.
 - `dev/setup.sh` refuses to run, or `--stop` the server, while another checkout holds the lease,

@@ -405,5 +405,7 @@ you supplied could not be found", links: []}`. The client classifies that as
     data but not the memory, so runs are serialised instead: `dev/e2e-lock.sh` keeps a lease,
     held across the several commands of a run, in the git directory the worktrees share, and
     `dev/setup.sh` refuses to reseed or stop the server while another checkout holds it
-    (`dev/TESTING.md`, "One e2e run at a time"). Still open: a bare `pnpm test` is not guarded,
-    so it relies on the convention of calling it through `dev/e2e-lock.sh run`.
+    (`dev/TESTING.md`, "One e2e run at a time"). A refused `run` exits 75 rather than waiting, so a
+    session with other work can get on with it; `run --wait` blocks for the lease instead, which
+    is what to use when the suite is all that is left. Still open: a bare `pnpm test` is not
+    guarded, so it relies on the convention of calling it through `dev/e2e-lock.sh run`.

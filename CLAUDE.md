@@ -243,7 +243,10 @@ them at a time, and each `dev/setup.sh` wipes the data.
 Run every e2e command through the lease, `dev/e2e-lock.sh run <command>` (from `clubfindr/`):
 check `dev/e2e-lock.sh status` first, keep each command under 20 minutes, and
 `dev/e2e-lock.sh release` when the run is done. If another worktree holds it (`run` exits 75),
-wait; never set up or run e2e meanwhile (KNOWN_ISSUES 36, `clubfindr/dev/TESTING.md`).
+wait; never set up or run e2e meanwhile (KNOWN_ISSUES 36, `clubfindr/dev/TESTING.md`). When the
+suite is the only thing left to do, block for it instead of giving up:
+`dev/e2e-lock.sh run --wait <command>` (or `dev/e2e-lock.sh wait`), in the foreground, with a
+shell timeout longer than `E2E_LEASE_WAIT_SECONDS` (default 1800).
 
 ### Security Considerations
 
