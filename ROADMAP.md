@@ -144,11 +144,30 @@ Things to do by hand or decide, collected while building the items above.
       resolve as genres again. The e2e suite passes with it, in both `SPOTIFY_CONNECT_ENABLED`
       modes (2026-11-11), against the mocks; the genres real providers return for a given artist
       are a separate question, and only the 2026-11-10 live check speaks to that (KNOWN_ISSUES 21)
-- [ ] Revisit the absolute similarity cut-off now that scores are weighted. `/clubs` keeps
-      matches above 0.05 and `/barfindr` filters on the same figure, set when every exact match
-      scored 1.0. Weighted profiles (artist counts, event vs self-description) spread a side's
-      weight, so a broad profile against a venue with many genres can fall under it and vanish
-      rather than rank low. Ranking is unaffected; only the cut-off measures something new
+- [x] Revisit the absolute similarity cut-off now that scores are weighted, done 2026-11-11.
+      Measured first: because the score's denominator is the union of both sides, one listener's
+      best match of the seeded nights fell from 1.000 at three genres to 0.455 at ten, 0.182 at
+      thirty-two and 0.133 at fifty, matching all the while on exactly the genres they had named,
+      and a fifty-genre listener scores 0.095 against a two-genre line-up. The floor was
+      measuring breadth, not disagreement: it cut a wide listener's afro-house match at 0.045
+      while keeping weaker ones, and `api/mobile/events/matching`'s 0.1 (a third site, found
+      while measuring) could discard such a listener's best match altogether. All three now keep
+      anything above zero — the one case that is genuinely no match — through `MIN_SIMILARITY`
+      and `isSimilarityMatch` in `$lib/server/genreMatching`, and `/clubs` loses its adaptive
+      ladder. The result cap and the MMR diversity pass order what is shown. A relative band was
+      measured and rejected: "within 20% of your own top match" returned exactly one result for
+      every profile tried, and "at least 20% of it" kept everything non-zero
+- [ ] Score a listener's taste in sides rather than as one profile ("you like this kind of
+      thing, and here it matches really well"). Measured 2026-11-11 alongside the cut-off: for a
+      32-genre listener, scoring each side of their taste separately lifts the indie night from
+      0.091 to 1.000 (their rock side, 3 genres), the latin night from 0.136 to 0.667 and the
+      disco night from 0.045 to 0.250, each one nameable in the UI. Two things are unsettled and
+      want deciding before any code. **Granularity**: grouping by top-level cluster leaves
+      "Electronic/Dance" holding 17 of the 32 genres, so an electronic-heavy listener gains
+      little (0.182 to 0.400), while grouping by sub-cluster gives 22 sides for 32 genres and a
+      one-genre side scoring 1.000 says little. **What not to do**: scoring a night against "the
+      genres that matched it" is circular and returned 1.000 for nine of ten nights — a side has
+      to be chosen from the listener's taste alone, before the night is seen
 - [x] Unify the four copies of the cluster matcher into `$lib` and wire the taste
       profile into the mobile API (KNOWN_ISSUES 22), done 2026-11-10: one matcher in
       `$lib/server/genreMatching` (the `/clubs` one, the only weighted version), and the two

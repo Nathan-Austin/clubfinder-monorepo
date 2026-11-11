@@ -432,3 +432,12 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     the e2e suite: `tests/timezone.spec.ts` logs in as the same seeded user from two parallel
     tests, which failed once in a run on 2026-11-11 and was reproduced deterministically by
     `tests/auth.spec.ts`, "two logins at the same moment both succeed".
+
+38. _Fixed 2026-11-11._ **`UK Garage` was filed under "Cultural House"**, alongside Afro House,
+    Amapiano, Gqom, Kwaito and Kuduro, so a UK garage night matched an amapiano fan at full
+    weight and the other way round. It is with "Dubstep and Bass" now, which already held Future
+    Garage and Grime: amapiano against a UK garage night goes 0.333 to 0, dubstep against it
+    0.333 to 0.500, and the `garage` and `ukg` aliases follow. Found while measuring the
+    similarity cut-off. Still open: the rest of the garage family is spread about — Speed Garage,
+    4x4 Garage, Bassline House and UK Funky sit in "Footwork/Juke" — so a speed-garage fan and a
+    UK-garage fan still score 0 against each other.
