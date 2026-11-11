@@ -6,10 +6,16 @@ import path from 'node:path';
 // Runtime configuration (see .env.example):
 //   MAIL_TRANSPORT      'smtp' (default) or 'capture'
 //   SMTP_HOST, SMTP_PORT (465), SMTP_SECURE (true), SMTP_USER, SMTP_PASSWORD
+//   SMTP_TLS_VERIFY     'true' to verify the server's certificate (default off, KNOWN_ISSUES 15)
 //   MAIL_CAPTURE_FILE   capture only: JSON lines file that receives every message
 // Read at send time so the e2e suite can switch to capture without a rebuild.
 
 let transporter: Transporter | undefined;
+
+/** Whether to verify the SMTP server's TLS certificate; only an explicit 'true' turns it on. */
+export function smtpTlsVerify(value: string | undefined = env.SMTP_TLS_VERIFY): boolean {
+	return value?.trim().toLowerCase() === 'true';
+}
 
 function smtpTransporter(): Transporter {
 	if (!env.SMTP_HOST) {
@@ -26,7 +32,9 @@ function smtpTransporter(): Transporter {
 			pass: env.SMTP_PASSWORD
 		},
 		tls: {
-			rejectUnauthorized: false // KNOWN_ISSUES 15
+			// Off unless SMTP_TLS_VERIFY=true (KNOWN_ISSUES 15): the mail host's certificate has not
+			// been checked against SMTP_HOST, and switching it on blind would stop all mail
+			rejectUnauthorized: smtpTlsVerify()
 		}
 	});
 	return transporter;

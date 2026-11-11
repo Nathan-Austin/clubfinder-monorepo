@@ -108,3 +108,38 @@ describe('sendEmail with MAIL_TRANSPORT=smtp', () => {
 		expect(mocks.sendMail).not.toHaveBeenCalled();
 	});
 });
+
+// KNOWN_ISSUES 15. Certificate checks stay off until someone turns them on deliberately: on by
+// mistake would stop all mail if the host's certificate does not match, off by mistake would
+// leave the connection open to a man-in-the-middle. So only an explicit "true" counts.
+describe('SMTP_TLS_VERIFY', () => {
+	const smtp = { MAIL_TRANSPORT: 'smtp', SMTP_HOST: 'smtp.example.test' };
+
+	it('leaves certificate checks off unless set to true', async () => {
+		Object.assign(mocks.env, smtp);
+		const { sendEmail } = await loadEmail();
+		await sendEmail('someone@clubfindr.test', 'Hello', 'Body');
+		expect(mocks.createTransport).toHaveBeenCalledWith(
+			expect.objectContaining({ tls: { rejectUnauthorized: false } })
+		);
+	});
+
+	it('turns them on when set to true', async () => {
+		Object.assign(mocks.env, smtp, { SMTP_TLS_VERIFY: 'true' });
+		const { sendEmail } = await loadEmail();
+		await sendEmail('someone@clubfindr.test', 'Hello', 'Body');
+		expect(mocks.createTransport).toHaveBeenCalledWith(
+			expect.objectContaining({ tls: { rejectUnauthorized: true } })
+		);
+	});
+
+	it('reads only an explicit true, however it is written', async () => {
+		const { smtpTlsVerify } = await loadEmail();
+		for (const value of [undefined, '', 'false', '0', 'no', 'yes', '1']) {
+			expect(smtpTlsVerify(value), String(value)).toBe(false);
+		}
+		for (const value of ['true', 'TRUE', ' True ']) {
+			expect(smtpTlsVerify(value), value).toBe(true);
+		}
+	});
+});
