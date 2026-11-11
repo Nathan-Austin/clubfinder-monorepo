@@ -111,8 +111,8 @@ Things to do by hand or decide, collected while building the items above.
       guessing, gives all 92 contested leaves one home, and sends genres with nowhere to go
       straight to Uncategorized instead of letting the fuzzy pass invent an answer. The fuzzy pass
       is typo tolerance only now (word by word, nothing under five characters), so `funk → punk`,
-      `hip hop → trip hop`, `dnb → dub` and `country → Hip-Hop/Rap` are gone. Not yet run against
-      the e2e suite
+      `hip hop → trip hop`, `dnb → dub` and `country → Hip-Hop/Rap` are gone. The e2e suite passes
+      with it, in both `SPOTIFY_CONNECT_ENABLED` modes (2026-11-11)
 - [x] Add the clusters the tree had no home for at all (KNOWN_ISSUES 18), done 2026-11-10: Pop,
       "Soul, Funk and Disco", Jazz, "African Popular Music", Classical and
       "Folk and Singer-Songwriter" — 115 leaves across 20 sub-clusters, so pop, soul, funk, disco,
@@ -129,15 +129,19 @@ Things to do by hand or decide, collected while building the items above.
       taste profile weighs genres by how many favourite artists carry them, an event's genres
       outweigh the venue's standing self-description (declared artists drop to 0.25 on a day with
       an event, stay 1 without one), and the rolling play counts are scaled to a unit maximum so
-      the fixed weights mean something. Explicit genre picks stay unweighted. Not yet run against
-      the e2e suite or on production data
+      the fixed weights mean something. Explicit genre picks stay unweighted. The e2e suite passes
+      with it, in both `SPOTIFY_CONNECT_ENABLED` modes (2026-11-11); not yet measured on
+      production data, which is where a weighted profile's spread can still surprise us (see the
+      similarity cut-off item below)
 - [x] Widen umbrella genres across their whole family (KNOWN_ISSUES 18), done 2026-11-10:
       `UMBRELLA_FAMILIES` names every sub-cluster an umbrella covers and scoring matches a family
       against any of its members, counting it in the denominator for what it matched rather than
       splitting its weight — so "house" reaches all four house sub-clusters and still scores 1 at
       a venue playing only one of them. Umbrellas now shadow same-named leaves (techno, jazz,
       pop, soul, classical) on purpose. The picker's own group names ("Minimal and Techno")
-      resolve as genres again. Not yet verified against live API data
+      resolve as genres again. The e2e suite passes with it, in both `SPOTIFY_CONNECT_ENABLED`
+      modes (2026-11-11), against the mocks; the genres real providers return for a given artist
+      are a separate question, and only the 2026-11-10 live check speaks to that (KNOWN_ISSUES 21)
 - [ ] Revisit the absolute similarity cut-off now that scores are weighted. `/clubs` keeps
       matches above 0.05 and `/barfindr` filters on the same figure, set when every exact match
       scored 1.0. Weighted profiles (artist counts, event vs self-description) spread a side's
