@@ -11,15 +11,9 @@ import { artistOnboardingStatus } from '$lib/taste/onboarding';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request }) => {
-	const startTime = Date.now();
-	console.log('========================');
-	console.log('MOBILE FAST LOGIN REQUEST');
-	console.log('========================');
-
 	try {
 		// Parse request body
 		const data = await request.json();
-		console.log('Request parsing:', Date.now() - startTime, 'ms');
 
 		const { email, password } = data;
 
@@ -38,12 +32,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Get user from database
-		const dbStart = Date.now();
 		const result = await query(
 			'SELECT id, name, city, password_hash, spotify_app_name, is_first_time,onboarding_complete FROM clubfindr.users WHERE general_email = $1',
 			[email]
 		);
-		console.log('Database lookup:', Date.now() - dbStart, 'ms');
 
 		if (!result.rows || result.rows.length === 0) {
 			return new Response(
@@ -59,10 +51,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Check password
-		const passwordStart = Date.now();
 		const storedHashedPassword = result.rows[0].password_hash;
 		const isPasswordCorrect = await comparePassword(password, storedHashedPassword);
-		console.log('Password verification:', Date.now() - passwordStart, 'ms');
 
 		if (!isPasswordCorrect) {
 			return new Response(
@@ -90,7 +80,6 @@ export const POST: RequestHandler = async ({ request }) => {
 					)
 				: { rows: [] as Record<string, unknown>[] };
 		// Generate token immediately without waiting for session storage
-		const tokenStart = Date.now();
 		const user_id = result.rows[0].id;
 		const userName = result.rows[0].name;
 		const city = result.rows[0].city;
@@ -100,8 +89,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		const clientSecret = appResult.rows[0]?.client_secret ?? null;
 		const isFirstTimeUser = result.rows[0].is_first_time;
 		const onboardingComplete = result.rows[0].onboarding_complete;
-		console.log('Token generation:', Date.now() - tokenStart, 'ms');
-		console.log('onboardingComplete:', onboardingComplete);
 		// Prepare response
 		const responseBody = {
 			success: true,
@@ -127,8 +114,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		// errors and never throws.
 		await createSession(sessionId, user_id, normalizedCityName);
 
-		console.log('Total processing time:', Date.now() - startTime, 'ms');
-
 		// Return success response immediately
 		return new Response(JSON.stringify(responseBody), {
 			status: 200,
@@ -151,7 +136,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
 // Background function to create session without blocking the response
 async function createSession(sessionId: string, userId: string, city: string) {
-	const insertStart = Date.now();
 	try {
 		// One statement, not DELETE then INSERT: see the note in /login/users. Two logins by the
 		// same user at once raced on the UNIQUE user_id, and the loser answered 500.
@@ -189,7 +173,6 @@ async function createSession(sessionId: string, userId: string, city: string) {
 				null // spotify_username
 			]
 		);
-		console.log(`Session creation took: ${Date.now() - insertStart}ms`);
 	} catch (error) {
 		console.error('Session creation error:', error);
 	}

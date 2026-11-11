@@ -47,10 +47,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		url.pathname.endsWith('.css') ||
 		url.pathname.endsWith('.ico');
 
-	if (!isStaticAsset) {
-		console.log(`Received request for: ${url.pathname}`);
-	}
-
 	// Add rate limiting for security. Health checks are exempt: they come from the box itself
 	// (no trusted address header) and must never be turned away.
 	const isHealthCheck =

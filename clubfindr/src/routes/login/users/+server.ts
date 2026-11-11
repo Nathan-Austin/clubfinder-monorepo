@@ -12,19 +12,7 @@ import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
-	console.log('========================');
-	console.log('LOGIN REQUEST RECEIVED');
-	console.log('========================');
-
-	const startTime = Date.now();
-
 	const data = await request.json();
-	console.log('Request body:', {
-		email: data.email ? 'PRESENT' : 'MISSING',
-		password: data.password ? 'PRESENT' : 'MISSING',
-		provider: data.provider,
-		isMobileApp: data.isMobileApp || false
-	});
 	const {
 		email,
 		password,
@@ -47,7 +35,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	let newAccount = false;
 
 	try {
-		const dbCheckStart = Date.now();
 		if (provider === 'local') {
 			if (isNewUser) {
 				// New user registration. A Spotify e-mail is optional: taste can come from the
@@ -283,7 +270,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				userName = user.name;
 				normalizedCityName = normalizeCityName(user.city);
 			}
-			console.log(`Provider authentication took: ${Date.now() - dbCheckStart}ms`);
 		} else {
 			return new Response(JSON.stringify({ success: false, message: 'Invalid provider' }), {
 				status: 400
@@ -386,8 +372,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				secure: true,
 				maxAge: 24 * 60 * 60
 			});
-			console.log(`Total login processing time: ${Date.now() - startTime}ms`);
-			console.log('========================');
 			// Return success response
 			return new Response(JSON.stringify({ success: true, newAccount }), { status: 200 });
 		}
