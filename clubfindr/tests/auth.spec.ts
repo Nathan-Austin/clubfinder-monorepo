@@ -1,4 +1,12 @@
-import { test, expect, login, acceptCookies, USERS, SPOTIFY_CONNECT_ENABLED } from './fixtures';
+import {
+	test,
+	expect,
+	login,
+	acceptCookies,
+	USERS,
+	SPOTIFY_CONNECT_ENABLED,
+	testPassword
+} from './fixtures';
 
 test.describe('login', () => {
 	test('regular user lands on /users-home', async ({ page, pageErrors }) => {
@@ -67,6 +75,34 @@ test.describe('login', () => {
 		await page.goto('/logout');
 		await page.goto('/update-info');
 		await expect(page.locator('body')).not.toContainText('Update Profile');
+	});
+
+	// The browser forgetting its cookie is not the same as the server ending the session:
+	// hooks.server.ts caches a session for up to five minutes, so logout has to evict it too or a
+	// copied session id keeps working (KNOWN_ISSUES 41). A throwaway account, so this cannot end
+	// a seeded user's session under a parallel test.
+	test('logout ends the session on the server, not just in this browser', async ({ page }) => {
+		const email = `logout-${Date.now()}-${Math.floor(Math.random() * 1e6)}@clubfindr.test`;
+		const signup = await page.request.post('/login/users', {
+			data: {
+				provider: 'local',
+				isNewUser: true,
+				email,
+				password: testPassword(),
+				fullName: 'Logout Check'
+			}
+		});
+		expect(signup.status()).toBe(200);
+		await page.goto('/update-info'); // puts the session in the cache
+		await expect(page.locator('body')).toContainText('Update Profile');
+		const sessionId = (await page.context().cookies()).find((c) => c.name === 'sessionId')!.value;
+
+		await page.goto('/logout');
+
+		const replay = await page.request.get('/update-info', {
+			headers: { cookie: `sessionId=${sessionId}` }
+		});
+		expect(await replay.text()).not.toContain('Update Profile');
 	});
 
 	// user_sessions.user_id is UNIQUE, and the session row used to be replaced with a DELETE
