@@ -199,17 +199,23 @@ top artists or play counts on the web).
       mobile API (KNOWN_ISSUES 17): `$lib/db` parses OID 1082 as text, the display sites read it
       with `fromLocalIsoDate`, and the three mobile "today" endpoints prefer a caller-supplied
       date over the server's local day. The app itself still sends no date (2026-11-09)
-- [ ] Route `/api/request-access` through `$lib/email` and enable SMTP certificate
-      verification (KNOWN_ISSUES 15, 16)
+- [x] Route `/api/request-access` through `$lib/email` (KNOWN_ISSUES 16), done 2026-11-12. SMTP
+      certificate verification (KNOWN_ISSUES 15) is switchable with `SMTP_TLS_VERIFY=true` but
+      still off by default
+- [ ] Turn on `SMTP_TLS_VERIFY` in production once mail is confirmed to work with it, then make it
+      the default (KNOWN_ISSUES 15)
+- [ ] Require authentication on `POST /api/mobile/spotify/register` and stop it returning the
+      Spotify client secret (KNOWN_ISSUES 42): today any user id gets a session token
 - [x] `/api/delete-user-data` should also clear preferences and interested events
       (KNOWN_ISSUES 24), done 2026-11-11 — and much more it had left behind, including every
       session and the Google and Facebook ids social sign-in would have used to reopen the
       account. One transaction, with the session cache evicted
-- [ ] Replace the eight `query('BEGIN')` … `query('COMMIT')` sequences with `withTransaction`
-      (KNOWN_ISSUES 39): on a pooled connection they are not transactions at all
+- [x] Replace the eight `query('BEGIN')` … `query('COMMIT')` sequences with `withTransaction`
+      (KNOWN_ISSUES 39), done 2026-11-12, with a source guard so the pattern cannot come back.
+      Logout now evicts the session cache too (KNOWN_ISSUES 41)
 - [ ] Store the refreshed Spotify token expiry (KNOWN_ISSUES 2), or drop the flow with section 1
 - [ ] Input validation on all API endpoints and an audit of raw SQL
-- [ ] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12)
+- [x] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12), done 2026-11-12
 
 ## 5. Mobile app (`app_clubfindr`)
 

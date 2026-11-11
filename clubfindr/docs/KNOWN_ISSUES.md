@@ -56,20 +56,26 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
     bump (swap to `jose` or patch the dependency).
 11. **`src/routes/api/spotify/artists/+page.svelte`** is a stub page living next to an API
     endpoint; `src/stores/genres.svelte.ts` is only read by it and never written.
-12. **`hooks.server.ts` logs every non-asset request** and the login endpoint logs request
-    shapes; noisy in `pm2 logs`.
+12. _Fixed 2026-11-12._ **`hooks.server.ts` logs every non-asset request** and the login endpoint
+    logs request shapes; noisy in `pm2 logs`. The per-request line, both login endpoints' banners,
+    request-shape dumps and timings are gone; every warning and error stays.
 13. **SvelteKit 3** is still prerelease (`3.0.0-next.*`); revisit when it ships.
 14. **`svelte/no-navigation-without-resolve` and `svelte/prefer-svelte-reactivity`** are
     off in `eslint.config.js` (moot with an empty base path / false positives on local
     temporaries). Re-evaluate if either assumption changes.
-15. **SMTP transport skips certificate verification** (`src/lib/email.ts`,
-    `tls.rejectUnauthorized: false`): a man-in-the-middle on the SMTP connection would go
-    unnoticed. Left as is for now because the mail host may present a certificate that does
-    not match; flip it to `true` and test against the real host before removing.
-16. **`/api/request-access` builds its own Gmail transport** (`smtp.gmail.com` with
-    `GMAIL_USER`/`GMAIL_PASS`) instead of going through `$lib/email`, with the same
+15. _Switchable 2026-11-12, still off._ **SMTP transport skips certificate verification**
+    (`src/lib/email.ts`, `tls.rejectUnauthorized: false`): a man-in-the-middle on the SMTP
+    connection would go unnoticed. Left off because the mail host may present a certificate that
+    does not match. `SMTP_TLS_VERIFY=true` now turns verification on without a code change (only an
+    explicit `true` counts); set it in production once mail is confirmed to work with it, then
+    make it the default.
+16. _Fixed 2026-11-12._ **`/api/request-access` builds its own Gmail transport** (`smtp.gmail.com`
+    with `GMAIL_USER`/`GMAIL_PASS`) instead of going through `$lib/email`, with the same
     `rejectUnauthorized: false`. It is the one endpoint that bypasses the configurable mail
     transport, so it still sends real mail in any environment that has the Gmail credentials.
+    Confirmed worse than recorded: from the e2e suite it opened a live SMTP connection to
+    smtp.gmail.com (refused, with the placeholder credentials `dev/setup.sh` copies). It calls
+    `sendEmail` now, and `GMAIL_USER`/`GMAIL_PASS` have left `.env.example`.
 17. _Fixed._ **Postgres `DATE` columns passed through the server's timezone.** `src/lib/db.ts`
     set no type parser, so node-pg turned `event_date` into a JS `Date` at server-local
     midnight and JSON serialised it as the previous day's `T22:00Z`/`T23:00Z` (the server is in
@@ -457,7 +463,7 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     4x4 Garage, Bassline House and UK Funky sit in "Footwork/Juke" — so a speed-garage fan and a
     UK-garage fan still score 0 against each other.
 
-39. **`query('BEGIN')` … `query('COMMIT')` is not a transaction.** `$lib/db`'s `query()` takes a
+39. _Fixed 2026-11-12._ **`query('BEGIN')` … `query('COMMIT')` is not a transaction.** `$lib/db`'s `query()` takes a
     connection from the pool, runs one statement and releases it, so `BEGIN` goes back to the
     pool still open and the statements after it run on whichever connection is free. Eight
     places do this: `api/send-delete-confirmation-code`, `api/mobile/spotify/register`,
@@ -467,12 +473,30 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     to share one; under concurrency another request can take that connection mid-sequence, and
     any error between `BEGIN` and `COMMIT` leaves a connection "idle in transaction" for an
     unrelated request to inherit, its writes then never committed. Demonstrated against the dev
-    database on 2026-11-11. `withTransaction` in `$lib/db` is the replacement, so far used only by
-    `api/delete-user-data`.
+    database on 2026-11-11. All eight are off it: multi-statement writes use `withTransaction`,
+    single statements dropped the wrapper, and `spotify/login` no longer holds a transaction across
+    its two Spotify HTTP calls. Two more leaks turned up on the way: an early "User not found"
+    return between `BEGIN` and `COMMIT`, and catch blocks that sent `ROLLBACK` down a random pooled
+    connection on every exit, successful Spotify logins included. Guarded in source by
+    `src/lib/server/no-pooled-transactions.test.ts`; `tests/transactions.spec.ts` shows the stranded
+    transaction from Postgres's side when run alone (in the full suite other traffic can absorb the
+    leak, which is also how it hid in production).
 40. **`App.Locals.user.id` is typed `number`**, but `users.id` is a uuid, so every `locals.user.id`
     is a string at runtime. Hidden while the session cache was an untyped `Map`; the cache is
     typed by `App.Locals` now (`$lib/server/sessionCache`), which keeps the existing contract.
     Correcting `app.d.ts` means checking each reader of `locals.user`.
-41. **Logout does not evict the session cache.** `/logout` deletes the session row and the
-    cookies, but not the `hooks.server.ts` cache entry, so a copy of the session id keeps working
-    for up to five minutes. `evictSessions` (`$lib/server/sessionCache`) is the one-line fix.
+41. _Fixed 2026-11-12._ **Logout does not evict the session cache.** `/logout` deleted the session
+    row and the cookies, but not the `hooks.server.ts` cache entry, so a copy of the session id kept
+    working for up to five minutes. It calls `evictSessions` now (`tests/auth.spec.ts`).
+42. **`POST /api/mobile/spotify/register` has no authentication.** Given any user id, it creates a
+    session for that user and returns its token, and returns the user's Spotify app client id and
+    secret, so anyone who learns a user's id can log in as them. The app calls it
+    (`mobileSpotifyService`) during Spotify connect. Fix like KNOWN_ISSUES 26: require the caller's
+    own session or Bearer token and refuse a mismatched `userId`, and stop returning the client
+    secret. Found 2026-11-12 while moving it onto `withTransaction`; not changed then, since doing
+    it blind could break the app's Spotify flow.
+43. **`/promoter-home/events/[eventId]` cannot work and has no caller.** `PATCH` and `DELETE` use
+    unqualified `events` (the search path is `"$user", public`; the table is `clubfindr.events`) and
+    an `event_genres` table that does not exist (genres are an array column on `events`). Nothing in
+    the web app or the mobile app calls it. Its transaction was converted with the rest
+    (KNOWN_ISSUES 39) without changing its behaviour; deleting the route is likely the right fix.
