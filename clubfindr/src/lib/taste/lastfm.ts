@@ -68,6 +68,7 @@ export type LastfmErrorCode =
 	| 'not-configured'
 	| 'invalid-username'
 	| 'unknown-user'
+	| 'unknown-artist'
 	| 'rate-limited'
 	| 'invalid-key'
 	| 'unavailable';
@@ -118,6 +119,12 @@ function toLastfmError(payload: unknown, httpStatus: number, username?: string):
 			`Last.fm does not know a user called "${username}". Check the spelling of the username.`,
 			404
 		);
+	}
+	// Error 6 without a username is artist.gettoptags saying it has no such artist, which the
+	// live API reports with HTTP 200 (KNOWN_ISSUES 21). It means "no tags", not an outage, and
+	// fetchTopTags turns it into an empty tag list rather than a failure.
+	if (code === 6) {
+		return new LastfmError('unknown-artist', 'Last.fm has no tags for this artist.', 404);
 	}
 	if (code === 29 || httpStatus === 429) {
 		return new LastfmError(
@@ -175,12 +182,23 @@ async function callLastfm(
 	return payload;
 }
 
+/**
+ * The grey star Last.fm serves instead of an artist image, the same one for every artist since
+ * it stopped serving them in 2019 (KNOWN_ISSUES 21). Matched by hash, since the URL differs by
+ * size, so imported artists get no image rather than all getting the same placeholder.
+ */
+export const LASTFM_PLACEHOLDER_IMAGE_HASH = '2a96cbd8b46e442fc41c2b86b821562f';
+
+function isPlaceholderImage(url: string): boolean {
+	return url.includes(LASTFM_PLACEHOLDER_IMAGE_HASH);
+}
+
 function pickImage(images: unknown): string | null {
 	if (!Array.isArray(images)) return null;
 	const list = images as LastfmImage[];
+	const usable = (image: LastfmImage) => !!image['#text'] && !isPlaceholderImage(image['#text']);
 	const preferred =
-		list.find((image) => image.size === 'large' && image['#text']) ??
-		list.find((image) => !!image['#text']);
+		list.find((image) => image.size === 'large' && usable(image)) ?? list.find(usable);
 	return preferred?.['#text'] || null;
 }
 
@@ -233,11 +251,19 @@ export async function fetchTopTags(
 	artistName: string,
 	options: LastfmOptions
 ): Promise<LastfmTag[]> {
-	const payload = await callLastfm(
-		'artist.gettoptags',
-		{ artist: artistName, autocorrect: '1' },
-		options
-	);
+	let payload: unknown;
+	try {
+		payload = await callLastfm(
+			'artist.gettoptags',
+			{ artist: artistName, autocorrect: '1' },
+			options
+		);
+	} catch (error) {
+		// "No such artist" is an answer, not a failure: the caller gets no tags and carries on,
+		// instead of the artist being dropped from an import as if Last.fm were down.
+		if (error instanceof LastfmError && error.code === 'unknown-artist') return [];
+		throw error;
+	}
 	return parseTopTags(payload);
 }
 

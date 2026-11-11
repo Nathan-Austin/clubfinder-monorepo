@@ -6,6 +6,7 @@ import {
 	isValidLastfmUsername,
 	LastfmError,
 	MIN_TAG_COUNT,
+	LASTFM_PLACEHOLDER_IMAGE_HASH,
 	parseTopArtists,
 	parseTopTags,
 	tagsToGenres,
@@ -111,6 +112,47 @@ describe('parsing', () => {
 		expect(artists[2]).toMatchObject({ imageUrl: null, url: null, playcount: 10 });
 	});
 
+	// Last.fm stopped serving artist images in 2019 and sends the same grey star for everyone
+	// (KNOWN_ISSUES 21), so taking it would give every imported artist the same picture.
+	it('treats the placeholder star as no image, whatever its size', () => {
+		const star = (size: string) =>
+			`https://lastfm.freetls.fastly.net/i/u/${size}/${LASTFM_PLACEHOLDER_IMAGE_HASH}.png`;
+		const [artist] = parseTopArtists({
+			topartists: {
+				artist: [
+					{
+						name: 'Placeholdered',
+						image: [
+							{ '#text': star('34s'), size: 'small' },
+							{ '#text': star('174s'), size: 'large' }
+						]
+					}
+				]
+			}
+		});
+		expect(artist.imageUrl).toBeNull();
+	});
+
+	it('still takes a real image when one is offered alongside the placeholder', () => {
+		const [artist] = parseTopArtists({
+			topartists: {
+				artist: [
+					{
+						name: 'Pictured',
+						image: [
+							{
+								'#text': `https://img.example/${LASTFM_PLACEHOLDER_IMAGE_HASH}.png`,
+								size: 'large'
+							},
+							{ '#text': 'https://img.example/real.png', size: 'extralarge' }
+						]
+					}
+				]
+			}
+		});
+		expect(artist.imageUrl).toBe('https://img.example/real.png');
+	});
+
 	it('copes with a single artist or tag not wrapped in an array, and with nothing', () => {
 		expect(parseTopArtists({ topartists: { artist: { name: 'Solo' } } })).toHaveLength(1);
 		expect(parseTopTags({ toptags: { tag: { name: 'techno', count: '100' } } })).toEqual([
@@ -171,6 +213,30 @@ describe('fetchTopArtists / fetchTopTags', () => {
 
 		const tags = await fetchTopTags('Juno Paperplane', { ...options, fetch });
 		expect(tags).toEqual([{ name: 'deep house', count: 100 }]);
+	});
+
+	// The live API reports an unknown artist as HTTP 200 with error 6 (KNOWN_ISSUES 21). Read as
+	// an outage, that dropped the artist from an import instead of importing it without genres.
+	it('reads error 6 from artist.gettoptags as "no tags", at either HTTP status', async () => {
+		for (const status of [200, 404]) {
+			const unknownArtist = mockLastfm({
+				'artist.gettoptags': () =>
+					jsonResponse(
+						{ error: 6, message: 'The artist you supplied could not be found', links: [] },
+						status
+					)
+			});
+			expect(await fetchTopTags('Nobody At All', { ...options, fetch: unknownArtist })).toEqual([]);
+		}
+	});
+
+	it('still reports a real artist.gettoptags failure', async () => {
+		const broken = mockLastfm({
+			'artist.gettoptags': () => jsonResponse({ error: 8, message: 'Operation failed' }, 500)
+		});
+		await expect(fetchTopTags('Anyone', { ...options, fetch: broken })).rejects.toMatchObject({
+			code: 'unavailable'
+		});
 	});
 
 	it('honours an overridden host', async () => {
