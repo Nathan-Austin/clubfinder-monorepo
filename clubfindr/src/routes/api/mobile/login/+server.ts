@@ -151,25 +151,33 @@ export const POST: RequestHandler = async ({ request }) => {
 
 // Background function to create session without blocking the response
 async function createSession(sessionId: string, userId: string, city: string) {
-	const startTime = Date.now();
+	const insertStart = Date.now();
 	try {
-		// Delete any existing sessions first
-		await query('DELETE FROM clubfindr.user_sessions WHERE user_id = $1', [userId]);
-		console.log(`Session deletion took: ${Date.now() - startTime}ms`);
-
-		// Create the new session
-		const insertStart = Date.now();
+		// One statement, not DELETE then INSERT: see the note in /login/users. Two logins by the
+		// same user at once raced on the UNIQUE user_id, and the loser answered 500.
 		await query(
 			`
             INSERT INTO clubfindr.user_sessions (
-                session_id, 
-                user_id, 
-                user_city, 
+                session_id,
+                user_id,
+                user_city,
                 last_accessed,
                 spotify_user_id,
                 spotify_email,
                 spotify_username
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (user_id) DO UPDATE SET
+                session_id = EXCLUDED.session_id,
+                user_city = EXCLUDED.user_city,
+                last_accessed = EXCLUDED.last_accessed,
+                spotify_user_id = EXCLUDED.spotify_user_id,
+                spotify_email = EXCLUDED.spotify_email,
+                spotify_username = EXCLUDED.spotify_username,
+                genres = NULL,
+                access_token = NULL,
+                refresh_token = NULL,
+                spotify_app_id = NULL,
+                created_at = CURRENT_TIMESTAMP
             `,
 			[
 				sessionId,
@@ -182,7 +190,6 @@ async function createSession(sessionId: string, userId: string, city: string) {
 			]
 		);
 		console.log(`Session creation took: ${Date.now() - insertStart}ms`);
-		console.log(`Total background session handling: ${Date.now() - startTime}ms`);
 	} catch (error) {
 		console.error('Session creation error:', error);
 	}

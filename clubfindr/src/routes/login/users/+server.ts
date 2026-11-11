@@ -289,23 +289,37 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				status: 400
 			});
 		}
-		const sessionStart = Date.now();
-		// Delete any existing sessions for this user
-		await query('DELETE FROM clubfindr.user_sessions WHERE user_id = $1', [user_id]);
-		console.log(`Session deletion took: ${Date.now() - sessionStart}ms`);
-		// Create a new session
+		// One session row per user (user_sessions.user_id is UNIQUE), replaced in a single
+		// statement rather than DELETE then INSERT: two logins by the same user at the same
+		// moment (two devices, or a double submit) used to race, and whichever INSERT came
+		// second failed on the constraint, answering 500 to a perfectly good login.
+		// The columns a new session must not inherit from the old one are reset explicitly,
+		// which is what the DELETE used to take care of: a stale Spotify token or the previous
+		// session's genres must not survive a fresh login.
 		const sessionId = uuidv4();
 		await query(
 			`
             INSERT INTO clubfindr.user_sessions (
-                session_id, 
-                user_id, 
-                user_city, 
+                session_id,
+                user_id,
+                user_city,
                 last_accessed,
                 spotify_user_id,
                 spotify_email,
                 spotify_username
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (user_id) DO UPDATE SET
+                session_id = EXCLUDED.session_id,
+                user_city = EXCLUDED.user_city,
+                last_accessed = EXCLUDED.last_accessed,
+                spotify_user_id = EXCLUDED.spotify_user_id,
+                spotify_email = EXCLUDED.spotify_email,
+                spotify_username = EXCLUDED.spotify_username,
+                genres = NULL,
+                access_token = NULL,
+                refresh_token = NULL,
+                spotify_app_id = NULL,
+                created_at = CURRENT_TIMESTAMP
         `,
 			[
 				sessionId,
