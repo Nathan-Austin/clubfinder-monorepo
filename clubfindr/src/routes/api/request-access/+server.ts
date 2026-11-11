@@ -1,54 +1,34 @@
-//routes/api/request-access
+// routes/api/request-access
+//
+// Sends an access request to the admin through $lib/email, like every other message
+// (KNOWN_ISSUES 16). It used to build its own Gmail transport from GMAIL_USER/GMAIL_PASS, the one
+// place that ignored MAIL_TRANSPORT: it sent real mail from any environment holding those keys,
+// and from the e2e suite it opened a live SMTP connection to smtp.gmail.com. Now it is captured in
+// tests and sent through the configured SMTP server everywhere else.
 
 import type { RequestHandler } from '@sveltejs/kit';
-import nodemailer from 'nodemailer';
-import { GMAIL_USER, GMAIL_PASS } from '$env/static/private';
+import { sendEmail } from '$lib/email';
 
 export const POST: RequestHandler = async ({ request }) => {
-	console.log('Request received at /api/request-access');
-
 	try {
 		const { name, email, reason } = await request.json();
 
 		if (!name || !email || !reason) {
-			console.warn('Missing required fields:', { name, email, reason });
 			return new Response('Missing required fields', { status: 400 });
 		}
 
-		const emailContent = `
-		New Access Request:
-		Name: ${name}
-		Email: ${email}
-		Reason: ${reason}
-		`;
-
-		const transporter = nodemailer.createTransport({
-			host: 'smtp.gmail.com',
-			port: 587, // or 587 for STARTTLS
-			secure: false,
-			auth: {
-				user: GMAIL_USER,
-				pass: GMAIL_PASS
-			},
-			connectionTimeout: 10000,
-			tls: {
-				rejectUnauthorized: false // This allows for self-signed certificates or less strict verification
-			}
-		});
-
-		const mailOptions = {
-			// Gmail sends as the account it authenticates with
-			from: `"ClubFindr Dev Mode" <${GMAIL_USER}>`,
-			to: 'admin@clubfindr.com',
-			subject: 'New Access Request for Dev Mode Feature',
-			text: emailContent
-		};
-
-		await transporter.sendMail(mailOptions);
+		await sendEmail(
+			'admin@clubfindr.com',
+			'New Access Request for Dev Mode Feature',
+			`New Access Request:
+Name: ${name}
+Email: ${email}
+Reason: ${reason}`
+		);
 
 		return new Response('Application submitted', { status: 200 });
 	} catch (error) {
-		console.error('Error sending email:', error);
+		console.error('Error sending access request:', error);
 		return new Response('Error submitting application', { status: 500 });
 	}
 };
