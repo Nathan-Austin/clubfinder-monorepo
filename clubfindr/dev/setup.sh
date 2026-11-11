@@ -99,6 +99,14 @@ stop_server() {
 	fi
 }
 
+# Every checkout shares this database: do not reseed or stop it under another checkout's e2e
+# run (dev/e2e-lock.sh, "One e2e run at a time" in dev/TESTING.md).
+if git -C "$APP_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+	if ! (cd "$APP_DIR" && "$DEV_DIR/e2e-lock.sh" check); then
+		die "refusing to run while another checkout holds the e2e lease (dev/e2e-lock.sh status)"
+	fi
+fi
+
 if [ $STOP = 1 ]; then
 	stop_server
 	exit 0
