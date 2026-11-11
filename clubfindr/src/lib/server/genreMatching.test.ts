@@ -8,7 +8,9 @@ import {
 	expandWeightedProfile,
 	findClusters,
 	findWeightedClusters,
-	scaleProfileToUnit
+	scaleProfileToUnit,
+	isSimilarityMatch,
+	MIN_SIMILARITY
 } from './genreMatching';
 
 vi.mock('node:fs', () => {
@@ -436,5 +438,73 @@ describe('matching through the alias layer', () => {
 			findClusters(['reggaeton', 'dembow'])
 		);
 		expect(similarity).toBeGreaterThan(0);
+	});
+});
+
+describe('the similarity cut-off', () => {
+	// A wide profile scores low against everything, because the score's denominator is the union
+	// of both sides, so an absolute floor measured breadth rather than disagreement.
+	const WIDE = [
+		'techno',
+		'minimal techno',
+		'dub techno',
+		'acid techno',
+		'hard techno',
+		'deep house',
+		'tech house',
+		'minimal',
+		'afro house',
+		'amapiano',
+		'dubstep',
+		'jungle',
+		'footwork',
+		'uk garage',
+		'grime',
+		'r&b',
+		'post-punk',
+		'indie rock',
+		'shoegaze',
+		'reggaeton',
+		'salsa',
+		'dancehall',
+		'ambient',
+		'downtempo',
+		'nu jazz',
+		'italo disco',
+		'nu disco',
+		'disco',
+		'soul',
+		'funk',
+		'jazz',
+		'hip hop'
+	];
+
+	it('keeps a broad listener’s real match that the old 0.05 floor cut', () => {
+		const { similarity, matchingGenres } = calculateClusterSimilarity(
+			findClusters(WIDE),
+			findClusters(['afro house', 'amapiano'])
+		);
+		// The night matches on exactly the genres this listener named, yet scores under the old
+		// floor purely because their profile is wide.
+		expect(matchingGenres).toEqual(expect.arrayContaining(['afro house', 'amapiano']));
+		expect(similarity).toBeGreaterThan(0);
+		expect(similarity).toBeLessThan(0.05);
+		expect(isSimilarityMatch(similarity)).toBe(true);
+	});
+
+	it('still rejects a night with nothing in common', () => {
+		const { similarity } = calculateClusterSimilarity(
+			findClusters(['gregorian chant']),
+			findClusters(['hard techno'])
+		);
+		expect(similarity).toBe(0);
+		expect(isSimilarityMatch(similarity)).toBe(false);
+	});
+
+	it('is the only rule: zero out, anything above it in', () => {
+		expect(MIN_SIMILARITY).toBe(0);
+		expect(isSimilarityMatch(0)).toBe(false);
+		expect(isSimilarityMatch(0.0001)).toBe(true);
+		expect(isSimilarityMatch(1)).toBe(true);
 	});
 });

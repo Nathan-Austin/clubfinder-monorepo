@@ -9,6 +9,7 @@ import {
 	expandWeightedProfile,
 	findClusters,
 	findWeightedClusters,
+	isSimilarityMatch,
 	normalizeGenre
 } from '$lib/server/genreMatching';
 
@@ -258,7 +259,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// Filter out events with similarity score below threshold
 		const filteredEvents = matchingEvents
-			.filter((event) => event.similarity > 0.1)
+			// See MIN_SIMILARITY: this was 0.1, which could discard a broad listener's best match
+			// outright (a fifty-genre profile scores 0.095 against a two-genre line-up).
+			.filter((event) => isSimilarityMatch(event.similarity))
 			.sort((a, b) => b.similarity - a.similarity);
 
 		console.log(`Returning ${filteredEvents.length} matching events`);

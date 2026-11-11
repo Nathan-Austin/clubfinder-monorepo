@@ -13,6 +13,7 @@ import {
 	findClusters,
 	findWeightedClusters,
 	genreToClusterIndex,
+	isSimilarityMatch,
 	normalizeGenre
 } from '$lib/server/genreMatching';
 type Genre = string;
@@ -286,10 +287,7 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 		//////////////////////CLUSTERING LOGIC/////////////////////////
 
-		const MIN_SIMILARITY = 0.05;
-		const TARGET_RESULTS = 50;
 		const MAX_RESULTS = 100;
-		const DEFAULT_SIMILARITY_THRESHOLD = 0.1;
 		const DIVERSITY_WEIGHT = 0.3;
 
 		const userClusters = profileGenreWeights
@@ -313,17 +311,13 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		});
 
 		const sortedByScore = [...clubSimilarities].sort((a, b) => b.similarity - a.similarity);
-		let threshold = DEFAULT_SIMILARITY_THRESHOLD;
 
-		if (sortedByScore.filter((club) => club.similarity > threshold).length < TARGET_RESULTS) {
-			threshold = Math.max(
-				MIN_SIMILARITY,
-				sortedByScore[TARGET_RESULTS - 1]?.similarity ?? MIN_SIMILARITY
-			);
-		}
-
+		// Everything that shares a cluster, best first, capped (see MIN_SIMILARITY). This used to
+		// start at 0.1 and, when fewer than 50 clubs cleared it, drop to the 50th club's score but
+		// never below 0.05 — which cut a broad listener's real matches, since a wide profile's
+		// scores are low across the board. Ranking and the MMR pass below order what is shown.
 		const filteredSimilarities = sortedByScore
-			.filter((club) => club.similarity >= threshold)
+			.filter((club) => isSimilarityMatch(club.similarity))
 			.slice(0, MAX_RESULTS);
 		const diverseSimilarities = applyMmrDiversity(
 			filteredSimilarities,

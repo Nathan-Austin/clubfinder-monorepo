@@ -11,6 +11,7 @@ import {
 	expandWeightedProfile,
 	findClusters,
 	findWeightedClusters,
+	isSimilarityMatch,
 	normalizeGenre,
 	scaleProfileToUnit,
 	shouldIgnoreGenre
@@ -479,9 +480,11 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 			};
 		});
 
-		// Filter out bars with low similarity
+		// Every bar that shares a cluster, best first (see MIN_SIMILARITY). The old 0.05 floor cut
+		// a broad listener's real matches: a wide profile scores low against everything, so the
+		// figure measured breadth rather than disagreement.
 		const filteredBars = processedBars
-			.filter((bar) => bar.similarity > 0.05)
+			.filter((bar) => isSimilarityMatch(bar.similarity))
 			.sort((a, b) => b.similarity - a.similarity);
 
 		console.log(`Found ${filteredBars.length} bars matching user genres`);

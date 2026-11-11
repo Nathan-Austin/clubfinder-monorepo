@@ -532,6 +532,33 @@ function matchFamilies(
 }
 
 /**
+ * The lowest similarity still worth showing: anything above zero.
+ *
+ * The score is a weighted Jaccard overlap, so its denominator is the union of both sides. That
+ * makes it a measure of how alike two profiles are in *breadth* as much as in taste: measured
+ * on 2026-11-11, one listener's best match of the seeded nights fell from 1.000 at three
+ * genres to 0.455 at ten, 0.182 at thirty-two and 0.133 at fifty, and a fifty-genre listener
+ * scores 0.095 against a two-genre line-up. None of that is disagreement — the nights matched
+ * on exactly the genres the listener named.
+ *
+ * So an absolute floor measures the wrong thing. The old 0.05 cut a wide listener's genuine
+ * afro-house match (0.045, matching on `afro house` and `amapiano`) while keeping weaker ones
+ * above it, and the mobile event matcher's 0.1 could discard such a listener's *best* match.
+ * A relative band was measured too and rejected: scores fall away steeply, so "within 20% of
+ * your own top match" returned exactly one result for every profile tried, and "at least 20%
+ * of it" kept everything non-zero.
+ *
+ * Only an exact zero means the two share no cluster at all, which is the one case that is
+ * truly not a match. Ranking, the result cap and the MMR diversity pass do the rest.
+ */
+export const MIN_SIMILARITY = 0;
+
+/** Whether a similarity score is worth showing at all (see MIN_SIMILARITY). */
+export function isSimilarityMatch(similarity: number): boolean {
+	return similarity > MIN_SIMILARITY;
+}
+
+/**
  * Weighted Jaccard overlap of two cluster sets, and the caller's genres that matched.
  *
  * Each side's entries are aggregated per cluster (summed, capped at 1), Uncategorized is
