@@ -117,6 +117,9 @@ const EVENT_GENRE_WEIGHT = 1;
 const VENUE_ARTIST_GENRE_WEIGHT_WITH_EVENT = 0.25;
 const VENUE_ARTIST_GENRE_WEIGHT_WITHOUT_EVENT = 1;
 
+/** At most this many bars are shown, best first; the same cap as /clubs. */
+const MAX_RESULTS = 100;
+
 export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	depends('app:date');
 	const cityCookie = cookies.get('city');
@@ -265,7 +268,10 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	console.log('Expanded genres list:', expandedGenresList);
 
 	try {
-		// First, get all bars in the city (case-insensitive match)
+		// Every bar in the city (case-insensitive match). Not capped here: this used to stop at the
+		// first 50 by name *before* scoring, so in a city with more than 50 venues one whose name
+		// sorted late could never be shown, however well it matched. The cap is applied to the
+		// ranked results below instead.
 		const barsQuery = `
       SELECT
         id AS bar_id,
@@ -280,8 +286,7 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
       WHERE
         LOWER(city) = LOWER($1)
       ORDER BY
-        name
-      LIMIT 50;
+        name;
     `;
 
 		const barsResult = await pool.query(barsQuery, [city]);
@@ -485,7 +490,8 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		// figure measured breadth rather than disagreement.
 		const filteredBars = processedBars
 			.filter((bar) => isSimilarityMatch(bar.similarity))
-			.sort((a, b) => b.similarity - a.similarity);
+			.sort((a, b) => b.similarity - a.similarity)
+			.slice(0, MAX_RESULTS);
 
 		console.log(`Found ${filteredBars.length} bars matching user genres`);
 
