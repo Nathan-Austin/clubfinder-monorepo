@@ -8,7 +8,7 @@ import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 import { error, redirect, isHttpError, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { v4 as uuidv4 } from 'uuid';
-import { query } from '$lib/db';
+import { query, withTransaction } from '$lib/db';
 import { getStateAsync } from '$lib/tempStore';
 import { cookieManager } from '$lib/cookieManager';
 import { encryptToken } from '$lib/encryptionUtils';
@@ -84,11 +84,16 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	try {
 		// Determine client ID and secret based on the source (user or bar)
 		let clientId, clientSecret;
-		let userId = null;
+		// users.id is a uuid; typed so it survives being set inside withTransaction below
+		let userId: string | null = null;
 		let barId = null;
 
-		// Begin transaction
-		await query('BEGIN');
+		// No transaction here (KNOWN_ISSUES 39). This used to BEGIN on one pooled connection and
+		// run everything after it on others, held across both Spotify HTTP calls; every early
+		// redirect or error below left that BEGIN open for the next request to inherit, and the
+		// catch sent a ROLLBACK down a random connection on every exit, successes included. The
+		// reads need no transaction, the bar flow writes one row, and the user flow's writes are
+		// wrapped in withTransaction where they happen.
 
 		// Handle bar authentication flow
 		if (isFromBarLogin && stateData.barId) {
@@ -351,114 +356,117 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				console.warn('No refresh token returned for bar');
 			}
 
-			/** Commit Transaction **/
-			await query('COMMIT');
-			console.log('Bar transaction committed successfully');
-
 			// Redirect to bars page
 			throw redirect(302, `/bars`);
 		}
 		// Regular user flow from here on
 		else if (isFromUserHome && userId) {
 			console.log('Updating existing user with Spotify info');
-			// Update the user's Spotify information
-			await query(
-				`UPDATE clubfindr.users 
-				SET 
-					spotify_user_id = $1,
-					spotify_email = $2,
-					access_token = $3,
-					refresh_token = $4
-				WHERE id = $5`,
-				[userProfile.id, userProfile.email || null, access_token, refresh_token || null, userId]
-			);
-
-			// Update user session
-			await query(
-				`UPDATE clubfindr.user_sessions
-				SET 
-					access_token = $1,
-					refresh_token = $2,
-					last_accessed = NOW()
-				WHERE session_id = $3`,
-				[access_token, refresh_token || null, sessionId]
-			);
-		} else {
-			// Handle new user or non-user-home flow
-			if (!userId) {
-				console.log('No user ID found, checking if Spotify user exists');
-				// Check if user exists by Spotify ID
-				const existingSpotifyUser = await query(
-					`SELECT id FROM clubfindr.users WHERE spotify_user_id = $1`,
-					[userProfile.id]
+			await withTransaction(async (client) => {
+				// Update the user's Spotify information
+				await client.query(
+					`UPDATE clubfindr.users 
+					SET 
+						spotify_user_id = $1,
+						spotify_email = $2,
+						access_token = $3,
+						refresh_token = $4
+					WHERE id = $5`,
+					[userProfile.id, userProfile.email || null, access_token, refresh_token || null, userId]
 				);
 
-				if (existingSpotifyUser.rows.length > 0) {
-					// User exists, update tokens
-					userId = existingSpotifyUser.rows[0].id;
-					console.log('Existing Spotify user found with ID:', userId);
-
-					await query(
-						`UPDATE clubfindr.users 
-						SET access_token = $1, refresh_token = $2
-						WHERE id = $3`,
-						[access_token, refresh_token || null, userId]
-					);
-				} else {
-					console.log('Creating new user from Spotify login');
-					// Create new user
-					const appName = 'default'; // Use default app for new users
-					const userResult = await query(
-						`INSERT INTO clubfindr.users (
-							general_email, 
-							spotify_email, 
-							password_hash, 
-							spotify_user_id, 
-							city, 
-							role, 
-							access_token, 
-							refresh_token, 
-							spotify_app_name
-						) VALUES ($1, $2, 'temp', $3, $4, 'user', $5, $6, $7)
-						RETURNING id`,
-						[
-							userProfile.email || `${userProfile.id}@spotify.com`,
-							userProfile.email || null,
-							userProfile.id,
-							stateData.city.toLowerCase(),
-							access_token,
-							refresh_token,
-							appName
-						]
-					);
-
-					if (userResult.rows.length === 0) {
-						console.error('User was not inserted due to a conflict or issue.');
-					} else {
-						console.log('User inserted with id:', userResult.rows[0].id);
-						userId = userResult.rows[0].id;
-					}
-				}
-			}
-
+				// Update user session
+				await client.query(
+					`UPDATE clubfindr.user_sessions
+					SET 
+						access_token = $1,
+						refresh_token = $2,
+						last_accessed = NOW()
+					WHERE session_id = $3`,
+					[access_token, refresh_token || null, sessionId]
+				);
+			});
+		} else {
 			// Create new session ID if needed
 			const newSessionId = sessionId || uuidv4();
 			console.log('Using session ID:', newSessionId, 'New?', !sessionId);
 
-			// Update or create user session
-			await query(
-				`
-				INSERT INTO clubfindr.user_sessions (user_id, user_city, session_id, access_token, refresh_token)
-				VALUES ($1, $2, $3, $4, $5)
-				ON CONFLICT (user_id) DO UPDATE 
-				SET 
-					session_id = EXCLUDED.session_id,
-					access_token = EXCLUDED.access_token,
-					refresh_token = EXCLUDED.refresh_token,
-					last_accessed = NOW();
-				`,
-				[userId, stateData.city.toLowerCase(), newSessionId, access_token, refresh_token || null]
-			);
+			// Find or create the user and write the session as one unit
+			userId = await withTransaction(async (client) => {
+				// Handle new user or non-user-home flow
+				if (!userId) {
+					console.log('No user ID found, checking if Spotify user exists');
+					// Check if user exists by Spotify ID
+					const existingSpotifyUser = await client.query(
+						`SELECT id FROM clubfindr.users WHERE spotify_user_id = $1`,
+						[userProfile.id]
+					);
+
+					if (existingSpotifyUser.rows.length > 0) {
+						// User exists, update tokens
+						userId = existingSpotifyUser.rows[0].id;
+						console.log('Existing Spotify user found with ID:', userId);
+
+						await client.query(
+							`UPDATE clubfindr.users 
+							SET access_token = $1, refresh_token = $2
+							WHERE id = $3`,
+							[access_token, refresh_token || null, userId]
+						);
+					} else {
+						console.log('Creating new user from Spotify login');
+						// Create new user
+						const appName = 'default'; // Use default app for new users
+						const userResult = await client.query(
+							`INSERT INTO clubfindr.users (
+								general_email, 
+								spotify_email, 
+								password_hash, 
+								spotify_user_id, 
+								city, 
+								role, 
+								access_token, 
+								refresh_token, 
+								spotify_app_name
+							) VALUES ($1, $2, 'temp', $3, $4, 'user', $5, $6, $7)
+							RETURNING id`,
+							[
+								userProfile.email || `${userProfile.id}@spotify.com`,
+								userProfile.email || null,
+								userProfile.id,
+								stateData.city.toLowerCase(),
+								access_token,
+								refresh_token,
+								appName
+							]
+						);
+
+						if (userResult.rows.length === 0) {
+							console.error('User was not inserted due to a conflict or issue.');
+						} else {
+							console.log('User inserted with id:', userResult.rows[0].id);
+							userId = userResult.rows[0].id;
+						}
+					}
+				}
+
+				// Update or create user session
+				await client.query(
+					`
+					INSERT INTO clubfindr.user_sessions (user_id, user_city, session_id, access_token, refresh_token)
+					VALUES ($1, $2, $3, $4, $5)
+					ON CONFLICT (user_id) DO UPDATE 
+					SET 
+						session_id = EXCLUDED.session_id,
+						access_token = EXCLUDED.access_token,
+						refresh_token = EXCLUDED.refresh_token,
+						last_accessed = NOW();
+					`,
+					[userId, stateData.city.toLowerCase(), newSessionId, access_token, refresh_token || null]
+				);
+
+				return userId;
+			});
 
 			// Set session ID cookie if it's new
 			if (!sessionId) {
@@ -538,19 +546,18 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				});
 			}
 
-			// Set user ID cookie
-			cookieManager.set(cookies, 'usersId', userId, {
-				path: '/',
-				httpOnly: true,
-				secure: !dev,
-				sameSite: 'lax',
-				maxAge: 15552000 // 6 months
-			});
+			// Set user ID cookie. userId can still be null here (an insert that hit a conflict is
+			// only logged above), and that used to be written into the cookie as an id.
+			if (userId) {
+				cookieManager.set(cookies, 'usersId', userId, {
+					path: '/',
+					httpOnly: true,
+					secure: !dev,
+					sameSite: 'lax',
+					maxAge: 15552000 // 6 months
+				});
+			}
 		}
-
-		/** Commit Transaction **/
-		await query('COMMIT');
-		console.log('Transaction committed successfully');
 
 		/** Redirect based on origin */
 		if (isFromBarLogin) {
@@ -563,12 +570,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	} catch (err: unknown) {
 		console.error('An error occurred during Spotify authentication process:', err);
 
-		// Try to rollback, but don't fail if rollback fails
-		try {
-			await query('ROLLBACK');
-		} catch (rollbackErr) {
-			console.error('Failed to rollback transaction:', rollbackErr);
-		}
+		// The user-flow writes roll themselves back inside withTransaction
 
 		// If it's a redirect, just rethrow it
 		if (isRedirect(err)) {

@@ -4,7 +4,7 @@
 // sending notification emails, and interacting with the Spotify service.
 
 import { json } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { withTransaction } from '$lib/db';
 import { randomBytes } from 'crypto';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
@@ -53,153 +53,154 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase(); // e.g., "A1B2C3"
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes expiry time
 	const hashedPassword = await hashPassword(password);
-	let barId; // Track the bar ID for Spotify integration
+	let barId: string | undefined; // Track the bar ID for Spotify integration
 	const spotifyEmail = spotifyConnectEnabled ? musicServiceEmail || null : null;
 
 	try {
 		const normalizedCityName = normalizeCityName(cityName);
 
-		// Start a transaction
-		await query('BEGIN');
-
-		// First check if the user already exists
-		const existingUserResult = await query(
-			`SELECT id FROM clubfindr.users WHERE general_email = $1`,
-			[email]
-		);
-
-		let userId;
-		if (existingUserResult.rows.length > 0) {
-			// User already exists, use their ID
-			userId = existingUserResult.rows[0].id;
-
-			// Update user role to manager if not already
-			await query(
-				`UPDATE clubfindr.users 
-				 SET role = 'manager', updated_at = NOW() 
-				 WHERE id = $1 AND (role IS NULL OR role != 'manager')`,
-				[userId]
+		// One transaction on one connection (KNOWN_ISSUES 39): query('BEGIN') … query('COMMIT')
+		// ran each statement on whichever pooled connection was free.
+		barId = await withTransaction(async (client) => {
+			let barId: string | undefined;
+			// First check if the user already exists
+			const existingUserResult = await client.query(
+				`SELECT id FROM clubfindr.users WHERE general_email = $1`,
+				[email]
 			);
 
-			// Update user password
-			await query(
-				`UPDATE clubfindr.users 
-				 SET password_hash = $1, updated_at = NOW() 
-				 WHERE id = $2`,
-				[hashedPassword, userId]
-			);
-		} else {
-			// Insert new user
-			const userIdResult = await query(
-				`INSERT INTO clubfindr.users (general_email, password_hash, city, role, created_at, updated_at) 
-				 VALUES ($1, $2, $3, 'manager', NOW(), NOW()) 
-				 RETURNING id`,
-				[email, hashedPassword, normalizedCityName]
-			);
-			userId = userIdResult.rows[0]?.id;
-			if (!userId) {
-				throw new Error('User registration failed.');
+			let userId;
+			if (existingUserResult.rows.length > 0) {
+				// User already exists, use their ID
+				userId = existingUserResult.rows[0].id;
+
+				// Update user role to manager if not already
+				await client.query(
+					`UPDATE clubfindr.users 
+					 SET role = 'manager', updated_at = NOW() 
+					 WHERE id = $1 AND (role IS NULL OR role != 'manager')`,
+					[userId]
+				);
+
+				// Update user password
+				await client.query(
+					`UPDATE clubfindr.users 
+					 SET password_hash = $1, updated_at = NOW() 
+					 WHERE id = $2`,
+					[hashedPassword, userId]
+				);
+			} else {
+				// Insert new user
+				const userIdResult = await client.query(
+					`INSERT INTO clubfindr.users (general_email, password_hash, city, role, created_at, updated_at) 
+					 VALUES ($1, $2, $3, 'manager', NOW(), NOW()) 
+					 RETURNING id`,
+					[email, hashedPassword, normalizedCityName]
+				);
+				userId = userIdResult.rows[0]?.id;
+				if (!userId) {
+					throw new Error('User registration failed.');
+				}
 			}
-		}
 
-		// Check if a bar with this email already exists
-		const existingBarResult = await query(
-			`SELECT id FROM clubfindr.bars WHERE general_email = $1`,
-			[email]
-		);
-
-		if (existingBarResult.rows.length > 0) {
-			// Update existing bar record
-			barId = existingBarResult.rows[0].id;
-			await query(
-				`UPDATE clubfindr.bars 
-				 SET user_id = $1,
-				     name = $2,
-				     contact_person = $3,
-				     phone = $4,
-				     address = $5,
-				     postcode = $6,
-				     website = $7,
-				     music_service = $8,
-				     city = $9,
-				     confirmation_code = $10,
-				     expires_at = $11,
-				     password_hash = $12,
-				     spotify_email = $13,
-				     smoking_allowed = $15,
-				     bar_types = $16
-				 WHERE general_email = $14 
-				 RETURNING id`,
-				[
-					userId,
-					businessName,
-					contactPerson,
-					phone,
-					address,
-					postcode,
-					website,
-					musicService,
-					normalizedCityName,
-					confirmationCode,
-					expiresAt,
-					hashedPassword,
-					spotifyEmail || null, // Use provided spotifyEmail or null
-					email,
-					smokingAllowed,
-					barTypes
-				]
-			);
-		} else {
-			// Insert new bar record
-			const barResult = await query(
-				`INSERT INTO clubfindr.bars (
-					user_id, 
-					name, 
-					contact_person, 
-					general_email, 
-					phone, 
-					address, 
-					postcode, 
-					website, 
-					music_service, 
-					city, 
-					confirmation_code, 
-					expires_at,
-					password_hash,
-					spotify_email,
-					smoking_allowed,
-					bar_types
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-				RETURNING id`,
-				[
-					userId,
-					businessName,
-					contactPerson,
-					email,
-					phone,
-					address,
-					postcode,
-					website,
-					musicService,
-					normalizedCityName,
-					confirmationCode,
-					expiresAt,
-					hashedPassword,
-					spotifyEmail || null, // Use provided spotifyEmail or null
-					smokingAllowed,
-					barTypes
-				]
+			// Check if a bar with this email already exists
+			const existingBarResult = await client.query(
+				`SELECT id FROM clubfindr.bars WHERE general_email = $1`,
+				[email]
 			);
 
-			barId = barResult.rows[0].id;
-		}
+			if (existingBarResult.rows.length > 0) {
+				// Update existing bar record
+				barId = existingBarResult.rows[0].id;
+				await client.query(
+					`UPDATE clubfindr.bars 
+					 SET user_id = $1,
+					     name = $2,
+					     contact_person = $3,
+					     phone = $4,
+					     address = $5,
+					     postcode = $6,
+					     website = $7,
+					     music_service = $8,
+					     city = $9,
+					     confirmation_code = $10,
+					     expires_at = $11,
+					     password_hash = $12,
+					     spotify_email = $13,
+					     smoking_allowed = $15,
+					     bar_types = $16
+					 WHERE general_email = $14 
+					 RETURNING id`,
+					[
+						userId,
+						businessName,
+						contactPerson,
+						phone,
+						address,
+						postcode,
+						website,
+						musicService,
+						normalizedCityName,
+						confirmationCode,
+						expiresAt,
+						hashedPassword,
+						spotifyEmail || null, // Use provided spotifyEmail or null
+						email,
+						smokingAllowed,
+						barTypes
+					]
+				);
+			} else {
+				// Insert new bar record
+				const barResult = await client.query(
+					`INSERT INTO clubfindr.bars (
+						user_id, 
+						name, 
+						contact_person, 
+						general_email, 
+						phone, 
+						address, 
+						postcode, 
+						website, 
+						music_service, 
+						city, 
+						confirmation_code, 
+						expires_at,
+						password_hash,
+						spotify_email,
+						smoking_allowed,
+						bar_types
+					) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+					RETURNING id`,
+					[
+						userId,
+						businessName,
+						contactPerson,
+						email,
+						phone,
+						address,
+						postcode,
+						website,
+						musicService,
+						normalizedCityName,
+						confirmationCode,
+						expiresAt,
+						hashedPassword,
+						spotifyEmail || null, // Use provided spotifyEmail or null
+						smokingAllowed,
+						barTypes
+					]
+				);
 
-		// Commit the transaction if all queries succeed
-		await query('COMMIT');
+				barId = barResult.rows[0].id;
+			}
+
+			return barId as string;
+		});
 
 		// If Spotify integration is requested, register with Spotify service
 
-		// (musicService may be null: this used to throw after the COMMIT above, reporting a
+		// (musicService may be null: this used to throw after the commit above, reporting a
 		// failed registration for a bar that had been saved)
 		if (musicService?.toLowerCase() === 'spotify' && spotifyEmail) {
 			try {
@@ -316,8 +317,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		return json({ success: true });
 	} catch (error) {
-		// Rollback the transaction if any query fails
-		await query('ROLLBACK');
 		console.error('Error during registration:', error);
 		return json({ success: false, message: 'Registration failed' }, { status: 500 });
 	}

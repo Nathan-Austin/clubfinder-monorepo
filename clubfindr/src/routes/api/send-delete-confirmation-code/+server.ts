@@ -24,10 +24,10 @@ export async function POST({ request }) {
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // Expiry in 10 minutes
 
 	try {
-		// Begin a database transaction
-		await query('BEGIN');
-
-		// Update the user with the confirmation code and set an expiry time
+		// One statement, so it is atomic by itself. It used to be wrapped in query('BEGIN') …
+		// query('COMMIT'), which on a pooled connection is not a transaction (KNOWN_ISSUES 39),
+		// and its catch sent a ROLLBACK down whichever connection was free — possibly into
+		// another request's open transaction.
 		const result = await query(
 			`UPDATE clubfindr.users 
 			 SET confirmation_code = $1, expires_at = $2
@@ -38,12 +38,8 @@ export async function POST({ request }) {
 
 		// If no user was found with that email
 		if (result.rows.length === 0) {
-			await query('ROLLBACK');
 			return json({ success: false, message: 'Email not found' }, { status: 404 });
 		}
-
-		// Commit the transaction
-		await query('COMMIT');
 
 		// Send the confirmation code via email
 		await sendEmail(
@@ -57,8 +53,6 @@ export async function POST({ request }) {
 			message: 'Confirmation code sent to your email.'
 		});
 	} catch (err) {
-		// Rollback the transaction in case of failure
-		await query('ROLLBACK');
 		console.error('Failed to send confirmation code:', err);
 		throw error(500, 'Failed to send confirmation code');
 	}

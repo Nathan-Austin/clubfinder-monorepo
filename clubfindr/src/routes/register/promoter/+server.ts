@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { withTransaction } from '$lib/db';
 import { randomBytes } from 'crypto';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/spotifyUtils';
@@ -36,55 +36,56 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		const normalizedCityName = normalizeCityName(cityName);
 
-		await query('BEGIN');
-
-		const userIdResult = await query(
-			`INSERT INTO clubfindr.users (general_email, password_hash, city, role, created_at, updated_at, is_promoter) 
-			 VALUES ($1, $2, $3, 'manager', NOW(), NOW(), TRUE) 
-			 ON CONFLICT (general_email) DO NOTHING 
-			 RETURNING id`,
-			[email, hashedPassword, normalizedCityName]
-		);
-
-		userId = userIdResult.rows[0]?.id;
-
-		if (!userId) {
-			const updateResult = await query(
-				`UPDATE clubfindr.users 
-				 SET role = 'manager', is_promoter = TRUE 
-				 WHERE general_email = $1 
+		// One transaction on one connection (KNOWN_ISSUES 39): query('BEGIN') … query('COMMIT')
+		// ran each statement on whichever pooled connection was free, and its catch sent a
+		// ROLLBACK down whichever one happened to be free then.
+		await withTransaction(async (client) => {
+			const userIdResult = await client.query(
+				`INSERT INTO clubfindr.users (general_email, password_hash, city, role, created_at, updated_at, is_promoter) 
+				 VALUES ($1, $2, $3, 'manager', NOW(), NOW(), TRUE) 
+				 ON CONFLICT (general_email) DO NOTHING 
 				 RETURNING id`,
-				[email]
+				[email, hashedPassword, normalizedCityName]
 			);
 
-			userId = updateResult.rows[0]?.id;
+			userId = userIdResult.rows[0]?.id;
 
 			if (!userId) {
-				throw new Error('User update failed.');
+				const updateResult = await client.query(
+					`UPDATE clubfindr.users 
+					 SET role = 'manager', is_promoter = TRUE 
+					 WHERE general_email = $1 
+					 RETURNING id`,
+					[email]
+				);
+
+				userId = updateResult.rows[0]?.id;
+
+				if (!userId) {
+					throw new Error('User update failed.');
+				}
 			}
-		}
 
-		await query(
-			`INSERT INTO clubfindr.bars (user_id, name, contact_person, general_email, phone, address, postcode, 
-			 website, city, confirmation_code, expires_at) 
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-			 ON CONFLICT (general_email) DO UPDATE SET confirmation_code = $10, expires_at = $11`,
-			[
-				userId,
-				businessName,
-				contactPerson,
-				email,
-				phone,
-				address,
-				postcode,
-				website,
-				normalizedCityName,
-				confirmationCode,
-				expiresAt
-			]
-		);
-
-		await query('COMMIT');
+			await client.query(
+				`INSERT INTO clubfindr.bars (user_id, name, contact_person, general_email, phone, address, postcode, 
+				 website, city, confirmation_code, expires_at) 
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+				 ON CONFLICT (general_email) DO UPDATE SET confirmation_code = $10, expires_at = $11`,
+				[
+					userId,
+					businessName,
+					contactPerson,
+					email,
+					phone,
+					address,
+					postcode,
+					website,
+					normalizedCityName,
+					confirmationCode,
+					expiresAt
+				]
+			);
+		});
 
 		await sendEmail(
 			'admin@clubfindr.com',
@@ -131,7 +132,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		return json({ success: true, redirectUrl: '/register/promoter/confirm' });
 	} catch (error) {
-		await query('ROLLBACK');
 		console.error('Error during registration:', error);
 		return json({ success: false, message: 'Registration failed' }, { status: 500 });
 	}

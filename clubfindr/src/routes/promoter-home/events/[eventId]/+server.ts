@@ -2,7 +2,7 @@
 
 import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
-import { query } from '$lib/db';
+import { query, withTransaction } from '$lib/db';
 
 export async function DELETE({ params, cookies }: RequestEvent) {
 	try {
@@ -46,10 +46,10 @@ export async function PATCH({ request, params, cookies }: RequestEvent) {
 			throw error(403, 'Forbidden');
 		}
 
-		await query('BEGIN');
-
-		try {
-			await query(
+		// One transaction on one connection (KNOWN_ISSUES 39): query('BEGIN') … query('COMMIT')
+		// ran each statement on whichever pooled connection was free.
+		await withTransaction(async (client) => {
+			await client.query(
 				`UPDATE events 
                 SET 
                     event_name = COALESCE($1, event_name),
@@ -77,34 +77,29 @@ export async function PATCH({ request, params, cookies }: RequestEvent) {
 			);
 
 			if (updates.event_genres) {
-				await query('DELETE FROM event_genres WHERE event_id = $1', [eventId]);
+				await client.query('DELETE FROM event_genres WHERE event_id = $1', [eventId]);
 
 				for (const genre of updates.event_genres) {
-					await query('INSERT INTO event_genres (event_id, genre) VALUES ($1, $2)', [
+					await client.query('INSERT INTO event_genres (event_id, genre) VALUES ($1, $2)', [
 						eventId,
 						genre
 					]);
 				}
 			}
+		});
 
-			await query('COMMIT');
-
-			const updatedEvent = await query(
-				`SELECT 
+		const updatedEvent = await query(
+			`SELECT 
                     e.*,
                     ARRAY_AGG(eg.genre) as event_genres
                 FROM events e
                 LEFT JOIN event_genres eg ON e.event_id = eg.event_id
                 WHERE e.event_id = $1
                 GROUP BY e.event_id`,
-				[eventId]
-			);
+			[eventId]
+		);
 
-			return json(updatedEvent.rows[0]);
-		} catch (err) {
-			await query('ROLLBACK');
-			throw err;
-		}
+		return json(updatedEvent.rows[0]);
 	} catch (err) {
 		console.error('Error updating event:', err);
 		throw error(500, 'Failed to update event');

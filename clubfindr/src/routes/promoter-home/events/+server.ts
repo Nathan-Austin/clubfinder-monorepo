@@ -39,13 +39,11 @@ export async function POST({ request, cookies }: RequestEvent) {
 
 		const eventData = await request.json();
 
-		// Start a transaction
-		await query('BEGIN');
-
-		try {
-			// Insert the event
-			const result = await query(
-				`INSERT INTO clubfindr.events (
+		// One INSERT, atomic by itself. It used to sit inside query('BEGIN') … query('COMMIT'),
+		// which on a pooled connection is not a transaction (KNOWN_ISSUES 39).
+		// Insert the event
+		const result = await query(
+			`INSERT INTO clubfindr.events (
                     event_name,
                     club_name,
                     club_address,
@@ -60,34 +58,25 @@ export async function POST({ request, cookies }: RequestEvent) {
                     track_ids
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING event_id`,
-				[
-					eventData.event_name,
-					eventData.club_name,
-					eventData.club_address,
-					eventData.event_date,
-					eventData.start_time,
-					eventData.end_time,
-					eventData.event_genres,
-					eventData.price,
-					eventData.event_image,
-					eventData.city,
-					userId,
-					JSON.stringify(eventData.track_ids) // Convert the tracks array to JSON string
-				]
-			);
+			[
+				eventData.event_name,
+				eventData.club_name,
+				eventData.club_address,
+				eventData.event_date,
+				eventData.start_time,
+				eventData.end_time,
+				eventData.event_genres,
+				eventData.price,
+				eventData.event_image,
+				eventData.city,
+				userId,
+				JSON.stringify(eventData.track_ids) // Convert the tracks array to JSON string
+			]
+		);
 
-			const newEvent = result.rows[0]; // Get the newly created event
+		const newEvent = result.rows[0]; // Get the newly created event
 
-			// Commit the transaction
-			await query('COMMIT');
-
-			// Return the newly created event data
-			return json(newEvent);
-		} catch (err) {
-			// Rollback the transaction if anything fails
-			await query('ROLLBACK');
-			throw err;
-		}
+		return json(newEvent);
 	} catch (err) {
 		console.error('Error creating event:', err);
 		throw error(500, 'Failed to create event');
