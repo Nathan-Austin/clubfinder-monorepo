@@ -49,11 +49,12 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       shapes match the mocks; the differences are listed in KNOWN_ISSUES 21. Not something to
       automate here: no live calls from tests or scripts, and no API keys in committed files
 - [ ] Act on the live-API findings (KNOWN_ISSUES 21), mock first so the e2e suite shows each
-      one, then the client. Done: MusicBrainz 503s are retried (up to three attempts, a second
-      apart, 2026-11-11). Left: Last.fm error 6 on
-      `artist.gettoptags` means "no tags", not an outage; drop Last.fm's placeholder star image;
-      prefer Spotify's 320px image. Mocks to bring in line: empty Spotify `genres` on common
-      artists, `error_description` on token errors, MusicBrainz counts of 0 or below, unsorted
+      one, then the client. Done 2026-11-11: MusicBrainz 503s are retried (up to three attempts,
+      a second apart); Last.fm error 6 on `artist.gettoptags` reads as "no tags", not an outage
+      (it was dropping the artist from an import); Last.fm's placeholder star image is treated as
+      no image. Left: prefer Spotify's 320px image, and bring the remaining mocks in line — empty
+      Spotify `genres` on common artists, `error_description` on token errors, MusicBrainz counts
+      of 0 or below, unsorted
 
 ### Follow-ups from the section 1 work
 

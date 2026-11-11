@@ -207,15 +207,22 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       one-request-a-second budget still holds. `tests/mock-musicbrainz.ts` answers 503 twice for
       "Faint Transmission" before answering properly, which is what makes the retry visible to
       the e2e suite (`tests/genre-fallback.spec.ts`).
-    - **Last.fm reports an unknown artist as HTTP 200** with `{error: 6, message: "The artist
-you supplied could not be found", links: []}`. The client classifies that as
-      `unavailable` ("Last.fm is not answering"); the fallback still moves on to MusicBrainz,
-      so the only harm is a misleading warning. Follow-up: treat error 6 on `artist.gettoptags`
-      as "no tags".
-    - **Last.fm artist images are a placeholder.** Every `user.gettopartists` image is the same
-      grey star (hash `2a96cbd8b46e442fc41c2b86b821562f`; Last.fm stopped serving artist
-      images in 2019), so imported artists get that as `imageUrl`. Follow-up: treat that hash
-      as no image.
+    - _Fixed 2026-11-11._ **Last.fm reports an unknown artist as HTTP 200**, with error 6 and
+      the message "The artist you supplied could not be found". The client classified
+      that as `unavailable` ("Last.fm is not answering"). The harm was worse than this item
+      recorded: the genre fallback did move on to MusicBrainz with only a misleading warning, but
+      the **Last.fm import dropped the artist altogether** — `importLastfmUser` counts a tag
+      failure as `tags unavailable` and skips it, so an artist in someone's top artists that
+      Last.fm has no tags for never became a favourite. Error 6 without a username is now its own
+      `unknown-artist` code and `fetchTopTags` returns no tags for it, so the artist is imported
+      with no genres instead. The mock answers error 6 with HTTP 200, as the live API does.
+    - _Fixed 2026-11-11._ **Last.fm artist images are a placeholder.** Every
+      `user.gettopartists` image is the same grey star (hash
+      `2a96cbd8b46e442fc41c2b86b821562f`; Last.fm stopped serving artist images in 2019), so
+      imported artists all got that as `imageUrl`. `pickImage` now skips any image whose URL
+      carries that hash (matched by hash, since the URL differs by size), leaving `imageUrl`
+      null unless a real picture is offered. Note a catalogue row keeps the image it was created
+      with, so artists imported before this still carry the star.
     - Smaller: Spotify images are now 640/320/160 wide, so `parseSpotifyArtist`'s preference for
       `width === 300` never hits and it takes the 640 one (320 would do); a bad client secret
       gets `400 {error, error_description}`, where the mock sends only `error`; MusicBrainz tag
