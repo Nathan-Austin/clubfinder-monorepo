@@ -212,7 +212,41 @@ it through `SPOTIFY_CONNECT_ENABLED` in `tests/fixtures.ts`, parsed with the ser
 `isFlagEnabled`. Tests that only make sense in one mode skip themselves in the other: the two
 on-only tests in `taste.spec.ts` and the two blocks of `spotify-connect-flag.spec.ts`. Re-run
 `dev/setup.sh` between runs if you want both to start from the seed. CI runs both, re-seeding in between. The database and ports
-are shared, so two checkouts must not run the suite at the same time.
+are shared, so two checkouts must not run the suite at the same time: see the next section.
+
+### One e2e run at a time
+
+Every checkout and worktree on a machine shares one dev database (`clubfindr_dev` on 54329,
+which `dev/setup.sh` wipes) and ports 4173-4178, and a run (a production build, the servers and
+Chromium, twice over for the two flag modes) takes enough memory that two at once can exhaust
+the machine. Separate ports would not help with the memory, so runs are serialised instead:
+the checkout running e2e holds a **lease**, and every command of a run goes through it.
+
+```bash
+dev/e2e-lock.sh status                              # free, or who holds it and since when
+dev/e2e-lock.sh run dev/setup.sh                    # claim the lease and run one command
+dev/e2e-lock.sh run pnpm test                       # every later command of the run likewise
+dev/e2e-lock.sh run env SPOTIFY_CONNECT_ENABLED=false pnpm test
+dev/e2e-lock.sh release                             # when the whole run is finished
+```
+
+- A run is several commands, so the lease lasts across them rather than for one command: it
+  names the checkout (by path, and the branch for reading), each `run` refreshes it, and
+  `release` ends it. A lease untouched for 20 minutes (`E2E_LEASE_MINUTES`) has expired, so a
+  session that died never blocks the others. **Keep each command under that**: if the suite
+  runs longer, split it by spec file, with `PW_SKIP_BUILD=1` after the first chunk, e.g.
+  `dev/e2e-lock.sh run pnpm exec playwright test tests/auth.spec.ts tests/bars.spec.ts`.
+- When another checkout holds the lease, `run` refuses with exit code 75 and names it. It never
+  waits by itself: check `status` again later, and do not start your own setup meanwhile.
+- If the lease lapsed during your command and another checkout took it, `run` warns afterwards
+  (its setup may have reseeded the database under you); treat that run's results as suspect.
+- `dev/setup.sh` refuses to run, or `--stop` the server, while another checkout holds the lease,
+  so it cannot wipe someone else's data mid-run even when called outside `e2e-lock.sh`.
+- The lease is in the git directory all worktrees share (`git rev-parse --git-common-dir`),
+  not `/tmp`, which a sandbox may make private to one session. `flock` (util-linux) guards
+  claiming it; `status` and the `setup.sh` check need only bash.
+- CI runs in one fresh checkout, where nothing holds the lease, so it is unaffected.
+- `pnpm test` called directly is not guarded: use `dev/e2e-lock.sh run` for it.
 
 Tests that drive the bar dashboard should start from `openBarDashboard` (`tests/fixtures.ts`),
 which waits for the page to be interactive. With the flag on, waiting for the Spotify dialog

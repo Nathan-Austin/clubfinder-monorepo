@@ -389,3 +389,16 @@ you supplied could not be found", links: []}`. The client classifies that as
     `expo-updates` 29.0.16 → 29.0.20 and `expo-web-browser`. This is why `expo-doctor` is
     report-only in CI. Upgrading them with `npx expo install --fix`, then making `expo-doctor`
     a failing step, needs the app's four CI checks to pass and ideally a device run.
+36. _Mitigated 2026-11-11._ **Two checkouts running e2e at once broke each other's runs.** Every
+    checkout and worktree on a machine shares the dev database (`clubfindr_dev` on 54329) and
+    ports 4173-4178, whether Postgres is the one Docker container (`clubfindr-dev-postgres`, the
+    case on the dev machine) or a worktree's private `dev/.pgdata` cluster, which the next
+    worktree's `dev/setup.sh` finds already on 54329 and reuses. Either way `dev/setup.sh` reseeds
+    the one database, wiping the data under a run already in progress from another checkout.
+    Two runs at once can also exhaust the machine's memory (each is
+    a production build, the servers and Chromium). Separate ports per worktree would fix the
+    data but not the memory, so runs are serialised instead: `dev/e2e-lock.sh` keeps a lease,
+    held across the several commands of a run, in the git directory the worktrees share, and
+    `dev/setup.sh` refuses to reseed or stop the server while another checkout holds it
+    (`dev/TESTING.md`, "One e2e run at a time"). Still open: a bare `pnpm test` is not guarded,
+    so it relies on the convention of calling it through `dev/e2e-lock.sh run`.
