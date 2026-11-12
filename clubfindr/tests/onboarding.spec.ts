@@ -161,3 +161,33 @@ test('the cap is advisory: artists added elsewhere beyond 5 stay and the step st
 	await expect(onboarding.getByTestId('taste-at-max')).toBeVisible();
 	await expect(onboarding.getByTestId('onboarding-continue')).toBeEnabled();
 });
+
+// ROADMAP section 1 follow-up: only new accounts were sent to /onboarding, so an existing
+// account could sit below ONBOARDING_MIN_ARTISTS with nothing pointing it at the step.
+test('users-home nudges a thin taste profile towards /onboarding, and stops once it is filled', async ({
+	page
+}, testInfo) => {
+	await signUpViaApi(page, uniqueEmail(testInfo.title));
+
+	// No artists at all: the nudge offers the quick start
+	await page.goto('/users-home');
+	await acceptCookies(page);
+	const nudge = page.getByTestId('onboarding-nudge');
+	await expect(nudge).toBeVisible();
+	await expect(nudge).toContainText('no streaming account needed');
+
+	// One artist: the nudge counts what is there and asks for the rest
+	await addViaApi(page, PICKS[0].sourceId);
+	await page.goto('/users-home');
+	await expect(nudge).toContainText('1 favourite artist');
+
+	// Its link lands on the onboarding picker with the artist already shown
+	await nudge.getByTestId('onboarding-nudge-link').click();
+	await expect(page).toHaveURL(/\/onboarding$/);
+	await expect(page.getByTestId('onboarding').getByTestId('taste-favourite')).toHaveCount(1);
+
+	// At 3 artists the profile is usable and the nudge is gone
+	for (const artist of PICKS.slice(1, 3)) await addViaApi(page, artist.sourceId);
+	await page.goto('/users-home');
+	await expect(page.getByTestId('onboarding-nudge')).toHaveCount(0);
+});

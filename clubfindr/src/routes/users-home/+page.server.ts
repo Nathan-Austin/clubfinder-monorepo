@@ -1,8 +1,10 @@
 // src/routes/users-home/+page.server.ts
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
 import type { PageServerLoad } from '../$types';
 import { cookieManager } from '$lib/cookieManager';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';
+import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
+import { artistOnboardingStatus } from '$lib/taste/onboarding';
 // Define interfaces for our data structures
 interface Preference {
 	genre: string;
@@ -170,6 +172,11 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		}
 	}
 
+	// The nudge towards /onboarding for accounts from before the artist picker (ROADMAP
+	// section 1): only new accounts were ever sent there, so an existing user could sit at
+	// zero favourite artists with nothing pointing them at the step
+	const artistOnboarding = artistOnboardingStatus(await countFavouriteArtists(pool, userId));
+
 	// Return the user data, interested events, and connected services status as props
 	return {
 		props: {
@@ -177,6 +184,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			topPreferences,
 			interestedEvents,
 			connectedServices,
+			artistOnboarding,
 			spotifyConnectEnabled: isSpotifyConnectEnabled()
 		}
 	};

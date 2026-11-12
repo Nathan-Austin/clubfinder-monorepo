@@ -37,11 +37,19 @@
 				};
 				/** SPOTIFY_CONNECT_ENABLED flag; absent on the error responses of the load */
 				spotifyConnectEnabled?: boolean;
+				/** The /onboarding nudge for accounts with a thin taste profile; absent on errors */
+				artistOnboarding?: {
+					required: boolean;
+					min: number;
+					max: number;
+					favouriteCount: number;
+				};
 			};
 		};
 	}
 
 	let { data }: Props = $props();
+	const artistOnboarding = $derived(data.props.artistOnboarding);
 
 	const userName: string | null = $derived(data.props.userName);
 	const preferences: Array<{ genre: string; search_count: number }> = $derived(
@@ -666,6 +674,26 @@
 	</div>
 </div>
 
+{#if artistOnboarding?.required}
+	<!-- The nudge towards /onboarding for accounts from before the artist picker
+	     (ROADMAP section 1): only new accounts were ever sent there -->
+	<div class="onboarding-nudge" data-testid="onboarding-nudge">
+		<p>
+			{#if artistOnboarding.favouriteCount === 0}
+				Your matches get personal once Clubfindr knows your taste. Pick
+				{artistOnboarding.min} artists you love — it takes a minute, no streaming account needed.
+			{:else}
+				You have {artistOnboarding.favouriteCount} favourite
+				{artistOnboarding.favouriteCount === 1 ? 'artist' : 'artists'} — pick at least
+				{artistOnboarding.min} and your matches get much better.
+			{/if}
+		</p>
+		<a href="/onboarding" class="button onboarding-nudge-link" data-testid="onboarding-nudge-link">
+			Pick your artists
+		</a>
+	</div>
+{/if}
+
 <!-- Date and Location Section -->
 <div class="date-location-section">
 	<div class="date-picker-container">
@@ -883,6 +911,36 @@
 		align-items: center;
 		position: relative; /* So the dropdown is positioned relative to this container */
 		margin-bottom: 10px;
+	}
+
+	/* Palette only: the --rgb-* triplets from app.css */
+	.onboarding-nudge {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin: 0 0 1.25rem;
+		padding: 1rem 1.25rem;
+		background: rgba(var(--rgb-secondary), 0.12);
+		border: 1px solid rgba(var(--rgb-secondary), 0.35);
+		border-radius: 12px;
+	}
+
+	.onboarding-nudge p {
+		margin: 0;
+		font-size: 0.95rem;
+	}
+
+	.onboarding-nudge-link {
+		display: inline-block;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		background: rgb(var(--rgb-secondary));
+		color: rgb(var(--rgb-light));
+		font-weight: 600;
+		text-decoration: none;
+		white-space: nowrap;
 	}
 
 	/* Date and Location Section */
