@@ -2,8 +2,6 @@
 
 declare namespace App {
 	interface Locals {
-		spotifyAccessToken?: string;
-		spotifyRefreshToken?: string;
 		setCookies?: string[];
 		city?: string;
 		date?: string;

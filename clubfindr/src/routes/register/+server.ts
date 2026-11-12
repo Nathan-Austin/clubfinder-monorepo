@@ -1,7 +1,8 @@
 // routes/register/+server.ts
 // This file handles the registration of a new bar in the ClubFindr system.
 // It includes the logic for inserting or updating user and bar information in the database,
-// sending notification emails, and interacting with the Spotify service.
+// and sending notification emails. A venue names no music service: its taste comes from the
+// artists and genres it declares on the dashboard (per-venue Spotify connect is retired).
 
 import { json } from '@sveltejs/kit';
 import { withTransaction } from '$lib/db';
@@ -10,8 +11,6 @@ import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/cityName';
 import type { RequestHandler } from '@sveltejs/kit';
 import { hashPassword } from '$lib/server/passwordUtils';
-import { addBarToSpotifyApp } from '$lib/spotifyService';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 import { clearCaptchaVerified, hasVerifiedCaptcha } from '$lib/server/captcha';
 
 // Get the form data
@@ -34,27 +33,18 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		postcode,
 		cityName,
 		website,
-		musicService: requestedMusicService,
 		password,
-		musicServiceEmail, // Optional parameter for Spotify integration
 		smokingAllowed = false,
 		barTypes = []
 	} = await request.json();
 
-	// SPOTIFY_CONNECT_ENABLED off: the form asks for no music service, and whatever is sent
-	// anyway is neither stored nor passed to spotify_service (add_bar).
-	const spotifyConnectEnabled = isSpotifyConnectEnabled();
-	const musicService: string | null =
-		spotifyConnectEnabled && typeof requestedMusicService === 'string' && requestedMusicService
-			? requestedMusicService
-			: null;
+	// musicService / musicServiceEmail from an older form are ignored
 
 	// Generate a random confirmation code
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase(); // e.g., "A1B2C3"
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes expiry time
 	const hashedPassword = await hashPassword(password);
-	let barId: string | undefined; // Track the bar ID for Spotify integration
-	const spotifyEmail = spotifyConnectEnabled ? musicServiceEmail || null : null;
+	let barId: string | undefined;
 
 	try {
 		const normalizedCityName = normalizeCityName(cityName);
@@ -121,15 +111,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					     address = $5,
 					     postcode = $6,
 					     website = $7,
-					     music_service = $8,
-					     city = $9,
-					     confirmation_code = $10,
-					     expires_at = $11,
-					     password_hash = $12,
-					     spotify_email = $13,
-					     smoking_allowed = $15,
-					     bar_types = $16
-					 WHERE general_email = $14 
+					     city = $8,
+					     confirmation_code = $9,
+					     expires_at = $10,
+					     password_hash = $11,
+					     smoking_allowed = $13,
+					     bar_types = $14
+					 WHERE general_email = $12
 					 RETURNING id`,
 					[
 						userId,
@@ -139,12 +127,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						address,
 						postcode,
 						website,
-						musicService,
 						normalizedCityName,
 						confirmationCode,
 						expiresAt,
 						hashedPassword,
-						spotifyEmail || null, // Use provided spotifyEmail or null
 						email,
 						smokingAllowed,
 						barTypes
@@ -161,16 +147,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						phone, 
 						address, 
 						postcode, 
-						website, 
-						music_service, 
-						city, 
-						confirmation_code, 
+						website,
+						city,
+						confirmation_code,
 						expires_at,
 						password_hash,
-						spotify_email,
 						smoking_allowed,
 						bar_types
-					) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+					) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 					RETURNING id`,
 					[
 						userId,
@@ -181,12 +165,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						address,
 						postcode,
 						website,
-						musicService,
 						normalizedCityName,
 						confirmationCode,
 						expiresAt,
 						hashedPassword,
-						spotifyEmail || null, // Use provided spotifyEmail or null
 						smokingAllowed,
 						barTypes
 					]
@@ -198,44 +180,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return barId as string;
 		});
 
-		// If Spotify integration is requested, register with Spotify service
-
-		// (musicService may be null: this used to throw after the commit above, reporting a
-		// failed registration for a bar that had been saved)
-		if (musicService?.toLowerCase() === 'spotify' && spotifyEmail) {
-			try {
-				console.log(`Attempting to register bar ${barId} with Spotify service`);
-
-				// Use the centralized function instead of direct fetch
-				const spotifyResult = await addBarToSpotifyApp(barId, spotifyEmail);
-
-				if (!spotifyResult.status || spotifyResult.status !== 'success') {
-					console.error('Error registering with Spotify service:', spotifyResult);
-
-					// Send admin notification about Spotify integration failure
-					await sendEmail(
-						'admin@clubfindr.com',
-						'Spotify Integration Failed for Bar',
-						`Spotify integration failed for bar ${businessName} (ID: ${barId}).\n
-        				Spotify Email: ${spotifyEmail}\n
-        				Error: ${JSON.stringify(spotifyResult)}`
-					);
-				}
-			} catch (spotifyError) {
-				// Log error but don't fail the registration
-				console.error('Exception during Spotify service integration:', spotifyError);
-
-				// Send admin notification about Spotify integration exception
-				await sendEmail(
-					'admin@clubfindr.com',
-					'Spotify Integration Exception for Bar',
-					`Spotify integration exception for bar ${businessName} (ID: ${barId}).\n
-      				Spotify Email: ${spotifyEmail}\n
-      				Error: ${spotifyError instanceof Error ? spotifyError.message : String(spotifyError)}`
-				);
-			}
-		}
-
 		// Send a notification to yourself
 		await sendEmail(
 			'admin@clubfindr.com', // Replace with your email address
@@ -244,9 +188,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			Business Name: ${businessName}\n
 			Contact Person: ${contactPerson}\n
 			Email: ${email}\n
-			City: ${cityName}\n
-			Music Service: ${musicService ?? 'none'}\n
-			${spotifyEmail ? `Spotify Email: ${spotifyEmail}` : ''}`
+			City: ${cityName}`
 		);
 
 		// Send a confirmation email to the bar owner
@@ -258,7 +200,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			Business Name: ${businessName}\n
 			Contact Person: ${contactPerson}\n
 			City: ${cityName}\n
-			${musicService === 'spotify' ? 'Music Service: Spotify\n' : ''}
 			\n
 			\n
 			Please enter your confirmation code on the open page. It will expire in 10 minutes. \n 

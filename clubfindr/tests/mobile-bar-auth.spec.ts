@@ -37,19 +37,9 @@ const WRITES = [
 	{ method: 'patch', path: `/api/mobile/bars/${BAR_ID}`, data: { description: 'x' } },
 	{ method: 'post', path: `/api/mobile/bars/${BAR_ID}/qrcodes`, data: { name: 'x' } },
 	{ method: 'delete', path: `/api/mobile/bars/${BAR_ID}/qrcodes/${QR_ID}`, data: undefined },
-	{ method: 'post', path: `/api/mobile/bars/${BAR_ID}/qrcodes/${QR_ID}/promotion`, data: {} },
-	{
-		// Writes the venue's Spotify credentials and reads its e-mail back (KNOWN_ISSUES 26)
-		method: 'post',
-		path: `/api/mobile/bars/${BAR_ID}/spotify-connect`,
-		data: {
-			accessToken: 'a',
-			refreshToken: 'b',
-			expiresIn: 3600,
-			connected: true,
-			music_service: 'spotify'
-		}
-	}
+	{ method: 'post', path: `/api/mobile/bars/${BAR_ID}/qrcodes/${QR_ID}/promotion`, data: {} }
+	// .../spotify-connect was guarded here too (KNOWN_ISSUES 26) until venue Spotify connect was
+	// retired; the route is gone (tests/spotify-connect-retired.spec.ts checks the 404)
 ] as const;
 
 async function send(api: APIRequestContext, w: (typeof WRITES)[number], headers = {}) {

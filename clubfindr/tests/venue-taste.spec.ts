@@ -1,4 +1,4 @@
-import { test, expect, openBarDashboard, SPOTIFY_CONNECT_ENABLED } from './fixtures';
+import { test, expect, openBarDashboard } from './fixtures';
 import type { Page } from './fixtures';
 
 // The artists a venue says it plays (ROADMAP section 1, KNOWN_ISSUES 4): the shared
@@ -372,20 +372,13 @@ test.describe('venue artists on the dashboard', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
-	test('the dashboard shows the events section whether or not Spotify is connected', async ({
-		page
-	}) => {
-		// KNOWN_ISSUES 4: offline there is no Spotify session, but the venue still manages
-		// its events and artists
+	test('the dashboard is events and taste, with nothing about Spotify', async ({ page }) => {
+		// KNOWN_ISSUES 4: the venue manages its events and artists with no Spotify session, and
+		// since venue Spotify connect was retired there is no reconnect offer or player panel
 		await expect(page.locator('.add-event-button')).toBeVisible();
 		await expect(page.getByTestId('venue-artists')).toBeVisible();
-
-		if (SPOTIFY_CONNECT_ENABLED) {
-			// The reconnect offer is still there while the flag is on
-			await expect(page.locator('.spotify-reconnect-btn')).toBeVisible();
-		} else {
-			await expect(page.locator('.spotify-reconnect-btn')).toHaveCount(0);
-			await expect(page.locator('.spotify-logo')).toHaveCount(0);
-		}
+		await expect(page.getByRole('button', { name: /Reconnect Spotify/ })).toHaveCount(0);
+		await expect(page.getByText('Currently Playing')).toHaveCount(0);
+		await expect(page.getByAltText('Spotify Logo')).toHaveCount(0);
 	});
 });

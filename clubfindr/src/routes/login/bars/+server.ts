@@ -3,13 +3,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { comparePassword } from '$lib/server/passwordUtils';
-import { refreshSpotifyToken } from '$lib/spotifyUtils';
-import { decryptToken, encryptToken } from '$lib/encryptionUtils';
 import { normalizeCityName } from '$lib/cityName';
-import { cookieManager } from '$lib/cookieManager';
-import { SPOTIFY_SERVICE_URL } from '$env/static/private';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
-import { PUBLIC_SPOTIFY_REDIRECT_BAR_URI } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('=== Starting login process ===');
@@ -26,10 +20,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// Step 2: Try to authenticate as a bar manager with additional fields
 		const barManagerResult = await query(
-			`SELECT b.id, b.password_hash, b.city, b.name, 
-                b.spotify_access_token, b.spotify_refresh_token, b.updated_at, 
-                b.spotify_app_name, b.spotify_email, b.music_service
-             FROM clubfindr.bars b 
+			`SELECT b.id, b.password_hash, b.city, b.name
+             FROM clubfindr.bars b
              WHERE b.general_email = $1`,
 			[email]
 		);
@@ -107,14 +99,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				normalizedCityName =
 					normalizedCityName || (barData.city ? normalizeCityName(barData.city) : '');
 
-				// Variables to track if Spotify authentication is needed
-				let needsSpotifyAuth = false;
-				let clientId = null;
-				let spotifyAppName = barData.spotify_app_name;
-				let redirectToSpotify = false;
-				let authUrl = '';
-
-				// Set bar manager cookies - ALWAYS set these regardless of Spotify status
+				// Bar manager cookies. A venue is never sent through Spotify any more: the venue
+				// connect (and spotify_service add_bar) was retired with ROADMAP section 1.
 				cookies.set('barId', barId, {
 					path: '/',
 					secure: true,
@@ -146,309 +132,28 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					maxAge: 60 * 60 * 24 * 7 // 1 week
 				});
 
-				// Check if bar uses Spotify and needs authentication. With SPOTIFY_CONNECT_ENABLED
-				// off a venue is never sent through Spotify, and spotify_service (add_bar) is not
-				// called, matching signup (KNOWN_ISSUES 24)
-				if (isSpotifyConnectEnabled() && barData.music_service === 'spotify') {
-					console.log('Bar uses Spotify as music service');
+				// Continue to the bars page
+				console.log('=== Sending successful login response, redirecting to /bars ===');
 
-					// If the bar doesn't have a Spotify app assigned but has a Spotify email,
-					// call the Spotify service to assign an app
-					if (!spotifyAppName && barData.spotify_email) {
-						try {
-							console.log('Attempting to assign a Spotify app to bar');
-							const spotifyResponse = await fetch(`${SPOTIFY_SERVICE_URL}/add_bar`, {
-								method: 'POST',
-								headers: {
-									'Content-Type': 'application/json'
-								},
-								body: JSON.stringify({
-									bar_id: barId,
-									spotify_email: barData.spotify_email
-								})
-							});
+				// Create headers and add cookies
+				const headers = new Headers();
+				headers.append('Content-Type', 'application/json');
 
-							const spotifyResult = await spotifyResponse.json();
+				// Get all cookies and explicitly set them in response headers
+				const allCookies = cookies.getAll();
+				console.log(`Adding ${allCookies.length} cookies to response headers`);
 
-							if (spotifyResult.status && spotifyResult.status === 'success') {
-								console.log(`Successfully registered bar ${barId} with Spotify service`);
-								spotifyAppName = spotifyResult.app_name;
-							} else {
-								console.error('Error registering with Spotify service:', spotifyResult);
-							}
-						} catch (spotifyError) {
-							console.error('Exception during Spotify service integration:', spotifyError);
-						}
-					}
-
-					// If we have an app name, get the client ID for OAuth
-					if (spotifyAppName) {
-						const appResult = await query(
-							'SELECT client_id, client_secret FROM clubfindr.spotify_apps WHERE app_name = $1',
-							[spotifyAppName]
-						);
-
-						if ((appResult?.rowCount ?? 0) > 0) {
-							clientId = appResult.rows[0].client_id;
-							console.log(`Found client ID for app ${spotifyAppName}`);
-						} else {
-							console.log(`No app found with name: ${spotifyAppName}`);
-						}
-					} else {
-						console.log('Bar has no Spotify app assigned, using default');
-						// Try to get default app
-						const defaultAppResult = await query(
-							'SELECT client_id, client_secret FROM clubfindr.spotify_apps WHERE app_name = $1',
-							['default']
-						);
-
-						if ((defaultAppResult?.rowCount ?? 0) > 0) {
-							clientId = defaultAppResult.rows[0].client_id;
-							spotifyAppName = 'default';
-							console.log('Using default Spotify app');
-						} else {
-							console.error('No default Spotify app found');
-						}
-					}
-
-					let spotify_access_token = barData.spotify_access_token
-						? decryptToken(barData.spotify_access_token)
-						: null;
-					const spotify_refresh_token = barData.spotify_refresh_token
-						? decryptToken(barData.spotify_refresh_token)
-						: null;
-
-					console.log(
-						'Checking Spotify tokens:',
-						`Access token: ${spotify_access_token ? 'exists' : 'missing'}`,
-						`Refresh token: ${spotify_refresh_token ? 'exists' : 'missing'}`
-					);
-
-					// Check if we should try to use native cookies method instead of cookieManager
-					// Right before constructing your response headers
-					if (spotify_access_token) {
-						console.log('Setting spotifyAccessToken with cookieManager');
-						cookieManager.set(cookies, 'spotifyAccessToken', spotify_access_token, {
-							path: '/',
-							httpOnly: true,
-							secure: true,
-							sameSite: 'strict',
-							maxAge: 60 * 60 // 1 hour
-						});
-					}
-
-					if (spotify_refresh_token) {
-						console.log('Setting spotifyRefreshToken with cookieManager');
-						cookieManager.set(cookies, 'spotifyRefreshToken', spotify_refresh_token, {
-							path: '/',
-							httpOnly: true,
-							secure: true,
-							sameSite: 'strict',
-							maxAge: 15552000 // 6 months
-						});
-					}
-
-					// AFTER setting the cookies, check if they're set correctly
-					console.log('Cookie check after setting:', {
-						spotifyAccessTokenCookie: cookies.get('spotifyAccessToken') ? 'exists' : 'missing',
-						spotifyRefreshTokenCookie: cookies.get('spotifyRefreshToken') ? 'exists' : 'missing'
-					});
-
-					// Now check if tokens exist and determine if auth is needed
-					if (!spotify_access_token || !spotify_refresh_token) {
-						console.log('Missing Spotify tokens, needs authentication');
-						needsSpotifyAuth = true;
-						redirectToSpotify = true;
-					} else {
-						// Check if tokens need refreshing
-						const oneHourAgo = new Date(Date.now() - 3600 * 1000);
-						if (!barData.updated_at || new Date(barData.updated_at) < oneHourAgo) {
-							console.log('Tokens may be expired, attempting to refresh');
-							try {
-								const newTokenData = await refreshSpotifyToken({
-									refreshToken: spotify_refresh_token
-								});
-
-								if (newTokenData.success && newTokenData.access_token) {
-									const newAccessToken = newTokenData.access_token;
-									spotify_access_token = newAccessToken;
-									const encryptedNewAccessToken = encryptToken(newAccessToken);
-									await query(
-										`UPDATE clubfindr.bars 
-										SET spotify_access_token = $1, updated_at = $2
-										WHERE id = $3`,
-										[encryptedNewAccessToken, new Date().toISOString(), barId]
-									);
-									console.log('Successfully refreshed Spotify tokens');
-								} else {
-									console.log('Failed to refresh tokens, needs re-authentication');
-									needsSpotifyAuth = true;
-									redirectToSpotify = true;
-								}
-							} catch (refreshError) {
-								console.error('Error refreshing Spotify token:', refreshError);
-								needsSpotifyAuth = true;
-								redirectToSpotify = true;
-							}
-						}
-					}
-					console.log('Token cookie debug:', {
-						hasAccessToken: !!spotify_access_token,
-						needsSpotifyAuth,
-						tokenLength: spotify_access_token ? spotify_access_token.length : 0
-					});
-					console.log('Setting cookies regardless of refresh status');
-					if (spotify_access_token) {
-						console.log('Setting Spotify access token cookie');
-						cookieManager.set(cookies, 'spotifyAccessToken', spotify_access_token, {
-							path: '/',
-							httpOnly: true,
-							secure: true,
-							sameSite: 'strict',
-							maxAge: 60 * 60 // 1 hour
-						});
-					}
-
-					if (spotify_refresh_token) {
-						console.log('Setting Spotify refresh token cookie');
-						cookieManager.set(cookies, 'spotifyRefreshToken', spotify_refresh_token, {
-							path: '/',
-							httpOnly: true,
-							secure: true,
-							sameSite: 'strict',
-							maxAge: 15552000 // 6 months in seconds
-						});
-					}
-					// Set Spotify tokens if available and valid
-					if (spotify_access_token && !needsSpotifyAuth) {
-						console.log('Setting valid Spotify tokens in cookies');
-						cookieManager.set(cookies, 'spotifyAccessToken', spotify_access_token, {
-							path: '/',
-							httpOnly: true,
-							secure: true,
-							sameSite: 'strict',
-							maxAge: 60 * 60 // 1 hour
-						});
-
-						if (spotify_refresh_token) {
-							cookieManager.set(cookies, 'spotifyRefreshToken', spotify_refresh_token, {
-								path: '/',
-								httpOnly: true,
-								secure: true,
-								sameSite: 'strict',
-								maxAge: 15552000 // 6 months in seconds
-							});
-						}
-					} else {
-						// Set a flag that Spotify auth is needed
-						console.log('Setting needsSpotifyAuth cookie');
-						cookies.set('needsSpotifyAuth', 'true', {
-							path: '/',
-							secure: true,
-							sameSite: 'lax',
-							maxAge: 60 * 60 * 24 * 1 // 1 day
-						});
-
-						// If Spotify auth is needed and we have a client ID, prepare auth data
-						if (needsSpotifyAuth && clientId) {
-							console.log('Spotify authentication needed, preparing OAuth flow');
-
-							// Store client ID in a cookie so we can use it on the /bars page
-							cookies.set('spotifyClientId', clientId, {
-								path: '/',
-								httpOnly: false, // Needs to be accessible to client-side JS
-								secure: true,
-								sameSite: 'lax',
-								maxAge: 3600 // 1 hour
-							});
-
-							// Also store app name
-							cookies.set('spotifyAppName', spotifyAppName, {
-								path: '/',
-								httpOnly: false, // Needs to be accessible to client-side JS
-								secure: true,
-								sameSite: 'lax',
-								maxAge: 3600 // 1 hour
-							});
-
-							// Generate state key for tracking
-							const stateKey = Date.now().toString();
-
-							// Prepare data for state storage
-							await query(
-								'INSERT INTO clubfindr.oauth_states (key, state_data, created_at, expires_at) VALUES ($1, $2, $3, $4)',
-								[
-									stateKey,
-									JSON.stringify({
-										source: 'bar-login',
-										barId,
-										city: normalizedCityName
-									}),
-									new Date().toISOString(),
-									new Date(Date.now() + 3600 * 1000).toISOString() // 1 hour expiry
-								]
-							);
-
-							// Build the authorization URL
-							const redirectUri = encodeURIComponent(
-								PUBLIC_SPOTIFY_REDIRECT_BAR_URI || 'https://www.clubfindr.com/spotify/login'
-							);
-
-							const scopes = [
-								'user-read-playback-state',
-								'user-read-currently-playing',
-								'playlist-read-private',
-								'playlist-read-collaborative',
-								'user-read-recently-played',
-								'user-top-read',
-								'user-library-read',
-								'user-read-email',
-								'user-read-private'
-							].join('%20');
-
-							authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&state=${stateKey}&scope=${scopes}&show_dialog=true`;
-						}
-					}
+				for (const cookie of allCookies) {
+					// Basic cookie serialization
+					const cookieValue = `${cookie.name}=${cookie.value}; Path=/`;
+					headers.append('Set-Cookie', cookieValue);
+					console.log(`Added cookie to response: ${cookie.name}`);
 				}
 
-				// If we need to redirect to Spotify, do it immediately
-				if (redirectToSpotify && authUrl) {
-					console.log('=== Sending Spotify redirect response ===', { authUrl });
-					return new Response(
-						JSON.stringify({
-							success: true,
-							needsSpotifyAuth: true,
-							authUrl: authUrl
-						}),
-						{
-							status: 200
-						}
-					);
-				} else {
-					// Otherwise continue to the bars page
-					// Otherwise continue to the bars page
-					console.log('=== Sending successful login response, redirecting to /bars ===');
-
-					// Create headers and add cookies
-					const headers = new Headers();
-					headers.append('Content-Type', 'application/json');
-
-					// Get all cookies and explicitly set them in response headers
-					const allCookies = cookies.getAll();
-					console.log(`Adding ${allCookies.length} cookies to response headers`);
-
-					for (const cookie of allCookies) {
-						// Basic cookie serialization
-						const cookieValue = `${cookie.name}=${cookie.value}; Path=/`;
-						headers.append('Set-Cookie', cookieValue);
-						console.log(`Added cookie to response: ${cookie.name}`);
-					}
-
-					return new Response(JSON.stringify({ success: true, redirectUrl: '/bars' }), {
-						status: 200,
-						headers
-					});
-				}
+				return new Response(JSON.stringify({ success: true, redirectUrl: '/bars' }), {
+					status: 200,
+					headers
+				});
 			} else {
 				console.log('Bar manager password incorrect');
 			}

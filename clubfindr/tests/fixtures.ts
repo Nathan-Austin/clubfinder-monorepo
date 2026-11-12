@@ -6,7 +6,6 @@ import {
 	type Page
 } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
-import { isFlagEnabled } from '../src/lib/flagValue';
 
 export type { Page };
 
@@ -24,16 +23,6 @@ export function testPassword() {
 		.replace(/[^A-Za-z]/g, '');
 	return `Tp1!${letters}`;
 }
-
-/**
- * SPOTIFY_CONNECT_ENABLED as the server under test sees it. playwright.config.ts starts the
- * server with this process's environment (node --env-file never overrides it), so
- *   SPOTIFY_CONNECT_ENABLED=false pnpm test
- * runs the whole suite with per-account Spotify connect switched off. Specs that only make
- * sense in one mode skip themselves in the other (see tests/spotify-connect-flag.spec.ts).
- * Parsed with the server's own isFlagEnabled, so "0", "off", "no" … all count as off.
- */
-export const SPOTIFY_CONNECT_ENABLED = isFlagEnabled(process.env.SPOTIFY_CONNECT_ENABLED, true);
 
 /**
  * Shared fixture for the e2e suite.
@@ -139,33 +128,16 @@ export async function login(page: Page, role: Role) {
 }
 
 /**
- * Offline, the bar dashboard shows a "Spotify Authentication Required" dialog whose only
- * button redirects to Spotify. It covers the page, so the tests remove its backdrop.
- *
- * With SPOTIFY_CONNECT_ENABLED off there is no such dialog (the dashboard never asks a venue
- * to connect Spotify), so this does nothing and the caller carries on. Prefer
- * openBarDashboard, which also waits for the page to be ready.
- */
-export async function dismissSpotifyDialog(page: Page) {
-	if (!SPOTIFY_CONNECT_ENABLED) return;
-	await page.locator('.modal-backdrop').first().waitFor({ state: 'attached' });
-	await page.evaluate(() =>
-		document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove())
-	);
-}
-
-/**
  * Logs in as the bar manager and waits until /bars is ready to be used: the artists picker has
  * finished its own request, which means the page has hydrated and the session cookie is live.
  *
  * Both matter. Clicking before hydration does nothing (the handler is not attached yet), and
  * the first page.request call made straight after login() can go out before the API context
- * has the session cookie, which answers 403 once and then succeeds. Waiting on the Spotify
- * dialog used to hide the first problem, but only while SPOTIFY_CONNECT_ENABLED is on.
+ * has the session cookie, which answers 403 once and then succeeds. Waiting on the old Spotify
+ * reconnect dialog used to hide the first problem.
  */
 export async function openBarDashboard(page: Page) {
 	await login(page, 'bar');
-	await dismissSpotifyDialog(page);
 	await expect(
 		page
 			.locator(

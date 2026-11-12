@@ -47,8 +47,6 @@ export type Locals = {
 	address?: string;
 	selectedGenre?: string;
 	searchQuery?: string;
-	spotifyAccessToken?: string;
-	spotifyRefreshToken?: string;
 	cookies?: Record<string, string>;
 	setCookies?: Record<string, string>;
 	user?: {
@@ -57,20 +55,6 @@ export type Locals = {
 		email: string;
 		role?: string;
 	};
-};
-
-export type PlaylistWithArtists = Playlist & {
-	artistIds: string[];
-};
-
-type PlaylistTrack = {
-	track: {
-		artists: Artist[];
-	};
-};
-
-export type PlaylistTracks = {
-	items: PlaylistTrack[];
 };
 
 export type Artist = {
@@ -86,20 +70,6 @@ export type Artist = {
 	selected?: boolean;
 };
 
-export type RecentlyPlayedTrack = {
-	album?: {
-		images?: {
-			url: string;
-			width: number;
-		}[];
-		external_urls: { spotify: string };
-	};
-	artists: { id: string; name: string }[];
-	id: string;
-	name: string;
-	external_urls?: { spotify: string }; // Make sure this remains optional
-};
-
 export type Artist_search = {
 	genres: string[];
 	id: string;
@@ -112,19 +82,6 @@ export type Artist_search = {
 	selected?: boolean;
 	spotifyLink: string; // New property to store the Spotify link
 };
-
-export interface SpotifyUserData {
-	id?: string; // Spotify user ID
-	username?: string; // Optional username (could be null if not available)
-	email?: string; // Optional email address (could be null if not available)
-	accessToken: string; // Spotify access token
-	refreshToken: string; // Spotify refresh token
-}
-
-export interface CreateSessionParams {
-	sessionId: string; // UUID string for the session
-	spotifyUserData: SpotifyUserData; // The user data object containing Spotify info
-}
 
 export type DbDataRow = {
 	club_name: string;
@@ -161,60 +118,6 @@ export type Track = {
 };
 
 // Represents an item in the Spotify playback queue
-export type QueueItem = {
-	track: Track;
-};
-
-// Represents the currently playing track information from Spotify
-export type CurrentlyPlaying = {
-	item: Track; // The currently playing track
-	is_playing: boolean; // Whether the track is currently playing
-	progress_ms: number; // Progress into the currently playing track
-	context?: {
-		type: string; // Context type (e.g., playlist, album)
-		uri: string; // Spotify URI of the context
-	};
-};
-
-// Represents the playback state from Spotify (more comprehensive)
-export type PlaybackState = {
-	device: {
-		id: string;
-		is_active: boolean;
-		is_private_session: boolean;
-		is_restricted: boolean;
-		name: string;
-		type: string;
-		volume_percent: number;
-	};
-	repeat_state: 'off' | 'track' | 'context';
-	shuffle_state: boolean;
-	context: {
-		uri: string;
-		href: string;
-		type: string;
-	};
-	timestamp: number;
-	progress_ms: number;
-	is_playing: boolean;
-	item: Track;
-	actions: {
-		disallows: {
-			pausing: boolean;
-			// More actions can be added based on Spotify's API
-		};
-	};
-};
-
-// Represents the full response from the Spotify API for the current playback state
-export type SpotifyPlaybackResponse = {
-	currently_playing: CurrentlyPlaying;
-	queue: QueueItem[];
-	recently_played: RecentlyPlayedTrack[];
-	top_artists: Artist[];
-	top_playlists: Playlist[];
-	common_genres: string[];
-};
 export type Album = {
 	id: string;
 	name: string;

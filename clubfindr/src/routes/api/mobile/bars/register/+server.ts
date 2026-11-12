@@ -6,8 +6,6 @@ import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/cityName';
 import { hashPassword } from '$lib/server/passwordUtils';
-import { addBarToSpotifyApp } from '$lib/spotifyService';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const {
@@ -19,23 +17,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		postcode,
 		cityName,
 		website,
-		musicService: requestedMusicService,
 		password,
-		musicServiceEmail: requestedMusicServiceEmail,
 		smokingAllowed = false,
 		barTypes = []
 	} = await request.json();
 
-	// SPOTIFY_CONNECT_ENABLED off: no music service is asked for, and whatever an older app
-	// version still sends is neither stored nor passed to spotify_service (add_bar).
-	const spotifyConnectEnabled = isSpotifyConnectEnabled();
-	const musicService: string | null =
-		spotifyConnectEnabled && typeof requestedMusicService === 'string' && requestedMusicService
-			? requestedMusicService
-			: null;
-	const musicServiceEmail: string | null = spotifyConnectEnabled
-		? requestedMusicServiceEmail || null
-		: null;
+	// A venue names no music service any more (venue Spotify connect is retired); a
+	// musicService / musicServiceEmail an older app version still sends is ignored.
 
 	// Generate confirmation code
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase();
@@ -107,15 +95,13 @@ export const POST: RequestHandler = async ({ request }) => {
 	                 address = $5,
 	                 postcode = $6,
 	                 website = $7,
-	                 music_service = $8,
-	                 city = $9,
-	                 confirmation_code = $10,
-	                 expires_at = $11,
-	                 password_hash = $12,
-	                 spotify_email = $13,
-	                 smoking_allowed = $15,
-	                 bar_types = $16
-	             WHERE general_email = $14 
+	                 city = $8,
+	                 confirmation_code = $9,
+	                 expires_at = $10,
+	                 password_hash = $11,
+	                 smoking_allowed = $13,
+	                 bar_types = $14
+	             WHERE general_email = $12
 	             RETURNING id`,
 					[
 						userId,
@@ -125,12 +111,10 @@ export const POST: RequestHandler = async ({ request }) => {
 						address,
 						postcode,
 						website,
-						musicService,
 						normalizedCityName,
 						confirmationCode,
 						expiresAt,
 						hashedPassword,
-						musicServiceEmail || null, // Use provided musicServiceEmail or null
 						email,
 						smokingAllowed,
 						barTypes
@@ -147,16 +131,14 @@ export const POST: RequestHandler = async ({ request }) => {
 	                phone, 
 	                address, 
 	                postcode, 
-	                website, 
-	                music_service, 
-	                city, 
-	                confirmation_code, 
+	                website,
+	                city,
+	                confirmation_code,
 	                expires_at,
 	                password_hash,
-	                spotify_email,
 	                smoking_allowed,
 	                bar_types
-	            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	            RETURNING id`,
 					[
 						userId,
@@ -167,12 +149,10 @@ export const POST: RequestHandler = async ({ request }) => {
 						address,
 						postcode,
 						website,
-						musicService,
 						normalizedCityName,
 						confirmationCode,
 						expiresAt,
 						hashedPassword,
-						musicServiceEmail || null, // Use provided musicServiceEmail or null
 						smokingAllowed,
 						barTypes
 					]
@@ -191,49 +171,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			message: 'Registration successful! Please check your email for the confirmation code.'
 		});
 
-		// Handle Spotify integration and emails asynchronously
+		// Mail goes out in the background, after the answer
 		(async () => {
-			// If Spotify integration is requested, register with Spotify service
-			// (musicService may be null: a throw here would skip the confirmation e-mail below)
-			if (musicService?.toLowerCase() === 'spotify' && musicServiceEmail) {
-				try {
-					console.log(`Attempting to register bar ${barId} with Spotify service`);
-
-					// Use the centralized function instead of direct fetch
-					const spotifyResult = await addBarToSpotifyApp(barId, musicServiceEmail);
-
-					if (!spotifyResult.status || spotifyResult.status !== 'success') {
-						console.error('Error registering with Spotify service:', spotifyResult);
-
-						// Send admin notification about Spotify integration failure
-						await sendEmail(
-							'admin@clubfindr.com',
-							'Spotify Integration Failed for Bar',
-							`Spotify integration failed for bar ${businessName} (ID: ${barId}).\n
-                    Spotify Email: ${musicServiceEmail}\n
-                    Error: ${JSON.stringify(spotifyResult)}`
-						);
-					}
-				} catch (spotifyError) {
-					// Log error but don't fail the registration
-					console.error('Exception during Spotify service integration:', spotifyError);
-
-					// Send admin notification about Spotify integration exception
-					await sendEmail(
-						'admin@clubfindr.com',
-						'Spotify Integration Exception for Bar',
-						`Spotify integration exception for bar ${businessName} (ID: ${barId}).\n
-                  Spotify Email: ${musicServiceEmail}\n
-                  Error: ${
-										spotifyError instanceof Error ? spotifyError.message : String(spotifyError)
-									}`
-					);
-				}
-			}
-
-			// Delay emails by 20 seconds to allow music service to complete
-			await new Promise((resolve) => setTimeout(resolve, 20000));
-
 			// Send a notification to admin (wrapped in try-catch so it doesn't block confirmation email)
 			try {
 				await sendEmail(
@@ -243,9 +182,7 @@ export const POST: RequestHandler = async ({ request }) => {
         Business Name: ${businessName}\n
         Contact Person: ${contactPerson}\n
         Email: ${email}\n
-        City: ${cityName}\n
-        Music Service: ${musicService ?? 'none'}\n
-        ${musicServiceEmail ? `Spotify Email: ${musicServiceEmail}` : ''}`
+        City: ${cityName}`
 				);
 			} catch (adminEmailError) {
 				console.error('Error sending admin notification email:', adminEmailError);
@@ -265,7 +202,7 @@ We have received the following information:
 Business Name: ${businessName}
 Contact Person: ${contactPerson}
 City: ${cityName}
-${musicService === 'spotify' ? 'Music Service: Spotify\n' : ''}
+
 Your confirmation code is: ${confirmationCode}
 
 Click the link below to confirm your registration:

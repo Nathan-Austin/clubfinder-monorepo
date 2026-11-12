@@ -1,20 +1,14 @@
 <!-- routes/register/+page.svelte -->
 <!-- This file is the registration page for a new bar in the ClubFindr system. -->
-<!-- It includes the registration form, reCAPTCHA verification, and integration with the Spotify service. -->
+<!-- It includes the registration form and reCAPTCHA verification. -->
 
 <script lang="ts">
 	import { PUBLIC_MAPS_API_KEY, PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { validatePassword } from '$lib/passwordUtils';
-	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import type { CitiesData, City } from '$lib/types/city';
 	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
-	import type { PageProps } from './$types';
-
-	let { data }: PageProps = $props();
-	/** SPOTIFY_CONNECT_ENABLED: off drops the music service fields (+page.server.ts) */
-	const spotifyConnectEnabled = $derived(data.spotifyConnectEnabled);
 
 	const siteKey = PUBLIC_RECAPTCHA_SITE_KEY;
 	let isVerified = $state(false);
@@ -29,20 +23,16 @@
 	let address = $state('');
 	let postcode = $state('');
 	let website = $state('');
-	let musicService = $state('');
 	let agreeToTerms = $state(false);
 	let agreeToPrivacyPolicy = $state(false);
 	let password = $state('');
 	let confirmPassword = $state('');
 	let passwordErrors: string[] = $state([]);
 	let predictions: string[] = $state([]);
-	let appleClientId = '';
-	let deezerAppId = '';
 	let isSubmitting = $state(false);
 	let phoneError = $state('');
 	let emailError = $state('');
 	let businessNameError = $state('');
-	let musicServiceEmail = $state('');
 
 	let smokingAllowed = $state(false);
 	let barTypes: string[] = $state([]);
@@ -60,7 +50,6 @@
 		{ value: 'speakeasy', label: 'Speakeasy' }
 	];
 
-	const clientId = PUBLIC_SPOTIFY_CLIENT_ID;
 	const mapsApiKey = PUBLIC_MAPS_API_KEY;
 
 	// Function to validate email
@@ -271,10 +260,7 @@
 					cityName: selectedCityName,
 					postcode,
 					website,
-					// Not sent with Spotify connect off; the endpoint would ignore them anyway
-					musicService: spotifyConnectEnabled ? musicService : undefined,
 					password,
-					musicServiceEmail: spotifyConnectEnabled ? musicServiceEmail : undefined,
 					smokingAllowed,
 					barTypes
 				})
@@ -283,36 +269,8 @@
 			const result = await registerResponse.json();
 
 			if (result.success) {
-				if (musicService === 'Spotify') {
-					const scopes = [
-						'user-read-playback-state',
-						'user-read-currently-playing',
-						'playlist-read-private',
-						'playlist-read-collaborative',
-						'user-read-recently-played',
-						'user-top-read',
-						'user-library-read',
-						'user-read-email'
-					].join(' ');
-					const redirectUri = encodeURIComponent('https://www.clubfindr.com/register/login');
-					const authorizationUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
-						scopes
-					)}&show_dialog=true`;
-					window.location.href = authorizationUrl;
-				} else if (musicService === 'Apple Music') {
-					const redirectUri = encodeURIComponent('https://www.clubfindr.com/register/login/apple');
-					const authorizationUrl = `https://appleid.apple.com/auth/authorize?client_id=${appleClientId}&response_type=code&redirect_uri=${redirectUri}&scope=name%20email&response_mode=form_post`;
-					window.location.href = authorizationUrl;
-				} else if (musicService === 'Deezer') {
-					const redirectUri = encodeURIComponent('https://www.clubfindr.com/register/login/deezer');
-					const authorizationUrl = `https://connect.deezer.com/oauth/auth.php?app_id=${deezerAppId}&redirect_uri=${redirectUri}&perms=basic_access,email,offline_access`;
-					window.location.href = authorizationUrl;
-				} else {
-					// No streaming sign-in to go through (Spotify connect off, or a service
-					// without one): straight on to the code that was just e-mailed. Before
-					// this branch existed, those registrations stayed on the form.
-					window.location.href = `/register/confirm?email=${encodeURIComponent(email)}`;
-				}
+				// Straight on to the code that was just e-mailed
+				window.location.href = `/register/confirm?email=${encodeURIComponent(email)}`;
 			} else {
 				alert(result.message || 'Registration failed. Please try again.');
 			}
@@ -565,38 +523,6 @@
 				</div>
 			{/if}
 		</div>
-
-		{#if spotifyConnectEnabled}
-			<div class="form-group">
-				<label for="musicService">
-					Preferred Music Service:
-					<select id="musicService" bind:value={musicService} required>
-						<option value="">Select a music service</option>
-						<option value="Spotify">Spotify</option>
-						<option value="Apple Music">Apple Music</option>
-						<option value="Soundcloud">Soundcloud</option>
-						<option value="Other">Other</option>
-					</select>
-				</label>
-			</div>
-
-			<div class="form-group">
-				<label for="musicServiceEmail">
-					Email associated with Music Service:
-					<input
-						type="email"
-						id="musicServiceEmail"
-						bind:value={musicServiceEmail}
-						oninput={() => validateEmail(musicServiceEmail)}
-						class:error={emailError}
-						required
-					/>
-					{#if emailError}
-						<span class="error-message">{emailError}</span>
-					{/if}
-				</label>
-			</div>
-		{/if}
 
 		<div class="consent-group">
 			<label class="checkbox-label">

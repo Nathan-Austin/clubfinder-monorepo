@@ -1,12 +1,4 @@
-import {
-	test,
-	expect,
-	login,
-	acceptCookies,
-	USERS,
-	SPOTIFY_CONNECT_ENABLED,
-	testPassword
-} from './fixtures';
+import { test, expect, login, acceptCookies, USERS, testPassword } from './fixtures';
 
 test.describe('login', () => {
 	test('regular user lands on /users-home', async ({ page, pageErrors }) => {
@@ -28,14 +20,9 @@ test.describe('login', () => {
 	test('bar manager lands on /bars', async ({ page }) => {
 		await login(page, 'bar');
 		await expect(page.locator('h1').first()).toContainText("The Copper Lantern's Music Insights");
-		if (SPOTIFY_CONNECT_ENABLED) {
-			// Offline there is no Spotify session, so the dashboard asks to reconnect
-			await expect(page.getByText('Spotify Authentication Required')).toBeVisible();
-		} else {
-			// With connect off a venue is never asked for Spotify (KNOWN_ISSUES 4)
-			await expect(page.getByText('Spotify Authentication Required')).toHaveCount(0);
-		}
-		// Either way the venue manages its events and artists
+		// A venue is never asked for Spotify (KNOWN_ISSUES 4; venue connect is retired)
+		await expect(page.getByText('Spotify Authentication Required')).toHaveCount(0);
+		// It manages its events and artists
 		await expect(page.getByTestId('venue-artists')).toBeVisible();
 	});
 

@@ -4,9 +4,7 @@
 
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { RecentlyPlayedTrack } from '$lib/$types';
 	import { onMount, untrack } from 'svelte';
-	import Chart from 'chart.js/auto';
 	import { goto } from '$app/navigation';
 	import BarDetailsModal, { type BarDetails } from './BarDetailsModal.svelte';
 	import BarEventsSection from './BarEventsSection.svelte';
@@ -19,25 +17,12 @@
 	let { data }: Props = $props();
 	const currentRole = 'bar';
 
-	let currentlyPlaying = $derived(data.currentlyPlaying || null);
-	let nextTracks = $derived(data.nextTracks || []);
-	let recentlyPlayedTracks: RecentlyPlayedTrack[] = $derived(data.recentlyPlayedTracks || []);
-	let topArtists = $derived(data.topArtists || []);
-	let topPlaylists = $derived(data.playlists || []);
-	let commonGenres = $derived(data.commonGenres || []);
 	// Editable copy of the name (updated after the details form is saved)
 	// svelte-ignore state_referenced_locally
 	let barName = $state(data.barName || null);
-	let loggedOut: boolean = $derived(data.loggedOut ?? false);
-	let showModal = $state(false);
 	let showBarDetailsModal = $state(false);
-	let genreChart: Chart | undefined = $state.raw();
 	let hasDualRole = $state(false);
 	let error: string | null = $derived(data.error ?? null);
-	/** SPOTIFY_CONNECT_ENABLED: off hides every Spotify panel on the dashboard */
-	let spotifyConnectEnabled = $derived(data.spotifyConnectEnabled ?? true);
-	/** True once there is a Spotify session to show panels for */
-	let showSpotifyPanels = $derived(spotifyConnectEnabled && !loggedOut);
 
 	// Check if we can access the barId directly from data
 	let barId: string = $derived(data.barId ?? '');
@@ -77,25 +62,6 @@
 		}
 	}
 
-	// Function to handle Spotify API errors
-	async function handleSpotifyApiError(error: { status?: number; message?: string }) {
-		console.error('Spotify API error:', error);
-
-		// Check if this is an authentication error
-		if (
-			error.status === 401 ||
-			error.message?.includes('token') ||
-			error.message?.includes('unauthorized') ||
-			error.message?.includes('auth')
-		) {
-			// Show the reconnect modal
-			showModal = true;
-			return true; // Error handled
-		}
-
-		return false; // Not handled
-	}
-
 	function getCookie(name: string) {
 		const value = `; ${document.cookie}`;
 		const parts = value.split(`; ${name}=`);
@@ -109,12 +75,6 @@
 	}
 
 	onMount(async () => {
-		// Check for authentication issues (only while Spotify connect is on: without it the
-		// dashboard manages events and artists and never needs a Spotify session)
-		if (loggedOut && spotifyConnectEnabled) {
-			showModal = true;
-		}
-
 		// Check for dual role
 		const cookies = document.cookie.split(';');
 		for (let cookie of cookies) {
@@ -124,53 +84,6 @@
 				break;
 			}
 		}
-
-		// Setup the genre chart if we have data
-		if (commonGenres?.length) {
-			const canvasElement = document.getElementById('genreChart');
-			const ctx =
-				canvasElement instanceof HTMLCanvasElement ? canvasElement.getContext('2d') : null;
-			if (ctx) {
-				genreChart = new Chart(ctx, {
-					type: 'bar',
-					data: {
-						labels: commonGenres.map((g) => g.genre),
-						datasets: [
-							{
-								label: 'Top Genres',
-								data: commonGenres.map((g) => g.count),
-								backgroundColor: 'rgba(75, 192, 192, 0.2)',
-								borderColor: 'rgba(75, 192, 192, 1)',
-								borderWidth: 1
-							}
-						]
-					},
-					options: {
-						scales: {
-							y: {
-								beginAtZero: true
-							}
-						}
-					}
-				});
-			}
-		}
-
-		// Listen for unhandled promise rejections - often Spotify API errors
-		window.addEventListener('unhandledrejection', async (event) => {
-			if (
-				event.reason &&
-				(event.reason.message?.includes('Spotify') ||
-					event.reason.message?.includes('token') ||
-					event.reason.message?.includes('unauthorized') ||
-					event.reason.message?.includes('auth'))
-			) {
-				const handled = await handleSpotifyApiError(event.reason);
-				if (handled) {
-					event.preventDefault();
-				}
-			}
-		});
 
 		// Fetch bar details if needed
 		try {
@@ -221,16 +134,6 @@
 			console.error('Error fetching bar details:', error);
 		}
 	});
-
-	function closeModal() {
-		showModal = false;
-		// Redirect to Spotify reauth
-		if (data.authUrl) {
-			window.location.href = data.authUrl;
-		} else {
-			reconnectSpotify();
-		}
-	}
 
 	function openBarDetailsModal() {
 		showBarDetailsModal = true;
@@ -341,15 +244,6 @@
 		}
 	}
 
-	// Keep the chart in sync with the genre data (was afterUpdate)
-	$effect(() => {
-		if (genreChart && commonGenres?.length) {
-			genreChart.data.labels = commonGenres.map((g) => g.genre);
-			genreChart.data.datasets[0].data = commonGenres.map((g) => g.count);
-			genreChart.update();
-		}
-	});
-
 	function switchRole() {
 		if (currentRole === 'bar') {
 			goto('/promoter-home');
@@ -357,23 +251,7 @@
 			goto('/bars');
 		}
 	}
-
-	function reconnectSpotify() {
-		window.location.href = `/spotify/reauth?returnTo=${encodeURIComponent(
-			window.location.pathname
-		)}`;
-	}
 </script>
-
-{#if showModal}
-	<div class="modal-backdrop">
-		<div class="modal">
-			<h2>Spotify Authentication Required</h2>
-			<p>Your Spotify session has expired. Please reconnect to continue using the dashboard.</p>
-			<button onclick={closeModal}>Reconnect Spotify</button>
-		</div>
-	</div>
-{/if}
 
 {#if showBarDetailsModal}
 	<BarDetailsModal
@@ -387,23 +265,13 @@
 	/>
 {/if}
 
-{#if error && spotifyConnectEnabled}
+{#if error}
 	<div class="error-message">
 		<p>{error}</p>
-		<button onclick={reconnectSpotify} class="reconnect-button"> Reconnect Spotify </button>
 	</div>
 {/if}
 
 <main class="dashboard-container">
-	{#if spotifyConnectEnabled}
-		<a href="https://www.spotify.com" target="_blank">
-			<img
-				src="/lib/2024-spotify-full-logo/Full_Logo_White_CMYK.svg"
-				alt="Spotify Logo"
-				class="spotify-logo mr-4"
-			/>
-		</a>
-	{/if}
 	<header class="dashboard-header">
 		<h1>{barName}'s Music Insights</h1>
 
@@ -418,14 +286,9 @@
 			{/if}
 		</div>
 
-		<p>Explore how your music choices are shaping the vibe at your bar.</p>
+		<p>Tell Clubfindr what you play and what is on, so the right people find you.</p>
 
 		<div class="dashboard-actions">
-			{#if spotifyConnectEnabled}
-				<button onclick={reconnectSpotify} class="spotify-reconnect-btn">
-					Reconnect Spotify
-				</button>
-			{/if}
 			<button onclick={openBarDetailsModal} class="bar-details-btn"> Update Bar Details </button>
 		</div>
 	</header>
@@ -436,103 +299,6 @@
 				Switch to {currentRole === 'bar' ? 'Promoter' : 'Bar Manager'} Dashboard
 			</button>
 		</div>
-	{/if}
-
-	{#if showSpotifyPanels}
-		<section class="current-next-container">
-			<div class="currently-playing">
-				<h2>Currently Playing</h2>
-				<div class="current-track">
-					{#if currentlyPlaying}
-						<img
-							src={currentlyPlaying.album.images[0].url}
-							alt="Album cover for {currentlyPlaying.name}"
-						/>
-						<div class="track-details">
-							<h3>{currentlyPlaying.name}</h3>
-							<p>{currentlyPlaying.artists.map((a) => a.name).join(', ')}</p>
-						</div>
-					{:else}
-						<p>No track is currently playing.</p>
-					{/if}
-				</div>
-			</div>
-
-			<div class="upcoming-tracks">
-				<h2>Next Up</h2>
-				<ul class="next-tracks">
-					{#if nextTracks && nextTracks.length > 0}
-						{#each nextTracks as track, i (i)}
-							<li class="queue-track">
-								<!-- Add the album image -->
-								{#if track.album?.images && track.album.images.length > 0}
-									<img
-										src={track.album.images[track.album.images.length - 1].url}
-										alt="Album cover for {track.name}"
-										class="queue-track-image"
-									/>
-								{/if}
-								<div class="queue-track-info">
-									<span class="track-name">{track.name}</span>
-									<span class="track-artist">by {track.artists.map((a) => a.name).join(', ')}</span>
-								</div>
-							</li>
-						{/each}
-					{:else}
-						<li>No upcoming tracks in queue</li>
-					{/if}
-				</ul>
-			</div>
-		</section>
-
-		<section class="side-container">
-			<div class="top-artists-playlists">
-				<div class="top-artists">
-					<h2>Top Artists</h2>
-					<ul>
-						{#each topArtists.slice(0, 10) as artist (artist.id)}
-							<li>{artist.name}</li>
-						{/each}
-					</ul>
-				</div>
-				<div class="top-playlists">
-					<h2>Top Playlists</h2>
-					<ul>
-						{#each topPlaylists.slice(0, 5) as playlist (playlist.id)}
-							<li>{playlist.name}</li>
-						{/each}
-					</ul>
-				</div>
-			</div>
-
-			<div class="recently-played">
-				<h2>Recently Played</h2>
-				<ul>
-					{#each recentlyPlayedTracks.slice(0, 5) as track, i (i)}
-						<li>
-							<img src={track.album?.images?.[0]?.url} alt="Album cover for {track.name}" />
-							<div>
-								<p>{track.name} by {track.artists.map((a) => a.name).join(', ')}</p>
-							</div>
-						</li>
-					{/each}
-				</ul>
-			</div>
-		</section>
-
-		<section class="inline-graphs">
-			<section class="genre-insights">
-				<h2>Genre Insights</h2>
-				<canvas id="genreChart"></canvas>
-			</section>
-
-			<section class="placeholder-section">
-				<h2>Coming Soon: User Search Insights</h2>
-				<div class="placeholder">
-					Placeholder for future graph of what Clubfindr users are searching for in your area
-				</div>
-			</section>
-		</section>
 	{/if}
 
 	<VenueArtistsSection
@@ -577,10 +343,7 @@
 	.dashboard-container {
 		padding: 2rem;
 	}
-	.spotify-logo {
-		width: 150px;
-		margin-right: 1rem;
-	}
+
 	/* Header Styles */
 	.dashboard-header {
 		text-align: center;
@@ -630,13 +393,6 @@
 		color: #1565c0;
 		border: 1px solid #bbdefb;
 	}
-
-	/* Currently Playing and Upcoming Tracks Container */
-	.current-next-container {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 2rem;
-	}
 	.error-message {
 		background-color: #ffebee;
 		color: #c62828;
@@ -647,30 +403,6 @@
 		justify-content: space-between;
 		align-items: center;
 	}
-
-	.reconnect-button {
-		background-color: #1db954;
-		color: white;
-		border: none;
-		padding: 0.5rem 1rem;
-		border-radius: 4px;
-		cursor: pointer;
-	}
-
-	.spotify-reconnect-btn {
-		background-color: transparent;
-		color: #1db954;
-		border: 1px solid #1db954;
-		padding: 0.5rem 1rem;
-		border-radius: 20px;
-		cursor: pointer;
-		font-size: 0.8rem;
-	}
-
-	.spotify-reconnect-btn:hover {
-		background-color: rgba(29, 185, 84, 0.1);
-	}
-
 	.bar-details-btn {
 		background-color: transparent;
 		color: #2196f3;
@@ -683,52 +415,6 @@
 
 	.bar-details-btn:hover {
 		background-color: rgba(33, 150, 243, 0.1);
-	}
-
-	.currently-playing {
-		width: 45%;
-		text-align: left;
-	}
-	.currently-playing h2 {
-		width: 45%;
-		text-align: left;
-		font-size: 1.2rem;
-	}
-
-	.upcoming-tracks {
-		width: 35%;
-		text-align: left;
-	}
-	.upcoming-tracks h2 {
-		width: 35%;
-		text-align: left;
-		font-size: 1.2rem;
-	}
-
-	.current-track img {
-		width: 150px;
-		height: 150px;
-		border-radius: 8px;
-		margin-bottom: 1rem;
-	}
-
-	.track-details h3 {
-		font-size: 1.5rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.track-details p {
-		color: #777;
-	}
-
-	.next-tracks {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
-
-	.next-tracks li {
-		margin-bottom: 0.5rem;
 	}
 	.role-switcher {
 		padding: 0.5rem;
@@ -746,170 +432,9 @@
 		cursor: pointer;
 		transition: background-color 0.2s;
 	}
-	.queue-track {
-		display: flex;
-		align-items: center;
-		margin-bottom: 0.75rem;
-	}
-
-	.queue-track-image {
-		width: 40px;
-		height: 40px;
-		border-radius: 4px;
-		margin-right: 0.75rem;
-	}
-
-	.queue-track-info {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.track-name {
-		font-weight: 500;
-	}
-
-	.track-artist {
-		font-size: 0.9rem;
-		color: #777;
-	}
-
 	.switcher-button:hover {
 		background-color: #e0e0e0;
 	}
-	/* Section Title Styling */
-	h2 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
-		position: relative;
-		padding-bottom: 0.5rem;
-	}
-
-	h2::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		bottom: 0;
-		width: 100%;
-		height: 2px;
-		background-color: #ddd;
-	}
-	/* Side Container */
-	.side-container {
-		display: flex;
-		justify-content: space-between;
-	}
-
-	/* Top Artists and Playlists */
-	.top-artists-playlists {
-		width: 35%;
-		text-align: left;
-	}
-
-	.top-artists,
-	.top-playlists {
-		margin-bottom: 1rem;
-	}
-
-	.top-artists ul,
-	.top-playlists ul {
-		list-style: none;
-		padding: 0;
-	}
-
-	.top-artists li,
-	.top-playlists li {
-		margin-bottom: 0.5rem;
-	}
-
-	/* Recently Played */
-	.recently-played {
-		width: 35%;
-		text-align: left;
-	}
-
-	.recently-played ul {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
-
-	.recently-played li {
-		margin-bottom: 0.5rem;
-		display: flex;
-		align-items: center;
-	}
-
-	.recently-played img {
-		width: 40px;
-		height: 40px;
-		margin-right: 0.5rem;
-		border-radius: 4px;
-	}
-
-	/* Placeholder and Genre Insights Inline */
-	.placeholder-section,
-	.genre-insights {
-		width: 45%; /* Adjusted width to be inline */
-	}
-
-	.inline-graphs {
-		display: flex;
-		justify-content: space-between;
-		margin-top: 2rem;
-	}
-
-	.placeholder {
-		height: 300px;
-		background-color: #e0e0e0;
-		border-radius: 8px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #777;
-	}
-
-	.genre-insights canvas {
-		width: 100%; /* Full width of the section */
-		height: 300px;
-	}
-
-	/* Modal Styles */
-	.modal-backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background: rgba(0, 0, 0, 0.5);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-	}
-
-	.modal {
-		background: white;
-		padding: 2rem;
-		border-radius: 8px;
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-		text-align: center;
-		color: #333;
-	}
-
-	.modal button {
-		margin-top: 1rem;
-		padding: 0.5rem 1rem;
-		background-color: #1db954;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-	}
-
-	.modal button:hover {
-		background-color: #1aa34a;
-	}
-
 	/* Debug Styles */
 	.debug-button {
 		position: fixed;

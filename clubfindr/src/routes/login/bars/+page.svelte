@@ -44,16 +44,7 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// Check if Spotify authentication is needed
-				if (result.needsSpotifyAuth && result.authUrl) {
-					console.log('Bar needs Spotify authentication, redirecting to Spotify OAuth');
-					// Redirect directly to Spotify auth flow from here
-					window.location.href = result.authUrl;
-				} else {
-					// Normal login success flow
-					// Use the redirect URL from the response
-					window.location.href = result.redirectUrl;
-				}
+				window.location.href = result.redirectUrl;
 			} else {
 				// Handle redirect for incorrect login page
 				if (result.redirectUrl) {

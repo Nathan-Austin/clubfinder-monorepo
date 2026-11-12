@@ -2,18 +2,14 @@
 //
 // Covers what the taste endpoints use (client-credentials token, artist search, artist by id,
 // several artists by ids), the promoter track search (type=track), the guest artist-or-song
-// search (type=artist,track) and the user flow behind "Connect with Spotify": the
-// authorization-code exchange, token refresh, /v1/me and the three listening endpoints of
-// /spotify. Playwright's request
-// interception cannot see server-side calls, so playwright.config.ts starts this server and
-// points the app at it with SPOTIFY_ACCOUNTS_BASE / SPOTIFY_API_BASE. The catalogue is
-// invented, like everything in dev/seed.sql; ids are Spotify-shaped (22 base-62 chars).
+// search (type=artist,track): only what the one server-side app does, with its
+// client-credentials token. (The user flow behind "Connect with Spotify" — authorization-code
+// exchange, refresh, /v1/me and the listening endpoints — went with per-account connect.)
+// Playwright's request interception cannot see server-side calls, so playwright.config.ts
+// starts this server and points the app at it with SPOTIFY_ACCOUNTS_BASE / SPOTIFY_API_BASE.
+// The catalogue is invented, like everything in dev/seed.sql; ids are Spotify-shaped (22
+// base-62 chars).
 //
-// Users are selected by the authorization code (the "code" Spotify would redirect back with):
-//   mock-code-ok            a registered account, everything works
-//   mock-code-unregistered  an account the development-mode app may not access: every API
-//                           call answers 403 "User not registered in the Developer Dashboard"
-//   mock-code-partial       registered, but recently-played answers 503
 // The error bodies follow Spotify's documented shape ({ error: { status, message } }); they
 // were not captured from the live API (see docs/HANDOVER.md).
 //
@@ -94,19 +90,6 @@ export const MOCK_ARTISTS: MockArtist[] = [
 	{ id: 'devFaintTransmission01', name: 'Faint Transmission', genres: [], images: [] }
 ];
 
-type MockUser = 'ok' | 'unregistered' | 'partial';
-const USER_CODES: Record<string, MockUser> = {
-	'mock-code-ok': 'ok',
-	'mock-code-unregistered': 'unregistered',
-	'mock-code-partial': 'partial'
-};
-const userToken = (user: MockUser) => `mock-user-token-${user}`;
-const userRefresh = (user: MockUser) => `mock-refresh-token-${user}`;
-function userFromBearer(header: string | undefined): MockUser | null {
-	const match = header?.match(/^Bearer mock-user-token-(ok|unregistered|partial)$/);
-	return match ? (match[1] as MockUser) : null;
-}
-
 const artistRef = (a: MockArtist) => ({
 	id: a.id,
 	name: a.name,
@@ -152,9 +135,8 @@ function spotifyError(res: ServerResponse, status: number, message: string) {
 
 async function handle(req: IncomingMessage, res: ServerResponse) {
 	const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-	const base = `http://${req.headers.host ?? `127.0.0.1:${MOCK_SPOTIFY_PORT}`}`;
 
-	// accounts.spotify.com: tokens (client credentials, authorization code, refresh)
+	// accounts.spotify.com: the client-credentials token
 	if (url.pathname === '/api/token') {
 		if (req.method !== 'POST' || !req.headers.authorization?.startsWith('Basic ')) {
 			// The live API sends error_description alongside error here too (KNOWN_ISSUES 21)
@@ -172,117 +154,12 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 				expires_in: 3600
 			});
 		}
-		if (grant === 'authorization_code') {
-			const user = USER_CODES[form.get('code') ?? ''];
-			if (!user)
-				return sendJson(res, 400, {
-					error: 'invalid_grant',
-					error_description: 'Invalid authorization code'
-				});
-			return sendJson(res, 200, {
-				access_token: userToken(user),
-				refresh_token: userRefresh(user),
-				token_type: 'Bearer',
-				scope: 'user-read-recently-played user-top-read playlist-read-private user-read-email',
-				expires_in: 3600
-			});
-		}
-		if (grant === 'refresh_token') {
-			const match = (form.get('refresh_token') ?? '').match(
-				/^mock-refresh-token-(ok|unregistered|partial)$/
-			);
-			if (!match)
-				return sendJson(res, 400, {
-					error: 'invalid_grant',
-					error_description: 'Invalid refresh token'
-				});
-			return sendJson(res, 200, {
-				access_token: userToken(match[1] as MockUser),
-				token_type: 'Bearer',
-				expires_in: 3600
-			});
-		}
 		return sendJson(res, 400, { error: 'unsupported_grant_type' });
 	}
 
-	// api.spotify.com: everything needs a token from above
-	const user = userFromBearer(req.headers.authorization);
-	if (req.headers.authorization !== `Bearer ${MOCK_SPOTIFY_TOKEN}` && !user) {
+	// api.spotify.com: everything needs the token from above
+	if (req.headers.authorization !== `Bearer ${MOCK_SPOTIFY_TOKEN}`) {
 		return spotifyError(res, 401, 'Invalid access token');
-	}
-
-	// User endpoints (/v1/me...): the development-mode allow list applies
-	if (
-		url.pathname === '/v1/me' ||
-		url.pathname.startsWith('/v1/me/') ||
-		url.pathname.startsWith('/v1/playlists/')
-	) {
-		if (!user) return spotifyError(res, 401, 'Valid user authentication required');
-		if (user === 'unregistered') {
-			return spotifyError(res, 403, 'User not registered in the Developer Dashboard');
-		}
-		if (url.pathname === '/v1/me') {
-			return sendJson(res, 200, {
-				id: `mockuser-${user}`,
-				display_name: `Mock ${user}`,
-				email: `mockuser-${user}@clubfindr.test`,
-				images: [],
-				external_urls: { spotify: `https://open.spotify.com/user/mockuser-${user}` }
-			});
-		}
-		if (url.pathname === '/v1/me/player/recently-played') {
-			if (user === 'partial') return spotifyError(res, 503, 'Service unavailable');
-			return sendJson(res, 200, {
-				items: [
-					{
-						track: {
-							id: 'devTrackGlassAnvil0001',
-							name: 'Anvil Shuffle',
-							artists: [artistRef(MOCK_ARTISTS[4])],
-							album: { images: [], external_urls: { spotify: 'https://open.spotify.com/album/x' } },
-							external_urls: { spotify: 'https://open.spotify.com/track/x' }
-						},
-						played_at: '2026-10-17T20:00:00Z'
-					}
-				]
-			});
-		}
-		if (url.pathname === '/v1/me/playlists') {
-			return sendJson(res, 200, {
-				items: [
-					{
-						id: 'devPlaylistLateNight01',
-						name: 'Late Night Mock',
-						images: [],
-						description: 'invented',
-						tracks: { href: `${base}/v1/playlists/devPlaylistLateNight01/tracks`, total: 1 },
-						external_urls: { spotify: 'https://open.spotify.com/playlist/x' }
-					}
-				]
-			});
-		}
-		if (url.pathname === '/v1/playlists/devPlaylistLateNight01/tracks') {
-			return sendJson(res, 200, {
-				items: [
-					{
-						track: {
-							id: 'devTrackVelvet00000001',
-							name: 'Meridian',
-							artists: [artistRef(MOCK_ARTISTS[3])]
-						}
-					}
-				]
-			});
-		}
-		if (url.pathname === '/v1/me/top/artists') {
-			return sendJson(res, 200, {
-				items: [MOCK_ARTISTS[4], MOCK_ARTISTS[3], MOCK_ARTISTS[2]].map((a) => ({
-					...a,
-					external_urls: { spotify: `https://open.spotify.com/artist/${a.id}` }
-				}))
-			});
-		}
-		return spotifyError(res, 404, `mock-spotify: no route for ${req.method} ${url.pathname}`);
 	}
 
 	if (url.pathname === '/v1/search') {

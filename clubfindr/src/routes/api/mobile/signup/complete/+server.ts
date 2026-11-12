@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ request }) => {
             UPDATE clubfindr.users
             SET onboarding_complete = $1, is_first_time = $2
             WHERE id = $3
-            RETURNING spotify_app_name, onboarding_complete
+            RETURNING onboarding_complete
             `,
 			[onboarding_complete, false, userId]
 		);
@@ -28,13 +28,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
 
-		const { spotify_app_name } = result.rows[0];
-
-		if (spotify_app_name !== 'pending') {
-			return json({ message: 'Sign up complete' });
-		}
-
-		return json({ message: 'Onboarding updated successfully' });
+		// The 'pending' Spotify app name that answered "Onboarding updated successfully" is no
+		// longer set by any signup (per-user Spotify connect is retired)
+		return json({ message: 'Sign up complete' });
 	} catch (error) {
 		console.error('Error updating onboarding:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
