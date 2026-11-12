@@ -1,19 +1,14 @@
 <script lang="ts">
-	import { PUBLIC_MAPS_API_KEY, PUBLIC_SPOTIFY_REDIRECT_USER_URI } from '$env/static/public';
+	import { PUBLIC_MAPS_API_KEY } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
-	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { DatePicker } from 'date-picker-svelte';
 	import { toLocalIsoDate, fromLocalIsoDate } from '$lib/localDate';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import { getDistance } from 'geolib';
 	import LastfmImport from '$lib/components/LastfmImport.svelte';
-	//const PUBLIC_SPOTIFY_CLIENT_ID = 'd92712657a2c4805bda31175bcf576eb';
 	// Register the required components for the pie chart
 	Chart.register(PieController, ArcElement, Tooltip, Legend);
-
-	// Spotify OAuth variables
-	let clientId = PUBLIC_SPOTIFY_CLIENT_ID;
 
 	// Chart instance type and data props
 	let chart: Chart<'pie', number[], string> | undefined;
@@ -31,12 +26,9 @@
 					likedRecommendation?: string; // Store the feedback on recommendation
 				}>;
 				connectedServices: {
-					spotify: boolean;
 					soundcloud: boolean;
 					tidal: boolean;
 				};
-				/** SPOTIFY_CONNECT_ENABLED flag; absent on the error responses of the load */
-				spotifyConnectEnabled?: boolean;
 				/** The /onboarding nudge for accounts with a thin taste profile; absent on errors */
 				artistOnboarding?: {
 					required: boolean;
@@ -60,7 +52,6 @@
 	let interestedEvents = $state(data.props.interestedEvents || []);
 	const connectedServices = $derived(
 		data.props.connectedServices || {
-			spotify: false,
 			soundcloud: false,
 			tidal: false
 		}
@@ -101,7 +92,6 @@
 	}
 
 	let cities: City[] = $state([]);
-	let userDeniedLocation = false;
 	let location: Position | null = null;
 	let address = $state('');
 	let isCitySelectionInvalid = $state(false);
@@ -175,10 +165,7 @@
 					resolve();
 				},
 				(error) => {
-					console.log(
-						`Geolocation error (${error.code}): ${error.message}, setting userDeniedLocation to true.`
-					);
-					userDeniedLocation = true;
+					console.log(`Geolocation error (${error.code}): ${error.message}`);
 					reject(error); // User denied geolocation
 				}
 			);
@@ -274,122 +261,6 @@
 		}
 	};
 
-	// Load the user-specific client ID on component mount
-	async function loadClientId() {
-		try {
-			const response = await fetch('/api/get-spotify-app');
-			if (response.ok) {
-				const data = await response.json();
-				if (data.clientId) {
-					clientId = data.clientId;
-					console.log('Loaded client ID:', clientId);
-				}
-			}
-		} catch (error) {
-			console.error('Failed to load Spotify client ID:', error);
-			// Fall back to PUBLIC_SPOTIFY_CLIENT_ID if there's an error
-		}
-	}
-
-	// Function for the user home page Spotify button click handler
-	async function handleSpotifyButtonClick(event: MouseEvent) {
-		// Always prevent default
-		event.preventDefault();
-
-		console.log('Spotify button clicked');
-
-		try {
-			// Generate a secure state key
-			const stateKey = Date.now().toString();
-			console.log('Generated state key:', stateKey);
-
-			// State data
-			const cityValue = city1;
-			console.log('City value store for form:', cityValue);
-
-			if (!cityValue && userDeniedLocation) {
-				isCitySelectionInvalid = true;
-				const citySelect = document.getElementById('city-select');
-				if (citySelect) {
-					citySelect.scrollIntoView({ behavior: 'smooth' });
-					citySelect.classList.add('flash');
-				}
-				console.log('City not selected. Please select a city.');
-				return;
-			}
-
-			const formData = {
-				city: cityValue || 'berlin',
-				formattedDate: toLocalIsoDate(formattedDate),
-				source: 'user-home' // Add source identifier to help with redirect
-			};
-
-			console.log('Storing state data with source:', formData);
-
-			// Store state
-			const stateResponse = await fetch('/storestate', {
-				method: 'POST',
-				body: JSON.stringify({ key: stateKey, state: JSON.stringify(formData) }),
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				credentials: 'include'
-			});
-
-			if (!stateResponse.ok) {
-				const errorText = await stateResponse.text();
-				console.error('Failed to store state:', errorText);
-				throw new Error('Failed to store state: ' + errorText);
-			}
-
-			console.log('State stored successfully');
-
-			// Make sure we have the client ID
-			if (!clientId) {
-				console.log('Loading client ID');
-				await loadClientId();
-			}
-
-			console.log('Using client ID:', clientId ? clientId.substring(0, 5) + '...' : 'missing');
-
-			// ALWAYS force show_dialog=true to ensure the window opens
-			const showDialog = 'true';
-
-			// Use redirect URI from environment if available
-			const redirectUri = encodeURIComponent(
-				PUBLIC_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
-			);
-
-			console.log('Using redirect URI:', decodeURIComponent(redirectUri));
-
-			// Fix scope parameter (the previous version had syntax issues)
-			const scopes = [
-				'user-read-recently-played',
-				'user-read-currently-playing',
-				'playlist-read-private',
-				'user-top-read',
-				'user-read-email',
-				'user-read-playback-state'
-			].join('%20');
-
-			// Construct the authorization URL
-			const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&state=${stateKey}&scope=${scopes}&show_dialog=${showDialog}`;
-
-			console.log('About to redirect to:', authUrl);
-
-			// Add a small delay to ensure logging completes
-			setTimeout(() => {
-				// Redirect to Spotify authorization
-				window.location.href = authUrl;
-			}, 100);
-		} catch (error) {
-			console.error('Error in Spotify connection:', error);
-			// Show error to user
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			alert('Failed to connect to Spotify: ' + errorMessage);
-		}
-	}
-
 	async function handleSoundCloudButtonClick(event: MouseEvent) {
 		event.preventDefault();
 		try {
@@ -468,9 +339,6 @@
 	};
 
 	onMount(() => {
-		// Load the Spotify client ID (async call)
-		loadClientId();
-
 		// Initialize Google Maps Geocoding API and fetch cities
 		(async () => {
 			try {
@@ -512,23 +380,15 @@
 								console.log('User location is not available');
 							}
 						} catch (locationError) {
-							console.log(
-								'Location retrieval failed, setting userDeniedLocation to true:',
-								locationError
-							);
-							userDeniedLocation = true;
+							console.log('Location retrieval failed:', locationError);
 						}
 					})
 					.catch((e) => {
-						console.warn(
-							"Couldn't load geocoding from Google Maps, setting userDeniedLocation to true"
-						);
+						console.warn("Couldn't load geocoding from Google Maps");
 						console.error(e);
-						userDeniedLocation = true; // Trigger dropdown if geocoding fails
 					});
 			} catch (error) {
-				console.error('Error in onMount, setting userDeniedLocation to true:', error);
-				userDeniedLocation = true; // Fallback if any other error occurs
+				console.error('Error in onMount:', error);
 			}
 		})(); // Close async IIFE
 
@@ -757,41 +617,6 @@
 				</p>
 				<a href="/#taste-profile" class="connect-button taste-button">Edit your taste profile</a>
 				<LastfmImport />
-			</div>
-		</div>
-
-		<div class="connection-card">
-			<div class="card-content">
-				<h3>Spotify</h3>
-				<p>
-					{#if connectedServices.spotify}
-						Your Spotify account is connected. Click below to browse your music preferences.
-					{:else}
-						Connect your Spotify account to find clubs that match your music taste.
-					{/if}
-				</p>
-				<!-- Use button element for better accessibility -->
-				{#if data.props.spotifyConnectEnabled ?? true}
-					<button
-						type="button"
-						onclick={handleSpotifyButtonClick}
-						class="connect-button spotify-button"
-						aria-label="Login with Spotify"
-						data-testid="spotify-connect"
-					>
-						<span>{connectedServices.spotify ? 'Go to' : 'Connect with'}</span>
-						<img
-							src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
-							alt="Spotify Logo"
-							class="spotify-logo"
-						/>
-					</button>
-				{:else}
-					<p class="connect-off" data-testid="spotify-connect-off">
-						Connecting Spotify is switched off at the moment (SPOTIFY_CONNECT_ENABLED). Use your
-						favourite artists or a Last.fm import instead.
-					</p>
-				{/if}
 			</div>
 		</div>
 
@@ -1203,17 +1028,6 @@
 		opacity: 0.9;
 	}
 
-	.spotify-button {
-		background-color: #1db954;
-		color: white;
-	}
-
-	.connect-off {
-		margin-top: 1rem;
-		font-size: 0.9rem;
-		color: rgba(var(--rgb-light), 0.75);
-	}
-
 	.taste-card {
 		border: 1px solid rgba(var(--rgb-light), 0.3);
 	}
@@ -1221,15 +1035,6 @@
 	.taste-button {
 		background-color: rgb(var(--rgb-secondary));
 		color: white;
-	}
-
-	.spotify-button span {
-		margin-right: 8px;
-	}
-
-	.spotify-logo {
-		height: 24px;
-		width: auto;
 	}
 
 	.soundcloud-button {

@@ -1,20 +1,15 @@
 <script lang="ts">
-	import { PUBLIC_MAPS_API_KEY, PUBLIC_SPOTIFY_REDIRECT_USER_URI } from '$env/static/public';
+	import { PUBLIC_MAPS_API_KEY } from '$env/static/public';
 	// Import necessary modules and types
 	import { Loader } from '@googlemaps/js-api-loader';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { DatePicker } from 'date-picker-svelte';
 	import { fromLocalIsoDate, toLocalIsoDate } from '$lib/localDate';
-	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { goto } from '$app/navigation';
 	import { getDistance } from 'geolib';
 	import type { City } from '$lib/types/city';
 	import TasteProfile from '$lib/components/TasteProfile.svelte';
-
-	const redirectUri = encodeURIComponent(
-		PUBLIC_SPOTIFY_REDIRECT_USER_URI || 'https://www.clubfindr.com/spotify/login'
-	);
 
 	// Define genre data structure interfaces
 	interface SpecificGenreGroup {
@@ -59,29 +54,19 @@
 	let unifiedGenres: UnifiedGenres | null = null;
 	let genresLoaded = false;
 	let locationLoaded = false;
-	///////////////////// SPOTIFY LOGIN //////////////////////
-	// Define constants for client ID and data
-	const clientId = PUBLIC_SPOTIFY_CLIENT_ID;
 	interface Props {
 		data: PageData;
 	}
 
 	let { data }: Props = $props();
-	let loggedIn = $derived(data.hasAccessToken);
 	// Start from the city of the last search, if there was one (see +page.server.ts)
 	// svelte-ignore state_referenced_locally
 	if (data.rememberedCity) city1 = data.rememberedCity;
-	// Message from a redirect such as /?error=... (Spotify login failures); dismissable
+	// Message from a redirect such as /?error=... (e.g. a failed SoundCloud login); dismissable
 	// svelte-ignore state_referenced_locally
 	let flashError = $state(data.errorMessage);
-	let userClientId = $state(clientId);
 	// Check if user is logged in via cookie
 	let isUserLoggedIn = $state(false);
-
-	function getCookie(name: string): string | null {
-		const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-		return match ? decodeURIComponent(match[2]) : null;
-	}
 
 	///////////////////// DATE PICKER ///////////////////////
 	let formattedDate: Date = $state(new Date());
@@ -205,17 +190,6 @@
 			isUserLoggedIn = document.cookie
 				.split(';')
 				.some((item) => item.trim().startsWith('isLoggedIn=true'));
-
-			// Get userClientId from cookie if available
-			if (isUserLoggedIn) {
-				const clientIdFromCookie = getCookie('userClientId');
-				if (clientIdFromCookie) {
-					userClientId = clientIdFromCookie;
-					console.log('Using client ID from cookie:', userClientId);
-				} else {
-					console.log('No userClientId cookie found, using default PUBLIC_SPOTIFY_CLIENT_ID');
-				}
-			}
 
 			// Start loading genres and location in parallel
 			const genresPromise = loadGenres();
@@ -887,75 +861,6 @@
 			}
 		}
 	}
-	///////////////////   Login with spotify /////////////////
-	/////////////////////////////////////////////////////////
-
-	// Function for the landing page Spotify button click handler
-	async function handleSpotifyButtonClick(event: Event) {
-		event.preventDefault();
-		const cityValue = city1;
-		console.log('cityvalue store for form', cityValue);
-
-		if (!cityValue) {
-			isCitySelectionInvalid = true; // Mark as invalid if no city is selected
-			const citySelect = document.getElementById('city-select');
-			if (citySelect) {
-				citySelect.scrollIntoView({ behavior: 'smooth' }); // Scroll to the city select element
-				citySelect.classList.add('flash'); // Add flashing effect to the select box
-			}
-			console.log('City not selected. Please select a city.');
-			return; // Prevent form submission
-		} else {
-			isCitySelectionInvalid = false;
-			const formData = new FormData(document.getElementById('city-location') as HTMLFormElement);
-
-			if (!formData.has('city')) {
-				formData.append('city', cityValue || '');
-			}
-
-			if (!formData.has('formattedDate')) {
-				console.error('FormattedDate field is missing in the form data.');
-				return;
-			}
-
-			// Convert the form data to a string with URLSearchParams
-			const formDataObj = Object.fromEntries(formData.entries());
-
-			// Add a source identifier to help with redirect after auth
-			formDataObj.source = 'landing-page';
-
-			const formDataJson = JSON.stringify(formDataObj);
-			const stateKey = Date.now().toString();
-
-			try {
-				const response = await fetch('/storestate', {
-					method: 'POST',
-					body: JSON.stringify({ key: stateKey, state: formDataJson }),
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include'
-				});
-
-				if (response.ok) {
-					console.log('State stored successfully!');
-				} else {
-					console.error('Error storing state:', response.statusText);
-					return;
-				}
-			} catch (error) {
-				console.error('Error storing state:', error);
-				return;
-			}
-
-			// Redirect to Spotify login page with encoded state
-			// Use userClientId which is either from cookie or the default PUBLIC_SPOTIFY_CLIENT_ID
-			window.location.href = loggedIn
-				? '/spotify'
-				: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&state=${stateKey}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`;
-		}
-	}
-
 	// Function for the landing page SoundCloud button click handler
 	async function handleSoundCloudButtonClick(event: Event) {
 		event.preventDefault();
@@ -1175,8 +1080,8 @@
 			</div>
 			<h3 class="feature-title">Connect Your Music</h3>
 			<p class="feature-description">
-				Link your Spotify or SoundCloud account to get personalized venue recommendations based on
-				your listening history.
+				Name a few artists you love, import your Last.fm history or link SoundCloud to get
+				personalized venue recommendations.
 			</p>
 		</div>
 		<div class="feature-card">
@@ -1272,33 +1177,6 @@
 		<div class="my-6 md:my-14">
 			<!-- Conditionally show login button or music service buttons -->
 			{#if isUserLoggedIn}
-				{#if data.spotifyConnectEnabled}
-					<!-- Spotify login button (SPOTIFY_CONNECT_ENABLED, see src/lib/featureFlags.ts) -->
-					<div class="center-button" data-testid="spotify-connect">
-						<a
-							href={loggedIn
-								? '/spotify'
-								: `https://accounts.spotify.com/authorize?client_id=${userClientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-recently-played%20user-read-currently-playing%20playlist-read-private%20user-top-read%20user-read-email&show_dialog=true`}
-							onclick={handleSpotifyButtonClick}
-							role="button"
-							class="custom-spotify-button"
-							aria-label="Login with Spotify"
-						>
-							<span>Connect with</span>
-							<img
-								src="/lib/2024-spotify-full-logo/Full_Logo_Black_PMS_C.svg"
-								alt="Spotify Logo"
-								class="spotify-logo"
-							/>
-						</a>
-					</div>
-				{:else}
-					<p class="text-sm opacity-80" data-testid="spotify-connect-off">
-						Connecting Spotify is switched off at the moment. Your taste profile below works without
-						it.
-					</p>
-				{/if}
-
 				<!-- SoundCloud button -->
 				<div class="center-button mt-4">
 					<a
@@ -2034,26 +1912,6 @@
 		margin-right: 8px; /* Space between icon and text */
 	}
 
-	.custom-spotify-button {
-		background-color: #1db954; /* Spotify green */
-		color: white;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 8px 12px;
-		border-radius: 6px;
-		font-weight: bold;
-		text-decoration: none;
-		width: 100%;
-		max-width: 350px;
-		height: 50px; /* Adjust as needed */
-		cursor: pointer;
-	}
-
-	.custom-spotify-button:hover {
-		opacity: 0.9;
-	}
-
 	.custom-soundcloud-button {
 		background-color: #ff5500; /* SoundCloud orange */
 		color: white;
@@ -2096,16 +1954,10 @@
 		box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 	}
 
-	.custom-spotify-button span,
 	.custom-soundcloud-button span,
 	.custom-tidal-button span {
 		margin-right: 8px;
 		font-size: 24px;
-	}
-
-	.spotify-logo {
-		height: 34px; /* Adjust to scale the logo */
-		width: auto;
 	}
 
 	.soundcloud-logo-img {

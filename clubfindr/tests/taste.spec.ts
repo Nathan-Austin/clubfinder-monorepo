@@ -1,13 +1,4 @@
-import {
-	test,
-	expect,
-	login,
-	acceptCookies,
-	mobileApi,
-	USERS,
-	SPOTIFY_CONNECT_ENABLED,
-	type Page
-} from './fixtures';
+import { test, expect, login, acceptCookies, type Page } from './fixtures';
 
 // Taste profile: favourite artists (docs/taste-profile-design.md). The JSON endpoints are
 // called through the browser context after a real login, which carries the session cookie,
@@ -305,21 +296,6 @@ test.describe('favourite-artist picker on /', () => {
 	});
 });
 
-test.describe('signup without Spotify', () => {
-	test('the Spotify e-mail field is optional', async ({ page }) => {
-		// With connect off the field is not there at all (tests/spotify-connect-flag.spec.ts)
-		test.skip(!SPOTIFY_CONNECT_ENABLED, 'SPOTIFY_CONNECT_ENABLED is off');
-		await page.goto(USERS.fan.loginPath);
-		await acceptCookies(page);
-		const form = page.locator('form.login-form');
-		await form.locator('input[type="checkbox"]').check();
-		const spotifyEmail = form.locator('#spotifyEmail');
-		await expect(spotifyEmail).toBeVisible();
-		await expect(spotifyEmail).not.toHaveAttribute('required', /.*/);
-		await expect(form.locator('label[for="spotifyEmail"]')).toContainText('optional');
-	});
-});
-
 test.describe('the taste profile drives /clubs and /barfindr', () => {
 	// dev/seed.sql puts four Berlin nights on this fixed date, so the expectations below do not
 	// depend on when the seed was loaded (the other events are relative to the seed date).
@@ -580,114 +556,4 @@ test('the Last.fm import needs a login', async ({ page }) => {
 		data: { username: 'fanatic' }
 	});
 	expect(response.status()).toBe(401);
-});
-
-test.describe('Spotify connect against the mock', () => {
-	// Drives the OAuth callback the way Spotify would: the state is stored through /storestate
-	// (what the connect buttons do) and the code picks the mock user (tests/mock-spotify.ts).
-	async function completeSpotifyLogin(page: Page, code: string) {
-		const key = `pw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-		const stored = await page.request.post('/storestate', {
-			data: {
-				key,
-				state: JSON.stringify({ city: 'Berlin', formattedDate: '2031-06-21', source: 'user-home' })
-			}
-		});
-		expect(stored.ok()).toBe(true);
-		await page.goto(`/spotify/login?code=${code}&state=${key}`);
-	}
-
-	test('the connect buttons are shown by default (SPOTIFY_CONNECT_ENABLED unset)', async ({
-		page
-	}) => {
-		// The off counterpart is in tests/spotify-connect-flag.spec.ts
-		test.skip(!SPOTIFY_CONNECT_ENABLED, 'SPOTIFY_CONNECT_ENABLED is off');
-		await login(page, 'fan');
-		await acceptCookies(page);
-		await expect(page.getByTestId('spotify-connect')).toBeVisible();
-		await expect(page.getByTestId('spotify-connect-off')).toHaveCount(0);
-		await page.goto('/');
-		await acceptCookies(page);
-		await expect(page.getByTestId('spotify-connect')).toBeVisible();
-		await expect(page.getByTestId('spotify-connect-off')).toHaveCount(0);
-	});
-
-	test('an account the development-mode app may not access gets a clear message', async ({
-		page,
-		pageErrors
-	}) => {
-		await login(page, 'fan');
-		await completeSpotifyLogin(page, 'mock-code-unregistered');
-		await expect(page).toHaveURL(/\/\?error=/);
-		const flash = page.getByTestId('flash-error');
-		await expect(flash).toContainText(
-			'Spotify only lets a handful of registered accounts use this app right now, and yours is not one of them.'
-		);
-		await expect(flash).toContainText('taste profile');
-		// No Spotify session was kept for the account
-		expect((await page.request.get('/spotify')).status()).not.toBe(200);
-		await flash.getByRole('button', { name: 'Dismiss message' }).click();
-		await expect(flash).toHaveCount(0);
-		expect(pageErrors).toEqual([]);
-	});
-
-	test('a registered account sees all three sections', async ({ page, pageErrors }) => {
-		await login(page, 'newcomer');
-		await completeSpotifyLogin(page, 'mock-code-ok');
-		await expect(page).toHaveURL(/\/spotify$/);
-		await expect(page.getByTestId('spotify-partial')).toHaveCount(0);
-		await expect(page.getByTestId('spotify-not-registered')).toHaveCount(0);
-		await expect(page.locator('.section.playlists .item')).toHaveCount(1);
-		await expect(page.locator('.section.artists .item')).toHaveCount(3);
-		await expect(page.locator('.section.tracks .item')).toHaveCount(1);
-		expect(pageErrors).toEqual([]);
-	});
-
-	test('the genres of ticked artists stay with their own visitor (KNOWN_ISSUES 23)', async ({
-		page,
-		playwright,
-		baseURL
-	}) => {
-		await login(page, 'newcomer');
-		await completeSpotifyLogin(page, 'mock-code-ok');
-		await expect(page).toHaveURL(/\/spotify$/);
-
-		// What /spotify posts when the user ticks artists and carries on
-		const post = await page.request.post('/api/spotify/artists', {
-			data: { selectedIds: ['devJunoPaperplane00001', 'devVelvetMeridian00001'] }
-		});
-		expect(post.status()).toBe(200);
-		const posted = (await post.json()).genresList.toSorted();
-		expect(posted).toEqual(['deep house', 'italo disco', 'minimal', 'nu disco']);
-
-		// The same visitor reads them back (what the /selectedGenres load does)
-		const mine = await (await page.request.get('/api/spotify/artists')).json();
-		expect(mine.genresList.toSorted()).toEqual(posted);
-
-		// A visitor without that cookie gets nothing: the genres used to live in a module-level
-		// variable, so anyone's GET returned whichever user's artists were fetched last
-		const stranger = await mobileApi(playwright, baseURL);
-		const theirs = await (await stranger.get('/api/spotify/artists')).json();
-		expect(theirs.genresList).toEqual([]);
-		await stranger.dispose();
-	});
-
-	test('one failing Spotify call leaves the other sections on /spotify', async ({
-		page,
-		pageErrors
-	}) => {
-		await login(page, 'newcomer');
-		await completeSpotifyLogin(page, 'mock-code-partial');
-		await expect(page).toHaveURL(/\/spotify$/);
-		const notice = page.getByTestId('spotify-partial');
-		await expect(notice).toContainText('Some of your Spotify data could not be loaded');
-		await expect(notice).toContainText('recently played tracks');
-		await expect(notice).toContainText('HTTP 503');
-		// The two calls that worked are shown, the failed one is simply empty
-		await expect(page.locator('.section.artists .item')).toHaveCount(3);
-		await expect(page.locator('.section.artists')).toContainText('Glass Anvil');
-		await expect(page.locator('.section.playlists')).toContainText('Late Night Mock');
-		await expect(page.locator('.section.tracks .item')).toHaveCount(0);
-		expect(pageErrors).toEqual([]);
-	});
 });

@@ -2,7 +2,6 @@
 import { pool, query } from '$lib/db';
 import type { PageServerLoad } from '../$types';
 import { cookieManager } from '$lib/cookieManager';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
 // Define interfaces for our data structures
@@ -23,7 +22,6 @@ interface _Event {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface _ConnectedServices {
-	spotify: boolean;
 	soundcloud: boolean;
 	tidal: boolean;
 }
@@ -33,7 +31,6 @@ interface _UserData {
 	name: string | null;
 	preferences: string | Preference[] | null;
 	interested_events: string | number[] | null;
-	has_spotify: boolean;
 }
 
 export const load: PageServerLoad = async ({ cookies }) => {
@@ -42,7 +39,6 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
 	// Initialize connected services status
 	const connectedServices = {
-		spotify: false,
 		soundcloud: !!cookieManager.get(cookies, 'soundcloud_access_token'),
 		tidal: !!cookieManager.get(cookies, 'tidal_access_token')
 	};
@@ -88,15 +84,10 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		};
 	}
 
-	// Fetch user data from the database with connected services info
-	// Only check for spotify_user_id since soundcloud_user_id doesn't exist
+	// Fetch user data from the database
 	const result = await query(
-		`SELECT 
-			name, 
-			preferences, 
-			interested_events,
-			spotify_user_id IS NOT NULL AS has_spotify
-		FROM clubfindr.users 
+		`SELECT name, preferences, interested_events
+		FROM clubfindr.users
 		WHERE id = $1`,
 		[userId]
 	);
@@ -115,10 +106,6 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			error: 'User not found'
 		};
 	}
-
-	// Update connected services status (only Spotify since SoundCloud column doesn't exist)
-	connectedServices.spotify = user.has_spotify || false;
-	// soundcloud remains false since the column doesn't exist
 
 	let preferences = [];
 
@@ -184,8 +171,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			topPreferences,
 			interestedEvents,
 			connectedServices,
-			artistOnboarding,
-			spotifyConnectEnabled: isSpotifyConnectEnabled()
+			artistOnboarding
 		}
 	};
 };

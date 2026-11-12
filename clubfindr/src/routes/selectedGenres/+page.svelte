@@ -67,7 +67,7 @@
 	}
 
 	function goBack() {
-		goto('/spotify');
+		goto('/');
 	}
 </script>
 

@@ -3,10 +3,8 @@ import { query } from '$lib/db';
 import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
 import { v4 as uuidv4 } from 'uuid';
-import { addUserToSpotifyApp } from '$lib/spotifyService';
 import { cookieManager } from '$lib/cookieManager';
 import { PUBLIC_GOOGLE_OAUTH_CLIENT_ID } from '$env/static/public';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 import { pool } from '$lib/db';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
@@ -20,7 +18,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		provider,
 		isNewUser,
 		fullName,
-		spotifyEmail,
 		isMobileApp = false // Make sure this is properly extracted from the request
 	} = data;
 
@@ -37,14 +34,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		if (provider === 'local') {
 			if (isNewUser) {
-				// New user registration. A Spotify e-mail is optional: taste can come from the
-				// manual taste profile, so signing up must not depend on Spotify. With
-				// SPOTIFY_CONNECT_ENABLED off it is ignored altogether: not stored, not checked for
-				// duplicates, and spotify_service is never asked to add the user.
-				const optionalSpotifyEmail =
-					isSpotifyConnectEnabled() && typeof spotifyEmail === 'string' && spotifyEmail.trim()
-						? spotifyEmail.trim()
-						: null;
+				// New user registration. Taste comes from the taste profile (artist picker, Last.fm
+				// import), so signing up asks for no streaming account; a spotifyEmail an older
+				// client still sends is ignored (per-user Spotify connect is retired).
 				if (!email || !password || !fullName) {
 					return new Response(
 						JSON.stringify({
@@ -58,8 +50,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 				// Check if user exists
 				const existingUser = await query(
-					'SELECT id FROM clubfindr.users WHERE general_email = $1 OR ($2::text IS NOT NULL AND spotify_email = $2)',
-					[email, optionalSpotifyEmail]
+					'SELECT id FROM clubfindr.users WHERE general_email = $1',
+					[email]
 				);
 
 				if (existingUser.rows.length > 0) {
@@ -82,10 +74,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 					const newUserResult = await query(
 						`INSERT INTO clubfindr.users 
-						(general_email, password_hash, name, city, spotify_email) 
-						VALUES ($1, $2, $3, $4, $5) 
+						(general_email, password_hash, name, city)
+						VALUES ($1, $2, $3, $4)
 						RETURNING id`,
-						[email, hashedPassword, fullName, city, optionalSpotifyEmail]
+						[email, hashedPassword, fullName, city]
 					);
 
 					user_id = newUserResult.rows[0].id;
@@ -104,15 +96,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 						}),
 						{ status: 400 }
 					);
-				}
-				// Only users who gave a Spotify e-mail are added to a Spotify app
-				if (optionalSpotifyEmail) {
-					try {
-						await addUserToSpotifyApp(user_id, optionalSpotifyEmail);
-					} catch (error) {
-						console.error('Failed to add user to Spotify app:', error);
-						// Continue with login even if Spotify app addition fails
-					}
 				}
 			} else {
 				// Regular login
@@ -327,14 +310,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					isMobileApp: true,
 					user: {
 						id: user_id,
-						email: email || spotifyEmail,
+						email,
 						name: userName,
 						city: normalizedCityName,
 						// Same as /api/mobile/login, which the app tries first
 						artistOnboarding: artistOnboardingStatus(await countFavouriteArtists(pool, user_id))
 					},
 					token: sessionId,
-					spotifyConnectEnabled: isSpotifyConnectEnabled()
+					// Always false now; kept for app builds that still read it
+					spotifyConnectEnabled: false
 				}),
 				{
 					status: 200,

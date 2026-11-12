@@ -1,4 +1,4 @@
-import { test, expect, acceptCookies, SPOTIFY_CONNECT_ENABLED, testPassword } from './fixtures';
+import { test, expect, acceptCookies, testPassword } from './fixtures';
 
 // The whole point of ROADMAP section 1, in one go: someone signs up, names a few artists and
 // gets personalised results, without connecting any streaming account at any step.
@@ -7,8 +7,8 @@ import { test, expect, acceptCookies, SPOTIFY_CONNECT_ENABLED, testPassword } fr
 // taste.spec.ts starts from the seeded fan's existing favourites). This one joins them up for
 // a brand-new account, so a regression anywhere along the path shows up here.
 //
-// Runs in both modes: with Spotify connect on it also checks that nothing on the way asked for
-// Spotify, and with it off that the connect buttons are gone entirely.
+// Nothing on the way asks for a streaming account: per-user Spotify connect is retired, so there
+// is no Spotify e-mail field and no connect button anywhere along the path.
 
 const PASSWORD = testPassword();
 
@@ -47,12 +47,7 @@ test('sign up, pick artists, get matching clubs, with no streaming account', asy
 	await form.locator('#email').fill(email);
 	await form.locator('#password').fill(PASSWORD);
 	await form.locator('#fullName').fill('Journey Tester');
-	if (SPOTIFY_CONNECT_ENABLED) {
-		// Offered, but optional: left empty, so spotify_service is never called for this account
-		await expect(form.locator('#spotifyEmail')).toBeVisible();
-	} else {
-		await expect(form.locator('#spotifyEmail')).toHaveCount(0);
-	}
+	await expect(form.locator('#spotifyEmail')).toHaveCount(0);
 	await form.locator('button[type="submit"]').click();
 
 	// 2. The artist picker, not the home page
@@ -90,15 +85,14 @@ test('sign up, pick artists, get matching clubs, with no streaming account', asy
 	await expect(page.locator('h1')).toContainText('ClubFinder Berlin');
 	await expect(page.locator('a.event-link')).toHaveText(EXPECTED_NIGHTS);
 
-	// 5. Nothing along the way needed Spotify. With connect on the offer is still there (it is
-	// an offer, not a step); with it off there is nothing to connect at all.
-	if (SPOTIFY_CONNECT_ENABLED) {
-		await expect(page.getByTestId('spotify-connect-off')).toHaveCount(0);
-	} else {
-		await page.goto('/users-home');
+	// 5. Nothing along the way needed Spotify, and there is nothing to connect at all
+	for (const path of ['/users-home', '/']) {
+		await page.goto(path);
 		await acceptCookies(page);
-		await expect(page.getByTestId('spotify-connect')).toHaveCount(0);
-		await expect(page.getByTestId('spotify-connect-off')).toBeVisible();
+		await expect(
+			page.getByTestId('taste-card').or(page.getByTestId('taste-find-clubs')).first()
+		).toBeVisible();
+		await expect(page.locator('[aria-label="Login with Spotify"]')).toHaveCount(0);
 	}
 
 	expect(pageErrors).toEqual([]);

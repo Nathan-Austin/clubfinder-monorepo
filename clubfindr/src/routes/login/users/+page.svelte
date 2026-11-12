@@ -5,11 +5,6 @@
 	import { validateEmail } from '$lib/passwordUtils';
 	import type { FacebookLoginResponse } from '../../../../types/facebook';
 	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
-	import type { PageProps } from './$types';
-
-	let { data }: PageProps = $props();
-	/** SPOTIFY_CONNECT_ENABLED: off hides the optional Spotify e-mail field (+page.server.ts) */
-	const spotifyConnectEnabled = $derived(data.spotifyConnectEnabled);
 
 	const client_id = PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 	const facebookAppId = PUBLIC_FACEBOOK_APP_ID;
@@ -17,7 +12,6 @@
 	let email = $state('');
 	let password = $state('');
 	let fullName = $state(''); // New field
-	let spotifyEmail = $state(''); // New field
 	let emailError = $state('');
 	let loginError = $state('');
 	let isSubmitting = $state(false);
@@ -26,12 +20,6 @@
 	/** New accounts pick a few artists first (/onboarding); everyone else goes home. */
 	const landingPage = (result: { newAccount?: boolean }) =>
 		result.newAccount ? '/onboarding' : '/users-home';
-	let showSpotifyEmailInfo = $state(false); // State for Spotify email info tooltip
-
-	function toggleSpotifyEmailInfo(event: Event): void {
-		event.stopPropagation();
-		showSpotifyEmailInfo = !showSpotifyEmailInfo;
-	}
 
 	function calculatePasswordStrength(pass: string): number {
 		if (!pass) return 0;
@@ -89,11 +77,6 @@
 				loginError = 'Please enter your full name';
 				return false;
 			}
-			// Optional: only validated when something was typed
-			if (spotifyConnectEnabled && spotifyEmail.trim() && !validateEmail(spotifyEmail.trim())) {
-				loginError = 'Please enter a valid Spotify email address, or leave the field empty';
-				return false;
-			}
 			const commonPatterns = [
 				'123456',
 				'password',
@@ -139,11 +122,7 @@
 					password,
 					provider: 'local',
 					isNewUser,
-					fullName: isNewUser ? fullName : undefined,
-					spotifyEmail:
-						spotifyConnectEnabled && isNewUser && spotifyEmail.trim()
-							? spotifyEmail.trim()
-							: undefined
+					fullName: isNewUser ? fullName : undefined
 				})
 			});
 
@@ -373,49 +352,6 @@
 					required
 				/>
 			</div>
-
-			{#if spotifyConnectEnabled}
-				<div class="form-group">
-					<label for="spotifyEmail">
-						Spotify Email (optional)
-						<button type="button" class="info-icon" onclick={toggleSpotifyEmailInfo}>?</button>
-					</label>
-					<input
-						type="email"
-						id="spotifyEmail"
-						bind:value={spotifyEmail}
-						placeholder="Only if you want to connect Spotify"
-					/>
-					{#if showSpotifyEmailInfo}
-						<div class="info-tooltip">
-							<button type="button" class="close-tooltip" onclick={toggleSpotifyEmailInfo}>×</button
-							>
-							<h4>Why do we ask for this?</h4>
-							<p>
-								You can use Clubfindr without Spotify: pick your favourite artists and genres in
-								your taste profile instead. If you do want to connect Spotify later, this email is
-								used to add you to our Spotify application.
-							</p>
-
-							<h4>Where to find your Spotify email?</h4>
-							<ol>
-								<li>
-									Log in to <a
-										href="https://www.spotify.com/account"
-										target="_blank"
-										rel="noopener noreferrer">Spotify Account page</a
-									>
-								</li>
-								<li>Look for "Email" in your profile information</li>
-								<li>Use this email address in this form</li>
-							</ol>
-							<p>
-								<strong>Note:</strong> This must be the same email you use to log in to Spotify.
-							</p>
-						</div>
-					{/if}
-				</div>
-			{/if}
 		{/if}
 
 		<div class="form-actions">
@@ -431,11 +367,7 @@
 				<p>We value your privacy. By registering, you agree to our:</p>
 				<ul>
 					<li>Collection of your name and email for account management</li>
-					{#if spotifyConnectEnabled}
-						<li>Integration with Spotify to provide personalized recommendations</li>
-					{:else}
-						<li>The artists you pick, whose genres personalise your recommendations</li>
-					{/if}
+					<li>The artists you pick, whose genres personalise your recommendations</li>
 					<li>Processing of your music preferences to find suitable venues</li>
 				</ul>
 				<p>
@@ -666,79 +598,6 @@
 	}
 
 	.data-protection-notice a {
-		color: #4caf50;
-		text-decoration: underline;
-	}
-
-	/* Info icon and tooltip */
-	.info-icon {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 18px;
-		height: 18px;
-		border-radius: 50%;
-		background-color: rgba(255, 255, 255, 0.2);
-		color: white;
-		font-size: 12px;
-		margin-left: 8px;
-		cursor: pointer;
-		transition: background-color 0.2s;
-		border: none;
-	}
-
-	.info-icon:hover {
-		background-color: rgba(255, 255, 255, 0.4);
-	}
-
-	.info-tooltip {
-		position: relative;
-		margin-top: 8px;
-		background-color: rgba(0, 0, 0, 0.8);
-		border-radius: 4px;
-		padding: 12px;
-		font-size: 0.85rem;
-		border-left: 3px solid #4caf50;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-		z-index: 10;
-	}
-
-	.close-tooltip {
-		position: absolute;
-		top: 8px;
-		right: 8px;
-		font-size: 16px;
-		cursor: pointer;
-		opacity: 0.7;
-		background: none;
-		border: none;
-		color: white;
-		padding: 0;
-	}
-
-	.close-tooltip:hover {
-		opacity: 1;
-	}
-
-	.info-tooltip h4 {
-		margin: 0 0 8px 0;
-		color: #4caf50;
-	}
-
-	.info-tooltip p {
-		margin: 0 0 12px 0;
-	}
-
-	.info-tooltip ol {
-		margin: 8px 0;
-		padding-left: 20px;
-	}
-
-	.info-tooltip li {
-		margin-bottom: 4px;
-	}
-
-	.info-tooltip a {
 		color: #4caf50;
 		text-decoration: underline;
 	}

@@ -1,8 +1,8 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	// The genres of this visitor's last POST /api/spotify/artists, stored there as a cookie
-	// (kept until /clubs or /barfindr reads and deletes it)
+	// The genres of the artists this visitor last picked on the guest search
+	// (POST /api/spotify/artists stores them in this cookie; it expires after a day)
 	const stored = cookies.get('spotify-genres');
 	const genresList = stored ? stored.split(',').filter((genre) => genre.length > 0) : [];
 

@@ -10,7 +10,8 @@ import { capturedMail, waitForMail } from './mail';
 
 // SPOTIFY_CONNECT_ENABLED (src/lib/featureFlags.ts, KNOWN_ISSUES 24). The suite runs once per
 // mode: `pnpm test` with the flag unset (on), and `SPOTIFY_CONNECT_ENABLED=false pnpm test`
-// (see tests/fixtures.ts). Each describe block skips itself in the other mode.
+// (see tests/fixtures.ts). The flag-specific describe blocks skip themselves in the other mode;
+// the web user block runs in both, since the web user connect is gone either way.
 //
 // Every test uses throwaway accounts and venues with unique e-mails, so nothing here shares a
 // session or a row with another spec. Nothing listens where spotify_service would (127.0.0.1:
@@ -51,6 +52,49 @@ function venue(name: string, email: string, extra: Record<string, unknown> = {})
 	};
 }
 
+// Per-user Spotify connect is retired on the web (ROADMAP section 1), whatever the flag says
+test.describe('web user signup and pages without Spotify connect', () => {
+	test('the web signup form has no Spotify e-mail field', async ({ page }) => {
+		await page.goto('/login/users');
+		await acceptCookies(page);
+		const form = page.locator('form.login-form');
+		await form.locator('input[type="checkbox"]').check();
+		await expect(form.locator('#fullName')).toBeVisible();
+		await expect(form.locator('#spotifyEmail')).toHaveCount(0);
+		const notice = form.locator('.data-protection-notice');
+		await expect(notice).toContainText('The artists you pick');
+		await expect(notice).not.toContainText('Spotify');
+	});
+
+	test('web signup ignores a Spotify e-mail that is sent anyway', async ({ page }) => {
+		// The Spotify e-mail used to be stored and checked for duplicates, so a second account
+		// giving the same one was refused ("User already exists"). Now it is neither stored nor
+		// checked, so both signups go through: the field really is ignored.
+		const spotifyEmail = `${unique('shared-spotify')}@clubfindr.test`;
+		const first = await signUpWeb(page, `${unique('web-off-a')}@clubfindr.test`, spotifyEmail);
+		expect(first.status()).toBe(200);
+		expect(await first.json()).toEqual({ success: true, newAccount: true });
+
+		const second = await signUpWeb(page, `${unique('web-off-b')}@clubfindr.test`, spotifyEmail);
+		expect(second.status()).toBe(200);
+		expect(await second.json()).toEqual({ success: true, newAccount: true });
+	});
+
+	test('there are no Spotify connect buttons', async ({ page }) => {
+		expect((await signUpWeb(page, `${unique('web-no-connect')}@clubfindr.test`)).status()).toBe(
+			200
+		);
+		for (const path of ['/users-home', '/']) {
+			await page.goto(path);
+			await acceptCookies(page);
+			await expect(page.locator('[aria-label="Login with Spotify"]')).toHaveCount(0);
+			await expect(page.getByTestId('spotify-connect')).toHaveCount(0);
+		}
+		// The page that showed a user's Spotify top artists is gone
+		expect((await page.request.get('/spotify')).status()).toBe(404);
+	});
+});
+
 test.describe('with Spotify connect on (default)', () => {
 	test.skip(!SPOTIFY_CONNECT_ENABLED, 'SPOTIFY_CONNECT_ENABLED is off');
 
@@ -84,42 +128,6 @@ test.describe('with Spotify connect off', () => {
 		expect(response.status()).toBe(200);
 		expect(await response.json()).toEqual({ spotifyConnectEnabled: false });
 		expect(response.headers()['cache-control']).toBe('public, max-age=60');
-	});
-
-	test('the web signup form has no Spotify e-mail field', async ({ page }) => {
-		await page.goto('/login/users');
-		await acceptCookies(page);
-		const form = page.locator('form.login-form');
-		await form.locator('input[type="checkbox"]').check();
-		await expect(form.locator('#fullName')).toBeVisible();
-		await expect(form.locator('#spotifyEmail')).toHaveCount(0);
-		const notice = form.locator('.data-protection-notice');
-		await expect(notice).toContainText('The artists you pick');
-		await expect(notice).not.toContainText('Spotify');
-	});
-
-	test('web signup ignores a Spotify e-mail that is sent anyway', async ({ page }) => {
-		// With connect on, the Spotify e-mail is stored and checked for duplicates, so a second
-		// account giving the same one is refused ("User already exists"). Off, it is neither
-		// stored nor checked, so both signups go through: the field really is ignored.
-		const spotifyEmail = `${unique('shared-spotify')}@clubfindr.test`;
-		const first = await signUpWeb(page, `${unique('web-off-a')}@clubfindr.test`, spotifyEmail);
-		expect(first.status()).toBe(200);
-		expect(await first.json()).toEqual({ success: true, newAccount: true });
-
-		const second = await signUpWeb(page, `${unique('web-off-b')}@clubfindr.test`, spotifyEmail);
-		expect(second.status()).toBe(200);
-		expect(await second.json()).toEqual({ success: true, newAccount: true });
-	});
-
-	test('the connect buttons are replaced by the "switched off" note', async ({ page }) => {
-		expect((await signUpWeb(page, `${unique('web-off-ui')}@clubfindr.test`)).status()).toBe(200);
-		for (const path of ['/users-home', '/']) {
-			await page.goto(path);
-			await acceptCookies(page);
-			await expect(page.getByTestId('spotify-connect-off')).toBeVisible();
-			await expect(page.getByTestId('spotify-connect')).toHaveCount(0);
-		}
 	});
 
 	test('mobile signup needs no music service', async ({ page }) => {
