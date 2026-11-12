@@ -89,8 +89,11 @@ Things to do by hand or decide, collected while building the items above.
       into the venue profile before clustering, so a venue that never connected Spotify can be
       matched on its own description of itself instead of scoring 0. `barfindr`'s polling still
       fills `bar_genre_profiles`; it is now one of two sources rather than the only one
-- [ ] Nudge existing users with fewer than 3 favourite artists towards `/onboarding`; only new
-      accounts are sent there
+- [x] Nudge existing users with fewer than 3 favourite artists towards `/onboarding`, done
+      2026-11-12: `/users-home` shows a banner for a profile below `ONBOARDING_MIN_ARTISTS`,
+      counting what is there and linking the picker; it disappears at 3. A nudge, not a
+      redirect — someone who skipped the step on purpose is not trapped
+      (`tests/onboarding.spec.ts`)
 - [x] Mobile bar API leftovers (KNOWN_ISSUES 26, 27): `spotify-connect` and `stats` auth, and the
       missing event edit route. All three done (2026-11-09): the event route exists with `PUT`
       and `DELETE`, both remaining endpoints are behind `denyUnlessBarManager`, and `stats` also
