@@ -495,11 +495,16 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     own session or Bearer token and refuse a mismatched `userId`, and stop returning the client
     secret. Found 2026-11-12 while moving it onto `withTransaction`; not changed then, since doing
     it blind could break the app's Spotify flow.
-43. **`/promoter-home/events/[eventId]` cannot work and has no caller.** `PATCH` and `DELETE` use
-    unqualified `events` (the search path is `"$user", public`; the table is `clubfindr.events`) and
-    an `event_genres` table that does not exist (genres are an array column on `events`). Nothing in
-    the web app or the mobile app calls it. Its transaction was converted with the rest
-    (KNOWN_ISSUES 39) without changing its behaviour; deleting the route is likely the right fix.
+43. _Fixed 2026-11-12, still without a caller._ **`/promoter-home/events/[eventId]` could not
+    work.** `PATCH` and `DELETE` used unqualified `events` (the search path is `"$user", public`;
+    the table is `clubfindr.events`) and an `event_genres` table that does not exist (genres are an
+    array column on `events`), so both answered 500 to everyone. Repaired rather than deleted, from
+    the parallel branch: tables qualified, genres folded into the one `UPDATE`, so each handler is a
+    single statement with ownership in its `WHERE` (no transaction, no check-then-act window);
+    another promoter's event answers 404, not 403; the 401 for a missing `promoterId` cookie is no
+    longer swallowed into a 500. Its SQL was checked against `dev/schema.sql` by hand. Nothing in
+    the web app or the mobile app calls it and no test drives it; delete it if promoters are never
+    meant to edit events this way.
 44. _Fixed 2026-11-12._ **`/barfindr` only ever scored the first 50 venues of a city by name.** The
     candidate query ended `ORDER BY name LIMIT 50`, before any scoring, so in a city with more than
     50 venues one whose name sorted late could never be shown however well it matched. Every venue
