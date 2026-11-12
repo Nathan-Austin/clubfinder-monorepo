@@ -21,7 +21,8 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       touches; the per-account and venue OAuth code stays behind the flag until it is retired)
 - [ ] Make Last.fm import and manual genre picks the main ways to build a taste profile
       (the artist picker is the default signup path, and the Last.fm import and genre picker
-      both feed matching; left open until the Spotify paths above actually go)
+      both feed matching; left open until the Spotify paths above actually go — unblocked
+      since 2026-11-12, when `SPOTIFY_CONNECT_ENABLED=false` went live in production)
 - [x] Artist picker onboarding as the default signup path: the user names 3-5 artists,
       autocomplete goes through the server-side Spotify app (`spotifyArtistLookup.ts`),
       and the genres of those artists feed the taste profile
@@ -64,8 +65,13 @@ Things to do by hand or decide, collected while building the items above.
 - [x] Apply `clubfindr/migrations/20261108_add_bar_favourite_artists.sql` to production: applied
       by hand with the deploy of `0dc724f` (2026-11-09). From the next deploy on, `deploy/deploy.sh`
       applies new migrations itself and only stops for destructive or failing ones
-- [ ] Set `SPOTIFY_CONNECT_ENABLED=false` in the production `.env` when ready (default is on)
-- [ ] Set `MUSICBRAINZ_USER_AGENT` in production to name the deployment and a contact
+- [x] Set `SPOTIFY_CONNECT_ENABLED=false` in the production `.env` (confirmed live 2026-11-12:
+      `https://www.clubfindr.com/api/mobile/config` returns `{"spotifyConnectEnabled":false}`).
+      This unblocks the section 1 items that were waiting on the Spotify paths actually going:
+      retiring `spotify_service`, retiring the per-account and venue Spotify OAuth code, and
+      stopping `barfindr`'s playback polling
+- [x] Set `MUSICBRAINZ_USER_AGENT` in production, naming the deployment and a contact
+      (confirmed 2026-11-12)
 - [x] The two parallel branches each added `bar_favourite_artists` (same table, different
       migration file names); keep one file when merging. Resolved: `main` has only
       `20261108_add_bar_favourite_artists.sql`
@@ -87,6 +93,21 @@ Things to do by hand or decide, collected while building the items above.
 - [x] Fix `app_clubfindr` type checking, add a test runner and make its CI able to fail
       (KNOWN_ISSUES 29, 2026-11-10): lint errors, `tsc`, Jest and the Android bundle build now
       fail CI, and so block the deploy. Still never run on a device or simulator
+
+### Production status 2026-11-12 (confirmed by the owner; do not re-verify from here)
+
+- [x] Commit `4048442` is deployed, with both 2026-11-11 migrations applied by hand:
+      `20261111_clear_lastfm_placeholder_images.sql` and
+      `20261111_finish_earlier_account_deletions.sql`. The deletion clean-up matched 0 rows —
+      no stale "deleted" accounts existed in production, so nothing was ever exposed through
+      social sign-in (KNOWN_ISSUES 24)
+- [x] `RECAPTCHA_SECRET_KEY` is set in production and `POST /register` without a solved
+      captcha answers 403 there (KNOWN_ISSUES 28). Gate live; a real solved-captcha
+      registration has not been observed yet, so the success path is not fully verified
+- [ ] `SMTP_TLS_VERIFY` is still not set in production (KNOWN_ISSUES 15); the mail host's
+      certificate has not been checked against `SMTP_HOST`
+- [ ] Owner's decisions still pending: the `data_vis` CSVs in git history, and the env
+      backups holding production secrets (KNOWN_ISSUES 33)
 
 ### Done on 2026-11-09 (deploy and operations)
 

@@ -68,7 +68,8 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
     connection would go unnoticed. Left off because the mail host may present a certificate that
     does not match. `SMTP_TLS_VERIFY=true` now turns verification on without a code change (only an
     explicit `true` counts); set it in production once mail is confirmed to work with it, then
-    make it the default.
+    make it the default. As of 2026-11-12 it is not set in production and the mail host's
+    certificate has not been checked against `SMTP_HOST`.
 16. _Fixed 2026-11-12._ **`/api/request-access` builds its own Gmail transport** (`smtp.gmail.com`
     with `GMAIL_USER`/`GMAIL_PASS`) instead of going through `$lib/email`, with the same
     `rejectUnauthorized: false`. It is the one endpoint that bypasses the configurable mail
@@ -227,8 +228,9 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       `2a96cbd8b46e442fc41c2b86b821562f`; Last.fm stopped serving artist images in 2019), so
       imported artists all got that as `imageUrl`. `pickImage` now skips any image whose URL
       carries that hash (matched by hash, since the URL differs by size), leaving `imageUrl`
-      null unless a real picture is offered. Note a catalogue row keeps the image it was created
-      with, so artists imported before this still carry the star.
+      null unless a real picture is offered. Existing rows carrying the star were cleared by
+      `migrations/20261111_clear_lastfm_placeholder_images.sql`, applied in production with the
+      deploy of `4048442` (2026-11-12).
     - _Fixed 2026-11-11._ Smaller points, all four closed. Spotify images are 640/320/160 wide,
       so `parseSpotifyArtist`'s preference for `width === 300` never hit and every artist got the
       640 one; it now takes the smallest image at least `MIN_ARTIST_IMAGE_WIDTH` (300) wide, so
@@ -248,7 +250,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       survives Spotify dropping the field. The fallback runs only when an artist is added, and
       the result is stored in `taste_artists` like any other genres. MusicBrainz needs no key
       (`MUSICBRAINZ_ENABLED=false` switches it off) but does need a descriptive
-      `MUSICBRAINZ_USER_AGENT` in production, and is held to one request a second.
+      `MUSICBRAINZ_USER_AGENT`, and is held to one request a second. Production has it set
+      since 2026-11-12, naming the deployment and a contact.
       The full e2e suite now also runs with `SPOTIFY_CONNECT_ENABLED=false` (`dev/TESTING.md`),
       against the same mocks.
 22. _Fixed._ **Four copies of the cluster matcher** (`/clubs`, `/barfindr`, two mobile
@@ -288,7 +291,7 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `/api/mobile/bars/register`) ask for no music service or Spotify e-mail, store none and
     never call `spotify_service` (add_user / add_bar), even when an older client sends them;
     `GET /api/mobile/config` tells the app to hide the fields. With the flag on (still the
-    default) nothing changes. Still open in this item: the `user_sessions.genres`, genre cookie
+    code default) nothing changes; production runs with the flag off since 2026-11-12. Still open in this item: the `user_sessions.genres`, genre cookie
     and "Change the vibe" gaps. Venue login (`/login/bars`) no longer retries add_bar or sends a
     venue through Spotify with the flag off either.
     _Fixed 2026-11-11: `/api/delete-user-data`._ It left far more than the two columns named
@@ -305,6 +308,9 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     Left in place on purpose: `user_checkins` (venue statistics count them and `user_id` is
     NOT NULL; with the account anonymised they no longer identify anyone) and any bar the user
     manages. `city` is emptied rather than cleared, being NOT NULL.
+    `migrations/20261111_finish_earlier_account_deletions.sql` was applied in production with
+    the deploy of `4048442` (2026-11-12) and matched 0 rows: no stale "deleted" accounts
+    existed there, so nothing was ever exposed through social sign-in.
 25. **Seed dates move with the seed.** Only the four Berlin nights on 2031-06-21 are pinned;
     tests that need fixed results use `/clubs?date=2031-06-21`.
 
@@ -344,7 +350,10 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     encrypted cookie (`$lib/server/captcha`), both registration endpoints refuse without it,
     and a successful registration spends it. In the e2e suite the token is judged by
     `tests/mock-recaptcha.ts` on :4178 via `RECAPTCHA_VERIFY_BASE` (unset in production);
-    covered by `tests/register-captcha.spec.ts`.
+    covered by `tests/register-captcha.spec.ts`. In production, `RECAPTCHA_SECRET_KEY` is set
+    and `POST /register` without a solved captcha answers 403 (confirmed 2026-11-12) — the
+    gate is live, but a real solved-captcha registration has not been observed yet, so the
+    success path is not fully verified.
 29. _Fixed 2026-11-10, apart from device testing._ CI (`.github/workflows/app-clubfindr-ci.yml`)
     now fails on lint errors, `npm run typecheck`, `npm test` (Jest via `jest-expo`) and
     `npx expo export --platform android`, on Node 24 (`app_clubfindr/.nvmrc`); `expo-doctor`
