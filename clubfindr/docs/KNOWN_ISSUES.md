@@ -528,3 +528,11 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     runs without a reseed left 52 throwaway Berlin venues and pushed the seeded "The Copper
     Lantern" to 51st, failing four `/barfindr` tests. Those leftovers are harmless now — venues
     sharing no cluster with a search are dropped — but every registration test still adds one.
+45. **Connecting a Spotify account another user already connected answers a raw 500.**
+    `users.spotify_email` and `spotify_user_id` are UNIQUE, and `POST /api/mobile/spotify/register`
+    (like the web `spotify/login` callback, which writes the same columns) does not catch the
+    violation, so the second account to connect the same Spotify login gets
+    `{"message":"duplicate key value violates unique constraint …"}` and no explanation. Surfaced
+    2026-11-12 by the KNOWN_ISSUES 42 tests when two e2e runs reused one Spotify profile. Dormant
+    while `SPOTIFY_CONNECT_ENABLED=false` in production, and gone for good if the per-user Spotify
+    flow is retired (ROADMAP section 1); only worth a friendly 409 if that flow stays.
