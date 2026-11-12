@@ -3,7 +3,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { comparePassword } from '$lib/server/passwordUtils';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { v4 as uuidv4 } from 'uuid';
 import { pool } from '$lib/db';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';

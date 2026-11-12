@@ -5,7 +5,7 @@ import { query } from '$lib/db';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { refreshSpotifyToken } from '$lib/spotifyUtils';
 import { decryptToken, encryptToken } from '$lib/encryptionUtils';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { cookieManager } from '$lib/cookieManager';
 import { SPOTIFY_SERVICE_URL } from '$env/static/private';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';

@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { withTransaction } from '$lib/db';
 import { randomBytes } from 'crypto';
 import { sendEmail } from '$lib/email';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { hashPassword } from '$lib/server/passwordUtils';
 import type { RequestHandler } from '@sveltejs/kit';
 import { clearCaptchaVerified, hasVerifiedCaptcha } from '$lib/server/captcha';

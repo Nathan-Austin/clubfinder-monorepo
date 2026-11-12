@@ -4,7 +4,7 @@ import { withTransaction } from '$lib/db';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { hashPassword } from '$lib/server/passwordUtils';
 import { addBarToSpotifyApp } from '$lib/spotifyService';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';

@@ -4,7 +4,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { toLocalIsoDate } from '$lib/localDate';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
 import { listDeclaredGenresForOwners, mergeGenresByOwner } from '$lib/taste/venueGenres';

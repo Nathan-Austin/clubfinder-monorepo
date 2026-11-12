@@ -2,7 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const { email, confirmationCode } = await request.json();

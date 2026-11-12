@@ -257,14 +257,6 @@ export const withAccessToken = async ({
 	}
 };
 
-export function normalizeCityName(name: string): string {
-	if (!name) {
-		throw new Error('City name is undefined or null');
-	}
-
-	return name.toLowerCase().replace(/\s+/g, '_');
-}
-
 export const refreshSpotifyToken = async ({ refreshToken }: { refreshToken: string }) => {
 	try {
 		// Get default app credentials from database

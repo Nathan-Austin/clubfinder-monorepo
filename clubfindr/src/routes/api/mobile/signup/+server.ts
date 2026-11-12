@@ -3,7 +3,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { hashPassword } from '$lib/server/passwordUtils';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { generateConfirmationCode } from '$lib/codegen';
 import { sendVerificationEmail } from '$lib/email';
 import { addUserToSpotifyApp } from '$lib/spotifyService';

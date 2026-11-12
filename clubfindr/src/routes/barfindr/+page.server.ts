@@ -3,7 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { pool } from '$lib/db';
 import type { PageServerLoad } from './$types';
-import { normalizeCityName } from '$lib/spotifyUtils';
+import { normalizeCityName } from '$lib/cityName';
 import { cookieManager } from '$lib/cookieManager';
 import { getProfileGenreWeightsForSession } from '$lib/taste/profileGenres';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
