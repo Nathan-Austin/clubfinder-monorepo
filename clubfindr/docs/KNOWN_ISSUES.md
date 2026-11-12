@@ -27,9 +27,13 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
    and dropped (`listFavouriteGenresForOwners`, `tests/venue-taste.spec.ts`). `barfindr`'s
    venue Spotify playback polling was retired on 2026-11-12 (ROADMAP section 1), so the
    declared artists and the venue's events are the sources of a venue profile; the rolling
-   `bar_genre_profiles` data drains within 24 hours of that deploy. Still open: a venue cannot
-   declare bare genres without naming an artist, and `/login/bars` still retries the
-   `spotify_service` add_bar call for venues that already have a Spotify e-mail.
+   `bar_genre_profiles` data drains within 24 hours of that deploy. Also since 2026-11-12 a
+   venue can declare bare genres with no artist behind them (`bars.declared_genres`,
+   `GET`/`PUT /api/venues/:barId/taste/genres`, the "Genres you play" dashboard section,
+   `$lib/taste/venueGenres`): only genres the cluster matcher knows are accepted, and both
+   matchers fold them in at the same weight as the venue artists' genres
+   (`tests/venue-taste.spec.ts`, "declared venue genres"). Still open: `/login/bars` still
+   retries the `spotify_service` add_bar call for venues that already have a Spotify e-mail.
 5. _Partly fixed._ The rate limiter trusted `X-Forwarded-For` / `CF-Connecting-IP` as sent;
    it now keys on `event.getClientAddress()`, i.e. the header the deployment declares with
    `ADDRESS_HEADER`/`XFF_DEPTH` (see `.env.example`). Still per process memory (fine for the

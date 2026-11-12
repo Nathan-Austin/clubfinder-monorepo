@@ -35,16 +35,20 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       `spotify_service` add_user call; KNOWN_ISSUES 24). Behind `SPOTIFY_CONNECT_ENABLED=false`
       (default still on), covering users and venues; the app reads `/api/mobile/config`
 - [x] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)
-- [ ] Venues set their genres and typical artists by hand through the same picker, and
-      `barfindr` stops polling venue Spotify playback
-      (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard,
-      and those picks feed matching. **Polling retired 2026-11-12**: the `spotify_genre_polling`
+- [x] Venues set their genres and typical artists by hand through the same picker, and
+      `barfindr` stops polling venue Spotify playback. Done in three pieces:
+      the artist picker (`/api/venues/:barId/taste`, the bar dashboard and the app's bar
+      dashboard, feeding matching); **polling retired 2026-11-12** (the `spotify_genre_polling`
       and `process_bar_batch` tasks, their beat entry and `barfindr`'s `spotify_service.py` are
       gone; the remaining aggregate and cleanup tasks drain `bar_genre_profiles` and
-      `bar_genre_aggregates` within 24 hours of the deploy, after which a venue profile comes
-      from its declared artists and its events. Still open: venues cannot set bare genres
-      without naming an artist. `spotipy` stays in `requirements.txt` until the full
-      `spotify_service` retirement so the deploy does not stop for a by-hand requirements step)
+      `bar_genre_aggregates` within 24 hours of the deploy; `spotipy` stays in
+      `requirements.txt` until the full `spotify_service` retirement so the deploy does not
+      stop for a by-hand requirements step); and **bare genres, also 2026-11-12**
+      (`bars.declared_genres`, `GET`/`PUT /api/venues/:barId/taste/genres`, the "Genres you
+      play" dashboard section): a venue says "we play techno" with no artist needed, only
+      genres the cluster matcher knows are accepted, and both matchers fold them in at the
+      same weight as the venue artists' genres. The app's bar dashboard has no UI for them
+      yet (the endpoint takes its session token already; see section 5)
 - [x] Run `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21): the whole Playwright
       suite passes with the flag off and with it on, against the mocks, on a database rebuilt
       from `dev/schema.sql` with every migration applied, following CI's steps (2026-11-08).
@@ -247,6 +251,9 @@ top artists or play counts on the web).
 
 ## 5. Mobile app (`app_clubfindr`)
 
+- [ ] A "genres you play" editor on the bar dashboard, against
+      `PUT /api/venues/:barId/taste/genres` (the endpoint takes the app's session token
+      already; the web dashboard has the section since 2026-11-12)
 - [ ] Unit tests for the services layer
 - [ ] Replace `any` types and gate `console.log` for production builds
 - [ ] Split screen components over 500 lines
