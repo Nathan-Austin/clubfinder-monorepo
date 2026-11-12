@@ -4,6 +4,7 @@ import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
 import { generateJWT } from '$lib/authUtils';
+import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { email, confirmationCode } = await request.json();
@@ -11,7 +12,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// Validate the email and confirmation code
 		const result = await query(
-			`SELECT id, name, expires_at 
+			`SELECT id, name, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
 			 FROM clubfindr.bars 
 			 WHERE general_email = $1 AND confirmation_code = $2`,
 			[email, confirmationCode]
@@ -28,11 +29,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		const barData = result.rows[0];
-		const expiresAt = new Date(barData.expires_at);
-		const now = new Date();
-
 		// Check if the confirmation code has expired
-		if (expiresAt < now) {
+		if (!barCodeStillValid(barData.seconds_left)) {
 			return json(
 				{
 					success: false,

@@ -3,6 +3,7 @@ import { query } from '$lib/db';
 import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from '@sveltejs/kit';
+import { BAR_CODE_SECONDS_LEFT_SQL } from '$lib/server/barCodeExpiry';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -14,7 +15,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Query the bars table directly without dependency on the users table
 		console.log('Querying bars table for user information');
 		const result = await query(
-			`SELECT resend_attempts, expires_at, city FROM clubfindr.bars WHERE LOWER(general_email) = LOWER($1)`,
+			`SELECT resend_attempts, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left, city
+			 FROM clubfindr.bars WHERE LOWER(general_email) = LOWER($1)`,
 			[normalizedEmail]
 		);
 		console.log('Bars query result rows:', result.rows.length);
@@ -32,12 +34,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		const user = result.rows[0];
-		const { resend_attempts, expires_at, city } = user;
+		const { resend_attempts, seconds_left, city } = user;
 		console.log(
 			'Found bar with resend_attempts:',
 			resend_attempts,
-			'expires_at:',
-			expires_at,
+			'seconds_left:',
+			seconds_left,
 			'city:',
 			city
 		);
@@ -55,9 +57,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Calculate the time left before the current confirmation code expires
-		const currentTime = new Date();
-		const expiresAt = new Date(expires_at);
-		const timeLeft = (expiresAt.getTime() - currentTime.getTime()) / 1000;
+		const timeLeft = seconds_left ?? 0;
 		console.log('Time left before expiration (seconds):', timeLeft);
 
 		if (timeLeft > 0) {
@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Generate a new confirmation code
 		const confirmationCode = randomBytes(3).toString('hex').toUpperCase();
 		const newExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-		console.log('Generated new confirmation code:', confirmationCode, 'expires at:', newExpiresAt);
+		console.log('Generated a new confirmation code, expires at:', newExpiresAt);
 
 		// Update the confirmation code and resend attempts
 		console.log('Updating confirmation code in database');

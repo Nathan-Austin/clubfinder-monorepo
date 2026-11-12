@@ -6,6 +6,7 @@ import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from '@sveltejs/kit';
 import { normalizeCityName } from '$lib/cityName';
+import { BAR_CODE_SECONDS_LEFT_SQL } from '$lib/server/barCodeExpiry';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { email } = await request.json();
@@ -19,7 +20,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// Query the bars table, filtering by email and city
 		const result = await query(
-			`SELECT resend_attempts, expires_at FROM clubfindr.bars WHERE general_email = $1 AND city =$2`,
+			`SELECT resend_attempts, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
+			 FROM clubfindr.bars WHERE general_email = $1 AND city = $2`,
 			[email, normalizedCityName]
 		);
 		const user = result.rows[0];
@@ -28,7 +30,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'User not found' }, { status: 404 });
 		}
 
-		const { resend_attempts, expires_at } = user;
+		const { resend_attempts, seconds_left } = user;
 
 		// Check if resend attempts exceed the limit
 		if (resend_attempts >= 3) {
@@ -36,9 +38,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Calculate the time left before the current confirmation code expires
-		const currentTime = new Date();
-		const expiresAt = new Date(expires_at);
-		const timeLeft = (expiresAt.getTime() - currentTime.getTime()) / 1000;
+		const timeLeft = seconds_left ?? 0;
 
 		if (timeLeft > 0) {
 			return json(

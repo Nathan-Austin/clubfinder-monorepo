@@ -3,6 +3,7 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { normalizeCityName } from '$lib/cityName';
+import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const { email, confirmationCode } = await request.json();
@@ -19,7 +20,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		const normalizedCityName = normalizeCityName(cityResult.rows[0].city);
 
 		const result = await query(
-			`SELECT confirmation_code, expires_at FROM clubfindr.bars WHERE general_email = $1 AND city = $2`,
+			`SELECT confirmation_code, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
+			 FROM clubfindr.bars WHERE general_email = $1 AND city = $2`,
 			[email, normalizedCityName]
 		);
 
@@ -27,10 +29,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
 
-		const { confirmation_code, expires_at } = result.rows[0];
+		const { confirmation_code, seconds_left } = result.rows[0];
 
 		// Check if the confirmation code has expired
-		if (new Date() > new Date(expires_at)) {
+		if (!barCodeStillValid(seconds_left)) {
 			return json({ error: 'Confirmation code expired' }, { status: 400 });
 		}
 
