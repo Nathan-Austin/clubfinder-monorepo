@@ -219,7 +219,8 @@ CREATE TABLE clubfindr.bars (
     opening_hours character varying(255),
     closing_hours character varying(255),
     smoking_allowed boolean DEFAULT false NOT NULL,
-    bar_types text[] DEFAULT '{}'::text[] NOT NULL
+    bar_types text[] DEFAULT '{}'::text[] NOT NULL,
+    declared_genres text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 

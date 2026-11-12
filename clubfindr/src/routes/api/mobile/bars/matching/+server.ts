@@ -7,6 +7,7 @@ import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/spotifyUtils';
 import { toLocalIsoDate } from '$lib/localDate';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
+import { listDeclaredGenresForOwners, mergeGenresByOwner } from '$lib/taste/venueGenres';
 import { getProfileGenreWeightsForRequest } from '$lib/taste/profileGenres';
 import {
 	calculateClusterSimilarity,
@@ -344,14 +345,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			);
 		}
 
-		// Fold in the artists each venue says it plays, so a venue that never connected Spotify
-		// (and so has no bar_genre_profiles row) can still match on its own description of itself.
-		// After the events above because the weight depends on them: a venue with an event tonight
-		// is described by its line-up, not its self-description.
-		const venueArtistGenres = await listFavouriteGenresForOwners(
-			pool,
-			Array.from(barsMap.keys()),
-			'bar'
+		// Fold in the venue's self-description — the artists it says it plays and the genres it
+		// declares outright (bars.declared_genres), at one weight — so a venue that never
+		// connected Spotify (and so has no bar_genre_profiles row) can still match on its own
+		// description of itself. After the events above because the weight depends on them: a
+		// venue with an event tonight is described by its line-up, not its self-description.
+		const venueArtistGenres = mergeGenresByOwner(
+			await listFavouriteGenresForOwners(pool, Array.from(barsMap.keys()), 'bar'),
+			await listDeclaredGenresForOwners(pool, Array.from(barsMap.keys()))
 		);
 		venueArtistGenres.forEach((venueGenres, barId) => {
 			const bar = barsMap.get(barId);

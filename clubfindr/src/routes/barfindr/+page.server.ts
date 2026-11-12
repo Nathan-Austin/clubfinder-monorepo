@@ -6,6 +6,7 @@ import { normalizeCityName } from '$lib/spotifyUtils';
 import { cookieManager } from '$lib/cookieManager';
 import { getProfileGenreWeightsForSession } from '$lib/taste/profileGenres';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
+import { listDeclaredGenresForOwners, mergeGenresByOwner } from '$lib/taste/venueGenres';
 import {
 	calculateClusterSimilarity,
 	expandWeightedProfile,
@@ -442,12 +443,17 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 			});
 		}
 
-		// Fold in the artists each venue says it plays. Without this a venue that never connected
-		// Spotify has nothing but bar_genre_profiles, which only barfindr's polling fills, so it
-		// scored 0 and was filtered out below however well its music actually matched. This comes
-		// after the events above because its weight depends on them: a venue with an event tonight
-		// is described by its line-up, not its self-description.
-		const venueArtistGenres = await listFavouriteGenresForOwners(pool, barIds, 'bar');
+		// Fold in the venue's self-description: the artists it says it plays and the genres it
+		// declares outright (bars.declared_genres), at one weight — both are the venue speaking
+		// about itself. Without this a venue that never connected Spotify has nothing but
+		// bar_genre_profiles, which only barfindr's retired polling filled, so it scored 0 and
+		// was filtered out below however well its music actually matched. This comes after the
+		// events above because its weight depends on them: a venue with an event tonight is
+		// described by its line-up, not its self-description.
+		const venueArtistGenres = mergeGenresByOwner(
+			await listFavouriteGenresForOwners(pool, barIds, 'bar'),
+			await listDeclaredGenresForOwners(pool, barIds)
+		);
 		venueArtistGenres.forEach((genres, barId) => {
 			const bar = barsMap.get(barId);
 			if (!bar || genres.length === 0) return;

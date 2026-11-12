@@ -11,6 +11,7 @@
 	import BarDetailsModal, { type BarDetails } from './BarDetailsModal.svelte';
 	import BarEventsSection from './BarEventsSection.svelte';
 	import VenueArtistsSection from './VenueArtistsSection.svelte';
+	import VenueGenresSection from './VenueGenresSection.svelte';
 	interface Props {
 		data: PageData;
 	}
@@ -539,6 +540,7 @@
 		initialArtists={data.venueArtists ?? []}
 		initialGenres={data.venueGenres ?? []}
 	/>
+	<VenueGenresSection {barId} initialGenres={data.declaredGenres ?? []} />
 	<BarEventsSection {barId} />
 </main>
 

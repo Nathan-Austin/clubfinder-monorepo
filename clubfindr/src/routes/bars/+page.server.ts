@@ -9,6 +9,7 @@ import { decryptToken, encryptToken } from '$lib/encryptionUtils';
 import { redirect } from '@sveltejs/kit';
 import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 import { listFavouriteArtists } from '$lib/taste/favouriteArtists';
+import { listDeclaredGenres } from '$lib/taste/venueGenres';
 import { pool } from '$lib/db';
 
 const currentlyPlayingEndpoint = `https://api.spotify.com/v1/me/player/currently-playing`;
@@ -261,8 +262,10 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			genres: [],
 			genreWeights: {}
 		};
+		let declaredGenres: string[] = [];
 		try {
 			venueArtists = await listFavouriteArtists(pool, barId, 'bar');
+			declaredGenres = await listDeclaredGenres(pool, barId);
 		} catch (tasteError) {
 			// A dashboard that still manages events is better than an error page
 			console.error('Could not load the venue taste profile:', tasteError);
@@ -272,7 +275,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			barName: barName || 'Your Bar',
 			spotifyConnectEnabled: isSpotifyConnectEnabled(),
 			venueArtists: venueArtists.artists,
-			venueGenres: venueArtists.genres
+			venueGenres: venueArtists.genres,
+			declaredGenres
 		};
 
 		// Spotify connect switched off: the dashboard is the events and artists it manages
