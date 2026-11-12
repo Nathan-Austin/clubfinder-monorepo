@@ -59,8 +59,9 @@ test.describe('promoter event form', () => {
 
 		// track search goes through the app's own Spotify token (tests/mock-spotify.ts), so a
 		// promoter with no Spotify login of their own gets results and can pick one
-		await page.getByPlaceholder('Search for tracks to add...').fill('paper planes');
-		await page.getByRole('button', { name: 'Search', exact: true }).click();
+		const trackSearch = page.getByPlaceholder('Search for tracks to add...');
+		await trackSearch.fill('paper planes');
+		await trackSearch.press('Enter');
 		await expect(page.getByText('Paper Planes at Dawn').first()).toBeVisible();
 		await page.getByRole('button', { name: 'Add Track' }).first().click();
 		await expect(page.locator('body')).toContainText('Paper Planes at Dawn - Juno Paperplane');
