@@ -87,17 +87,6 @@ jobs:
       env:
         PW_SKIP_BUILD: '1'
 
-    # The same suite with per-account Spotify connect switched off, the mode production is
-    # moving to (src/lib/featureFlags.ts). Specs that only apply to one mode skip themselves.
-    # Re-seeded first, so it does not start from the rows the first run left behind.
-    - name: Run E2E tests with SPOTIFY_CONNECT_ENABLED=false
-      run: |
-        dev/setup.sh
-        pnpm test
-      env:
-        PW_SKIP_BUILD: '1'
-        SPOTIFY_CONNECT_ENABLED: 'false'
-
     - name: Upload test results
       if: failure()
       uses: actions/upload-artifact@v4

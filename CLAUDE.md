@@ -236,8 +236,8 @@ pnpm playwright test tests/specific-test.spec.ts
 pnpm vitest src/lib/specific.test.ts
 ```
 
-The e2e suite runs in both `SPOTIFY_CONNECT_ENABLED` modes: `pnpm test`, then
-`SPOTIFY_CONNECT_ENABLED=false pnpm test` (see `clubfindr/dev/TESTING.md`). All e2e runs share
+The e2e suite is one `pnpm test` (the `SPOTIFY_CONNECT_ENABLED` second run went with Spotify
+connect; see `clubfindr/dev/TESTING.md`). All e2e runs share
 the one dev database on port 54329 and ports 4173-4178, so only one checkout or worktree may run
 them at a time, and each `dev/setup.sh` wipes the data.
 Run every e2e command through the lease, `dev/e2e-lock.sh run <command>` (from `clubfindr/`):
@@ -324,7 +324,7 @@ The monorepo uses path-based workflow triggering for efficient CI:
    - Runs on Node.js 24 (`clubfindr/.nvmrc`), pnpm from `packageManager`
    - Postgres 16 service; `dev/setup.sh` writes `.env` and loads the synthetic seed
    - Executes: migration check (`dev/check-migrations.sh`), lint, type check, unit tests, build,
-     e2e tests twice, with `SPOTIFY_CONNECT_ENABLED` unset and then `=false` (all must pass)
+     e2e tests (all must pass)
    - Uploads the Playwright report as an artifact on failure
    - Needs no secrets
 
