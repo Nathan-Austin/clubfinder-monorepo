@@ -7,6 +7,7 @@ import {
 	makeArtistLookup,
 	parseSpotifyArtist,
 	searchSpotifyArtists,
+	searchSpotifyTracks,
 	SpotifyLookupError
 } from './spotifyArtistLookup';
 
@@ -260,6 +261,51 @@ describe('searchSpotifyArtists', () => {
 	it('maps failures to a 502', async () => {
 		const fetch = mockSpotify(() => jsonResponse({ error: 'rate limited' }, 429));
 		await expect(searchSpotifyArtists('juno', { credentials, fetch })).rejects.toMatchObject({
+			status: 502
+		});
+	});
+});
+
+describe('searchSpotifyTracks', () => {
+	const track = {
+		id: '5aBcDeFgHiJkLmNoPqRsTu',
+		name: ' Paper Planes at Dawn ',
+		artists: [{ name: 'Juno Paperplane' }, { name: '' }, {}],
+		album: { name: 'Folds' },
+		duration_ms: 312000,
+		preview_url: null
+	};
+
+	it('searches tracks with the app token and parses the items', async () => {
+		const fetch = mockSpotify((url) => {
+			const params = new URL(url).searchParams;
+			expect(params.get('q')).toBe('paper');
+			expect(params.get('type')).toBe('track');
+			expect(params.get('limit')).toBe('5');
+			return jsonResponse({ tracks: { items: [track, { id: 'bad', name: 'x' }] } });
+		});
+		const hits = await searchSpotifyTracks(' paper ', { credentials, fetch });
+		expect(hits).toEqual([
+			{
+				id: '5aBcDeFgHiJkLmNoPqRsTu',
+				name: 'Paper Planes at Dawn',
+				artists: [{ name: 'Juno Paperplane' }],
+				album: { name: 'Folds' },
+				duration_ms: 312000,
+				preview_url: null
+			}
+		]);
+	});
+
+	it('returns nothing for an empty query without a request', async () => {
+		const fetch = mockSpotify();
+		await expect(searchSpotifyTracks('  ', { credentials, fetch })).resolves.toEqual([]);
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('reports a failed search as a 502', async () => {
+		const fetch = mockSpotify(() => jsonResponse({ error: { status: 500 } }, 500));
+		await expect(searchSpotifyTracks('paper', { credentials, fetch })).rejects.toMatchObject({
 			status: 502
 		});
 	});

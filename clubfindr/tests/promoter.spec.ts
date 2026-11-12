@@ -1,4 +1,4 @@
-import { test, expect, login } from './fixtures';
+import { test, expect, login, mobileApi } from './fixtures';
 
 // Promoter dashboard: the "Add New Event" form with its venue search (local API),
 // GenreSelector and the ArtistSearchForm/TrackSearch performer components.
@@ -57,9 +57,20 @@ test.describe('promoter event form', () => {
 		await page.getByPlaceholder('Search by artist name or email').fill('zzz-nobody');
 		await page.waitForTimeout(800);
 
-		// track search is Spotify-backed: the input renders, searching fails gracefully
-		await page.getByPlaceholder('Search for tracks to add...').fill('abc');
-		await page.waitForTimeout(800);
+		// track search goes through the app's own Spotify token (tests/mock-spotify.ts), so a
+		// promoter with no Spotify login of their own gets results and can pick one
+		await page.getByPlaceholder('Search for tracks to add...').fill('paper planes');
+		await page.getByRole('button', { name: 'Search', exact: true }).click();
+		await expect(page.getByText('Paper Planes at Dawn').first()).toBeVisible();
+		await page.getByRole('button', { name: 'Add Track' }).first().click();
+		await expect(page.locator('body')).toContainText('Paper Planes at Dawn - Juno Paperplane');
 		expect(pageErrors).toEqual([]);
+	});
+
+	test('track search is refused without a login', async ({ playwright, baseURL }) => {
+		const stranger = await mobileApi(playwright, baseURL);
+		const response = await stranger.get('/api/spotify/search?q=paper&type=track');
+		expect(response.status()).toBe(401);
+		await stranger.dispose();
 	});
 });

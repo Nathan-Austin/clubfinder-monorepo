@@ -12,10 +12,15 @@ const tokenEndpoint = (options: SpotifyLookupOptions) =>
 	`${options.accountsBase ?? SPOTIFY_ACCOUNTS_BASE}/api/token`;
 const artistEndpoint = (options: SpotifyLookupOptions, id: string) =>
 	`${options.apiBase ?? SPOTIFY_API_BASE}/v1/artists/${id}`;
-const searchEndpoint = (options: SpotifyLookupOptions, query: string, limit: number) =>
+const searchEndpoint = (
+	options: SpotifyLookupOptions,
+	query: string,
+	limit: number,
+	type: 'artist' | 'track' = 'artist'
+) =>
 	`${options.apiBase ?? SPOTIFY_API_BASE}/v1/search?${new URLSearchParams({
 		q: query,
-		type: 'artist',
+		type,
 		limit: String(limit)
 	})}`;
 
@@ -207,6 +212,71 @@ export async function searchSpotifyArtists(
 	const data = (await response.json()) as { artists?: { items?: unknown[] } };
 	const items = Array.isArray(data.artists?.items) ? data.artists.items : [];
 	return items.map(parseSpotifyArtist).filter((artist): artist is ArtistDetails => !!artist);
+}
+
+/** A track as the promoter dashboard's track picker shows it. */
+export interface TrackHit {
+	id: string;
+	name: string;
+	artists: { name: string }[];
+	album: { name: string };
+	duration_ms: number | null;
+	preview_url: string | null;
+}
+
+/** Shapes a Spotify track object into a TrackHit; null when it is not one. */
+export function parseSpotifyTrack(raw: unknown): TrackHit | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const track = raw as {
+		id?: unknown;
+		name?: unknown;
+		artists?: unknown;
+		album?: { name?: unknown };
+		duration_ms?: unknown;
+		preview_url?: unknown;
+	};
+	if (!isSpotifyId(track.id) || typeof track.name !== 'string' || !track.name.trim()) {
+		return null;
+	}
+	const artists = (Array.isArray(track.artists) ? track.artists : [])
+		.map((artist) => (artist as { name?: unknown })?.name)
+		.filter((name): name is string => typeof name === 'string' && !!name.trim())
+		.map((name) => ({ name: name.trim() }));
+	return {
+		id: track.id,
+		name: track.name.trim(),
+		artists,
+		album: { name: typeof track.album?.name === 'string' ? track.album.name : '' },
+		duration_ms: typeof track.duration_ms === 'number' ? track.duration_ms : null,
+		preview_url: typeof track.preview_url === 'string' ? track.preview_url : null
+	};
+}
+
+/**
+ * Track search with the app's client-credentials token, for the promoter dashboard's track
+ * picker. It used to go through the promoter's own Spotify login, which promoters never had.
+ */
+export async function searchSpotifyTracks(
+	query: string,
+	options: SpotifyLookupOptions,
+	limit = 5
+): Promise<TrackHit[]> {
+	const trimmed = query.trim();
+	if (!trimmed) return [];
+	const fetchImpl = options.fetch ?? fetch;
+	const token = await getClientCredentialsToken(options);
+	const response = await fetchOrUnreachable(
+		fetchImpl,
+		searchEndpoint(options, trimmed, limit, 'track'),
+		{ headers: { Authorization: `Bearer ${token}` } },
+		'search'
+	);
+	if (!response.ok) {
+		throw new SpotifyLookupError(`Spotify search failed (${response.status})`, 502);
+	}
+	const data = (await response.json()) as { tracks?: { items?: unknown[] } };
+	const items = Array.isArray(data.tracks?.items) ? data.tracks.items : [];
+	return items.map(parseSpotifyTrack).filter((track): track is TrackHit => !!track);
 }
 
 /** An ArtistLookup for the endpoints: Spotify now, other sources later. */

@@ -1,7 +1,7 @@
 // A stand-in for the two Spotify hosts the app talks to from the server, for the e2e suite.
 //
 // Covers what the taste endpoints use (client-credentials token, artist search, artist by id,
-// several artists by ids) and the user flow behind "Connect with Spotify": the
+// several artists by ids), the promoter track search (type=track) and the user flow behind "Connect with Spotify": the
 // authorization-code exchange, token refresh, /v1/me and the three listening endpoints of
 // /spotify. Playwright's request
 // interception cannot see server-side calls, so playwright.config.ts starts this server and
@@ -111,6 +111,19 @@ const artistRef = (a: MockArtist) => ({
 	name: a.name,
 	external_urls: { spotify: `https://open.spotify.com/artist/${a.id}` }
 });
+
+/** Tracks for type=track searches, in Spotify's track shape (only the fields the app reads). */
+const MOCK_TRACKS = [
+	{ id: 'devTrackPaperDawn00001', name: 'Paper Planes at Dawn', artist: 'Juno Paperplane' },
+	{ id: 'devTrackAnvilShuffle01', name: 'Anvil Shuffle', artist: 'Glass Anvil' }
+].map((t) => ({
+	id: t.id,
+	name: t.name,
+	artists: [artistRef(MOCK_ARTISTS.find((a) => a.name === t.artist)!)],
+	album: { name: `${t.name} (Single)` },
+	duration_ms: 240000,
+	preview_url: null
+}));
 
 function readBody(req: IncomingMessage): Promise<string> {
 	return new Promise((resolve) => {
@@ -267,6 +280,13 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 	if (url.pathname === '/v1/search') {
 		const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
 		const limit = Number(url.searchParams.get('limit') ?? 20);
+		// type=track for the promoter track picker (/api/spotify/search), artists otherwise
+		if (url.searchParams.get('type') === 'track') {
+			const tracks = q ? MOCK_TRACKS.filter((t) => t.name.toLowerCase().includes(q)) : [];
+			return sendJson(res, 200, {
+				tracks: { items: tracks.slice(0, limit), total: tracks.length }
+			});
+		}
 		const items = q ? MOCK_ARTISTS.filter((a) => a.name.toLowerCase().includes(q)) : [];
 		return sendJson(res, 200, { artists: { items: items.slice(0, limit), total: items.length } });
 	}
