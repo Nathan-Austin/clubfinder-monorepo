@@ -1,13 +1,18 @@
-// Modified version of /routes/api/spotify/artists/+server.ts
+// POST { selectedIds } -> { genresList }: the genres of the artists picked on the guest search
+// (/spotify/search), kept in the visitor's `spotify-genres` cookie for /selectedGenres, /clubs
+// and /barfindr; GET reads that cookie back. Looks the artists up with the app's
+// client-credentials token ($lib/taste/spotifyArtistLookup), never a user's Spotify login.
 
 import { json as svelteJson } from '@sveltejs/kit';
-import { withAccessToken } from '$lib/spotifyUtils';
 import type { RequestHandler } from './$types';
 import { pool } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
-import { spotifyApi } from '$lib/spotifyHosts';
+import { isSpotifyId, spotifyAppGet, SpotifyLookupError } from '$lib/taste/spotifyArtistLookup';
+import { spotifyLookupOptions } from '$lib/taste/spotifyOptions';
 
-const artistsEndpoint = (ids: string[]) => spotifyApi(`/artists?ids=${ids.join(',')}`);
+// Spotify's several-artists endpoint takes at most 50 ids
+const MAX_IDS = 50;
+const artistsPath = (ids: string[]) => `/v1/artists?${new URLSearchParams({ ids: ids.join(',') })}`;
 
 // The genres of the caller's last POST, carried per visitor in this cookie (a module-level
 // variable here returned whichever user's genres were fetched last, to everyone)
@@ -49,29 +54,37 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			return svelteJson({ message: 'No valid IDs provided' }, { status: 400 });
 		}
 
-		// Remove duplicates and limit to 50 IDs
-		const uniqueIds = [...new Set(processedIds)].slice(0, 50);
+		// Only Spotify-shaped ids go into the request URL; duplicates removed, at most 50
+		const uniqueIds = [...new Set(processedIds.filter(isSpotifyId))].slice(0, MAX_IDS);
+		if (uniqueIds.length === 0) {
+			return svelteJson({ message: 'No valid IDs provided' }, { status: 400 });
+		}
 
 		// Initialize genre set
 		const genresList: Set<string> = new Set();
 		const normalizeGenre = (genre: string) => genre.toLowerCase().trim();
 
 		// Fetch artist data from Spotify
-		const data = await withAccessToken({
-			cookies,
-			endpoint: artistsEndpoint(uniqueIds)
-		});
-
-		if (!data.artists) {
-			return svelteJson({ message: 'Invalid response from Spotify API' }, { status: 500 });
+		let data: { artists?: ({ genres?: unknown } | null)[] };
+		try {
+			data = (await spotifyAppGet(artistsPath(uniqueIds), spotifyLookupOptions())) as typeof data;
+		} catch (error) {
+			console.warn('Spotify artist lookup failed:', error);
+			const status = error instanceof SpotifyLookupError ? error.status : 500;
+			return svelteJson({ message: 'Spotify is unavailable right now' }, { status });
 		}
 
-		// Process genres
-		data.artists.forEach((artist: { genres: string[] }) => {
-			artist.genres.forEach((genre: string) => {
-				genresList.add(normalizeGenre(genre));
-			});
-		});
+		if (!Array.isArray(data.artists)) {
+			return svelteJson({ message: 'Invalid response from Spotify API' }, { status: 502 });
+		}
+
+		// Process genres (Spotify answers null for an unknown id, and often no genres at all)
+		for (const artist of data.artists) {
+			const genres = Array.isArray(artist?.genres) ? artist.genres : [];
+			for (const genre of genres) {
+				if (typeof genre === 'string' && genre.trim()) genresList.add(normalizeGenre(genre));
+			}
+		}
 
 		const genresArray = Array.from(genresList);
 		cookies.set(GENRES_COOKIE, genresArray.join(','), {

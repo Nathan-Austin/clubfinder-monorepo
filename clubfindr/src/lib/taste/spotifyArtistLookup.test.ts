@@ -8,6 +8,7 @@ import {
 	parseSpotifyArtist,
 	searchSpotifyArtists,
 	searchSpotifyTracks,
+	spotifyAppGet,
 	SpotifyLookupError
 } from './spotifyArtistLookup';
 
@@ -306,6 +307,32 @@ describe('searchSpotifyTracks', () => {
 	it('reports a failed search as a 502', async () => {
 		const fetch = mockSpotify(() => jsonResponse({ error: { status: 500 } }, 500));
 		await expect(searchSpotifyTracks('paper', { credentials, fetch })).rejects.toMatchObject({
+			status: 502
+		});
+	});
+});
+
+describe('spotifyAppGet', () => {
+	it('sends the app token to the path under the API host', async () => {
+		// mockSpotify also checks the Bearer header
+		const fetch = mockSpotify((url) => {
+			expect(url).toBe('https://api.spotify.com/v1/search?q=juno&type=artist,track');
+			return jsonResponse({ artists: { items: [] } });
+		});
+		await expect(
+			spotifyAppGet('/v1/search?q=juno&type=artist,track', { credentials, fetch })
+		).resolves.toEqual({ artists: { items: [] } });
+	});
+
+	it('keeps a 404 and turns other failures into a 502', async () => {
+		const path = `/v1/artists/${ID}`;
+		const notFound = mockSpotify(() => jsonResponse({}, 404));
+		await expect(spotifyAppGet(path, { credentials, fetch: notFound })).rejects.toMatchObject({
+			status: 404
+		});
+		clearTokenCache();
+		const broken = mockSpotify(() => jsonResponse({}, 500));
+		await expect(spotifyAppGet(path, { credentials, fetch: broken })).rejects.toMatchObject({
 			status: 502
 		});
 	});

@@ -1,7 +1,8 @@
 // A stand-in for the two Spotify hosts the app talks to from the server, for the e2e suite.
 //
 // Covers what the taste endpoints use (client-credentials token, artist search, artist by id,
-// several artists by ids), the promoter track search (type=track) and the user flow behind "Connect with Spotify": the
+// several artists by ids), the promoter track search (type=track), the guest artist-or-song
+// search (type=artist,track) and the user flow behind "Connect with Spotify": the
 // authorization-code exchange, token refresh, /v1/me and the three listening endpoints of
 // /spotify. Playwright's request
 // interception cannot see server-side calls, so playwright.config.ts starts this server and
@@ -112,17 +113,24 @@ const artistRef = (a: MockArtist) => ({
 	external_urls: { spotify: `https://open.spotify.com/artist/${a.id}` }
 });
 
-/** Tracks for type=track searches, in Spotify's track shape (only the fields the app reads). */
+/** Tracks for type=track searches, in Spotify's track shape (the fields the app reads). */
 const MOCK_TRACKS = [
 	{ id: 'devTrackPaperDawn00001', name: 'Paper Planes at Dawn', artist: 'Juno Paperplane' },
 	{ id: 'devTrackAnvilShuffle01', name: 'Anvil Shuffle', artist: 'Glass Anvil' }
 ].map((t) => ({
 	id: t.id,
 	name: t.name,
+	uri: `spotify:track:${t.id}`,
 	artists: [artistRef(MOCK_ARTISTS.find((a) => a.name === t.artist)!)],
-	album: { name: `${t.name} (Single)` },
+	album: {
+		id: `${t.id.slice(0, 18)}Albm`,
+		name: `${t.name} (Single)`,
+		images: [],
+		external_urls: { spotify: `https://open.spotify.com/album/${t.id.slice(0, 18)}Albm` }
+	},
 	duration_ms: 240000,
-	preview_url: null
+	preview_url: null,
+	external_urls: { spotify: `https://open.spotify.com/track/${t.id}` }
 }));
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -280,15 +288,24 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
 	if (url.pathname === '/v1/search') {
 		const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
 		const limit = Number(url.searchParams.get('limit') ?? 20);
-		// type=track for the promoter track picker (/api/spotify/search), artists otherwise
-		if (url.searchParams.get('type') === 'track') {
-			const tracks = q ? MOCK_TRACKS.filter((t) => t.name.toLowerCase().includes(q)) : [];
-			return sendJson(res, 200, {
-				tracks: { items: tracks.slice(0, limit), total: tracks.length }
-			});
+		// type is a comma list: artist (the pickers), track (promoter track picker), or both
+		// (the guest "Artist or song…" search on /spotify/search)
+		const types = (url.searchParams.get('type') ?? 'artist').split(',');
+		const body: Record<string, { items: unknown[]; total: number }> = {};
+		if (types.includes('artist')) {
+			const items = q ? MOCK_ARTISTS.filter((a) => a.name.toLowerCase().includes(q)) : [];
+			body.artists = { items: items.slice(0, limit), total: items.length };
 		}
-		const items = q ? MOCK_ARTISTS.filter((a) => a.name.toLowerCase().includes(q)) : [];
-		return sendJson(res, 200, { artists: { items: items.slice(0, limit), total: items.length } });
+		if (types.includes('track')) {
+			// Spotify matches a track by its artists' names too
+			const tracks = q
+				? MOCK_TRACKS.filter((t) =>
+						[t.name, ...t.artists.map((a) => a.name)].some((n) => n.toLowerCase().includes(q))
+					)
+				: [];
+			body.tracks = { items: tracks.slice(0, limit), total: tracks.length };
+		}
+		return sendJson(res, 200, body);
 	}
 
 	// Several artists at once (/v1/artists?ids=a,b): Spotify answers null for an unknown id

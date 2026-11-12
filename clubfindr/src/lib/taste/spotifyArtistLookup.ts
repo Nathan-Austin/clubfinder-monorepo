@@ -214,6 +214,29 @@ export async function searchSpotifyArtists(
 	return items.map(parseSpotifyArtist).filter((artist): artist is ArtistDetails => !!artist);
 }
 
+/**
+ * GET an API path (`/v1/...`) with the app's client-credentials token and return the JSON, for
+ * callers that read Spotify's own shapes (the guest artist-or-song search). A 404 stays a 404;
+ * any other failure is a 502.
+ */
+export async function spotifyAppGet(path: string, options: SpotifyLookupOptions): Promise<unknown> {
+	const fetchImpl = options.fetch ?? fetch;
+	const token = await getClientCredentialsToken(options);
+	const response = await fetchOrUnreachable(
+		fetchImpl,
+		`${options.apiBase ?? SPOTIFY_API_BASE}${path}`,
+		{ headers: { Authorization: `Bearer ${token}` } },
+		path.split('?')[0]
+	);
+	if (!response.ok) {
+		throw new SpotifyLookupError(
+			`Spotify request failed (${response.status})`,
+			response.status === 404 ? 404 : 502
+		);
+	}
+	return response.json();
+}
+
 /** A track as the promoter dashboard's track picker shows it. */
 export interface TrackHit {
 	id: string;

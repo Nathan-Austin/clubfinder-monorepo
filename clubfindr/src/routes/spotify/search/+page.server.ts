@@ -1,24 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SPOTIFY_CLIENT_SECRET } from '$env/static/private';
-import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
-import { Buffer } from 'buffer';
+// The guest "Artist or song…" search from the home page (the `search` cookie /storestate
+// sets). Uses the app's client-credentials token through $lib/taste/spotifyArtistLookup, the
+// one server-side Spotify app: no user login, no token in a cookie (it used to share the
+// per-user `spotifyAccessToken` cookie and log the token on every search), and the hosts follow
+// SPOTIFY_API_BASE / SPOTIFY_ACCOUNTS_BASE, so the e2e suite runs it against the mock.
 import type { Artist_search, Track } from '$lib/$types';
-import { cookieManager } from '$lib/cookieManager';
+import { spotifyAppGet } from '$lib/taste/spotifyArtistLookup';
+import { spotifyLookupOptions } from '$lib/taste/spotifyOptions';
 
-const client_id = PUBLIC_SPOTIFY_CLIENT_ID;
-const client_secret = SPOTIFY_CLIENT_SECRET;
+const MAX_QUERY_LENGTH = 100;
 
-const token_endpoint = `https://accounts.spotify.com/api/token`;
-//let accessToken: string;
-//let tokenExpiry: number | null = null; // Token expiry in milliseconds
-
-const searchEndpoint = (query: string) =>
-	`https://api.spotify.com/v1/search?q=${query}&type=artist,track`;
+const searchPath = (query: string) =>
+	`/v1/search?${new URLSearchParams({ q: query, type: 'artist,track' })}`;
 
 export const load = async ({ cookies }) => {
-	let searchQuery = cookies.get('search') ?? '';
-	console.log('Search Query:', searchQuery);
+	const stored = cookies.get('search');
+	const searchQuery = (stored ?? '').trim().slice(0, MAX_QUERY_LENGTH);
 
+	if (stored && !searchQuery) {
+		return {
+			props: { artists: [], tracks: [], message: 'Please enter a valid search query.' }
+		};
+	}
 	if (!searchQuery) {
 		return {
 			props: {
@@ -29,103 +32,24 @@ export const load = async ({ cookies }) => {
 		};
 	}
 
-	searchQuery = searchQuery.trim();
-
-	if (!searchQuery) {
+	let spotifyData: Data;
+	try {
+		spotifyData = (await spotifyAppGet(searchPath(searchQuery), spotifyLookupOptions())) as Data;
+	} catch (error) {
+		console.warn('Guest Spotify search failed:', error);
 		return {
 			props: {
 				artists: [],
 				tracks: [],
-				message: 'Please enter a valid search query.'
+				message: 'Spotify search is unavailable right now. Please try again in a moment.'
 			}
 		};
 	}
 
-	// Check if the access token is still valid
-	// Retrieve the encrypted tokens from cookies
-	const encryptedAccessToken = cookieManager.get(cookies, 'spotifyAccessToken');
-	const encryptedTokenExpiry = cookieManager.get(cookies, 'spotifyTokenExpiry');
-
-	console.log('Encrypted Access Token:', encryptedAccessToken);
-	console.log('Encrypted Token Expiry:', encryptedTokenExpiry);
-
-	// Decrypt the tokens
-	let accessToken: string | null = encryptedAccessToken || null;
-	const tokenExpiry = encryptedTokenExpiry ? parseInt(encryptedTokenExpiry, 10) : 0;
-
-	console.log('Decrypted Access Token:', accessToken);
-	console.log('Decrypted Token Expiry (timestamp):', tokenExpiry);
-
-	const now = Date.now();
-	console.log('Current Time (timestamp):', now);
-
-	if (!accessToken || !tokenExpiry || now >= tokenExpiry) {
-		console.log('Token expired or missing, fetching new token');
-
-		// Base64 encode the client ID and secret
-		const encodedString = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
-
-		// Fetch a new access token using client credentials
-		const response = await fetch(token_endpoint, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-				Authorization: `Basic ${encodedString}`
-			},
-			body: new URLSearchParams({
-				grant_type: 'client_credentials'
-			})
-		});
-
-		console.log('Token request response status:', response.status);
-
-		const data = await response.json();
-
-		if (!data.access_token) {
-			console.error('Failed to retrieve access token from Spotify');
-			throw new Error('Failed to retrieve access token from Spotify');
-		}
-
-		// Set the new access token and its expiry time
-		accessToken = data.access_token;
-		// NOTE: the refreshed token's expiry is not written back to the spotifyTokenExpiry
-		// cookie, so the next request refreshes again (pre-existing; the value was computed
-		// here and never used).
-
-		if (accessToken) {
-			cookieManager.set(cookies, 'spotifyAccessToken', accessToken, {
-				path: '/', // Make it available site-wide
-				maxAge: data.expires_in // Ensure the cookie lasts as long as the token is valid
-			});
-		}
-	}
-	console.log('Using Access Token:', accessToken);
-
-	// Fetch artists and tracks using the valid access token
-	const spotifyResponse = await fetch(searchEndpoint(searchQuery), {
-		headers: {
-			Authorization: `Bearer ${accessToken}`
-		}
-	});
-
-	console.log('Spotify Response Status:', spotifyResponse.status);
-
-	if (!spotifyResponse.ok) {
-		console.error('Spotify API request failed:', spotifyResponse.statusText);
-		throw new Error(`Spotify API request failed: ${spotifyResponse.statusText}`);
-	}
-
-	const spotifyData = await spotifyResponse.json();
-	//console.log('Spotify Data:', spotifyData);
-
-	// Map artists and tracks separately
-	const artists = mapToArtist(spotifyData);
-	const tracks = mapToTrack(spotifyData);
-
 	return {
 		props: {
-			artists,
-			tracks
+			artists: mapToArtist(spotifyData),
+			tracks: mapToTrack(spotifyData)
 		}
 	};
 };
@@ -171,11 +95,11 @@ type Data = {
 };
 
 function mapToArtist(data: Data): Artist_search[] {
-	return data.artists.items.map((item) => {
+	return (data.artists?.items ?? []).map((item) => {
 		return {
-			genres: item.genres,
+			genres: item.genres ?? [],
 			id: item.id,
-			images: item.images.map((image) => {
+			images: (item.images ?? []).map((image) => {
 				return {
 					url: image.url,
 					height: image.height,
@@ -189,26 +113,26 @@ function mapToArtist(data: Data): Artist_search[] {
 }
 
 function mapToTrack(data: Data): Track[] {
-	return data.tracks.items.map((item) => ({
+	return (data.tracks?.items ?? []).map((item) => ({
 		id: item.id,
 		name: item.name,
 		artists: item.artists.map((artist) => ({
 			id: artist.id,
 			name: artist.name,
-			external_urls: { spotify: artist.external_urls.spotify }
+			external_urls: { spotify: artist.external_urls?.spotify ?? '' }
 		})),
 		album: {
 			id: item.album.id,
 			name: item.album.name,
-			images: item.album.images.map((image) => ({
+			images: (item.album.images ?? []).map((image) => ({
 				url: image.url,
 				height: image.height,
 				width: image.width
 			})),
-			external_urls: { spotify: item.album.external_urls.spotify }
+			external_urls: { spotify: item.album.external_urls?.spotify ?? '' }
 		},
 		preview_url: item.preview_url,
 		uri: item.uri,
-		external_urls: { spotify: item.external_urls.spotify }
+		external_urls: { spotify: item.external_urls?.spotify ?? '' }
 	}));
 }
