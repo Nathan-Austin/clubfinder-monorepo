@@ -1,5 +1,6 @@
 // bars/+page.server.ts
 import { redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { pool } from '$lib/db';
 import type { PageServerLoad } from './$types';
 import { normalizeCityName } from '$lib/spotifyUtils';
@@ -128,10 +129,18 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 	const isLoggedIn = cookies.get('isLoggedIn') === 'true';
 	let date = cookies.get('date');
 
+	// "Change Date" reloads with ?date=. The cookie is refreshed so the new date survives into
+	// the other pages ("Change the vibe", /clubs) instead of silently reverting (KNOWN_ISSUES 24)
 	const updatedDate = url.searchParams.get('date');
-	const isDateChange = !!updatedDate;
-	if (updatedDate) {
+	if (updatedDate && /^\d{4}-\d{2}-\d{2}$/.test(updatedDate)) {
 		date = updatedDate;
+		cookies.set('date', updatedDate, {
+			path: '/',
+			httpOnly: true,
+			secure: !dev,
+			sameSite: 'lax',
+			maxAge: 3600 // as /storestate sets it
+		});
 	}
 
 	const address = cookies.get('address');
@@ -149,67 +158,24 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 	const sessionId = cookieManager.get(cookies, 'sessionId');
 
-	// Only process and clear genre cookies if this is not a date change
-	if (!isDateChange) {
-		// Genre selection logic - prioritize different sources
-		// 1. First priority: Explicitly selected genres
-		const selectedGenresCookie = cookies.get('selected-genres');
-		if (selectedGenresCookie) {
-			try {
-				genresList = selectedGenresCookie.split(',').map((genre) => genre.trim().toLowerCase());
-				genresList = Array.from(new Set(genresList)); // Remove duplicates
-				console.log('Using explicitly selected genres from cookie:', genresList);
-				cookies.delete('selected-genres', { path: '/' }); // Clean up after reading
-			} catch (error) {
-				console.error('Error processing selected-genres cookie:', error);
-			}
-		}
+	// Genre sources in priority order. The cookies are read, never deleted: deleting them
+	// "after reading" meant a reload or a hop to /clubs lost a guest's genres after one page
+	// view (KNOWN_ISSUES 24; a date change already had a no-delete branch here — now every
+	// read works that way). They expire on their own (an hour for the search cookies, a day
+	// for selected-genres) and every new search overwrites them.
+	const selectedGenresCookie = cookies.get('selected-genres');
+	const genreCookie = cookies.get('genre');
+	const spotifyGenresCookie = cookies.get('spotify-genres');
 
-		// 2. Second priority: Legacy genre cookie
-		if (genresList.length === 0) {
-			const genreCookie = cookies.get('genre');
-			if (genreCookie) {
-				try {
-					genresList = genreCookie.split(',').map((genre) => genre.trim().toLowerCase());
-					genresList = Array.from(new Set(genresList)); // Remove duplicates
-					console.log('Using genres from legacy genre cookie:', genresList);
-					cookies.delete('genre', { path: '/' }); // Clean up after reading
-				} catch (error) {
-					console.error('Error processing genre cookie:', error);
-				}
-			}
-		}
-
-		// 3. Third priority: Spotify-generated genres
-		if (genresList.length === 0) {
-			const spotifyGenresCookie = cookies.get('spotify-genres');
-			if (spotifyGenresCookie) {
-				try {
-					genresList = spotifyGenresCookie.split(',').map((genre) => genre.trim().toLowerCase());
-					genresList = Array.from(new Set(genresList)); // Remove duplicates
-					console.log('Using Spotify-generated genres from cookie:', genresList);
-					cookies.delete('spotify-genres', { path: '/' }); // Clean up after reading
-				} catch (error) {
-					console.error('Error processing spotify-genres cookie:', error);
-				}
-			}
-		}
-	} else {
-		// If it's a date change, try to get genres from any available source without clearing cookies
-		const selectedGenresCookie = cookies.get('selected-genres');
-		const genreCookie = cookies.get('genre');
-		const spotifyGenresCookie = cookies.get('spotify-genres');
-
-		if (selectedGenresCookie) {
-			genresList = selectedGenresCookie.split(',').map((genre) => genre.trim().toLowerCase());
-		} else if (genreCookie) {
-			genresList = genreCookie.split(',').map((genre) => genre.trim().toLowerCase());
-		} else if (spotifyGenresCookie) {
-			genresList = spotifyGenresCookie.split(',').map((genre) => genre.trim().toLowerCase());
-		}
-
-		genresList = Array.from(new Set(genresList)); // Remove duplicates
+	if (selectedGenresCookie) {
+		genresList = selectedGenresCookie.split(',').map((genre) => genre.trim().toLowerCase());
+	} else if (genreCookie) {
+		genresList = genreCookie.split(',').map((genre) => genre.trim().toLowerCase());
+	} else if (spotifyGenresCookie) {
+		genresList = spotifyGenresCookie.split(',').map((genre) => genre.trim().toLowerCase());
 	}
+
+	genresList = Array.from(new Set(genresList)); // Remove duplicates
 
 	// 4. Fourth priority: For logged-in users, check database session
 	if (genresList.length === 0 && sessionId) {

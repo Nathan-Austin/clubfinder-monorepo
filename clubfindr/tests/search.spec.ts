@@ -37,6 +37,61 @@ test.describe('home page search', () => {
 		await expect(page.locator('#city-select')).toHaveValue('Berlin');
 	});
 
+	// KNOWN_ISSUES 24: /clubs deleted the genre cookies on first read, so one page view spent
+	// a guest's genres — a reload, "Change Date" or a hop to /barfindr showed everything,
+	// unfiltered, and the changed date never reached the cookie the other pages search by.
+	test('a guest keeps their genres and changed date across reloads and pages', async ({ page }) => {
+		const menu = await chooseCityAndGenre(page, 'Berlin', 'Minimal and Techno');
+		await menu.locator('button.submit-selection-button', { hasText: 'Find A club' }).click();
+		await page.waitForURL('**/clubs');
+		await expect(page.locator('body')).toContainText('Matching Genres:');
+
+		// A reload used to lose the genres with the deleted cookie
+		await page.reload();
+		await expect(page.locator('body')).toContainText('Matching Genres:');
+
+		// "Change Date" to the pinned seed nights keeps the genres and refreshes the date cookie
+		await page.locator('input[name="date"]').fill('2031-06-21');
+		await page.getByRole('button', { name: 'Change Date' }).click();
+		await page.waitForURL('**/clubs?date=2031-06-21');
+		await expect(page.locator('.header')).toContainText('June 21');
+		await expect(page.locator('body')).toContainText('Matching Genres:');
+
+		// /barfindr searches by the cookies alone: the genres and the changed date both arrive
+		await page.goto('/barfindr');
+		await expect(page.locator('.header')).toContainText('June 21');
+		await expect(page.locator('body')).toContainText('The Copper Lantern');
+	});
+
+	test('the home page remembers a changed date, not just the city', async ({ page }) => {
+		// The date display and picker only exist logged in; guests always search "today".
+		// ("Change the vibe" is window.history.back(), so after a date change it first returns
+		// to the pre-change /clubs entry; going home directly asserts the same cookie read.)
+		await login(page, 'listener');
+		const menu = await chooseCityAndGenre(page, 'Berlin', 'Minimal and Techno');
+		await menu.locator('button.submit-selection-button', { hasText: 'Find A club' }).click();
+		await page.waitForURL('**/clubs');
+
+		// Tomorrow, not the pinned 2031 nights: the home DatePicker clamps to its own range,
+		// so a far-future remembered date would show clamped, not as picked
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		const iso = [
+			tomorrow.getFullYear(),
+			String(tomorrow.getMonth() + 1).padStart(2, '0'),
+			String(tomorrow.getDate()).padStart(2, '0')
+		].join('-');
+		await page.locator('input[name="date"]').fill(iso);
+		await page.getByRole('button', { name: 'Change Date' }).click();
+		await page.waitForURL(`**/clubs?date=${iso}`);
+
+		// Back on the home page the search date is the changed one, not today again
+		await page.goto('/');
+		const displayed = `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+		await expect(page.locator('body')).toContainText(displayed);
+		await expect(page.locator('#city-select')).toHaveValue('Berlin');
+	});
+
 	test('logged-in user can mark interest on a club result', async ({ page }) => {
 		await login(page, 'listener');
 		const menu = await chooseCityAndGenre(page, 'Berlin', 'Minimal and Techno');

@@ -5,7 +5,7 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { DatePicker } from 'date-picker-svelte';
-	import { toLocalIsoDate } from '$lib/localDate';
+	import { fromLocalIsoDate, toLocalIsoDate } from '$lib/localDate';
 	import { PUBLIC_SPOTIFY_CLIENT_ID } from '$env/static/public';
 	import { goto } from '$app/navigation';
 	import { getDistance } from 'geolib';
@@ -85,6 +85,12 @@
 
 	///////////////////// DATE PICKER ///////////////////////
 	let formattedDate: Date = $state(new Date());
+	// Start from the date of the last search, like the city ("Change the vibe" used to reset
+	// it to today, KNOWN_ISSUES 24). A remembered date already in the past stays today.
+	// svelte-ignore state_referenced_locally
+	if (data.rememberedDate && data.rememberedDate >= toLocalIsoDate(new Date())) {
+		formattedDate = fromLocalIsoDate(data.rememberedDate);
+	}
 
 	////////////////// Location //////////////////////////////////
 	interface Position {

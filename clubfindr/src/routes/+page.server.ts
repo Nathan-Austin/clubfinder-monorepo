@@ -7,9 +7,12 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 	const hasSoundCloudAccessToken = !!cookieManager.get(cookies, 'soundcloud_access_token');
 	const hasTidalAccessToken = !!cookieManager.get(cookies, 'tidal_access_token');
 
-	// The city of the last search (set by /storestate, httpOnly), so coming back to the page
-	// ("Change the vibe" on /clubs and /barfindr) does not ask for the city again.
+	// The city and date of the last search (set by /storestate, httpOnly), so coming back to
+	// the page ("Change the vibe" on /clubs and /barfindr) does not ask for them again. The
+	// city came back already; the date used to reset to today (KNOWN_ISSUES 24).
 	const rememberedCity = cookies.get('city') ?? '';
+	const dateCookie = cookies.get('date') ?? '';
+	const rememberedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateCookie) ? dateCookie : '';
 
 	// The Spotify login callback (and other flows) redirect here with ?error=<message> when
 	// something went wrong; the page shows it, it was silently dropped before.
@@ -20,6 +23,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		hasSoundCloudAccessToken,
 		hasTidalAccessToken,
 		rememberedCity,
+		rememberedDate,
 		errorMessage,
 		spotifyConnectEnabled: isSpotifyConnectEnabled()
 	};
