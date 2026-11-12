@@ -1,4 +1,4 @@
-import { test, expect, mobileApi, bearer, SPOTIFY_CONNECT_ENABLED, testPassword } from './fixtures';
+import { test, expect, mobileApi, bearer, testPassword } from './fixtures';
 import type { APIRequestContext } from '@playwright/test';
 
 // The mobile app's side of the taste profile (ROADMAP section 1, mobile parity):
@@ -61,7 +61,8 @@ test('mobile login works without a Spotify app and asks for the artist step', as
 		max: 5,
 		favouriteCount: 0
 	});
-	expect(body.spotifyConnectEnabled).toBe(SPOTIFY_CONNECT_ENABLED);
+	// Per-user Spotify connect is retired; the field stays false for older app builds
+	expect(body.spotifyConnectEnabled).toBe(false);
 	// No Spotify app, so no app credentials
 	expect(body.user.clientId).toBeNull();
 	await api.dispose();

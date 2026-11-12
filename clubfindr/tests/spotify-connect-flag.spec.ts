@@ -11,7 +11,7 @@ import { capturedMail, waitForMail } from './mail';
 // SPOTIFY_CONNECT_ENABLED (src/lib/featureFlags.ts, KNOWN_ISSUES 24). The suite runs once per
 // mode: `pnpm test` with the flag unset (on), and `SPOTIFY_CONNECT_ENABLED=false pnpm test`
 // (see tests/fixtures.ts). The flag-specific describe blocks skip themselves in the other mode;
-// the web user block runs in both, since the web user connect is gone either way.
+// the user block runs in both, since the user connect is gone either way.
 //
 // Every test uses throwaway accounts and venues with unique e-mails, so nothing here shares a
 // session or a row with another spec. Nothing listens where spotify_service would (127.0.0.1:
@@ -52,8 +52,9 @@ function venue(name: string, email: string, extra: Record<string, unknown> = {})
 	};
 }
 
-// Per-user Spotify connect is retired on the web (ROADMAP section 1), whatever the flag says
-test.describe('web user signup and pages without Spotify connect', () => {
+// Per-user Spotify connect is retired for users, web and mobile (ROADMAP section 1), whatever
+// the flag says
+test.describe('user signup and pages without Spotify connect', () => {
 	test('the web signup form has no Spotify e-mail field', async ({ page }) => {
 		await page.goto('/login/users');
 		await acceptCookies(page);
@@ -80,6 +81,40 @@ test.describe('web user signup and pages without Spotify connect', () => {
 		expect(await second.json()).toEqual({ success: true, newAccount: true });
 	});
 
+	test('mobile signup needs no music service', async ({ page }) => {
+		const response = await page.request.post('/api/mobile/signup', {
+			data: {
+				name: 'Connect Flag Test',
+				email: `${unique('mobile-off')}@clubfindr.test`,
+				password: PASSWORD
+			}
+		});
+		expect(response.status()).toBe(201);
+		expect(await response.json()).toMatchObject({
+			success: true,
+			requiresEmailVerification: true,
+			spotifyConnectEnabled: false
+		});
+	});
+
+	test('mobile signup ignores a Spotify choice from an older app', async ({ page }) => {
+		// requiresSpotifySetup was only answered on the branch that called spotify_service
+		// (add_user), so its absence shows there is no such call any more
+		const response = await page.request.post('/api/mobile/signup', {
+			data: {
+				name: 'Connect Flag Test',
+				email: `${unique('mobile-off-spotify')}@clubfindr.test`,
+				password: PASSWORD,
+				musicService: 'spotify',
+				spotifyEmail: `${unique('old-app-spotify')}@clubfindr.test`
+			}
+		});
+		expect(response.status()).toBe(201);
+		const body = await response.json();
+		expect(body).toMatchObject({ success: true, spotifyConnectEnabled: false });
+		expect(body).not.toHaveProperty('requiresSpotifySetup');
+	});
+
 	test('there are no Spotify connect buttons', async ({ page }) => {
 		expect((await signUpWeb(page, `${unique('web-no-connect')}@clubfindr.test`)).status()).toBe(
 			200
@@ -103,21 +138,6 @@ test.describe('with Spotify connect on (default)', () => {
 		expect(response.status()).toBe(200);
 		expect(await response.json()).toEqual({ spotifyConnectEnabled: true });
 	});
-
-	test('mobile signup still requires a music service', async ({ page }) => {
-		const response = await page.request.post('/api/mobile/signup', {
-			data: {
-				name: 'Connect Flag Test',
-				email: `${unique('mobile-on')}@clubfindr.test`,
-				password: PASSWORD
-			}
-		});
-		expect(response.status()).toBe(400);
-		expect(await response.json()).toMatchObject({
-			success: false,
-			message: 'Missing required fields'
-		});
-	});
 });
 
 test.describe('with Spotify connect off', () => {
@@ -128,40 +148,6 @@ test.describe('with Spotify connect off', () => {
 		expect(response.status()).toBe(200);
 		expect(await response.json()).toEqual({ spotifyConnectEnabled: false });
 		expect(response.headers()['cache-control']).toBe('public, max-age=60');
-	});
-
-	test('mobile signup needs no music service', async ({ page }) => {
-		const response = await page.request.post('/api/mobile/signup', {
-			data: {
-				name: 'Connect Flag Test',
-				email: `${unique('mobile-off')}@clubfindr.test`,
-				password: PASSWORD
-			}
-		});
-		expect(response.status()).toBe(201);
-		expect(await response.json()).toMatchObject({
-			success: true,
-			requiresEmailVerification: true,
-			spotifyConnectEnabled: false
-		});
-	});
-
-	test('mobile signup ignores a Spotify choice from an older app', async ({ page }) => {
-		// requiresSpotifySetup is only answered on the branch that calls spotify_service
-		// (add_user), so its absence shows the call was skipped
-		const response = await page.request.post('/api/mobile/signup', {
-			data: {
-				name: 'Connect Flag Test',
-				email: `${unique('mobile-off-spotify')}@clubfindr.test`,
-				password: PASSWORD,
-				musicService: 'spotify',
-				spotifyEmail: `${unique('old-app-spotify')}@clubfindr.test`
-			}
-		});
-		expect(response.status()).toBe(201);
-		const body = await response.json();
-		expect(body).toMatchObject({ success: true, spotifyConnectEnabled: false });
-		expect(body).not.toHaveProperty('requiresSpotifySetup');
 	});
 
 	test('web venue registration drops the music service and never calls add_bar', async ({

@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { pool } from '$lib/db';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -33,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Get user from database
 		const result = await query(
-			'SELECT id, name, city, password_hash, spotify_app_name, is_first_time,onboarding_complete FROM clubfindr.users WHERE general_email = $1',
+			'SELECT id, name, city, password_hash, is_first_time, onboarding_complete FROM clubfindr.users WHERE general_email = $1',
 			[email]
 		);
 
@@ -66,27 +65,12 @@ export const POST: RequestHandler = async ({ request }) => {
 				}
 			);
 		}
-		const app_name = result.rows[0].spotify_app_name;
-
-		// Spotify app credentials, for users who have an app and only while per-account connect is
-		// on. Most users have none (no Spotify at signup, or SPOTIFY_CONNECT_ENABLED=false):
-		// reading rows[0] unconditionally threw for them, so this endpoint answered 500 and the
-		// app fell back to /login/users on every login.
-		const appResult =
-			app_name && isSpotifyConnectEnabled()
-				? await query(
-						'SELECT client_id, client_secret FROM clubfindr.spotify_apps WHERE app_name = $1',
-						[app_name]
-					)
-				: { rows: [] as Record<string, unknown>[] };
 		// Generate token immediately without waiting for session storage
 		const user_id = result.rows[0].id;
 		const userName = result.rows[0].name;
 		const city = result.rows[0].city;
 		const normalizedCityName = normalizeCityName(city);
 		const sessionId = uuidv4();
-		const clientId = appResult.rows[0]?.client_id ?? null;
-		const clientSecret = appResult.rows[0]?.client_secret ?? null;
 		const isFirstTimeUser = result.rows[0].is_first_time;
 		const onboardingComplete = result.rows[0].onboarding_complete;
 		// Prepare response
@@ -98,15 +82,17 @@ export const POST: RequestHandler = async ({ request }) => {
 				email: email,
 				name: userName,
 				city: normalizedCityName,
-				spotify_app_name: app_name,
-				clientId,
-				clientSecret,
+				// Per-user Spotify connect is retired. These stay null (what production answered
+				// since SPOTIFY_CONNECT_ENABLED=false) for app builds that still read them.
+				spotify_app_name: null,
+				clientId: null,
+				clientSecret: null,
 				isFirstTimeUser,
 				onboardingComplete,
 				// The artist picker step (src/lib/taste/onboarding.ts); derived, like on the web
 				artistOnboarding: artistOnboardingStatus(await countFavouriteArtists(pool, user_id))
 			},
-			spotifyConnectEnabled: isSpotifyConnectEnabled()
+			spotifyConnectEnabled: false
 		};
 
 		// The token is only good once its user_sessions row exists, so write it before answering

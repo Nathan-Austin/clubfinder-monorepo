@@ -6,8 +6,6 @@ import { hashPassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
 import { generateConfirmationCode } from '$lib/codegen';
 import { sendVerificationEmail } from '$lib/email';
-import { addUserToSpotifyApp } from '$lib/spotifyService';
-import { isSpotifyConnectEnabled } from '$lib/featureFlags';
 
 export const POST: RequestHandler = async ({ request }) => {
 	console.log('========================');
@@ -21,22 +19,18 @@ export const POST: RequestHandler = async ({ request }) => {
 			email: data.email ? 'PRESENT' : 'MISSING',
 			password: data.password ? 'PRESENT' : 'MISSING',
 			name: data.name ? 'PRESENT' : 'MISSING',
-			musicService: data.musicService,
 			isMobileApp: true,
 			isFirstTimeUser: data.isFirstTimeUser
 		});
 
 		const { name, email, password, isFirstTimeUser } = data;
 
-		// SPOTIFY_CONNECT_ENABLED off: no music service is asked for, none is stored, and
-		// spotify_service is never called, whatever an older app version still sends. The
-		// response says so (spotifyConnectEnabled), like GET /api/mobile/config.
-		const spotifyConnectEnabled = isSpotifyConnectEnabled();
-		const musicService = spotifyConnectEnabled ? data.musicService : undefined;
-		const spotifyEmail = spotifyConnectEnabled ? data.spotifyEmail : undefined;
+		// Per-user Spotify connect is retired: no music service is asked for or stored, and a
+		// musicService / spotifyEmail an older app version still sends is ignored. The response
+		// keeps spotifyConnectEnabled (always false) for those versions, like GET /api/mobile/config.
 
-		// Validate required fields (the music service only while Spotify connect is on)
-		if (!name || !email || !password || (spotifyConnectEnabled && !musicService)) {
+		// Validate required fields
+		if (!name || !email || !password) {
 			return new Response(
 				JSON.stringify({
 					success: false,
@@ -74,25 +68,13 @@ export const POST: RequestHandler = async ({ request }) => {
 		const city = 'berlin';
 		const normalizedCityName = normalizeCityName(city);
 
-		// Set temporary spotify app name
-		const spotifyAppName = musicService === 'spotify' ? 'pending' : null;
-
 		// Create new user
 		const newUserResult = await query(
 			`INSERT INTO clubfindr.users 
-            (general_email, password_hash, name, city, spotify_email, spotify_app_name, is_first_time) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7) 
+            (general_email, password_hash, name, city, is_first_time)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING id`,
-			[
-				email,
-				hashedPassword,
-				name,
-				normalizedCityName,
-				// With connect on, the login e-mail stands in for a missing Spotify one (as before)
-				spotifyConnectEnabled ? spotifyEmail || email : null,
-				spotifyAppName,
-				isFirstTimeUser
-			]
+			[email, hashedPassword, name, normalizedCityName, isFirstTimeUser]
 		);
 
 		const userId = newUserResult.rows[0].id;
@@ -113,56 +95,20 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Send verification email
 		await sendVerificationEmail(email, confirmationCode);
 
-		// If Spotify was selected, handle integration asynchronously
-		if (musicService === 'spotify') {
-			// Start Spotify integration in the background
-			(async () => {
-				try {
-					console.log(`Starting Spotify app integration for user ${userId}`);
-					await addUserToSpotifyApp(userId, spotifyEmail || email);
-					console.log(`Spotify app integration completed for user ${userId}`);
-
-					// Here you could also trigger a push notification or other alert
-					// if you have a notification system in place
-				} catch (error) {
-					console.error(`Spotify integration failed for user ${userId}:`, error);
-				}
-			})().catch((err) => {
-				console.error('Background Spotify integration error:', err);
-			});
-
-			// Return immediate success response while the integration runs in background
-			return new Response(
-				JSON.stringify({
-					success: true,
-					message: 'Account created successfully. Spotify integration is being processed.',
-					userId: userId,
-					requiresSpotifySetup: true,
-					spotifyConnectEnabled,
-					isFirstTimeUser: isFirstTimeUser || false
-				}),
-				{
-					status: 201,
-					headers: { 'Content-Type': 'application/json' }
-				}
-			);
-		} else {
-			// For non-Spotify users, just return success
-			return new Response(
-				JSON.stringify({
-					success: true,
-					message: 'Account created successfully. Please verify your email.',
-					userId: userId,
-					requiresEmailVerification: true,
-					spotifyConnectEnabled,
-					isFirstTimeUser: isFirstTimeUser || false
-				}),
-				{
-					status: 201,
-					headers: { 'Content-Type': 'application/json' }
-				}
-			);
-		}
+		return new Response(
+			JSON.stringify({
+				success: true,
+				message: 'Account created successfully. Please verify your email.',
+				userId: userId,
+				requiresEmailVerification: true,
+				spotifyConnectEnabled: false,
+				isFirstTimeUser: isFirstTimeUser || false
+			}),
+			{
+				status: 201,
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
 	} catch (error) {
 		console.error('Error during signup:', error);
 		return new Response(
