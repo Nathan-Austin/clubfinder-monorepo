@@ -270,6 +270,9 @@ top artists or play counts on the web).
 - [ ] Retry with backoff and checkpointing so a failed run can resume
 - [ ] Move hardcoded paths and cities into configuration
 - [ ] Remove `oldScripts/` and other unused scripts
+- [ ] Clear the `bandit` findings in `data_collection` (KNOWN_ISSUES 46): timeouts on every
+      `requests` call first (a hung scrape holds the run lock), `# nosec` with a reason on the
+      false-positive B608s, then make the CI security scan a failing step
 - [ ] Tests for the scraping and enrichment steps
 
 ## 7. `barfindr` scaling

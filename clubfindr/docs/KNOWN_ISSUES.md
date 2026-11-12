@@ -561,3 +561,20 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     2026-11-12 by the KNOWN_ISSUES 42 tests when two e2e runs reused one Spotify profile. Dormant
     while `SPOTIFY_CONNECT_ENABLED=false` in production, and gone for good if the per-user Spotify
     flow is retired (ROADMAP section 1); only worth a friendly 409 if that flow stays.
+46. **`bandit` reports 80 medium findings that CI never acts on.** The Security scan steps in
+    `data-collection-ci.yml` and `spotify-service-ci.yml` are `continue-on-error`, so these have
+    been reported and ignored on every run (tool versions pinned since 2026-11-12, bandit 1.9.4):
+    - `data_collection` (59): **`requests` calls without a timeout** (B113) in `event_fetcher.py`
+      (85, 158), `soundcloud_api.py` (115, 133, 328), `utils.py` (795),
+      `batch_update_city_coordinates.py`, `fetch_venue_coordinates.py` and
+      `improved_venue_coordinates.py`. These are the real ones: one hung request stalls the run
+      while it holds `/tmp/clubfinder_running.lock`, so later cron runs skip until someone clears
+      it. The B608 "SQL injection" hits in `utils.py` (626-766) are false positives, f-strings
+      with nothing interpolated and values passed as `%s` parameters; B301 (pickle) in
+      `old_spotipy.py` and `simple_spotipy.py`; B108 for the `/tmp` lock path. 43 of the 59 are in
+      `oldScripts/` (ROADMAP section 6 removes it).
+    - `spotify_service` (21): B108 temp paths in `core/cleanup.py`, B104 binding to all
+      interfaces in `api/app.py`, B103 a 0o755 chmod, two B608 in `services/user_service.py`.
+      All go when `spotify_service` is retired (ROADMAP section 1); fix nothing there first.
+      Once `data_collection` is clean, drop `continue-on-error` from its scan so new findings fail
+      CI. Mark genuine false positives with `# nosec B608` and a reason, not a blanket skip.
