@@ -286,19 +286,38 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `spotify-genres` cookie and GET reads it back; `/selectedGenres` reads the cookie directly.
     The endpoint's Spotify call also goes through `spotifyApi()` now, so the e2e suite reaches
     it through the mock (`tests/taste.spec.ts`, "stay with their own visitor").
-24. **Smaller gaps in the existing flows:** _(fixed 2026-11-11, see the end of this item)_
-    `/api/delete-user-data` does not clear `preferences` or `interested_events`;
+24. **Smaller gaps in the existing flows:** _(fixed 2026-11-11 and 2026-11-12, see the end of
+    this item)_ `/api/delete-user-data` does not clear `preferences` or `interested_events`;
     `user_sessions.genres` is wiped on every login and
     scoped to the home city; `/clubs` deletes the genre cookies on first read, so "Change
     Date" loses a guest's genres; "Change the vibe" restores the city but not the date.
+    _Fixed 2026-11-12: the genre-cookie and date gaps._ `/clubs` and `/barfindr` read the
+    genre cookies without deleting them (deleting "after reading" spent a guest's genres on
+    one page view — a reload, a "Change Date" or a hop to the other page showed everything,
+    unfiltered; the cookies expire on their own and every new search overwrites them, so an
+    explicit pick now simply wins until it lapses — a day for `selected-genres`, an hour for
+    the search cookies). "Change Date" also refreshes the `date` cookie, so the new date
+    reaches the other page and the home page; and the home page starts from the remembered
+    date like it already did the city, unless it is in the past (`tests/search.spec.ts`).
+    Note the home DatePicker clamps to its own range, so a far-future date set through
+    `?date=` shows clamped there.
+    _Decided 2026-11-12, not a fix: the `user_sessions.genres` wipe on login stays._ The
+    KNOWN_ISSUES 37 login rewrite deliberately resets `genres` as a column a new session must
+    not inherit; the column is per-login scratch state for the streaming-analysis flows
+    (`/api/analyze-selections`, mobile Spotify genres), which are dormant in production with
+    `SPOTIFY_CONNECT_ENABLED=false` and write the durable copy to `users.preferences` anyway.
+    The lasting profile is the taste profile, which `/clubs` and the matchers already use.
+    The city scoping (`user_city = $2`) stays with it, for the same reason.
     _Fixed behind `SPOTIFY_CONNECT_ENABLED=false`:_ the `spotify_service` add_user call at signup
     and the `musicService` choice in mobile signup. With the flag off, web and mobile signup
     for users and venues (`/login/users`, `/register`, `/api/mobile/signup`,
     `/api/mobile/bars/register`) ask for no music service or Spotify e-mail, store none and
     never call `spotify_service` (add_user / add_bar), even when an older client sends them;
     `GET /api/mobile/config` tells the app to hide the fields. With the flag on (still the
-    code default) nothing changes; production runs with the flag off since 2026-11-12. Still open in this item: the `user_sessions.genres`, genre cookie
-    and "Change the vibe" gaps. Venue login (`/login/bars`) no longer retries add_bar or sends a
+    code default) nothing changes; production runs with the flag off since 2026-11-12.
+    The genre-cookie and "Change the vibe" gaps are fixed and the `user_sessions.genres` wipe
+    is deliberate (both 2026-11-12, see the top of this item), so nothing here is open any
+    more. Venue login (`/login/bars`) no longer retries add_bar or sends a
     venue through Spotify with the flag off either.
     _Fixed 2026-11-11: `/api/delete-user-data`._ It left far more than the two columns named
     above. Besides `preferences` and `interested_events` it kept the city, the Spotify app name,
