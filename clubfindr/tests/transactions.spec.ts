@@ -1,4 +1,4 @@
-import { test, expect, testPassword } from './fixtures';
+import { test, expect, mobileApi, bearer, testPassword } from './fixtures';
 import { devQuery } from './db';
 
 // Multi-statement writes run in one transaction on one connection (KNOWN_ISSUES 39).
@@ -31,16 +31,47 @@ async function strandedTransactions(): Promise<number> {
 	return Number(row.n);
 }
 
-test('a Spotify registration for an unknown user leaves no transaction open', async ({ page }) => {
-	// This path returned 404 between BEGIN and COMMIT, so it never committed or rolled back
-	const response = await page.request.post('/api/mobile/spotify/register', {
+test('a Spotify registration leaves no transaction open', async ({ page, playwright, baseURL }) => {
+	// The unknown-user path used to return 404 between BEGIN and COMMIT, so it never committed
+	// or rolled back. The endpoint requires the caller's own session now (KNOWN_ISSUES 42), so
+	// the test registers as a real user: the two UPDATEs still run in one transaction, and the
+	// refused unauthenticated call must not open one either.
+	const anonymous = await page.request.post('/api/mobile/spotify/register', {
 		data: {
 			accessToken: 'mock-user-token-ok',
 			userId: '00000000-0000-4000-8000-00000000dead',
 			spotifyProfile: { id: 'nobody', email: null }
 		}
 	});
-	expect(response.status()).toBe(404);
+	expect(anonymous.status()).toBe(401);
+
+	const api = await mobileApi(playwright, baseURL);
+	const email = `${unique('tx-spotify')}@clubfindr.test`;
+	const signup = await api.post('/login/users', {
+		data: {
+			provider: 'local',
+			isNewUser: true,
+			isMobileApp: true,
+			email,
+			password: PASSWORD,
+			fullName: 'Transaction Spotify Test'
+		}
+	});
+	expect(signup.status(), await signup.text()).toBe(200);
+	const login = await api.post('/api/mobile/login', { data: { email, password: PASSWORD } });
+	expect(login.status(), await login.text()).toBe(200);
+	const { user, token } = await login.json();
+
+	const response = await api.post('/api/mobile/spotify/register', {
+		data: {
+			accessToken: 'mock-user-token-ok',
+			userId: user.id,
+			// spotify_user_id is unique and the dev database lives across runs
+			spotifyProfile: { id: unique('tx-spotify'), email: null }
+		},
+		headers: bearer(token)
+	});
+	expect(response.status(), await response.text()).toBe(200);
 
 	// Wait past the threshold first: expect.poll would call straight away, before anything had
 	// been stranded long enough to count, and pass whatever the code did
