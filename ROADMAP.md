@@ -37,9 +37,14 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 - [x] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)
 - [ ] Venues set their genres and typical artists by hand through the same picker, and
       `barfindr` stops polling venue Spotify playback
-      (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard;
-      those picks now feed matching too, so the polling is no longer the only source of a venue
-      profile — but `barfindr` still polls, and venues cannot set bare genres without an artist)
+      (picker done: `/api/venues/:barId/taste`, the bar dashboard and the app's bar dashboard,
+      and those picks feed matching. **Polling retired 2026-11-12**: the `spotify_genre_polling`
+      and `process_bar_batch` tasks, their beat entry and `barfindr`'s `spotify_service.py` are
+      gone; the remaining aggregate and cleanup tasks drain `bar_genre_profiles` and
+      `bar_genre_aggregates` within 24 hours of the deploy, after which a venue profile comes
+      from its declared artists and its events. Still open: venues cannot set bare genres
+      without naming an artist. `spotipy` stays in `requirements.txt` until the full
+      `spotify_service` retirement so the deploy does not stop for a by-hand requirements step)
 - [x] Run `SPOTIFY_CONNECT_ENABLED=false` end to end (KNOWN_ISSUES 21): the whole Playwright
       suite passes with the flag off and with it on, against the mocks, on a database rebuilt
       from `dev/schema.sql` with every migration applied, following CI's steps (2026-11-08).
@@ -259,10 +264,12 @@ top artists or play counts on the web).
 
 ## 7. `barfindr` scaling
 
-Superseded by section 1 once `barfindr` stops polling venue Spotify playback.
-
-- [ ] Process venues in parallel chunks instead of one sequential loop
-- [ ] Move 24-hour genre aggregation into SQL instead of loading rows into memory
+Closed 2026-11-12: section 1 superseded it — the venue Spotify playback polling was retired
+outright, so there is nothing left to scale. (Both items had in fact already been done while
+the polling lived: it dispatched venues in chunked Celery batches, and the 24-hour aggregation
+ran in SQL.) `barfindr` now runs only the aggregate-refresh and cleanup tasks, which drain the
+polled tables; retiring the component entirely belongs to the `spotify_service` retirement in
+section 1.
 
 See [`docs/analysis/barfindr-technical-analysis.md`](docs/analysis/barfindr-technical-analysis.md).
 

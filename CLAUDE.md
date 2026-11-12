@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Clubfinder is a **monorepo** containing a multi-component platform for discovering music events and connecting artists with venues. The system consists of:
 
 1. **clubfindr** (Main SvelteKit web application)
-2. **barfindr** (Python venue backend: Celery workers and Spotify sync; no HTTP server)
+2. **barfindr** (Python venue backend: Celery maintenance tasks; no HTTP server. Its Spotify playback polling was retired 2026-11-12)
 3. **data_collection** (Python scripts for scraping event data)
 4. **spotify_service** (Automated Spotify application management)
 5. **app_clubfindr** (React Native/Expo mobile app)
@@ -165,8 +165,8 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 **Key Components:**
 - `src/barfindr/main.py` - Service entry point (initialises services, then sleeps in a loop)
 - `src/barfindr/database.py` - SQLAlchemy database setup (requires `DATABASE_URL`)
-- `src/barfindr/tasks.py` - Celery tasks for async operations
-- `src/barfindr/spotify_service.py` - Spotify API integration
+- `src/barfindr/tasks.py` - Celery tasks (genre-aggregate refresh and cleanup; the Spotify
+  playback polling was retired 2026-11-12, ROADMAP section 1)
 - `src/barfindr/encryption.py` - Credential encryption/decryption
 - `migrations/` - Alembic database migrations
 
@@ -223,7 +223,7 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 - `DATABASE_URL` - PostgreSQL connection string (required; no fallback)
 - `REDIS_URL` - Celery broker
 - `ENCRYPTION_KEY` - for stored Spotify credentials
-- `SPOTIFY_REDIRECT_URI`
+  (`SPOTIFY_REDIRECT_URI` is no longer read since the playback polling was retired)
 
 ### Testing
 
