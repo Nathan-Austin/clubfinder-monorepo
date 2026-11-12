@@ -497,13 +497,19 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
 41. _Fixed 2026-11-12._ **Logout does not evict the session cache.** `/logout` deleted the session
     row and the cookies, but not the `hooks.server.ts` cache entry, so a copy of the session id kept
     working for up to five minutes. It calls `evictSessions` now (`tests/auth.spec.ts`).
-42. **`POST /api/mobile/spotify/register` has no authentication.** Given any user id, it creates a
-    session for that user and returns its token, and returns the user's Spotify app client id and
-    secret, so anyone who learns a user's id can log in as them. The app calls it
-    (`mobileSpotifyService`) during Spotify connect. Fix like KNOWN_ISSUES 26: require the caller's
-    own session or Bearer token and refuse a mismatched `userId`, and stop returning the client
-    secret. Found 2026-11-12 while moving it onto `withTransaction`; not changed then, since doing
-    it blind could break the app's Spotify flow.
+42. _Fixed 2026-11-12._ **`POST /api/mobile/spotify/register` had no authentication.** Given any
+    user id, it created a session for that user and returned its token, and returned the user's
+    Spotify app client id and secret, so anyone who learned a user's id could log in as them. The
+    app calls it (`mobileSpotifyService`) during Spotify connect. It now requires the caller's own
+    session — the app's Bearer token or the web session cookie, through `getSessionUserId` like
+    the taste endpoints — answers 401 without one and 403 for a mismatched `userId`, and no longer
+    returns the client secret (the app takes its OAuth credentials from the login response and
+    `storeClientCredentials` ignores an empty secret, so nothing in the app loses them). It also
+    stopped minting sessions: the caller already holds the user's one session
+    (`user_sessions.user_id` is UNIQUE), so the Spotify tokens are stored on that row and the
+    caller's own token is echoed back, where rotating the session id would have logged the same
+    user's other surface out. Covered by `tests/mobile-spotify-register.spec.ts` and the reworked
+    registration test in `tests/transactions.spec.ts`.
 43. _Fixed 2026-11-12, still without a caller._ **`/promoter-home/events/[eventId]` could not
     work.** `PATCH` and `DELETE` used unqualified `events` (the search path is `"$user", public`;
     the table is `clubfindr.events`) and an `event_genres` table that does not exist (genres are an

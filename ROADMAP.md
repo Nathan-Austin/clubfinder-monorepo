@@ -225,8 +225,10 @@ top artists or play counts on the web).
       still off by default
 - [ ] Turn on `SMTP_TLS_VERIFY` in production once mail is confirmed to work with it, then make it
       the default (KNOWN_ISSUES 15)
-- [ ] Require authentication on `POST /api/mobile/spotify/register` and stop it returning the
-      Spotify client secret (KNOWN_ISSUES 42): today any user id gets a session token
+- [x] Require authentication on `POST /api/mobile/spotify/register` and stop it returning the
+      Spotify client secret (KNOWN_ISSUES 42), done 2026-11-12: the caller's own session is
+      required, a mismatched `userId` is refused, and the endpoint stores onto the caller's
+      existing session instead of minting one
 - [x] `/api/delete-user-data` should also clear preferences and interested events
       (KNOWN_ISSUES 24), done 2026-11-11 — and much more it had left behind, including every
       session and the Google and Facebook ids social sign-in would have used to reopen the
