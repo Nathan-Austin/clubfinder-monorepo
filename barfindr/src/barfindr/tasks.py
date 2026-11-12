@@ -33,12 +33,10 @@ def database_cleanup():
                 # Clean up bar genre profiles older than 24 hours
                 profiles_cutoff_date = datetime.utcnow() - timedelta(hours=24)
 
-                profile_cleanup_query = text(
-                    """
+                profile_cleanup_query = text("""
                     DELETE FROM clubfindr.bar_genre_profiles
                     WHERE timestamp < :cutoff_date
-                """
-                )
+                """)
 
                 profile_result = session.execute(
                     profile_cleanup_query, {"cutoff_date": profiles_cutoff_date}
@@ -85,8 +83,7 @@ def update_genre_aggregates():
                 #    - Calculate AVG weight
                 #    - Filter HAVING avg_weight >= 0.1
 
-                aggregation_query = text(
-                    """
+                aggregation_query = text("""
                     INSERT INTO clubfindr.bar_genre_aggregates (bar_id, genre, weight)
                     SELECT 
                         p.bar_id,
@@ -101,8 +98,7 @@ def update_genre_aggregates():
                         p.bar_id, key
                     HAVING 
                         AVG(value::float) >= 0.1
-                """
-                )
+                """)
 
                 result = session.execute(aggregation_query)
                 row_count = result.rowcount

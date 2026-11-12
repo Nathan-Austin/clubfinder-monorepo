@@ -41,7 +41,7 @@ jobs:
 
     - name: Run linting
       run: |
-        pip install flake8 black
+        pip install flake8==7.5.0 black==26.10.1
         # Lint both root scripts and new src directory
         flake8 *.py src/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 *.py src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
@@ -67,6 +67,6 @@ jobs:
 
     - name: Security scan
       run: |
-        pip install bandit
+        pip install bandit==1.9.4
         bandit -r . -ll
       continue-on-error: true

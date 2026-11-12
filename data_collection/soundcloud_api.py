@@ -19,7 +19,6 @@ from utils import (
     load_genres_from_csv,
 )
 
-
 load_dotenv()
 logging.basicConfig(
     level=logging.ERROR,

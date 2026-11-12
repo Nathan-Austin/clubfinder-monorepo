@@ -99,11 +99,9 @@ def update_primary_keys():
             table_name = table[0]
             if table_name.startswith(table_template.split("_{}")[0]):
                 # Drop the existing primary key constraint
-                drop_constraint_query = sql.SQL(
-                    """
+                drop_constraint_query = sql.SQL("""
                     ALTER TABLE {} DROP CONSTRAINT IF EXISTS {}_pkey;
-                """
-                ).format(sql.Identifier(table_name), sql.Identifier(table_name))
+                """).format(sql.Identifier(table_name), sql.Identifier(table_name))
                 try:
                     commit_to_database(drop_constraint_query)
                     print(f"Primary key constraint dropped for table {table_name}")
@@ -111,11 +109,9 @@ def update_primary_keys():
                     print(f"Failed to drop primary key for table {table_name}: {e}")
 
                 # Add the new primary key constraint
-                add_primary_key_query = sql.SQL(
-                    """
+                add_primary_key_query = sql.SQL("""
                     ALTER TABLE {} ADD PRIMARY KEY ({}, {});
-                """
-                ).format(
+                """).format(
                     sql.Identifier(table_name),
                     sql.Identifier(primary_keys[0]),
                     sql.Identifier(primary_keys[1]),

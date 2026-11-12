@@ -350,6 +350,10 @@ The monorepo uses path-based workflow triggering for efficient CI:
 
 ### Running CI Locally
 
+The Python lint tools are pinned in the workflows (`black==26.10.1`, `isort==9.0.2`,
+`flake8==7.5.0`, `bandit==1.9.4`); format with those versions, since another `black` release
+formats differently and fails CI. Bump the pins deliberately, reformatting in the same commit.
+
 To test workflows locally before pushing:
 
 ```bash
