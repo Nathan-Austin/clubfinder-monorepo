@@ -15,8 +15,9 @@
 
 	let { barId, initialGenres = [] }: Props = $props();
 
-	// svelte-ignore state_referenced_locally -- the page's data seeds the list once; the
-	// component owns it from then on (every save stores the server's answer)
+	// The page's data seeds the list once; the component owns it from then on (every save
+	// stores the server's answer)
+	// svelte-ignore state_referenced_locally
 	let genres = $state<string[]>([...initialGenres]);
 	let input = $state('');
 	let saving = $state(false);
