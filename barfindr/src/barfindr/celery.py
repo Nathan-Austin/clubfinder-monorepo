@@ -20,15 +20,9 @@ app.conf.update(
     # Use UTC for consistency
     enable_utc=True,
     timezone="UTC",
-    # Periodic task schedule
+    # Periodic task schedule. The Spotify playback polling entry was retired on 2026-11-12
+    # (ROADMAP section 1); the two remaining tasks wind the polled data down, see tasks.py.
     beat_schedule={
-        "spotify-genre-polling": {
-            "task": "barfindr.tasks.spotify_genre_polling",
-            "schedule": crontab(minute="*/20"),  # Every 20 minutes
-            "options": {
-                "expires": 1200,  # Task expires after 20 minutes (1200 seconds)
-            },
-        },
         "update-genre-aggregates": {
             "task": "barfindr.tasks.update_genre_aggregates",
             "schedule": crontab(minute=0, hour="*/1"),  # Every hour
@@ -46,8 +40,6 @@ app.conf.update(
     },
     # Task routing and execution settings
     task_routes={
-        "barfindr.tasks.spotify_genre_polling": {"queue": "spotify"},
-        "barfindr.tasks.process_bar_batch": {"queue": "spotify"},
         "barfindr.tasks.update_genre_aggregates": {"queue": "spotify"},
         "barfindr.tasks.database_cleanup": {"queue": "maintenance"},
     },

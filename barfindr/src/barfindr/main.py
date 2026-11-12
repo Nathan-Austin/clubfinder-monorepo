@@ -23,19 +23,6 @@ def main():
         return False
 
     try:
-        # Try importing spotify service
-        from .spotify_service import spotify_service
-
-        logger.info(
-            "Spotify service initialized",
-            polling_interval=spotify_service.polling_interval,
-            active_hours=spotify_service.active_hours,
-        )
-    except ImportError as e:
-        logger.error(f"Failed to import spotify_service: {str(e)}")
-        # Continue without Spotify service for now
-
-    try:
         # Try importing task scheduler
         from .task_scheduler import task_scheduler
 
