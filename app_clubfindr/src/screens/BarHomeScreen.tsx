@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     RefreshControl,
     Alert,
-    Image,
     ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -17,8 +16,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
 import BarStatsDashboard from '../components/BarStatsDashboard';
-import * as mobileSpotifyService from '../services/mobileSpotifyService';
-import BarSpotifyConnect from '../components/BarSpotifyConnect';
 import { fromLocalIsoDate } from '../utils/localDate';
 
 // Types for bar events
@@ -34,32 +31,20 @@ interface BarEvent {
     special_genres: string[];
 }
 
-interface CurrentlyPlaying {
-    name: string;
-    artists: { name: string }[];
-    album: {
-        images: { url: string }[];
-    };
-}
-
 // Simplified navigation type
 type BarHomeScreenNavigationProp = StackNavigationProp<any>;
 
 const BarHomeScreen = () => {
     const navigation = useNavigation<BarHomeScreenNavigationProp>();
-    const { user, logout, isSpotifyConnected, spotifyAuth } = useAuth();
+    const { user, logout } = useAuth();
 
     // State
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [barName, setBarName] = useState<string>('');
     const [barData, setBarData] = useState<any>(null);
-    const [currentlyPlaying, setCurrentlyPlaying] = useState<CurrentlyPlaying | null>(null);
     const [events, setEvents] = useState<BarEvent[]>([]);
     const [topGenres, setTopGenres] = useState<{ genre: string, count: number }[]>([]);
-    const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
-    const [spotifyConnecting, setSpotifyConnecting] = useState(false);
-    const [needsSpotifyConnection, setNeedsSpotifyConnection] = useState(false);
 
     // Stats state
     const [visitorsToday, setVisitorsToday] = useState(0);
@@ -73,72 +58,6 @@ const BarHomeScreen = () => {
         loadBarEvents();
         loadBarStats();
     }, []);
-
-    // Check for Spotify connection when bar data is loaded
-    useEffect(() => {
-        if (barData) {
-            checkSpotifyConnection();
-        }
-    }, [barData]);
-
-    // Check for currently playing track periodically when Spotify is connected
-    useEffect(() => {
-        if (isSpotifyConnected) {
-            // Initial fetch
-            fetchCurrentlyPlaying();
-
-            // Set up periodic refresh for currently playing and token validation
-            const interval = setInterval(async () => {
-                // First ensure we have a valid token
-                const isValid = await mobileSpotifyService.validateSpotifyConnection();
-                if (!isValid) {
-                    // Try to refresh the token
-                    const result = await mobileSpotifyService.refreshAccessToken();
-                    if (!result.success) {
-                        console.log('Failed to refresh Spotify token');
-                        return;
-                    }
-                }
-
-                // Then fetch currently playing
-                fetchCurrentlyPlaying();
-            }, 90000); // Every 90 seconds
-
-            return () => clearInterval(interval);
-        }
-    }, [isSpotifyConnected]);
-
-    const checkSpotifyConnection = async () => {
-        try {
-            // Check if the bar uses Spotify as its music service
-            if (barData?.music_service === 'spotify') {
-                setNeedsSpotifyConnection(true);
-
-                // Check if the connection is still valid
-                if (isSpotifyConnected) {
-                    const isValid = await mobileSpotifyService.validateSpotifyConnection();
-                    if (!isValid) {
-                        // Try to refresh the token
-                        const result = await mobileSpotifyService.refreshAccessToken();
-                        if (!result.success && result.shouldDisconnect) {
-                            // Clear the connection state
-                            await AsyncStorage.setItem('spotifyConnected', 'false');
-                            Alert.alert(
-                                'Spotify Connection Issue',
-                                'Your Spotify connection has expired. Please reconnect to continue displaying your music.'
-                            );
-                        }
-                    }
-                }
-            } else {
-                setNeedsSpotifyConnection(false);
-            }
-        } catch (error) {
-            console.error('Error checking Spotify connection:', error);
-            // On error, assume we need to reconnect
-            setNeedsSpotifyConnection(true);
-        }
-    };
 
     const loadBarDetails = async () => {
         try {
@@ -178,118 +97,9 @@ const BarHomeScreen = () => {
                     setTopGenres([]);
                 }
             }
-
-            // Fetch recently played tracks if Spotify is connected
-            if (isSpotifyConnected) {
-                fetchRecentlyPlayed();
-            }
         } catch (error) {
             console.error('Failed to load bar details:', error);
             Alert.alert('Error', 'Failed to load bar information. Please try again.');
-        }
-    };
-
-    const fetchCurrentlyPlaying = async () => {
-        try {
-            if (!isSpotifyConnected) {
-                setCurrentlyPlaying(null);
-                return;
-            }
-
-            // Get a valid access token
-            let accessToken = await mobileSpotifyService.getValidAccessToken();
-            if (!accessToken) {
-                console.log('No valid access token for fetching currently playing track');
-                // Try to refresh the token
-                const result = await mobileSpotifyService.refreshAccessToken();
-                if (!result.success) {
-                    setCurrentlyPlaying(null);
-                    return;
-                }
-                // Get the new token after refresh
-                accessToken = await mobileSpotifyService.getValidAccessToken();
-                if (!accessToken) {
-                    setCurrentlyPlaying(null);
-                    return;
-                }
-            }
-
-            // Fetch currently playing
-            const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-
-            if (response.status === 204) {
-                // No track is currently playing
-                setCurrentlyPlaying(null);
-                return;
-            }
-
-            if (!response.ok) {
-                console.error('Failed to fetch currently playing track:', response.status);
-                return;
-            }
-
-            const data = await response.json();
-
-            if (data && data.item) {
-                const newTrack = {
-                    name: data.item.name,
-                    artists: data.item.artists.map((artist: any) => ({ name: artist.name })),
-                    album: {
-                        images: data.item.album.images
-                    }
-                };
-
-                // Only update if the track has changed
-                if (!currentlyPlaying ||
-                    currentlyPlaying.name !== newTrack.name ||
-                    currentlyPlaying.artists[0]?.name !== newTrack.artists[0]?.name) {
-                    setCurrentlyPlaying(newTrack);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching currently playing track:', error);
-        }
-    };
-
-    const fetchRecentlyPlayed = async () => {
-        try {
-            // Get a valid access token
-            const accessToken = await mobileSpotifyService.getValidAccessToken();
-            if (!accessToken) {
-                console.log('No valid access token for fetching recently played tracks');
-                return;
-            }
-
-            const response = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=5', {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-
-            if (!response.ok) {
-                console.error('Failed to fetch recently played tracks:', response.status);
-                return;
-            }
-
-            const data = await response.json();
-
-            if (data && data.items) {
-                const tracks = data.items.map((item: any) => ({
-                    id: item.track.id,
-                    name: item.track.name,
-                    artist: item.track.artists.map((artist: any) => artist.name).join(', '),
-                    albumImage: item.track.album.images[0]?.url || null,
-                    playedAt: item.played_at
-                }));
-
-                setRecentlyPlayed(tracks);
-            }
-        } catch (error) {
-            console.error('Error fetching recently played tracks:', error);
         }
     };
 
@@ -336,30 +146,6 @@ const BarHomeScreen = () => {
         }
     };
 
-    const resetSpotifyConnection = async () => {
-        try {
-            // Clear all Spotify-related storage
-            await AsyncStorage.removeItem('spotify_access_token');
-            await AsyncStorage.removeItem('spotify_refresh_token');
-            await AsyncStorage.removeItem('spotify_expiration');
-            await AsyncStorage.removeItem('spotifyConnected');
-
-            // Force update UI state
-            await AsyncStorage.setItem('spotifyConnected', 'false');
-
-            // Refresh the page
-            handleRefresh();
-
-            Alert.alert(
-                "Spotify Connection Reset",
-                "Spotify connection has been reset. Please connect your account again."
-            );
-        } catch (error) {
-            console.error('Error resetting Spotify connection:', error);
-            Alert.alert('Error', 'Failed to reset Spotify connection. Please try again.');
-        }
-    };
-
     const loadBarStats = async () => {
         try {
             const statsResponse = await axiosClient.get('/api/mobile/bars/stats');
@@ -384,30 +170,14 @@ const BarHomeScreen = () => {
             await Promise.all([
                 loadBarDetails(),
                 loadBarEvents(),
-                loadBarStats(),
-                isSpotifyConnected ? fetchCurrentlyPlaying() : Promise.resolve()
+                loadBarStats()
             ]);
         } catch (error) {
             console.error('Error refreshing data:', error);
         } finally {
             setRefreshing(false);
         }
-    }, [isSpotifyConnected]);
-
-    const handleSpotifyAuth = async () => {
-        try {
-            setSpotifyConnecting(true);
-            await spotifyAuth();
-            // Fetch current track after connection
-            await fetchCurrentlyPlaying();
-            Alert.alert('Success', 'Spotify connected successfully! Now displaying your currently playing music.');
-        } catch (error) {
-            console.error('Failed to connect to Spotify:', error);
-            Alert.alert('Connection Failed', 'Could not connect to Spotify. Please try again.');
-        } finally {
-            setSpotifyConnecting(false);
-        }
-    };
+    }, []);
 
     const handleAddEvent = () => {
         navigation.navigate('AddEvent');
@@ -523,53 +293,6 @@ const BarHomeScreen = () => {
 
                 {!loading && (
                     <>
-                        {/* Spotify Connection Section */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>
-                                {isSpotifyConnected ? 'Spotify Connected' : 'Connect Spotify'}
-                            </Text>
-
-                            <BarSpotifyConnect
-                                barMusicService={barData?.music_service}
-                                onConnection={fetchCurrentlyPlaying}
-                            />
-                        </View>
-
-
-
-                        {/* Currently Playing Section */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Currently Playing</Text>
-                            {isSpotifyConnected ? (
-                                currentlyPlaying ? (
-                                    <View style={styles.currentlyPlayingContainer}>
-                                        {currentlyPlaying.album.images[0]?.url && (
-                                            <Image
-                                                source={{ uri: currentlyPlaying.album.images[0]?.url }}
-                                                style={styles.albumCover}
-                                            />
-                                        )}
-                                        <View style={styles.trackInfo}>
-                                            <Text style={styles.trackName}>{currentlyPlaying.name}</Text>
-                                            <Text style={styles.artistName}>
-                                                {currentlyPlaying.artists.map(a => a.name).join(', ')}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                ) : (
-                                    <Text style={styles.emptyStateText}>No track currently playing</Text>
-                                )
-                            ) : needsSpotifyConnection ? (
-                                <Text style={styles.emptyStateText}>
-                                    Connect to Spotify to display your currently playing track
-                                </Text>
-                            ) : (
-                                <Text style={styles.emptyStateText}>
-                                    To display your current music, update your profile to use Spotify as your music service
-                                </Text>
-                            )}
-                        </View>
-
                         {/* Events Section */}
                         <View style={styles.eventsSection}>
                             <View style={styles.eventsSectionHeader}>
@@ -737,11 +460,6 @@ const styles = StyleSheet.create({
         marginLeft: 5,
         fontSize: 14,
     },
-    section: {
-        padding: 20,
-        backgroundColor: '#1E1E1E',
-        marginBottom: 10,
-    },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
@@ -750,29 +468,6 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#333333',
-    },
-    currentlyPlayingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    albumCover: {
-        width: 80,
-        height: 80,
-        borderRadius: 6,
-        marginRight: 15,
-    },
-    trackInfo: {
-        flex: 1,
-    },
-    trackName: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    artistName: {
-        color: '#CCCCCC',
-        fontSize: 14,
     },
     eventsSection: {
         padding: 20,
@@ -898,29 +593,6 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: 'bold',
         fontSize: 16,
-    },
-    spotifyConnectContainer: {
-        padding: 15,
-        backgroundColor: '#2A2A2A',
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    spotifyConnectText: {
-        color: '#FFFFFF',
-        textAlign: 'center',
-        marginBottom: 15,
-    },
-    spotifyConnectedContainer: {
-        flexDirection: 'row',
-        padding: 15,
-        backgroundColor: 'rgba(29, 185, 84, 0.1)',
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    spotifyConnectedText: {
-        color: '#FFFFFF',
-        marginLeft: 10,
-        flex: 1,
     },
 });
 

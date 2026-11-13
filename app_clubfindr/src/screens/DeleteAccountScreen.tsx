@@ -235,7 +235,7 @@ const DeleteAccountScreen = ({ navigation }: DeleteAccountScreenProps) => {
                     <Text style={styles.warningTitle}>What will be deleted:</Text>
                     <Text style={styles.warningText}>• Your name and personal information</Text>
                     <Text style={styles.warningText}>• Your email addresses</Text>
-                    <Text style={styles.warningText}>• Your Spotify connection and data</Text>
+                    <Text style={styles.warningText}>• Your favourite artists and taste profile</Text>
                     <Text style={styles.warningText}>• Your preferences and settings</Text>
                 </View>
             </ScrollView>

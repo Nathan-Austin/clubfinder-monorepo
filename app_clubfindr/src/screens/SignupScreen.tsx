@@ -14,46 +14,24 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
-import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
-import { useAppConfig } from '../services/appConfigService';
 
 interface SignupResponse {
     success: boolean;
     message?: string;
     userId?: string;
     requiresEmailVerification?: boolean;
-    requiresSpotifySetup?: boolean;
-    /** The server's SPOTIFY_CONNECT_ENABLED, echoed back */
-    spotifyConnectEnabled?: boolean;
 }
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Signup'>;
 
-type MusicService = '' | 'spotify' | 'apple' | 'soundcloud' | 'deezer';
-
-const MUSIC_SERVICES = [
-    { label: 'Select a music service', value: '', disabled: false },
-    { label: 'Spotify', value: 'spotify', disabled: false },
-    { label: 'YouTube Music', value: 'youtube', disabled: true },
-    { label: 'Tidal', value: 'tidal', disabled: true },
-    { label: 'Amazon Music', value: 'amazon', disabled: true },
-    { label: 'Pandora', value: 'pandora', disabled: true },
-    { label: 'iHeartRadio', value: 'iheartradio', disabled: true },
-    { label: 'Apple Music', value: 'apple', disabled: true },
-    { label: 'SoundCloud', value: 'soundcloud', disabled: true },
-    { label: 'Deezer', value: 'deezer', disabled: true }
-];
-
 const SignupScreen = () => {
     const navigation = useNavigation<SignupScreenNavigationProp>();
-    // SPOTIFY_CONNECT_ENABLED on the server: off hides the music service choice entirely
-    const { spotifyConnectEnabled } = useAppConfig();
+    // No music service: taste comes from the artist picker after login (per-account Spotify
+    // connect is retired on the server)
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [musicService, setMusicService] = useState<MusicService>('');
-    const [spotifyEmail, setSpotifyEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -92,16 +70,6 @@ const SignupScreen = () => {
             newErrors.password = 'Password does not meet all requirements';
         }
 
-        if (spotifyConnectEnabled) {
-            if (!musicService) {
-                newErrors.musicService = 'Please select a music service';
-            }
-
-            if (musicService === 'spotify' && spotifyEmail.trim() && !/^\S+@\S+\.\S+$/.test(spotifyEmail)) {
-                newErrors.spotifyEmail = 'Invalid email format for Spotify email';
-            }
-        }
-
         // Add validation for T&Cs and Privacy Policy
         if (!acceptedTerms) {
             newErrors.terms = 'You must accept the Terms & Conditions';
@@ -132,19 +100,12 @@ const SignupScreen = () => {
         setIsLoading(true);
 
         try {
-            // Use primary email for Spotify if spotifyEmail is not provided
-            const spotifyEmailToUse = spotifyEmail.trim() || email;
-
             // Prepare signup data, include a flag for first-time user
             // Set onboarding_complete to true since we're completing it during signup
             const signupData = {
                 name,
                 email,
                 password,
-                // Only while Spotify connect is on; the server ignores them otherwise
-                musicService: spotifyConnectEnabled ? musicService : undefined,
-                spotifyEmail:
-                    spotifyConnectEnabled && musicService === 'spotify' ? spotifyEmailToUse : undefined,
                 isFirstTimeUser: false, // We're not using the welcome screen
                 requiresEmailVerification: true, // Add this flag for new email verification flow
                 onboarding_complete: true // Mark onboarding as complete since we've accepted T&Cs
@@ -160,21 +121,7 @@ const SignupScreen = () => {
             const data = response.data as SignupResponse;
 
             if (data.success) {
-                // Check if Spotify integration is in progress  
-                if (data.requiresSpotifySetup) {
-                    Alert.alert(
-                        "Account Created",
-                        "Your account has been created successfully. Your Spotify integration is being processed. Please check your email for verification and try logging in shortly.",
-                        [
-                            {
-                                text: 'OK',
-                                onPress: () => navigation.navigate('EmailVerification', { email })
-                            }
-                        ]
-                    );
-                } else {
-                    navigation.navigate('EmailVerification', { email });
-                }
+                navigation.navigate('EmailVerification', { email });
             } else {
                 throw new Error(data.message || 'Failed to create account');
             }
@@ -272,65 +219,6 @@ const SignupScreen = () => {
                         ))}
                     </View>
                     {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-
-                    {spotifyConnectEnabled && (
-                    <>
-                    <View style={[styles.pickerContainer, errors.musicService ? styles.inputError : null]}>
-                        <Picker
-                            selectedValue={musicService}
-                            onValueChange={(value, index) => {
-                                const selectedItem = MUSIC_SERVICES.find(service => service.value === value);
-                                if (selectedItem?.disabled) return;
-
-                                setMusicService(value);
-
-                                if (errors.musicService) {
-                                    setErrors({ ...errors, musicService: '' });
-                                }
-                            }}
-                            style={styles.picker}
-                            dropdownIconColor="#FFFFFF"
-                        >
-                            {MUSIC_SERVICES.map((service) => (
-                                <Picker.Item
-                                    key={service.value}
-                                    label={
-                                        service.disabled
-                                            ? `\u0336${service.label.split('').join('\u0336')}` // adds strikethrough to each letter
-                                            : service.label
-                                    }
-                                    value={service.value}
-                                    color={service.disabled ? '#999999' : '#000000'}
-                                />
-                            ))}
-                        </Picker>
-                    </View>
-                    {errors.musicService ? <Text style={styles.errorText}>{errors.musicService}</Text> : null}
-
-                    {musicService === 'spotify' && (
-                        <>
-                            <TextInput
-                                style={[styles.input, errors.spotifyEmail ? styles.inputError : null]}
-                                placeholder="Spotify Email (leave blank if same as above)"
-                                value={spotifyEmail}
-                                onChangeText={(text) => {
-                                    setSpotifyEmail(text);
-                                    if (errors.spotifyEmail) {
-                                        setErrors({ ...errors, spotifyEmail: '' });
-                                    }
-                                }}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoComplete="email"
-                                textContentType="emailAddress"
-                                importantForAutofill="yes"
-                                testID="spotify-email-input"
-                            />
-                            {errors.spotifyEmail ? <Text style={styles.errorText}>{errors.spotifyEmail}</Text> : null}
-                        </>
-                    )}
-                    </>
-                    )}
 
                     {/* Terms & Conditions Checkbox */}
                     <View style={styles.checkboxContainer}>
@@ -465,16 +353,6 @@ const styles = StyleSheet.create({
     requirementUnmet: {
         color: '#FFFFFF',
         opacity: 0.7,
-    },
-    pickerContainer: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 5,
-        marginBottom: 15,
-        overflow: 'hidden',
-    },
-    picker: {
-        backgroundColor: '#FFFFFF',
-        color: '#000000',
     },
     button: {
         backgroundColor: '#D35400',

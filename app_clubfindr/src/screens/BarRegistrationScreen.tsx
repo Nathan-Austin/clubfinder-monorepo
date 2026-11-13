@@ -17,7 +17,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
-import { useAppConfig } from '../services/appConfigService';
 
 type BarRegistrationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BarRegistration'>;
 
@@ -27,17 +26,16 @@ enum RegistrationStep {
     ContactInfo = 1,
     LocationInfo = 2,
     BarDetails = 3,
-    MusicService = 4,
+    // 4 was the music service step (venue Spotify connect is retired)
     CreatePassword = 5,
     Review = 6
 }
 
-const ALL_STEPS: RegistrationStep[] = [
+const STEPS: RegistrationStep[] = [
     RegistrationStep.BusinessInfo,
     RegistrationStep.ContactInfo,
     RegistrationStep.LocationInfo,
     RegistrationStep.BarDetails,
-    RegistrationStep.MusicService,
     RegistrationStep.CreatePassword,
     RegistrationStep.Review
 ];
@@ -45,11 +43,7 @@ const ALL_STEPS: RegistrationStep[] = [
 const BarRegistrationScreen = () => {
     const navigation = useNavigation<BarRegistrationScreenNavigationProp>();
 
-    // SPOTIFY_CONNECT_ENABLED on the server: off drops the music service step altogether
-    const { spotifyConnectEnabled } = useAppConfig();
-    const steps = spotifyConnectEnabled
-        ? ALL_STEPS
-        : ALL_STEPS.filter((step) => step !== RegistrationStep.MusicService);
+    const steps = STEPS;
 
     // Form state
     const [currentStep, setCurrentStep] = useState<RegistrationStep>(RegistrationStep.BusinessInfo);
@@ -61,8 +55,6 @@ const BarRegistrationScreen = () => {
     const [postcode, setPostcode] = useState('');
     const [cityName, setCityName] = useState('');
     const [website, setWebsite] = useState('');
-    const [musicService, setMusicService] = useState('');
-    const [musicServiceEmail, setMusicServiceEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [agreeToTerms, setAgreeToTerms] = useState(false);
@@ -96,15 +88,6 @@ const BarRegistrationScreen = () => {
 
     // City options - this could be fetched from an API instead
     const cityOptions = ['Berlin', 'London', 'Paris', 'Amsterdam', 'Madrid', 'Barcelona', 'Rome', 'New York'];
-
-    // Music service options
-    const musicServiceOptions = [
-        { label: 'Select a music service', value: '', disabled: false },
-        { label: 'Spotify', value: 'Spotify', disabled: false },
-        { label: 'Apple Music', value: 'Apple Music', disabled: true },
-        { label: 'Soundcloud', value: 'Soundcloud', disabled: true },
-        { label: 'Other', value: 'Other', disabled: false }
-    ];
 
     // Validation functions
     const validateEmail = (email: string): boolean => {
@@ -175,7 +158,7 @@ const BarRegistrationScreen = () => {
             return;
         }
 
-        // The next visible step (skips Music Service when it is switched off)
+        // The next step
         const next = steps.find((step) => step > currentStep);
         if (next !== undefined) {
             setCurrentStep(next);
@@ -208,16 +191,6 @@ const BarRegistrationScreen = () => {
 
             case RegistrationStep.BarDetails:
                 return true; // Optional fields
-
-            case RegistrationStep.MusicService:
-                if (!musicService) {
-                    Alert.alert('Required Field', 'Please select a music service');
-                    return false;
-                }
-                if (musicService === 'Spotify' && !validateEmail(musicServiceEmail)) {
-                    return false;
-                }
-                return true;
 
             case RegistrationStep.CreatePassword:
                 const { valid } = validatePassword(password);
@@ -256,9 +229,6 @@ const BarRegistrationScreen = () => {
                 postcode,
                 cityName,
                 website,
-                // Only while Spotify connect is on; the server ignores them otherwise
-                musicService: spotifyConnectEnabled ? musicService : undefined,
-                musicServiceEmail: spotifyConnectEnabled ? musicServiceEmail : undefined,
                 password,
                 smokingAllowed,
                 barTypes
@@ -510,60 +480,6 @@ const BarRegistrationScreen = () => {
                     </>
                 );
 
-            case RegistrationStep.MusicService:
-                return (
-                    <>
-                        <Text style={styles.stepTitle}>Music Service</Text>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Preferred Music Service *</Text>
-                            <View style={styles.pickerContainer}>
-                                <Picker
-                                    selectedValue={musicService}
-                                    onValueChange={(value) => setMusicService(value)}
-                                    style={styles.picker}
-                                    dropdownIconColor="#FFFFFF"
-                                >
-                                    {musicServiceOptions.map((option) => (
-                                        <Picker.Item
-                                            key={option.value}
-                                            label={option.label}
-                                            value={option.value}
-                                            color={option.disabled ? '#999999' : (Platform.OS === 'android' ? '#000000' : '#FFFFFF')}
-                                            enabled={!option.disabled}
-                                        />
-                                    ))}
-                                </Picker>
-                            </View>
-                        </View>
-
-                        {musicService === 'Spotify' && (
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Spotify Email *</Text>
-                                <TextInput
-                                    style={[styles.input, emailError && musicServiceEmail ? styles.inputError : null]}
-                                    value={musicServiceEmail}
-                                    onChangeText={(text) => {
-                                        setMusicServiceEmail(text);
-                                        if (emailError) validateEmail(text);
-                                    }}
-                                    placeholder="Your Spotify account email"
-                                    placeholderTextColor="#999"
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                    autoComplete="email"
-                                    textContentType="emailAddress"
-                                />
-                                {emailError && musicServiceEmail ? <Text style={styles.errorText}>{emailError}</Text> : null}
-                            </View>
-                        )}
-
-                        <Text style={styles.noteText}>
-                            Note: We'll integrate with your selected music service to help customers find venues that match their musical taste.
-                        </Text>
-                    </>
-                );
-
             case RegistrationStep.CreatePassword:
                 return (
                     <>
@@ -674,22 +590,6 @@ const BarRegistrationScreen = () => {
                                 </Text>
                             )}
                         </View>
-
-                        {spotifyConnectEnabled && (
-                        <View style={styles.reviewSection}>
-                            <Text style={styles.reviewTitle}>Music Service</Text>
-                            <Text style={styles.reviewItem}>
-                                <Text style={styles.reviewLabel}>Service: </Text>
-                                {musicService}
-                            </Text>
-                            {musicService === 'Spotify' && (
-                                <Text style={styles.reviewItem}>
-                                    <Text style={styles.reviewLabel}>Spotify Email: </Text>
-                                    {musicServiceEmail}
-                                </Text>
-                            )}
-                        </View>
-                        )}
 
                         <View style={styles.checkboxContainer}>
                             <TouchableOpacity

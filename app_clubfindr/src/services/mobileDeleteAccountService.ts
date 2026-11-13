@@ -1,5 +1,6 @@
 import axiosClient from '../api/axiosClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { purgeLegacySpotifyData } from '../utils/legacySpotify';
 
 // Send confirmation code for account deletion
 export const sendConfirmationCode = async (email: string): Promise<any> => {
@@ -35,20 +36,11 @@ export const cleanupLocalData = async (): Promise<void> => {
         await AsyncStorage.removeItem('user');
         await AsyncStorage.removeItem('userCity');
 
-        // Clear Spotify data
-        await AsyncStorage.removeItem('spotify_access_token');
-        await AsyncStorage.removeItem('spotify_refresh_token');
-        await AsyncStorage.removeItem('spotify_expiration');
-        await AsyncStorage.removeItem('spotifyConnected');
-        await AsyncStorage.removeItem('spotifyUser');
-        await AsyncStorage.removeItem('spotify_code_verifier');
-        await AsyncStorage.removeItem('spotify_client_id');
-        await AsyncStorage.removeItem('spotify_client_secret');
-        await AsyncStorage.removeItem('spotifyAppName');
+        // Clear anything an older build stored from Spotify connect
+        await purgeLegacySpotifyData(AsyncStorage);
 
         // Clear genre and venue preferences
         await AsyncStorage.removeItem('selected-genres');
-        await AsyncStorage.removeItem('spotify-genres');
         await AsyncStorage.removeItem('matching-bars');
         await AsyncStorage.removeItem('matching-clubs');
 

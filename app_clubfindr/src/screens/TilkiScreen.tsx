@@ -70,7 +70,6 @@ const TilkiScreen = () => {
     // Navigation and auth
     const navigation = useNavigation<TilkiScreenNavigationProp>();
     const route = useRoute<TilkiScreenRouteProp>();
-    const { isSpotifyConnected } = useAuth();
 
     // Ref to track if component is mounted
     const isMounted = useRef(true);

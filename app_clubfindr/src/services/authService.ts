@@ -12,10 +12,6 @@ type User = {
     email: string;
     name?: string;
     city?: string;
-    spotify_id?: string;
-    clientId?: string;
-    clientSecret?: string;
-    spotify_app_name?: string;
     isFirstTimeUser?: boolean;
     emailVerified?: boolean;
     onboardingComplete: boolean;  // Primary field from server

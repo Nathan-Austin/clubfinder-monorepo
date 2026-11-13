@@ -14,9 +14,6 @@ export const registerBar = async (formData: {
     postcode: string;
     cityName: string;
     website: string;
-    /** Only while the server's SPOTIFY_CONNECT_ENABLED is on (see appConfigService) */
-    musicService?: string;
-    musicServiceEmail?: string;
     password: string;
 }): Promise<{ success: boolean; message?: string }> => {
     try {
@@ -135,12 +132,6 @@ export const barLogin = async (
     token?: string;
     barData?: any;
     error?: string;
-    spotify?: {  // Add this property to the return type
-        ready: boolean;
-        app_name?: string;
-        client_id?: string;
-        client_secret?: string;
-    };
 }> => {
     try {
         const response = await axiosClient.post('/api/mobile/bars/login', {
@@ -161,13 +152,10 @@ export const barLogin = async (
                 await AsyncStorage.setItem('barData', JSON.stringify(response.data.barData));
             }
 
-            // Return response including spotify property if it exists
             return {
                 success: true,
                 token: response.data.token,
-                barData: response.data.barData,
-                // Include the spotify property from the response
-                ...(response.data.spotify && { spotify: response.data.spotify })
+                barData: response.data.barData
             };
         }
 

@@ -11,9 +11,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import * as spotifyService from '../services/spotifyService';
-import SpotifyAuthButton from '../components/SpotifyAuthButton';
-import * as mobileSpotifyService from '../services/mobileSpotifyService';
+import { tasteApi, USER_TASTE_BASE } from '../services/tasteService';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
@@ -21,19 +19,18 @@ import { RootStackParamList } from '../navigation';
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const ProfileScreen = () => {
-  const { user, logout, isSpotifyConnected, spotifyAuth } = useAuth();
+  const { user, logout } = useAuth();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [genres, setGenres] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  // Fetch user genres on component mount or when Spotify is connected
+  // The taste profile's genres (the artists picked in the app or on the web, and a Last.fm
+  // import), which is what matching uses now that Spotify connect is retired
   useEffect(() => {
-    if (isSpotifyConnected) {
-      fetchUserGenres();
-    }
-  }, [isSpotifyConnected]);
+    fetchUserGenres();
+  }, []);
 
   // Handle delete account button press with confirmation
   const handleDeleteAccount = () => {
@@ -55,14 +52,11 @@ const ProfileScreen = () => {
     );
   };
 
-  // Fetch user's top genres from Spotify
   const fetchUserGenres = async () => {
-    if (!isSpotifyConnected) return;
-
     try {
       setLoading(true);
-      const genreData = await spotifyService.getUserGenres();
-      setGenres(genreData);
+      const profile = await tasteApi(USER_TASTE_BASE).list();
+      setGenres(profile.genres);
     } catch (error) {
       console.error('Failed to fetch user genres', error);
     } finally {
@@ -73,9 +67,7 @@ const ProfileScreen = () => {
   // Handle pull-to-refresh
   const onRefresh = async () => {
     setRefreshing(true);
-    if (isSpotifyConnected) {
-      await fetchUserGenres();
-    }
+    await fetchUserGenres();
     setRefreshing(false);
   };
 
@@ -83,28 +75,6 @@ const ProfileScreen = () => {
   const toggleNotifications = () => {
     setNotificationsEnabled(!notificationsEnabled);
     // In a real app, you'd update user preferences in storage
-  };
-
-  // Run Spotify integration test
-  const handleSpotifyTest = async () => {
-    try {
-      setLoading(true);
-      const testResults = await spotifyService.testSpotifyIntegration();
-
-      // Format results for alert
-      const resultMessage = Object.entries(testResults)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join('\n');
-
-      Alert.alert('Spotify Integration Test', resultMessage);
-    } catch (error) {
-      Alert.alert(
-        'Spotify Test Error',
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -131,49 +101,29 @@ const ProfileScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Music Preferences</Text>
 
-        {isSpotifyConnected ? (
-          <>
-            <View style={styles.connectedStatus}>
-              <Text style={styles.connectedText}>✓ Connected to Spotify</Text>
-              <SpotifyAuthButton
-                disconnectEnabled
-                disconnectText="Disconnect"
-                style={styles.disconnectButton}
-                textStyle={styles.disconnectText}
-                showIcon={false}
-              />
-            </View>
-
-            {loading ? (
-              <ActivityIndicator size="large" color="#D35400" style={styles.loader} />
-            ) : genres.length > 0 ? (
-              <View style={styles.genreContainer}>
-                {genres.map((genre, index) => (
-                  <View key={index} style={styles.genreBadge}>
-                    <Text style={styles.genreText}>{genre}</Text>
-                  </View>
-                ))}
+        {loading ? (
+          <ActivityIndicator size="large" color="#D35400" style={styles.loader} />
+        ) : genres.length > 0 ? (
+          <View style={styles.genreContainer}>
+            {genres.map((genre, index) => (
+              <View key={index} style={styles.genreBadge}>
+                <Text style={styles.genreText}>{genre}</Text>
               </View>
-            ) : (
-              <Text style={styles.noDataText}>No genre data available</Text>
-            )}
-
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={fetchUserGenres}
-              disabled={loading}
-            >
-              <Text style={styles.refreshButtonText}>Refresh Genres</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <View style={styles.spotifyConnectContainer}>
-            <Text style={styles.spotifyConnectText}>
-              Connect with Spotify to find venues that match your music taste!
-            </Text>
-            <SpotifyAuthButton onSuccess={fetchUserGenres} />
+            ))}
           </View>
+        ) : (
+          <Text style={styles.noDataText}>
+            No genres yet: pick a few artists you love below and their genres show up here.
+          </Text>
         )}
+
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={fetchUserGenres}
+          disabled={loading}
+        >
+          <Text style={styles.refreshButtonText}>Refresh Genres</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -224,10 +174,6 @@ const ProfileScreen = () => {
 import { Ionicons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
   header: {
     padding: 20,
     backgroundColor: '#D35400',
@@ -249,6 +195,20 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginTop: 5,
   },
+  debugButton: {
+    backgroundColor: '#D35400',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#121212',
+  },
   section: {
     padding: 20,
     borderBottomWidth: 1,
@@ -269,28 +229,6 @@ const styles = StyleSheet.create({
   settingLabel: {
     color: '#FFFFFF',
     fontSize: 16,
-  },
-  connectedStatus: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  connectedText: {
-    color: '#D35400',
-    fontSize: 16,
-  },
-  disconnectButton: {
-    marginVertical: 0,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#FF5252',
-  },
-  disconnectText: {
-    color: '#FF5252',
-    fontSize: 14,
   },
   loader: {
     marginVertical: 20,
@@ -327,17 +265,6 @@ const styles = StyleSheet.create({
     color: '#D35400',
     fontWeight: 'bold',
   },
-  spotifyConnectContainer: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    padding: 20,
-    alignItems: 'center',
-  },
-  spotifyConnectText: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
   privacyItem: {
     backgroundColor: '#2A2A2A',
     padding: 15,
@@ -353,16 +280,6 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     fontSize: 12,
     marginTop: 5,
-  },
-  debugButton: {
-    backgroundColor: '#D35400',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  debugButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   logoutButton: {
     margin: 20,

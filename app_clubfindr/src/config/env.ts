@@ -1,28 +1,13 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
 // Use environment variables if available, otherwise use defaults
 export const API_URL = 'https://www.clubfindr.com';
-
-// Spotify configuration
-export const SPOTIFY_CLIENT_ID = Constants.expoConfig?.extra?.spotifyClientId || '1234567890abcdef1234';
-
-// Determine the redirect URI based on environment
-export const SPOTIFY_REDIRECT_URI = Platform.select({
-    web: 'https://auth.expo.io/@your-username/clubfindr/spotify-auth-callback',
-    default: 'clubfindr://spotify-auth-callback',
-});
 
 // Endpoints
 export const ENDPOINTS = {
     // Auth
     LOGIN: '/login/users',
     MOBILE_LOGIN: '/api/mobile/login',
-
-    // Spotify
-    SPOTIFY_TOKEN: '/api/mobile/spotify/register',
-    SPOTIFY_REFRESH: '/api/mobile/spotify/refresh',
-    SPOTIFY_GENRES: '/api/mobile/spotify/genres',
 
     // Venues
     VENUES: '/api/mobile/bars',

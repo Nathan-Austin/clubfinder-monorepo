@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Image,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -18,10 +17,7 @@ import VenueCard from '../components/VenueCard';
 import VenueToggle from '../components/VenueToggle';
 import DistanceSelector from '../components/DistanceSelector';
 import * as discoveryService from '../services/discoveryService';
-import * as spotifyService from '../services/spotifyService';
-import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SpotifyAuthButton from '../components/SpotifyAuthButton';
 import * as Location from 'expo-location';
 
 type HomeScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Home'>;
@@ -30,8 +26,6 @@ const HomeScreen = () => {
   const [venues, setVenues] = useState<discoveryService.Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [recentTracks, setRecentTracks] = useState<any[]>([]);
-  const [loadingTracks, setLoadingTracks] = useState(false);
   const [debugTapCount, setDebugTapCount] = useState(0);
 
   // New state for venue type toggle and distance filter
@@ -39,7 +33,6 @@ const HomeScreen = () => {
   const [distanceEnabled, setDistanceEnabled] = useState(false);
   const [maxDistance, setMaxDistance] = useState(2000); // 2km default
 
-  const { isSpotifyConnected, spotifyAuth } = useAuth();
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Home'>>();
   // Load venues when component mounts or when venue type/distance settings change
@@ -50,10 +43,6 @@ const HomeScreen = () => {
     };
 
     testLocation();
-
-    if (isSpotifyConnected) {
-      fetchRecentTracks();
-    }
 
     if (route.params?.refresh) {
       // Check if we have matching venues stored
@@ -84,7 +73,7 @@ const HomeScreen = () => {
       // Regular venue loading
       fetchVenues();
     }
-  }, [isSpotifyConnected, venueType, distanceEnabled, maxDistance, route.params?.refresh]);
+  }, [venueType, distanceEnabled, maxDistance, route.params?.refresh]);
 
   // Add this near the top of your HomeScreen component
   const testLocation = async () => {
@@ -178,21 +167,6 @@ const HomeScreen = () => {
     }
   };
 
-  // Fetch user's recently played tracks from Spotify
-  const fetchRecentTracks = async () => {
-    if (!isSpotifyConnected) return;
-
-    try {
-      setLoadingTracks(true);
-      const tracks = await spotifyService.getRecentlyPlayed(5);
-      setRecentTracks(tracks);
-    } catch (error) {
-      console.error('Failed to fetch recent tracks:', error);
-    } finally {
-      setLoadingTracks(false);
-    }
-  };
-
   // Handle pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -204,16 +178,12 @@ const HomeScreen = () => {
 
       // Then fetch venues again (will use the fresh cache)
       await fetchVenues();
-
-      if (isSpotifyConnected) {
-        await fetchRecentTracks();
-      }
     } catch (error) {
       console.error('Error during refresh:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [isSpotifyConnected, venueType, distanceEnabled, maxDistance]);
+  }, [venueType, distanceEnabled, maxDistance]);
 
   // Navigate to venue details
   const handleVenuePress = (venue: discoveryService.Venue) => {
@@ -246,26 +216,6 @@ const HomeScreen = () => {
     }
     return title;
   };
-
-  // Track component for recently played
-  const TrackItem = ({ track }: { track: any }) => (
-    <View style={styles.trackItem}>
-      {track.albumImage ? (
-        <View style={styles.trackImageContainer}>
-          <Image
-            source={{ uri: track.albumImage }}
-            style={styles.trackImage}
-          />
-        </View>
-      ) : (
-        <View style={[styles.trackImageContainer, styles.noImage]} />
-      )}
-      <View style={styles.trackInfo}>
-        <Text style={styles.trackName} numberOfLines={1}>{track.name}</Text>
-        <Text style={styles.artistName} numberOfLines={1}>{track.artist}</Text>
-      </View>
-    </View>
-  );
 
   return (
     <ScrollView
@@ -322,30 +272,6 @@ const HomeScreen = () => {
         )}
       </View>
 
-      {isSpotifyConnected && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Recent Tracks</Text>
-            <TouchableOpacity onPress={fetchRecentTracks} disabled={loadingTracks}>
-              <Text style={styles.viewAllText}>Refresh</Text>
-            </TouchableOpacity>
-          </View>
-
-          {loadingTracks ? (
-            <ActivityIndicator size="large" color="#D35400" style={styles.loader} />
-          ) : recentTracks.length > 0 ? (
-            <View style={[styles.tracksContainer, styles.section]}>
-              {recentTracks.map((track, index) => (
-                <TrackItem key={`${track.id}-${index}`} track={track} />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.placeholderCard}>
-              <Text style={styles.placeholderText}>No recent tracks found</Text>
-            </View>
-          )}
-        </View>
-      )}
 
 
     </ScrollView>
@@ -356,11 +282,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
-  },
-  trackImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 4,
   },
   testButtonText: {
     fontSize: 16,
@@ -374,35 +295,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginVertical: 10,
-  },
-  trackName: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  trackItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2A2A',
-  },
-  artistName: {
-    fontSize: 14,
-    color: 'white',
-    opacity: 0.8,
-  },
-  trackImageContainer: {
-    width: 50,
-    height: 50,
-    marginRight: 10,
-  },
-  trackInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  noImage: {
-    backgroundColor: '#2A2A2A',
   },
   header: {
     padding: 20,
@@ -431,10 +323,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
-  },
-  viewAllText: {
-    color: '#D35400',
-    fontSize: 14,
   },
   loader: {
     marginVertical: 20,
@@ -471,37 +359,6 @@ const styles = StyleSheet.create({
   discoverButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-  },
-  spotifyConnectContainer: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    padding: 20,
-    alignItems: 'center',
-  },
-  spotifyConnectText: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  spotifyButton: {
-    backgroundColor: 'transparent',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D35400',
-    width: 200,
-  },
-  spotifyButtonText: {
-    color: '#D35400',
-    fontWeight: 'bold',
-  },
-  tracksContainer: {
-    marginTop: 10,
-    backgroundColor: '#2A2A2A',
-    color: 'white',
-    borderRadius: 8,
-    padding: 10,
   },
 });
 

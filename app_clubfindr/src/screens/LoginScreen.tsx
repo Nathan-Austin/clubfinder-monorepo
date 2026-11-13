@@ -20,7 +20,6 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import axiosClient from '../api/axiosClient';
 import networkUtils from '../utils/networkUtils';
-import * as mobileSpotifyService from '../services/mobileSpotifyService';
 import { LoginResponse } from '../types/auth';
 
 // Simplified navigation type
@@ -158,15 +157,6 @@ const LoginScreen = () => {
             ]
           );
           return;
-        }
-
-        // Store Spotify client credentials if available
-        if (data.user.clientId) {
-          console.log('Storing Spotify client credentials from login response');
-          await mobileSpotifyService.storeClientCredentials(
-            data.user.clientId,
-            data.user.clientSecret || ''
-          );
         }
 
         // Always set onboarding_complete to true to avoid the welcome screen
