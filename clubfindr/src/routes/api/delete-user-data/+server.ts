@@ -36,7 +36,7 @@ export const POST = async ({ request, cookies }) => {
 		// FOR UPDATE: two requests with the same code cannot both get past this point
 		const result = await client.query(
 			`SELECT id FROM clubfindr.users
-			  WHERE (general_email = $1 OR spotify_email = $1)
+			  WHERE general_email = $1
 			    AND confirmation_code = $2
 			    AND expires_at > NOW()
 			    FOR UPDATE`,
@@ -53,17 +53,12 @@ export const POST = async ({ request, cookies }) => {
 			    SET name = NULL,
 			        general_email = $2,
 			        password_hash = 'temp',
-			        spotify_email = NULL,
 			        apple_music_email = NULL,
 			        deezer_email = NULL,
-			        spotify_user_id = NULL,
 			        apple_music_user_id = NULL,
 			        deezer_user_id = NULL,
 			        google_id = NULL,
 			        facebook_id = NULL,
-			        spotify_app_name = NULL,
-			        access_token = NULL,
-			        refresh_token = NULL,
 			        city = '', -- NOT NULL, so emptied rather than cleared
 			        preferences = NULL,
 			        interested_events = NULL,

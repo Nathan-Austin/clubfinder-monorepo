@@ -152,8 +152,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						s.last_accessed, 
 						u.id, 
 						u.name, 
-						u.general_email as email, 
-						u.spotify_email,
+						u.general_email as email,
 						u.role
 					FROM clubfindr.user_sessions s
 					JOIN clubfindr.users u ON s.user_id = u.id
@@ -184,7 +183,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 				userData = {
 					id: session.id,
 					name: session.name,
-					email: session.email || session.spotify_email,
+					email: session.email,
 					...(session.role ? { role: session.role } : {})
 				};
 

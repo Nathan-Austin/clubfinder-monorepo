@@ -127,37 +127,16 @@ async function createSession(sessionId: string, userId: string, city: string) {
 		// same user at once raced on the UNIQUE user_id, and the loser answered 500.
 		await query(
 			`
-            INSERT INTO clubfindr.user_sessions (
-                session_id,
-                user_id,
-                user_city,
-                last_accessed,
-                spotify_user_id,
-                spotify_email,
-                spotify_username
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO clubfindr.user_sessions (session_id, user_id, user_city, last_accessed)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET
                 session_id = EXCLUDED.session_id,
                 user_city = EXCLUDED.user_city,
                 last_accessed = EXCLUDED.last_accessed,
-                spotify_user_id = EXCLUDED.spotify_user_id,
-                spotify_email = EXCLUDED.spotify_email,
-                spotify_username = EXCLUDED.spotify_username,
                 genres = NULL,
-                access_token = NULL,
-                refresh_token = NULL,
-                spotify_app_id = NULL,
                 created_at = CURRENT_TIMESTAMP
-            `,
-			[
-				sessionId,
-				userId,
-				city,
-				new Date().toISOString(),
-				null, // spotify_user_id
-				null, // spotify_email
-				null // spotify_username
-			]
+        `,
+			[sessionId, userId, city, new Date().toISOString()]
 		);
 	} catch (error) {
 		console.error('Session creation error:', error);
