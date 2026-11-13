@@ -148,18 +148,16 @@ def create_test_data():
             print("No profiles found, creating test data...")
 
             # Get some bar IDs to use
+            # Any three venues (bars.music_service went with venue Spotify connect)
             bars_query = text("""
-                SELECT id FROM clubfindr.bars 
-                WHERE music_service = 'spotify'
+                SELECT id FROM clubfindr.bars
                 LIMIT 3
             """)
 
             bars = session.execute(bars_query).fetchall()
 
             if not bars:
-                print(
-                    "No bars found with music_service = 'spotify'. Cannot create test data."
-                )
+                print("No bars found. Cannot create test data.")
                 return False
 
             # Create test profiles for each bar
