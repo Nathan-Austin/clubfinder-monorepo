@@ -14,15 +14,24 @@ The goal: a new user gets useful personalised results in under a minute without
 connecting any streaming account, and results get better the more they use the app.
 Per-user Spotify connect goes; one server-side Spotify app stays, for artist data only.
 
-- [ ] Retire `spotify_service` (automated Spotify developer app management) and its
-      systemd units, cron jobs and deploy steps
-- [ ] Keep a single Spotify app for server-side artist data lookups only
-      (with `SPOTIFY_CONNECT_ENABLED=false` the server-side app is already the only one a user
-      touches; the per-account and venue OAuth code stays behind the flag until it is retired)
-- [ ] Make Last.fm import and manual genre picks the main ways to build a taste profile
-      (the artist picker is the default signup path, and the Last.fm import and genre picker
-      both feed matching; left open until the Spotify paths above actually go — unblocked
-      since 2026-11-12, when `SPOTIFY_CONNECT_ENABLED=false` went live in production)
+- [x] Retire `spotify_service` (automated Spotify developer app management) and its
+      systemd units, cron jobs and deploy steps, done in the repo 2026-11-13 (`a5f407f`): the
+      directory, its CI, its deploy.sh restart and health check, the unit copies, sudoers lines
+      and the nginx `/api/user/` block are gone. The server side is by hand, see the follow-up
+      below and [`deploy/TEARDOWN-spotify-service.md`](deploy/TEARDOWN-spotify-service.md)
+- [x] Keep a single Spotify app for server-side artist data lookups only, done 2026-11-13: the
+      per-account and venue OAuth code is deleted, not just flagged off (web `07ccf4a`, mobile API
+      `5780603`, venues `795f4e9`, app `b3f12f7`), and `SPOTIFY_CONNECT_ENABLED` is no longer read
+      (`/api/mobile/config` answers `false` for older app builds). Everything Spotify-backed now
+      runs on the one client-credentials app (`$lib/taste/spotifyArtistLookup`): the artist
+      pickers, the guest artist-or-song search (`037dcb7`, which had stored that token in the
+      per-user cookie and logged it) and the promoter track search (`09fdbb3`, broken for
+      promoters until then). The Spotify tables and columns go with
+      `migrations/20261113_drop_spotify_connect.sql` (`4b22fbb`), applied by hand per the runbook
+- [x] Make Last.fm import and manual genre picks the main ways to build a taste profile, done
+      2026-11-13 now that the Spotify paths are gone: the artist picker is the signup path on
+      web and app, the Last.fm import and genre picker feed matching, and the app's Discover and
+      Search tabs work from the taste profile instead of the user's Spotify library (`6cd07f7`)
 - [x] Artist picker onboarding as the default signup path: the user names 3-5 artists,
       autocomplete goes through the server-side Spotify app (`spotifyArtistLookup.ts`),
       and the genres of those artists feed the taste profile
@@ -70,6 +79,26 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 ### Follow-ups from the section 1 work
 
 Things to do by hand or decide, collected while building the items above.
+
+- [ ] Run [`deploy/TEARDOWN-spotify-service.md`](deploy/TEARDOWN-spotify-service.md) on the
+      server with the deploy of `a5f407f` or later: stop the three spotify-automation units
+      **before** pushing; the deploy stops for the barfindr requirements and for the destructive
+      migration (apply 20261111 and the timestamptz one by hand, finish with
+      `MIGRATIONS_APPLIED=1`, then the drop once the new code is live); then units, sudoers,
+      nginx, leftovers, `.env` keys and the Spotify dashboard apps
+- [ ] Run the app on a device before the next release (KNOWN_ISSUES 29): Discover, Search,
+      signup and venue registration all changed in section 1 without a device run
+- [ ] Owner's decision: the Privacy Policy and Terms (app screens and web `/policies/*`) still
+      name Spotify as a data source and connected service (KNOWN_ISSUES 47)
+- [ ] Owner's decision: `app_clubfindr/app.json` still declares the iOS Bluetooth permissions
+      "for Spotify integration" (KNOWN_ISSUES 48); changing them affects the next store review
+- [ ] Remove the now unused `expo-auth-session` from the app with the Expo upgrade
+      (KNOWN_ISSUES 35)
+- [x] Venues could not confirm a registration, fixed 2026-11-13 (`d25f205`, `124ba76`): the web
+      confirm step demanded Spotify cookies, and every venue code read as expired on a server
+      east of UTC (KNOWN_ISSUES 49)
+- [x] Mobile venue login sent and logged Spotify secrets, fixed 2026-11-13 (`401ee28`,
+      KNOWN_ISSUES 50)
 
 - [x] Apply `clubfindr/migrations/20261108_add_bar_favourite_artists.sql` to production: applied
       by hand with the deploy of `0dc724f` (2026-11-09). From the next deploy on, `deploy/deploy.sh`
@@ -253,8 +282,19 @@ top artists or play counts on the web).
 - [x] Replace the eight `query('BEGIN')` … `query('COMMIT')` sequences with `withTransaction`
       (KNOWN_ISSUES 39), done 2026-11-12, with a source guard so the pattern cannot come back.
       Logout now evicts the session cache too (KNOWN_ISSUES 41)
-- [ ] Store the refreshed Spotify token expiry (KNOWN_ISSUES 2), or drop the flow with section 1
-- [ ] Input validation on all API endpoints and an audit of raw SQL
+- [x] Store the refreshed Spotify token expiry (KNOWN_ISSUES 2), or drop the flow with section 1:
+      dropped with it (2026-11-13), so there is no per-user token to refresh
+- [ ] Input validation on all API endpoints and an audit of raw SQL. Inventory started
+      2026-11-13, see KNOWN_ISSUES 51-56 for what the section 1 work already turned up
+- [ ] Promoter auth is a forgeable plain cookie (KNOWN_ISSUES 51)
+- [ ] **First:** every venue write guard (`canManageBar`) accepts a plain, forgeable `barId`
+      cookie, so the KNOWN_ISSUES 26 protection can be bypassed; plus the "set bar ID" debug
+      panel on `/bars` (KNOWN_ISSUES 52)
+- [ ] `/login/bars` re-sends every cookie without `HttpOnly`/`Secure` (KNOWN_ISSUES 53)
+- [ ] Wildcard CORS on `/api/spotify/*`, in the endpoint and in nginx (KNOWN_ISSUES 54)
+- [ ] Confirmation-code attempts are limited only in the browser (KNOWN_ISSUES 55)
+- [ ] `POST /api/mobile/signup/complete` changes any user without authentication
+      (KNOWN_ISSUES 56)
 - [x] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12), done 2026-11-12
 
 ## 5. Mobile app (`app_clubfindr`)
@@ -283,11 +323,13 @@ top artists or play counts on the web).
 ## 7. `barfindr` scaling
 
 Closed 2026-11-12: section 1 superseded it — the venue Spotify playback polling was retired
-outright, so there is nothing left to scale. (Both items had in fact already been done while
+outright, so there is nothing left to scale. Winding barfindr down is the optional last step
+of [`deploy/TEARDOWN-spotify-service.md`](deploy/TEARDOWN-spotify-service.md), once
+`bar_genre_profiles` and `bar_genre_aggregates` are empty; it then needs a repo change to drop
+its units from `deploy/deploy.sh` and the sudoers file. (Both items had in fact already been done while
 the polling lived: it dispatched venues in chunked Celery batches, and the 24-hour aggregation
 ran in SQL.) `barfindr` now runs only the aggregate-refresh and cleanup tasks, which drain the
-polled tables; retiring the component entirely belongs to the `spotify_service` retirement in
-section 1.
+polled tables. `spotify_service` itself was retired on 2026-11-13 (section 1).
 
 See [`docs/analysis/barfindr-technical-analysis.md`](docs/analysis/barfindr-technical-analysis.md).
 

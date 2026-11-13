@@ -8,9 +8,10 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
    00:30 Berlin time sent the previous day. `$lib/localDate` now formats and parses the local
    date parts everywhere a date is picked or shown (search forms, `/clubs` heading, bar event
    defaults, promoter event `min`).
-2. **Spotify token refresh never stores the new expiry** (`spotify/search/+page.server.ts`):
-   the refreshed expiry is computed but the `spotifyTokenExpiry` cookie is not updated, so
-   every request refreshes again.
+2. _Gone 2026-11-13._ **Spotify token refresh never stored the new expiry**
+   (`spotify/search/+page.server.ts`). The guest search now uses the server-side app's token,
+   cached in the process (`$lib/taste/spotifyArtistLookup`), with no token cookie at all, and the
+   per-user refresh code is deleted with Spotify connect (ROADMAP section 1).
 3. _Fixed._ `/clubs`, `/barfindr` and `/promoter-home` returned 500 when opened without the
    expected cookies (no city / not logged in); they now redirect to `/` and `/login/bars`.
    A city without a date also redirects (`/barfindr` used to fall back to the server's day).
@@ -32,8 +33,9 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
    `GET`/`PUT /api/venues/:barId/taste/genres`, the "Genres you play" dashboard section,
    `$lib/taste/venueGenres`): only genres the cluster matcher knows are accepted, and both
    matchers fold them in at the same weight as the venue artists' genres
-   (`tests/venue-taste.spec.ts`, "declared venue genres"). Still open: `/login/bars` still
-   retries the `spotify_service` add_bar call for venues that already have a Spotify e-mail.
+   (`tests/venue-taste.spec.ts`, "declared venue genres"). The last loose end, `/login/bars`
+   retrying `spotify_service` add_bar, went with venue Spotify connect on 2026-11-13: the
+   dashboard has no Spotify panels or reconnect dialog at all now.
 5. _Partly fixed._ The rate limiter trusted `X-Forwarded-For` / `CF-Connecting-IP` as sent;
    it now keys on `event.getClientAddress()`, i.e. the header the deployment declares with
    `ADDRESS_HEADER`/`XFF_DEPTH` (see `.env.example`). Still per process memory (fine for the
@@ -60,8 +62,8 @@ Things found during the upgrade and deliberately left alone. None blocks the dep
 10. **`jsonwebtoken` on Node 26** crashes (`buffer-equal-constant-time` needs the removed
     `SlowBuffer`); Node 24 is LTS until April 2028, so this only matters for the next Node
     bump (swap to `jose` or patch the dependency).
-11. **`src/routes/api/spotify/artists/+page.svelte`** is a stub page living next to an API
-    endpoint; `src/stores/genres.svelte.ts` is only read by it and never written.
+11. _Fixed 2026-11-13._ **`src/routes/api/spotify/artists/+page.svelte`** was a stub page next to
+    an API endpoint, and `src/stores/genres.svelte.ts` was only read by it; both are deleted.
 12. _Fixed 2026-11-12._ **`hooks.server.ts` logs every non-asset request** and the login endpoint
     logs request shapes; noisy in `pm2 logs`. The per-request line, both login endpoints' banners,
     request-shape dumps and timings are gone; every warning and error stays.
@@ -190,8 +192,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     rows. Catalogue rows nobody favourites any more are never removed.
 20. **Two ways of reading configuration.** Most of the app reads `.env` through
     `$env/static/*` at build time; mail (`MAIL_TRANSPORT`, `SMTP_*`), the taste settings
-    (`LASTFM_API_KEY`, `LASTFM_API_BASE`, `SPOTIFY_API_BASE`, `SPOTIFY_ACCOUNTS_BASE`) and
-    `SPOTIFY_CONNECT_ENABLED` use `$env/dynamic/private` at runtime, so tests can switch them
+    (`LASTFM_API_KEY`, `LASTFM_API_BASE`, `SPOTIFY_API_BASE`, `SPOTIFY_ACCOUNTS_BASE`) and the
+    MusicBrainz switches use `$env/dynamic/private` at runtime, so tests can switch them
     without a rebuild and a missing optional key cannot break a build. Either document both
     conventions or move the optional keys to required placeholders.
 21. _Checked against the live APIs 2026-11-10; follow-ups open._ **Spotify, Last.fm and
@@ -246,8 +248,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       widths, sends `error_description` with `invalid_client`, and says in writing that empty
       `genres` is the common case; `tests/mock-musicbrainz.ts` now sends tag counts of 0 and -1,
       out of count order, which `tagsToGenres` filters and sorts as it always claimed to.
-    - Not checked: Spotify's development-mode 403 for unregistered users, which needs a user
-      OAuth login and stops mattering once `SPOTIFY_CONNECT_ENABLED=false`.
+    - Not checked, and moot since per-user Spotify login was removed (2026-11-13): Spotify's
+      development-mode 403 for unregistered users.
       Each follow-up should change the mock to the observed behaviour first, so the e2e suite
       shows the failure, then fix the client.
       An artist Spotify returns without `genres` no longer ends up with none: adding it falls
@@ -308,13 +310,14 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `SPOTIFY_CONNECT_ENABLED=false` and write the durable copy to `users.preferences` anyway.
     The lasting profile is the taste profile, which `/clubs` and the matchers already use.
     The city scoping (`user_city = $2`) stays with it, for the same reason.
-    _Fixed behind `SPOTIFY_CONNECT_ENABLED=false`:_ the `spotify_service` add_user call at signup
+    _Removed outright 2026-11-13_ (ROADMAP section 1; before that, behind
+    `SPOTIFY_CONNECT_ENABLED=false`): the `spotify_service` add_user call at signup
     and the `musicService` choice in mobile signup. With the flag off, web and mobile signup
     for users and venues (`/login/users`, `/register`, `/api/mobile/signup`,
     `/api/mobile/bars/register`) ask for no music service or Spotify e-mail, store none and
     never call `spotify_service` (add_user / add_bar), even when an older client sends them;
-    `GET /api/mobile/config` tells the app to hide the fields. With the flag on (still the
-    code default) nothing changes; production runs with the flag off since 2026-11-12.
+    `GET /api/mobile/config` tells the app to hide the fields. The flag and the code behind it
+    are gone now; the config answers `false` as a constant for older app builds.
     The genre-cookie and "Change the vibe" gaps are fixed and the `user_sessions.genres` wipe
     is deliberate (both 2026-11-12, see the top of this item), so nothing here is open any
     more. Venue login (`/login/bars`) no longer retries add_bar or sends a
@@ -358,7 +361,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     answered 500 to everyone — which is why the app reads `/api/mobile/bars/stats`, the
     token-based route where that same count is commented out. Both are fixed.
     `GET /api/mobile/bars/[barId]/stats` now duplicates `/api/mobile/bars/stats`; it could be
-    removed once nothing is known to call it.
+    removed once nothing is known to call it. `spotify-connect` itself was deleted with venue
+    Spotify connect (2026-11-13).
 27. _Fixed._ **Editing an event in the app failed.** `EventFormScreen` sends
     `PUT /api/mobile/bars/:barId/events/:eventId`, a route that did not exist (404), so only
     creating worked; `BarHomeScreen` stubbed out deletion ("until proper endpoint is
@@ -396,7 +400,10 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     Node 18 job is below what React Native 0.81 and Metro require (`>= 20.19.4`).
     `npx expo export --platform android` does build the bundle and would be a cheap first
     real check.
-30. **`tests/rate-limit.spec.ts` was flaky once** ("entries a client prepends to
+30. **`tests/rate-limit.spec.ts` was flaky once** (and `pages.spec.ts` "robots.txt is served" once,
+    on 2026-11-13: "socket hang up" from a kept-alive connection; 3 of 3 reruns passed). Note
+    `--repeat-each` cannot be used on the rate-limit tests: repeats inside a minute exhaust their
+    shared bucket and answer 429 ("entries a client prepends to
     X-Forwarded-For do not open new buckets" failed, then passed on retry). Not reproduced in
     any run since; watch for it. (A second flake, in `bars.spec.ts` with the flag off, had a
     real cause and is fixed: the dashboard tests waited for the Spotify dialog to know the page
@@ -460,6 +467,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `expo-updates` 29.0.16 → 29.0.20 and `expo-web-browser`. This is why `expo-doctor` is
     report-only in CI. Upgrading them with `npx expo install --fix`, then making `expo-doctor`
     a failing step, needs the app's four CI checks to pass and ideally a device run.
+    `expo-auth-session` has had no user in `src/` since the Spotify connect removal (2026-11-13);
+    take it out in the same upgrade.
 36. _Mitigated 2026-11-11._ **Two checkouts running e2e at once broke each other's runs.** Every
     checkout and worktree on a machine shares the dev database (`clubfindr_dev` on 54329) and
     ports 4173-4178, whether Postgres is the one Docker container (`clubfindr-dev-postgres`, the
@@ -553,7 +562,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     runs without a reseed left 52 throwaway Berlin venues and pushed the seeded "The Copper
     Lantern" to 51st, failing four `/barfindr` tests. Those leftovers are harmless now — venues
     sharing no cluster with a search are dropped — but every registration test still adds one.
-45. **Connecting a Spotify account another user already connected answers a raw 500.**
+45. _Gone 2026-11-13: the flow was removed._ **Connecting a Spotify account another user already
+    connected answered a raw 500.**
     `users.spotify_email` and `spotify_user_id` are UNIQUE, and `POST /api/mobile/spotify/register`
     (like the web `spotify/login` callback, which writes the same columns) does not catch the
     violation, so the second account to connect the same Spotify login gets
@@ -573,8 +583,62 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
       with nothing interpolated and values passed as `%s` parameters; B301 (pickle) in
       `old_spotipy.py` and `simple_spotipy.py`; B108 for the `/tmp` lock path. 43 of the 59 are in
       `oldScripts/` (ROADMAP section 6 removes it).
-    - `spotify_service` (21): B108 temp paths in `core/cleanup.py`, B104 binding to all
-      interfaces in `api/app.py`, B103 a 0o755 chmod, two B608 in `services/user_service.py`.
-      All go when `spotify_service` is retired (ROADMAP section 1); fix nothing there first.
+    - `spotify_service` (21): gone with the component (retired 2026-11-13), as is its CI scan.
       Once `data_collection` is clean, drop `continue-on-error` from its scan so new findings fail
       CI. Mark genuine false positives with `# nosec B608` and a reason, not a blanket skip.
+
+## Found during the section 1 close-out (13 November 2026)
+
+47. **The legal text still describes Spotify connect.** The web privacy policy
+    (`/policies/privacy-policy`, 4 mentions) and terms (`/policies/terms-and-conditions`), and the
+    app's `PrivacyPolicyScreen` and `TermsScreen`, name Spotify as a data source and connected
+    service. Per-account Spotify data is no longer collected, and the drop migration removes what
+    was stored. Left as it is on the owner's instruction (legal copy is the owner's call).
+48. **`app_clubfindr/app.json` declares iOS Bluetooth permissions "for Spotify integration"**
+    (`NSBluetoothAlwaysUsageDescription`, `NSBluetoothPeripheralUsageDescription`). Nothing in the
+    app uses Bluetooth since the Spotify connect removal. Left on the owner's instruction: removing
+    them changes the next App Store submission.
+49. _Fixed 2026-11-13._ **No venue could confirm its registration.** Two faults. `/register/confirm`
+    demanded the Spotify OAuth cookies the registration form's Spotify branch left behind and
+    answered 400 without them, so with `SPOTIFY_CONNECT_ENABLED=false` every web venue stopped
+    there. And `bars.expires_at` was `timestamp without time zone` holding UTC wall-clock time
+    (every writer stores `toISOString()`), which node-pg reads as local time, so on a server east
+    of UTC (production is in Germany) a fresh 10- or 30-minute code read as expired at once on the
+    web, promoter and mobile paths, and the resend throttle never applied. The check runs in SQL now
+    (`$lib/server/barCodeExpiry`, `d25f205`) and the column is `timestamptz`
+    (`migrations/20261113_bars_expires_at_timestamptz.sql`, `124ba76`); covered by
+    `tests/venue-register-confirm.spec.ts`. Nothing tested a confirm POST before.
+50. _Fixed 2026-11-13._ **Mobile venue login sent and logged Spotify secrets.**
+    `POST /api/mobile/bars/login`, not behind the flag, logged the venue's Spotify app client id and
+    secret and the whole response (session token included) on every login, and for a Spotify venue
+    returned the client secret and the venue's decrypted Spotify tokens to the device (`401ee28`).
+    Anything in the production logs from before the deploy should be treated as exposed; deleting the
+    per-venue Spotify apps (`deploy/TEARDOWN-spotify-service.md`, step 9) makes those secrets useless.
+
+Open security findings for ROADMAP section 4, noticed during the section 1 work and left alone:
+
+51. **Promoter auth is a plain cookie.** `/login/bars` sets `promoterId` to the user's id, not
+    `httpOnly` and unsigned; `/promoter-home` and `/promoter-home/events/*` trust it as is, so anyone
+    who knows or guesses a promoter's user id can act as them. (`/api/spotify/search` accepts it too,
+    `09fdbb3`, gated on `users.is_promoter`.)
+52. **Highest priority: every venue write guard accepts a plain `barId` cookie.** `canManageBar`
+    (`$lib/taste/barSession.ts`, behind `denyUnlessBarManager` in `$lib/server/barAuth`) returns true
+    when `cookies.get('barId') === barId`. That cookie is set by `/login/bars` without `httpOnly` or
+    any signature, so a request carrying `Cookie: barId=<any venue's id>` passes the guard on the
+    mobile bar API writes (KNOWN_ISSUES 26: events, bar details, QR codes, promotions) and the venue
+    taste endpoints; venue ids are in the public discovery responses. The Bearer path checks a real
+    `bar_sessions` row and is fine. `/bars` also has a "Show Debug Info" panel that sets `barId` to
+    any value typed in. Found 2026-11-13 while writing this item; not yet reproduced by a test.
+53. **`/login/bars` re-sends every cookie without its flags.** After `cookies.set(...)` with
+    `httpOnly`/`secure`, the success path loops over `cookies.getAll()` and appends
+    `Set-Cookie: name=value; Path=/` for each, which can replace them with flag-less copies (and
+    echoes request cookies back).
+54. **Wildcard CORS on `/api/spotify/*`.** `OPTIONS /api/spotify/artists` answers
+    `Access-Control-Allow-Origin: *`, and nginx's `location /api/spotify/` block adds the same header
+    to every response there.
+55. **Confirmation codes are rate-limited only in the browser.** `/register/confirm` (and the
+    promoter and mobile confirm routes) accept unlimited attempts at a 6-hex-digit code within its
+    10-30 minutes; the "3 attempts" limit is client-side. Only the global 60/minute IP limit applies.
+56. **`POST /api/mobile/signup/complete` needs no authentication**: it sets `onboarding_complete` and
+    `is_first_time` for whatever `userId` it is sent. Nothing in the web app or the mobile app calls
+    it.
