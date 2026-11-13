@@ -219,6 +219,11 @@ Things to do by hand or decide, collected while building the items above.
       maybe a thumbs up/down after a night, nudging genre weights
 - [ ] "Nights like these" genre picker that shows sample events or artists per cluster
       instead of bare cluster names
+- [ ] Tonight's vibe and saved mixes: search artists on the fly for a temporary list that
+      matching uses for the night instead of the profile (which it never changes), and keep
+      named mixes to reuse; a mix is a user-chosen "side" (section 2). Design only so far:
+      [`clubfindr/docs/tonights-vibe-proposal.md`](clubfindr/docs/tonights-vibe-proposal.md)
+      (open questions: expiry, replace vs blend, venues, naming)
 - [ ] Link each new importer from the onboarding cap note (`/onboarding` stops at 5 artists
       and points to the taste profile and the Last.fm import for more) and from `/users-home`
 
