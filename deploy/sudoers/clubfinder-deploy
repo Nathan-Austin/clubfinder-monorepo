@@ -11,7 +11,4 @@
 # deploy/deploy.sh expects.
 nathan ALL=(root) NOPASSWD: /usr/bin/systemctl restart barfindr.service, \
 	/usr/bin/systemctl restart barfindr-celery-worker.service, \
-	/usr/bin/systemctl restart barfindr-celery-beat.service, \
-	/usr/bin/systemctl restart spotify-automation-api.service, \
-	/usr/bin/systemctl restart spotify-automation-worker-browser.service, \
-	/usr/bin/systemctl restart spotify-automation-beat.service
+	/usr/bin/systemctl restart barfindr-celery-beat.service

@@ -39,7 +39,7 @@ done
 ufw deny 80/tcp
 ufw deny 443/tcp
 
-# Port 5000 (spotify_service Flask API) has no rule: blocked by the default
-# deny; clubfindr calls it on 127.0.0.1.
+# Port 5000 had no rule either (spotify_service, retired; deploy/TEARDOWN-spotify-service.md):
+# nothing should listen there any more.
 
 ufw --force enable

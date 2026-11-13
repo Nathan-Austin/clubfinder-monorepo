@@ -9,8 +9,12 @@ Clubfinder is a **monorepo** containing a multi-component platform for discoveri
 1. **clubfindr** (Main SvelteKit web application)
 2. **barfindr** (Python venue backend: Celery maintenance tasks; no HTTP server. Its Spotify playback polling was retired 2026-11-12)
 3. **data_collection** (Python scripts for scraping event data)
-4. **spotify_service** (Automated Spotify application management)
-5. **app_clubfindr** (React Native/Expo mobile app)
+4. **app_clubfindr** (React Native/Expo mobile app)
+
+`spotify_service` (automated Spotify developer-app management for per-user connect) was
+retired with ROADMAP section 1; `deploy/TEARDOWN-spotify-service.md` removes it from the
+server. One server-side Spotify app remains, for artist search and lookup (`.env` keys
+`PUBLIC_SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET`, `$lib/taste/spotifyArtistLookup`).
 
 ### Monorepo Structure
 
@@ -27,7 +31,7 @@ The project uses PostgreSQL 16 (system package, cluster `16-main`, port 5432), d
 DATABASE_URL=postgres://<user>:<password>@localhost:5432/clubfindr
 ```
 
-Main tables include: `events`, `event_artists`, `artists`, `users`, `user_sessions`, `bars`, `spotify_apps`, `venues`
+Main tables include: `events`, `event_artists`, `artists`, `users`, `user_sessions`, `bars`, `venues`
 
 There is no genres or cities table: genres come from the JSON files in `clubfindr/src/lib/data/` (see Genre Classification System below), and the scraped cities from `data_collection/live_cities.txt`.
 
@@ -107,21 +111,6 @@ python3 spotipy_search.py
 python3 soundcloud_api.py
 ```
 
-### spotify_service (Spotify App Management)
-
-Directory: `/home/nathan/clubfinder/spotify_service`
-
-```bash
-# Service management
-./manage_spotify_service.sh start
-./manage_spotify_service.sh stop
-./manage_spotify_service.sh restart
-./manage_spotify_service.sh status
-./manage_spotify_service.sh logs
-./manage_spotify_service.sh cleanup
-./manage_spotify_service.sh process-queue
-```
-
 ## Architecture
 
 ### clubfindr (SvelteKit Web App)
@@ -190,24 +179,6 @@ Directory: `/home/nathan/clubfinder/spotify_service`
 - Uses lock file `/tmp/clubfinder_running.lock` to prevent concurrent runs
 - Cleans up past events from database before each run
 - Timeouts and error handling for long-running scrapes
-
-### spotify_service (Selenium Automation)
-
-**Purpose:** Automated management of Spotify for Developers applications using browser automation
-
-**Key Features:**
-- On-demand browser launching (only opens when needed)
-- Queue system for failed operations in `pending_queue/` directory
-- Automatic screenshot capture for debugging
-- Email notifications for successful operations
-- Systemd service integration
-
-**API Endpoints:**
-- POST /add_user - Add user to Spotify app
-- POST /add_bar - Add bar to Spotify app
-- GET /get_credentials/{app_name} - Retrieve app credentials
-- POST /process_queue - Process pending queue items
-- POST /cleanup - Trigger cleanup process
 
 ## Important Development Notes
 
@@ -304,9 +275,8 @@ Production setup (services, ports, restarts, logs) is documented in
 `deploy/README.md`; the live systemd units, nginx site and cron lines
 are copied in `deploy/`. Summary:
 - clubfindr: `node build/index.js` on :3000 under PM2 (`clubfindr/ecosystem.config.cjs`, resurrected at boot by `pm2-nathan.service`)
-- spotify_service: `spotify-automation-api` (Flask, :5000, called by clubfindr on 127.0.0.1; routes under `/api/<name>`), `-worker-browser`, `-beat`; venv `~/spotify_service_env`
 - barfindr: `barfindr`, `barfindr-celery-worker`, `barfindr-celery-beat`; conda `base`
-- Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com) proxies to :3000 (its `/api/user/` → :5000 block matches no Flask route and is unused)
+- Redis and PostgreSQL 16 are system packages; nginx site `sveltekit.config` (clubfindr.com) proxies to :3000
 - Firewall: ufw rules in `deploy/ufw-rules.sh` (80/443 Cloudflare-only)
 - Pushing to `main` deploys to production after Main CI passes (`deploy.yml` runs `deploy/deploy.sh`); new SQL migrations are applied by the deploy (it stops for destructive or failing ones); Python requirements and `deploy/` files are applied by hand (the deploy stops and prints the commands when requirements changed)
 
@@ -338,11 +308,7 @@ The monorepo uses path-based workflow triggering for efficient CI:
    - Runs on Python 3.10 and 3.11
    - Executes: lint, configuration validation, security scan (bandit)
 
-5. **spotify-service-ci.yml**: Automation service validation
-   - Runs on Python 3.10 and 3.11
-   - Executes: lint, file validation, shellcheck, security scan
-
-6. **app-clubfindr-ci.yml**: Mobile app CI
+5. **app-clubfindr-ci.yml**: Mobile app CI
    - Runs on Node.js 24 (`app_clubfindr/.nvmrc`), npm
    - Executes: lint (errors only), type check, Jest unit tests, Android bundle build
      (`npx expo export`); all must pass, and a failure blocks the deploy via Main CI.
@@ -362,7 +328,6 @@ To test workflows locally before pushing:
 cd clubfindr && pnpm lint
 cd ../barfindr && black --check . && flake8 .
 cd ../data_collection && black --check . && flake8 .
-cd ../spotify_service && black --check . && flake8 .
 
 # Run tests
 cd ../clubfindr && pnpm test && pnpm test:unit

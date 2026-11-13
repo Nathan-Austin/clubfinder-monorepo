@@ -9,9 +9,8 @@ This is a monorepo containing all Clubfinder components:
 ```
 clubfinder/
 ├── clubfindr/           # Main SvelteKit web application
-├── barfindr/           # Python venue backend (Celery workers + Spotify sync)
+├── barfindr/           # Python venue backend (Celery maintenance tasks)
 ├── data_collection/    # Python scripts for event data scraping
-├── spotify_service/    # Automated Spotify app management service
 ├── app_clubfindr/      # React Native/Expo mobile application
 ├── deploy/             # Production deployment (see deploy/README.md)
 ├── .github/            # GitHub Actions CI/CD workflows
@@ -23,7 +22,7 @@ clubfinder/
 ### Prerequisites
 
 - **Node.js** 18+ and pnpm (for clubfindr and app_clubfindr)
-- **Python** 3.10+ (for barfindr, data_collection, spotify_service)
+- **Python** 3.10+ (for barfindr, data_collection)
 - **PostgreSQL** 15+
 - **Redis** 7+ (for barfindr background tasks)
 
@@ -67,13 +66,6 @@ PYTHONPATH=src python -m src.barfindr.main        # service init loop (no HTTP p
 cd data_collection
 pip install -r requirements.txt
 ./run_data_collection.sh
-```
-
-#### spotify_service (Spotify Automation)
-```bash
-cd spotify_service
-./manage_spotify_service.sh install
-./manage_spotify_service.sh start
 ```
 
 #### app_clubfindr (Mobile App)
@@ -121,7 +113,7 @@ Use conventional commits for better changelog generation:
 - `test(component): description` - Test changes
 - `chore(component): description` - Build/tooling changes
 
-Components: `clubfindr`, `barfindr`, `data_collection`, `spotify_service`, `app_clubfindr`
+Components: `clubfindr`, `barfindr`, `data_collection`, `app_clubfindr`
 
 ## CI/CD
 
@@ -132,7 +124,6 @@ Each component has its own CI workflow:
 - **clubfindr-ci.yml**: Builds, tests, and lints the web app
 - **barfindr-ci.yml**: Tests and lints the barfindr backend
 - **data-collection-ci.yml**: Validates and lints scraping scripts
-- **spotify-service-ci.yml**: Validates and lints the automation service
 - **app-clubfindr-ci.yml**: Builds and tests the mobile app
 - **main-ci.yml**: Orchestrates all workflows with path filtering
 - **deploy.yml**: Deploys `main` to production after Main CI passes, applying any new SQL migrations first (see `deploy/README.md`, "Deploys")
@@ -161,7 +152,7 @@ cd clubfindr && pnpm test && pnpm test:unit
 # Backend tests
 cd barfindr && pytest
 
-# Note: data_collection and spotify_service currently have validation only
+# Note: data_collection currently has validation only
 ```
 
 ### Run Linting
@@ -173,7 +164,6 @@ cd clubfindr && pnpm lint
 # Python components
 cd barfindr && black --check . && flake8 .
 cd data_collection && black --check . && flake8 .
-cd spotify_service && black --check . && flake8 .
 ```
 
 ## Architecture Overview
@@ -186,17 +176,12 @@ cd spotify_service && black --check . && flake8 .
 ### barfindr (Backend)
 - **Tech**: SQLAlchemy, Celery, Redis (FastAPI is in requirements.txt but no HTTP server runs)
 - **Purpose**: Venue management and background task processing
-- **Features**: Async task queue, Spotify integration
+- **Features**: Async task queue, venue genre aggregates (Spotify playback polling retired)
 
 ### data_collection (Data Pipeline)
 - **Tech**: Python, Selenium, Beautiful Soup
 - **Purpose**: Scrape event data from various sources
 - **Features**: Resident Advisor scraping, artist enrichment, database population
-
-### spotify_service (Automation)
-- **Tech**: Python, Selenium, Flask
-- **Purpose**: Automated Spotify for Developers app management
-- **Features**: On-demand browser automation, queue system, email notifications
 
 ### app_clubfindr (Mobile)
 - **Tech**: React Native, Expo
@@ -210,7 +195,7 @@ This monorepo was created from individual repositories:
 - `clubfindr` (previously the `clubfinder` repository)
 - `barfindr`
 - `data_collection` (previously `event_data_scraper`)
-- `spotify_service` (previously `spotify-service`)
+- `spotify_service` (previously `spotify-service`; retired 2026-11, see ROADMAP section 1)
 
 Git history from individual repos is backed up in `.git-backups/` (ignored by git).
 
@@ -239,7 +224,6 @@ For detailed development information, see [CLAUDE.md](./CLAUDE.md).
 For component-specific documentation:
 - [clubfindr README](./clubfindr/README.md) (if exists)
 - [barfindr README](./barfindr/README.md) (if exists)
-- [spotify_service README](./spotify_service/README.md)
 
 ## Adding the Mobile App
 

@@ -22,7 +22,7 @@
 #   - fast-forwards the checkout to the commit
 #   - redeploys only components whose code changed (docs and .env.example
 #     changes are ignored): clubfindr is rebuilt and reloaded under PM2,
-#     barfindr / spotify_service units are restarted and health-checked
+#     barfindr units are restarted and health-checked
 #   - never installs systemd units, nginx, cron or firewall changes from
 #     deploy/; it prints a reminder to apply them by hand
 set -euo pipefail
@@ -43,7 +43,6 @@ PM2=/home/nathan/.local/share/pnpm/pm2
 SYSTEMCTL=/usr/bin/systemctl
 
 BARFINDR_UNITS=(barfindr.service barfindr-celery-worker.service barfindr-celery-beat.service)
-SPOTIFY_UNITS=(spotify-automation-api.service spotify-automation-worker-browser.service spotify-automation-beat.service)
 
 log() { echo "=== $*"; }
 fail() {
@@ -79,7 +78,7 @@ git merge-base --is-ancestor "$PREV" "$TARGET" ||
 CHANGED=$(git diff --name-only "$PREV" "$TARGET")
 log "Deploying ${PREV:0:7} -> ${TARGET:0:7} ($(echo "$CHANGED" | grep -c .) files changed)"
 
-REQS=$(echo "$CHANGED" | grep -E '^(barfindr|data_collection|spotify_service)/(.*/)?requirements[^/]*\.txt$' || true)
+REQS=$(echo "$CHANGED" | grep -E '^(barfindr|data_collection)/(.*/)?requirements[^/]*\.txt$' || true)
 if [ -n "$REQS" ] && [ "${REQUIREMENTS_INSTALLED:-0}" != 1 ]; then
 	{
 		echo "Python requirements changed:"
@@ -90,11 +89,7 @@ if [ -n "$REQS" ] && [ "${REQUIREMENTS_INSTALLED:-0}" != 1 ]; then
 		echo
 		echo "  cd $REPO"
 		echo "$REQS" | while read -r f; do
-			case "$f" in
-			spotify_service/*) pip=/home/nathan/spotify_service_env/bin/pip ;;
-			*) pip=/home/nathan/anaconda3/bin/pip ;;
-			esac
-			echo "  $pip install -r <(git show $TARGET:$f)"
+			echo "  /home/nathan/anaconda3/bin/pip install -r <(git show $TARGET:$f)"
 		done
 		echo "  REQUIREMENTS_INSTALLED=1 bash <(git show $TARGET:deploy/deploy.sh) $TARGET"
 	} >&2
@@ -159,10 +154,9 @@ fi
 CODE=$(echo "$CHANGED" | grep -vE '(\.md$|(^|/)\.env\.example$|^docs/)' || true)
 changed() { echo "$CODE" | grep -q "^$1/"; }
 
-DO_CLUBFINDR=0 DO_BARFINDR=0 DO_SPOTIFY=0
+DO_CLUBFINDR=0 DO_BARFINDR=0
 changed clubfindr && DO_CLUBFINDR=1
 changed barfindr && DO_BARFINDR=1
-changed spotify_service && DO_SPOTIFY=1
 
 # Check the Node toolchain now, so a missing Node 24 fails before merging
 if [ $DO_CLUBFINDR = 1 ]; then
@@ -188,7 +182,6 @@ nopasswd_commands() {
 # Check restart permission now, so a missing sudoers rule fails before merging
 need_units=()
 [ $DO_BARFINDR = 1 ] && need_units+=("${BARFINDR_UNITS[@]}")
-[ $DO_SPOTIFY = 1 ] && need_units+=("${SPOTIFY_UNITS[@]}")
 if [ ${#need_units[@]} -gt 0 ]; then
 	allowed=$(nopasswd_commands)
 	for unit in "${need_units[@]}"; do
@@ -262,16 +255,6 @@ restart_and_check() {
 if [ $DO_BARFINDR = 1 ]; then
 	log "barfindr: restart"
 	restart_and_check "${BARFINDR_UNITS[@]}"
-fi
-
-if [ $DO_SPOTIFY = 1 ]; then
-	log "spotify_service: restart"
-	restart_and_check "${SPOTIFY_UNITS[@]}"
-	if [ "$DRY_RUN" != 1 ]; then
-		code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:5000/api/task_status/deploy-healthcheck || true)
-		[ "$code" = 200 ] || fail "spotify API health check returned $code"
-		echo "spotify API OK (HTTP 200)"
-	fi
 fi
 
 if changed data_collection; then

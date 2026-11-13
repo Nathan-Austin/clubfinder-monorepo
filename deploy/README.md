@@ -11,9 +11,6 @@ gitignored `.env` in its own directory (see the `.env.example` next to it).
 |---|---|---|---|
 | nginx | 80, 443 | system package | `nginx.service`; site `deploy/nginx/sveltekit.config` → `/etc/nginx/sites-available/`, symlinked in `sites-enabled/`. TLS via certbot (`/etc/letsencrypt/live/clubfindr.com/`) |
 | clubfindr (SvelteKit) | 3000 | `node build/index.js` under PM2 | `pm2-nathan.service` runs `pm2 resurrect` at boot; process defined in `clubfindr/ecosystem.config.cjs` |
-| spotify_service API (Flask) | 5000 | `~/spotify_service_env` venv | `spotify-automation-api.service` |
-| spotify_service Celery worker | – | `~/spotify_service_env` venv | `spotify-automation-worker-browser.service` (queues `spotify_browser,spotify_fast,spotify_maintenance`, concurrency 1) |
-| spotify_service Celery beat | – | `~/spotify_service_env` venv | `spotify-automation-beat.service` |
 | barfindr | – | conda `base` (`~/anaconda3`) | `barfindr.service` (`python -m src.barfindr.main`: initialises services, then idles; no HTTP port) |
 | barfindr Celery worker | – | conda `base` | `barfindr-celery-worker.service` → `barfindr/run_celery_worker.sh` (queues `celery,spotify,maintenance`) |
 | barfindr Celery beat | – | conda `base` | `barfindr-celery-beat.service` |
@@ -22,10 +19,9 @@ gitignored `.env` in its own directory (see the `.env.example` next to it).
 | Cron | – | user `nathan` crontab | lines in `deploy/cron/clubfinder.crontab` |
 
 nginx sends everything (including `/api/spotify/`) to clubfindr on :3000.
-clubfindr calls the spotify_service API directly on `127.0.0.1:5000`, whose
-routes all live under `/api/<name>` (e.g. `/api/add_user`). The nginx
-`location /api/user/` block also proxies to :5000, but no Flask route sits under
-that prefix and nothing calls it, so it is unused.
+spotify_service (the Flask API on :5000 and its two Celery units) is retired,
+along with the unused nginx `location /api/user/` block that pointed at it;
+`deploy/TEARDOWN-spotify-service.md` is the server-side removal.
 
 ## Firewall
 
@@ -37,7 +33,7 @@ rules (order matters; ufw uses the first match):
 | 22 | open |
 | 80, 443 | Cloudflare IP ranges only; the site is only reachable through Cloudflare |
 | 3000 | open to anyone, so node can be reached directly, bypassing nginx and Cloudflare |
-| 5000 | no rule (default deny); local callers only |
+| 5000 | no rule (default deny); was spotify_service, retired, nothing listens |
 | 5432 | 127.0.0.1 and the Docker networks 172.17.0.0/16 and 172.30.0.0/16; denied otherwise |
 
 Postgres itself (`pg_hba.conf`) also accepts md5 logins for any user and database
@@ -61,8 +57,7 @@ export PATH=/home/nathan/.local/share/pnpm:/home/nathan/.local/node24/bin:$PATH
 # systemd units
 sudo cp deploy/systemd/*.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now spotify-automation-api spotify-automation-beat \
-  spotify-automation-worker-browser barfindr barfindr-celery-worker barfindr-celery-beat
+sudo systemctl enable --now barfindr barfindr-celery-worker barfindr-celery-beat
 
 # nginx
 sudo cp deploy/nginx/sveltekit.config /etc/nginx/sites-available/
@@ -80,15 +75,12 @@ sudo systemctl enable pm2-nathan   # or: pm2 startup systemd
 # firewall
 sudo bash deploy/ufw-rules.sh
 
-# let the deploy workflow restart the six services (and nothing else)
+# let the deploy workflow restart the three barfindr services (and nothing else)
 sudo install -m 0440 -o root -g root deploy/sudoers/clubfinder-deploy /etc/sudoers.d/clubfinder-deploy
 sudo visudo -cf /etc/sudoers.d/clubfinder-deploy
 ```
 
-The spotify_service venv lives outside the repo at `~/spotify_service_env`
-(`python -m venv ~/spotify_service_env && ~/spotify_service_env/bin/pip install -r spotify_service/requirements.txt`).
 barfindr uses the conda `base` environment with `barfindr/requirements.txt`.
-spotify_service also needs `spotify_service/app_info.json` (see `app_info.example.json`).
 
 ## Restarting
 
@@ -98,7 +90,6 @@ cd clubfindr && pnpm build && pm2 restart clubfindr
 
 # Python services
 sudo systemctl restart barfindr barfindr-celery-worker barfindr-celery-beat
-sudo systemctl restart spotify-automation-api spotify-automation-worker-browser spotify-automation-beat
 
 # nginx
 sudo nginx -t && sudo systemctl reload nginx
@@ -115,7 +106,7 @@ Status: `pm2 ls`, `systemctl status <unit>`.
 1. Refuses to run if the checkout is not on `main`, has uncommitted changes to
    tracked files, or the commit is not a fast-forward.
 2. **Fails before changing anything if a `requirements*.txt` changed** in
-   barfindr, data_collection or spotify_service. Python packages are installed
+   barfindr or data_collection. Python packages are installed
    by hand; the error message lists the commands.
    **New or changed `clubfindr/migrations/*.sql` are applied automatically**
    (connection from `clubfindr/.env`, file-name order, each in its own
@@ -133,8 +124,8 @@ Status: `pm2 ls`, `systemctl status <unit>`.
    - clubfindr: `pnpm install --frozen-lockfile`, `pnpm build`,
      `pm2 startOrReload ecosystem.config.cjs --update-env`, `pm2 save`, then
      `GET 127.0.0.1:3000/` must return 200.
-   - barfindr / spotify_service: restart the three units, then each must be
-     active and not restarted again 10 s later; the spotify API must answer.
+   - barfindr: restart the three units, then each must be active and not
+     restarted again 10 s later.
    - data_collection: nothing to restart (cron).
 5. Never applies `deploy/` files (units, nginx, cron, ufw, sudoers); it lists
    changed ones so you can install them by hand.
@@ -150,7 +141,6 @@ Test locally with `DRY_RUN=1 deploy/deploy.sh <sha>`.
 |---|---|
 | clubfindr | `~/.pm2/logs/clubfindr-out-0.log`, `~/.pm2/logs/clubfindr-error-0.log` (`pm2 logs clubfindr`) |
 | systemd services | journald: `sudo journalctl -u <unit> -f` (`nathan` is not in `adm`/`systemd-journal`, so sudo is needed) |
-| spotify_service | also files in `spotify_service/`: `cleanup.log`, `stream_errors.log`, `spotify_service.log` (rotating) |
 | data_collection | `data_collection/logs/`; cron output in `~/cron.log`. `cleanup_logs.sh` clears logs older than 14 days or over 10 MB weekly |
 | nginx | `/var/log/nginx/` |
 | PostgreSQL | `/var/log/postgresql/postgresql-16-main.log` |
