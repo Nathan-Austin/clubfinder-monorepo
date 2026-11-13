@@ -209,7 +209,7 @@ CREATE TABLE clubfindr.bars (
     confirmation_code character varying(10),
     confirmed boolean DEFAULT false,
     resend_attempts integer DEFAULT 0,
-    expires_at timestamp without time zone,
+    expires_at timestamp with time zone,
     password_hash character varying(255),
     spotify_app_name character varying(255),
     spotify_email character varying(255),
