@@ -21,62 +21,15 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { MainTabParamList, RootStackParamList } from '../navigation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
+import { errorMessage, MIN_QUERY_LENGTH, tasteApi, USER_TASTE_BASE } from '../services/tasteService';
+import { artistsFromHits, genresOfSelection, type SearchArtist } from '../utils/tasteSelection';
 
 // Import genre data
 import genreData from '../constants/unified-genres.json';
 
-// Define proper types for the search results
-export interface Artist {
-    id: string;
-    name: string;
-    genres: string[];
-    images: Array<{
-        url: string;
-        height?: number;
-        width?: number;
-    }>;
-    popularity?: number;
-    external_urls?: {
-        spotify: string;
-    };
-}
-
-export interface Track {
-    id: string;
-    name: string;
-    artists: Array<{
-        id: string;
-        name: string;
-        external_urls?: {
-            spotify: string;
-        };
-    }>;
-    album: {
-        id: string;
-        name: string;
-        images: Array<{
-            url: string;
-            height?: number;
-            width?: number;
-        }>;
-        external_urls?: {
-            spotify: string;
-        };
-    };
-    preview_url?: string;
-    uri?: string;
-    external_urls?: {
-        spotify: string;
-    };
-}
-
-export interface SearchResults {
-    artists: Artist[];
-    tracks: Track[];
-}
-
-// Define token storage key
-const SPOTIFY_ACCESS_TOKEN = 'spotify_access_token';
+// Artist search runs on the server-side Spotify app and the catalogue (GET /api/taste/search);
+// it used to need the user's own Spotify login, which is retired. Tracks are not searched any
+// more: picking artists gives the same genres.
 
 // Define the navigation prop type
 type SearchScreenNavigationProp = CompositeNavigationProp<
@@ -95,12 +48,10 @@ const SearchScreen = () => {
 
     // State for search functionality
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
+    const [searchResults, setSearchResults] = useState<SearchArtist[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'artists' | 'tracks'>('artists');
     const [selectedArtists, setSelectedArtists] = useState<Set<string>>(new Set());
-    const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set());
     const [processingSelection, setProcessingSelection] = useState(false);
 
     // Get auth context
@@ -119,61 +70,21 @@ const SearchScreen = () => {
         });
     };
 
-    // Handle toggling selection for tracks
-    const toggleTrackSelection = (trackId: string) => {
-        setSelectedTracks(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(trackId)) {
-                newSet.delete(trackId);
-            } else {
-                newSet.add(trackId);
-            }
-            return newSet;
-        });
-    };
-
     // Clear all selections
     const clearSelections = () => {
         // Clear selected genres
         setSelectedGenres([]);
 
-        // Clear selected artists and tracks
+        // Clear selected artists
         setSelectedArtists(new Set());
-        setSelectedTracks(new Set());
 
         // Show confirmation to user
         Alert.alert('Selections Cleared', 'All selections have been cleared.');
     };
 
-    // Extract genres from selected items
-    const getSelectedGenres = (): string[] => {
-        const genres = new Set<string>();
-
-        if (!searchResults) return [];
-
-        // Add genres from selected artists
-        searchResults.artists
-            .filter(artist => selectedArtists.has(artist.id))
-            .forEach(artist => {
-                if (artist.genres && Array.isArray(artist.genres)) {
-                    artist.genres.forEach(genre => genres.add(genre));
-                }
-            });
-
-        // Add genres from artists of selected tracks
-        searchResults.tracks
-            .filter(track => selectedTracks.has(track.id))
-            .forEach(track => {
-                track.artists.forEach(artist => {
-                    const artistData = searchResults.artists.find(a => a.id === artist.id);
-                    if (artistData && artistData.genres) {
-                        artistData.genres.forEach(genre => genres.add(genre));
-                    }
-                });
-            });
-
-        return Array.from(genres);
-    };
+    // The genres of the selected artists
+    const getSelectedGenres = (): string[] =>
+        searchResults ? genresOfSelection(searchResults, selectedArtists) : [];
 
     // New function to fetch venues based on genres
     const fetchVenuesWithGenres = async (genres: string[]): Promise<void> => {
@@ -240,7 +151,7 @@ const SearchScreen = () => {
 
             // Validate selection
             if (selectedGenres.length === 0) {
-                Alert.alert('No Genres', 'Please select at least one artist or track to find venues.');
+                Alert.alert('No Genres', 'Please select at least one artist with known genres to find venues.');
                 return;
             }
 
@@ -285,11 +196,16 @@ const SearchScreen = () => {
         }
     };
 
-    // Handle Spotify search
+    // Artist search (server-side; the session token authenticates it)
     const handleSearch = async () => {
-        if (!searchQuery.trim()) return;
+        const query = searchQuery.trim();
+        if (!query) return;
         if (!user) {
             setError('Please log in to search');
+            return;
+        }
+        if (query.length < MIN_QUERY_LENGTH) {
+            setError(`Type at least ${MIN_QUERY_LENGTH} characters to search`);
             return;
         }
 
@@ -297,36 +213,12 @@ const SearchScreen = () => {
         setError(null);
 
         try {
-            const accessToken = await AsyncStorage.getItem(SPOTIFY_ACCESS_TOKEN);
-            if (!accessToken) {
-                setError('Spotify access token not found. Please reconnect your Spotify account.');
-                setIsLoading(false);
-                return;
-            }
-
-            console.log('Searching Spotify for:', searchQuery);
-
-            // Use POST request with JSON body instead of GET with query parameters
-            const response = await axiosClient.post('/api/mobile/spotify/search', {
-                q: searchQuery,
-                userId: user.id,
-                access_token: accessToken
-            });
-            const data = response.data as {
-                success: boolean;
-                data?: SearchResults;
-                message?: string;
-            };
-
-            if (data && data.success && data.data) {
-                console.log(`Found ${data.data.artists.length} artists and ${data.data.tracks.length} tracks`);
-                setSearchResults(data.data);
-            } else {
-                setError(data.message || 'Search failed. Please try again.');
-            }
+            const { artists, warning } = await tasteApi(USER_TASTE_BASE).search(query);
+            setSearchResults(artistsFromHits(artists));
+            if (warning) setError(warning);
         } catch (error) {
             console.error('Search error:', error);
-            setError('An error occurred while searching. Please try again.');
+            setError(errorMessage(error, 'An error occurred while searching. Please try again.'));
         } finally {
             setIsLoading(false);
         }
@@ -487,7 +379,7 @@ const SearchScreen = () => {
                     <View style={styles.searchSection}>
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search for tracks or artists..."
+                            placeholder="Search for artists..."
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             onSubmitEditing={handleSearch}
@@ -581,25 +473,14 @@ const SearchScreen = () => {
                                 {/* Tab Navigation with Clear Button */}
                                 <View style={styles.searchResultsHeader}>
                                     <View style={styles.tabContainer}>
-                                        <TouchableOpacity
-                                            style={[styles.tab, viewMode === 'artists' && styles.activeTab]}
-                                            onPress={() => setViewMode('artists')}
-                                        >
-                                            <Text style={[styles.tabText, viewMode === 'artists' && styles.activeTabText]}>
+                                        <View style={[styles.tab, styles.activeTab]}>
+                                            <Text style={[styles.tabText, styles.activeTabText]}>
                                                 Artists ({selectedArtists.size})
                                             </Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.tab, viewMode === 'tracks' && styles.activeTab]}
-                                            onPress={() => setViewMode('tracks')}
-                                        >
-                                            <Text style={[styles.tabText, viewMode === 'tracks' && styles.activeTabText]}>
-                                                Tracks ({selectedTracks.size})
-                                            </Text>
-                                        </TouchableOpacity>
+                                        </View>
                                     </View>
 
-                                    {(selectedArtists.size > 0 || selectedTracks.size > 0) && (
+                                    {selectedArtists.size > 0 && (
                                         <TouchableOpacity
                                             style={styles.clearButtonSmall}
                                             onPress={clearSelections}
@@ -610,78 +491,42 @@ const SearchScreen = () => {
                                 </View>
 
                                 <ScrollView style={styles.searchResultsList}>
-                                    {viewMode === 'artists' ? (
-                                        // Artists List
-                                        searchResults.artists.length > 0 ? (
-                                            searchResults.artists.map((artist) => (
-                                                <TouchableOpacity
-                                                    key={artist.id}
-                                                    style={[
-                                                        styles.searchResultItem,
-                                                        selectedArtists.has(artist.id) && styles.selectedItem
-                                                    ]}
-                                                    onPress={() => toggleArtistSelection(artist.id)}
-                                                >
-                                                    {artist.images[0] && (
-                                                        <Image
-                                                            source={{ uri: artist.images[0].url }}
-                                                            style={styles.artistImage}
-                                                        />
-                                                    )}
-                                                    <View style={styles.resultTextContainer}>
-                                                        <Text style={styles.resultTitle}>{artist.name}</Text>
-                                                        {artist.genres.length > 0 && (
-                                                            <Text style={styles.resultSubtext}>
-                                                                {artist.genres.slice(0, 3).join(', ')}
-                                                            </Text>
-                                                        )}
-                                                    </View>
-                                                    {selectedArtists.has(artist.id) && (
-                                                        <Text style={styles.checkmark}>✓</Text>
-                                                    )}
-                                                </TouchableOpacity>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.emptyText}>No artists found</Text>
-                                        )
-                                    ) : (
-                                        // Tracks List
-                                        searchResults.tracks.length > 0 ? (
-                                            searchResults.tracks.map((track) => (
-                                                <TouchableOpacity
-                                                    key={track.id}
-                                                    style={[
-                                                        styles.searchResultItem,
-                                                        selectedTracks.has(track.id) && styles.selectedItem
-                                                    ]}
-                                                    onPress={() => toggleTrackSelection(track.id)}
-                                                >
-                                                    {track.album.images[0] && (
-                                                        <Image
-                                                            source={{ uri: track.album.images[0].url }}
-                                                            style={styles.trackImage}
-                                                        />
-                                                    )}
-                                                    <View style={styles.resultTextContainer}>
-                                                        <Text style={styles.resultTitle}>{track.name}</Text>
+                                    {searchResults.length > 0 ? (
+                                        searchResults.map((artist) => (
+                                            <TouchableOpacity
+                                                key={artist.id}
+                                                style={[
+                                                    styles.searchResultItem,
+                                                    selectedArtists.has(artist.id) && styles.selectedItem
+                                                ]}
+                                                onPress={() => toggleArtistSelection(artist.id)}
+                                            >
+                                                {artist.imageUrl && (
+                                                    <Image
+                                                        source={{ uri: artist.imageUrl }}
+                                                        style={styles.artistImage}
+                                                    />
+                                                )}
+                                                <View style={styles.resultTextContainer}>
+                                                    <Text style={styles.resultTitle}>{artist.name}</Text>
+                                                    {artist.genres.length > 0 && (
                                                         <Text style={styles.resultSubtext}>
-                                                            {track.artists.map(a => a.name).join(', ')}
+                                                            {artist.genres.slice(0, 3).join(', ')}
                                                         </Text>
-                                                        <Text style={styles.albumText}>{track.album.name}</Text>
-                                                    </View>
-                                                    {selectedTracks.has(track.id) && (
-                                                        <Text style={styles.checkmark}>✓</Text>
                                                     )}
-                                                </TouchableOpacity>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.emptyText}>No tracks found</Text>
-                                        )
+                                                </View>
+                                                {selectedArtists.has(artist.id) && (
+                                                    <Text style={styles.checkmark}>✓</Text>
+                                                )}
+                                            </TouchableOpacity>
+                                        ))
+                                    ) : (
+                                        <Text style={styles.emptyText}>No artists found</Text>
                                     )}
                                 </ScrollView>
 
                                 {/* Action Button */}
-                                {(selectedArtists.size > 0 || selectedTracks.size > 0) && (
+                                {selectedArtists.size > 0 && (
                                     <View style={styles.actionBar}>
                                         <TouchableOpacity
                                             style={[styles.actionButton, processingSelection && styles.disabledButton]}
@@ -692,7 +537,7 @@ const SearchScreen = () => {
                                                 <ActivityIndicator size="small" color="#FFFFFF" />
                                             ) : (
                                                 <Text style={styles.actionButtonText}>
-                                                    Find Venues ({selectedArtists.size + selectedTracks.size} items selected)
+                                                    Find Venues ({selectedArtists.size} selected)
                                                 </Text>
                                             )}
                                         </TouchableOpacity>
@@ -890,11 +735,6 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         marginRight: 12,
     },
-    trackImage: {
-        width: 50,
-        height: 50,
-        marginRight: 12,
-    },
     resultTextContainer: {
         flex: 1,
     },
@@ -906,11 +746,6 @@ const styles = StyleSheet.create({
     resultSubtext: {
         fontSize: 14,
         color: '#b3b3b3',
-        marginTop: 2,
-    },
-    albumText: {
-        fontSize: 12,
-        color: '#808080',
         marginTop: 2,
     },
     searchSection: {
