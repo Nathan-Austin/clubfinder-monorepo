@@ -2,16 +2,14 @@
 import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 
 // GET handler to retrieve all events for a specific bar
-export const GET: RequestHandler = async ({ params, cookies }) => {
+export const GET: RequestHandler = async ({ params, cookies, request }) => {
 	const barId = params.barId;
-	const userBarId = cookies.get('barId');
-
-	// Basic authorization check
-	if (userBarId !== barId) {
-		return json({ error: 'Unauthorized' }, { status: 403 });
-	}
+	// Only the venue itself, by its session (KNOWN_ISSUES 52: not the plain barId cookie)
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
 
 	try {
 		const result = await query(
@@ -31,12 +29,9 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 // POST handler to create a new event for a bar
 export const POST: RequestHandler = async ({ request, params, cookies }) => {
 	const barId = params.barId;
-	const userBarId = cookies.get('barId');
-
-	// Basic authorization check
-	if (userBarId !== barId) {
-		return json({ error: 'Unauthorized' }, { status: 403 });
-	}
+	// Only the venue itself, by its session (KNOWN_ISSUES 52: not the plain barId cookie)
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
 
 	try {
 		const data = await request.json();

@@ -8,14 +8,14 @@ import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { listFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { listDeclaredGenres } from '$lib/taste/venueGenres';
+import { barIdFromSessionCookie } from '$lib/taste/barSession';
 import { pool } from '$lib/db';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	const barId = cookies.get('barId');
-
-	// The barId cookie is what the dashboard's own calls authenticate with
+	// The venue comes from its session (the encrypted barSession cookie), never from the plain
+	// barId cookie, which anyone can set (KNOWN_ISSUES 52)
+	const barId = await barIdFromSessionCookie(pool, cookies);
 	if (!barId) {
-		console.error('Missing barId cookie - user may not be properly logged in');
 		throw redirect(302, '/login/bars');
 	}
 

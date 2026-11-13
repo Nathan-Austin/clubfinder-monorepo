@@ -46,34 +46,6 @@
 	let barDetailsSuccess = $state('');
 	let barDetailsValidationErrors: string[] = $state([]);
 
-	let showDebugInfo = $state(false);
-	let manualBarId = $state('');
-
-	function toggleDebugInfo() {
-		showDebugInfo = !showDebugInfo;
-	}
-
-	function setManualBarId() {
-		if (manualBarId) {
-			console.log('Setting manual barId:', manualBarId);
-			barDetails.id = manualBarId;
-			document.cookie = `barId=${manualBarId}; path=/; max-age=3600; secure; samesite=lax`;
-			alert(`Bar ID set to: ${manualBarId}`);
-		}
-	}
-
-	function getCookie(name: string) {
-		const value = `; ${document.cookie}`;
-		const parts = value.split(`; ${name}=`);
-		if (parts.length === 2) {
-			const cookieValue = parts.pop()?.split(';').shift();
-			console.log(`Retrieved cookie ${name}:`, cookieValue);
-			return cookieValue;
-		}
-		console.log(`Cookie ${name} not found`);
-		return null;
-	}
-
 	onMount(async () => {
 		// Check for dual role
 		const cookies = document.cookie.split(';');
@@ -87,14 +59,8 @@
 
 		// Fetch bar details if needed
 		try {
-			// Try different methods to get barId
-			let fetchBarId = getCookie('barId');
-
-			// If not in cookie, try from page data
-			if (!fetchBarId && barId) {
-				fetchBarId = barId;
-				console.log('Using barId from page data for fetch:', fetchBarId);
-			}
+			// The venue comes from the server's session (page data), never from a cookie
+			const fetchBarId = barId;
 
 			console.log('Fetching details for bar ID:', fetchBarId);
 
@@ -153,26 +119,9 @@
 		barDetailsValidationErrors = [];
 
 		try {
-			// Try different methods to get the barId
-			// 1. Try to get barId from event data (from modal)
-			let submissionBarId: string | null | undefined = updatedDetails.id;
-
-			// 2. Try to get barId from cookie
-			if (!submissionBarId) {
-				submissionBarId = getCookie('barId');
-			}
-
-			// 3. If no barId in cookie, try to use the one from loaded bar details
-			if (!submissionBarId && barDetails && barDetails.id) {
-				submissionBarId = barDetails.id;
-				console.log('Using barId from loaded details:', submissionBarId);
-			}
-
-			// 4. Try to use the barId from page data
-			if (!submissionBarId && barId) {
-				submissionBarId = barId;
-				console.log('Using barId from page data:', submissionBarId);
-			}
+			// The logged-in venue, from the server's session (page data). The server checks it
+			// again (denyUnlessBarManager), so nothing here can act for another venue.
+			const submissionBarId = barId;
 
 			console.log('Attempting to update bar with ID:', submissionBarId);
 
@@ -310,34 +259,6 @@
 	<BarEventsSection {barId} />
 </main>
 
-<button onclick={toggleDebugInfo} class="debug-button">
-	{showDebugInfo ? 'Hide Debug Info' : 'Show Debug Info'}
-</button>
-
-{#if showDebugInfo}
-	<div class="debug-info">
-		<h3>Debug Information</h3>
-
-		<div class="manual-id-set">
-			<input
-				type="text"
-				bind:value={manualBarId}
-				placeholder="Enter bar ID manually"
-				class="manual-id-input"
-			/>
-			<button onclick={setManualBarId} class="manual-id-button">Set ID</button>
-		</div>
-
-		<ul>
-			<li>barId from page.js data: {barId || 'Not available'}</li>
-			<li>barDetails.id: {barDetails.id || 'Not available'}</li>
-			<li>Cookie barId: {getCookie('barId') || 'Not available'}</li>
-			<li>Cookie barsName: {getCookie('barsName') || 'Not available'}</li>
-			<li>Cookie bar_city: {getCookie('bar_city') || 'Not available'}</li>
-		</ul>
-	</div>
-{/if}
-
 <style>
 	/* General Container */
 	.dashboard-container {
@@ -434,78 +355,5 @@
 	}
 	.switcher-button:hover {
 		background-color: #e0e0e0;
-	}
-	/* Debug Styles */
-	.debug-button {
-		position: fixed;
-		bottom: 20px;
-		right: 20px;
-		padding: 0.5rem 1rem;
-		background-color: #f5f5f5;
-		color: #333;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		font-size: 0.8rem;
-		z-index: 1000;
-		opacity: 0.7;
-	}
-
-	.debug-button:hover {
-		opacity: 1;
-	}
-
-	.debug-info {
-		position: fixed;
-		bottom: 70px;
-		right: 20px;
-		width: 400px;
-		max-width: 90vw;
-		padding: 1rem;
-		background-color: #fff;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-		z-index: 999;
-		font-family: monospace;
-		font-size: 0.8rem;
-	}
-
-	.debug-info h3 {
-		margin-top: 0;
-		padding-bottom: 0.5rem;
-		border-bottom: 1px solid #eee;
-	}
-
-	.debug-info ul {
-		padding-left: 1.5rem;
-		margin: 0.5rem 0;
-	}
-
-	.manual-id-set {
-		display: flex;
-		margin-bottom: 1rem;
-		gap: 0.5rem;
-	}
-
-	.manual-id-input {
-		flex-grow: 1;
-		padding: 0.5rem;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		font-family: monospace;
-	}
-
-	.manual-id-button {
-		padding: 0.5rem 1rem;
-		background-color: #2196f3;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.8rem;
-	}
-
-	.manual-id-button:hover {
-		background-color: #1976d2;
 	}
 </style>

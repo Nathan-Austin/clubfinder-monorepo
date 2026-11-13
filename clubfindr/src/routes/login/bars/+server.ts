@@ -1,7 +1,9 @@
 // This file is responsible for handling the login of bar managers
 // route: /login/bars/+server.ts
 import type { RequestHandler } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
+import { cookieManager } from '$lib/cookieManager';
+import { BAR_SESSION_COOKIE, createBarSession } from '$lib/taste/barSession';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
 
@@ -99,6 +101,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				normalizedCityName =
 					normalizedCityName || (barData.city ? normalizeCityName(barData.city) : '');
 
+				// The venue's session: a bar_sessions row, the same kind the app's Bearer token
+				// is, in an encrypted httpOnly cookie. This is what the venue write guards check
+				// (canManageBar); the plain barId cookie below is only for the dashboard's own
+				// display and is never trusted (KNOWN_ISSUES 52).
+				const barSessionId = await createBarSession(pool, barId);
+				cookieManager.set(cookies, BAR_SESSION_COOKIE, barSessionId, {
+					maxAge: 60 * 60 * 24 * 7 // 1 week; the session itself slides for 30 days
+				});
+
 				// Bar manager cookies. A venue is never sent through Spotify any more: the venue
 				// connect (and spotify_service add_bar) was retired with ROADMAP section 1.
 				cookies.set('barId', barId, {
@@ -135,24 +146,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				// Continue to the bars page
 				console.log('=== Sending successful login response, redirecting to /bars ===');
 
-				// Create headers and add cookies
-				const headers = new Headers();
-				headers.append('Content-Type', 'application/json');
-
-				// Get all cookies and explicitly set them in response headers
-				const allCookies = cookies.getAll();
-				console.log(`Adding ${allCookies.length} cookies to response headers`);
-
-				for (const cookie of allCookies) {
-					// Basic cookie serialization
-					const cookieValue = `${cookie.name}=${cookie.value}; Path=/`;
-					headers.append('Set-Cookie', cookieValue);
-					console.log(`Added cookie to response: ${cookie.name}`);
-				}
-
+				// SvelteKit sends every cookies.set() above with its own flags. This used to copy
+				// each cookie into a bare `Set-Cookie: name=value; Path=/` as well, which dropped
+				// HttpOnly and Secure (KNOWN_ISSUES 53).
 				return new Response(JSON.stringify({ success: true, redirectUrl: '/bars' }), {
 					status: 200,
-					headers
+					headers: { 'Content-Type': 'application/json' }
 				});
 			} else {
 				console.log('Bar manager password incorrect');

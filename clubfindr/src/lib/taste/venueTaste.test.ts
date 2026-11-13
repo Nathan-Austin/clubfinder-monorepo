@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Cookies } from '@sveltejs/kit';
 import {
 	addFavouriteArtist,
@@ -9,7 +9,8 @@ import {
 	removeFavouriteArtist,
 	type Queryable
 } from './favouriteArtists';
-import { bearerToken, canManageBar, resolveBarSession } from './barSession';
+import { BAR_SESSION_COOKIE, bearerToken, canManageBar, resolveBarSession } from './barSession';
+import { encryptToken } from '$lib/encryptionUtils';
 
 const BAR = '00000000-0000-4000-8000-0000000000b1';
 const OTHER_BAR = '00000000-0000-4000-8000-0000000000b2';
@@ -30,7 +31,13 @@ function recordingDb(rows: Record<string, unknown>[] = []) {
 }
 
 const fakeCookies = (values: Record<string, string>) =>
-	({ get: (name: string) => values[name] }) as unknown as Cookies;
+	({
+		get: (name: string) => values[name],
+		// cookieManager drops a cookie it cannot decrypt
+		delete: (name: string) => {
+			delete values[name];
+		}
+	}) as unknown as Cookies;
 
 const requestWith = (headers: Record<string, string> = {}) =>
 	new Request('http://localhost/api/venues/x/taste/artists', { headers });
@@ -159,24 +166,50 @@ describe('resolveBarSession', () => {
 });
 
 describe('canManageBar', () => {
-	it('accepts the dashboard cookie for the same venue, without a query', async () => {
-		const { db, calls } = recordingDb();
-		const allowed = await canManageBar(db, BAR, {
-			cookies: fakeCookies({ barId: BAR }),
-			request: requestWith()
-		});
-		expect(allowed).toBe(true);
-		expect(calls).toEqual([]);
-	});
-
-	it('refuses a cookie for another venue', async () => {
-		const { db } = recordingDb([]);
+	it('refuses a plain barId cookie, even for the right venue (KNOWN_ISSUES 52)', async () => {
+		// The forgeable cookie anyone could send used to pass this guard on its own
+		const { db, calls } = recordingDb([]);
 		expect(
 			await canManageBar(db, BAR, {
-				cookies: fakeCookies({ barId: OTHER_BAR }),
+				cookies: fakeCookies({ barId: BAR }),
 				request: requestWith()
 			})
 		).toBe(false);
+		expect(calls).toEqual([]);
+	});
+
+	it('accepts the encrypted dashboard session cookie of the same venue', async () => {
+		const { db, calls } = recordingDb([{ bar_id: BAR, last_accessed: new Date() }]);
+		expect(
+			await canManageBar(db, BAR, {
+				cookies: fakeCookies({ [BAR_SESSION_COOKIE]: encryptToken(TOKEN) }),
+				request: requestWith()
+			})
+		).toBe(true);
+		expect(calls[0].params).toEqual([TOKEN]);
+	});
+
+	it("refuses a session cookie for another venue's session", async () => {
+		const { db } = recordingDb([{ bar_id: OTHER_BAR, last_accessed: new Date() }]);
+		expect(
+			await canManageBar(db, BAR, {
+				cookies: fakeCookies({ [BAR_SESSION_COOKIE]: encryptToken(TOKEN) }),
+				request: requestWith()
+			})
+		).toBe(false);
+	});
+
+	it('refuses a session cookie that was not encrypted by the server', async () => {
+		// A bare session id (or anything else) fails decryption and never reaches the database
+		const { db, calls } = recordingDb([{ bar_id: BAR, last_accessed: new Date() }]);
+		const jar: Record<string, string> = { [BAR_SESSION_COOKIE]: TOKEN };
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(await canManageBar(db, BAR, { cookies: fakeCookies(jar), request: requestWith() })).toBe(
+			false
+		);
+		expect(calls).toEqual([]);
+		expect(jar).toEqual({}); // the undecryptable cookie is dropped
+		error.mockRestore();
 	});
 
 	it('accepts a mobile token whose session belongs to the venue', async () => {

@@ -3,10 +3,11 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { validateBarUpdate } from '$lib/validators/barValidators';
+import { denyUnlessBarManager } from '$lib/server/barAuth';
 /**
  * GET handler to fetch bar details
  */
-export const GET: RequestHandler = async ({ params, cookies }) => {
+export const GET: RequestHandler = async ({ params, cookies, request }) => {
 	try {
 		const barId = params.barId;
 		console.log('GET request for bar ID:', barId);
@@ -21,27 +22,10 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 			);
 		}
 
-		// For security, ensure the user has access to this bar's data
-		const userBarId = cookies.get('barId');
-		console.log('User bar ID from cookie:', userBarId);
-
-		// During development/debugging, we'll be more lenient with this check
-		// You can make it strict again after debugging by removing this bypass
-		if (userBarId !== barId) {
-			console.log(
-				"Warning: cookie barId doesn't match requested barId - continuing anyway for debugging"
-			);
-			// In production, you would return a 403 here
-
-			/* In production, uncomment this:
-			return json(
-				{ 
-					message: 'Unauthorized access to bar details' 
-				}, 
-				{ status: 403 }
-			);
-			*/
-		}
+		// Only the venue itself, by its session. This check used to be switched off "for
+		// debugging", so anyone could read and change any venue (KNOWN_ISSUES 52).
+		const denied = await denyUnlessBarManager({ params, cookies, request });
+		if (denied) return denied;
 
 		const result = await query(
 			`SELECT 
@@ -102,26 +86,10 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 			);
 		}
 
-		// For security, ensure the user has access to this bar's data
-		const userBarId = cookies.get('barId');
-		console.log('User bar ID from cookie:', userBarId);
-
-		// During development/debugging, we'll be more lenient with this check
-		if (userBarId !== barId) {
-			console.log(
-				"Warning: cookie barId doesn't match requested barId - continuing anyway for debugging"
-			);
-			// In production, you would return a 403 here
-
-			/* In production, uncomment this:
-			return json(
-				{ 
-					message: 'Unauthorized access to update bar details' 
-				}, 
-				{ status: 403 }
-			);
-			*/
-		}
+		// Only the venue itself, by its session. This check used to be switched off "for
+		// debugging", so anyone could read and change any venue (KNOWN_ISSUES 52).
+		const denied = await denyUnlessBarManager({ params, cookies, request });
+		if (denied) return denied;
 
 		// Parse the request body
 		const data = await request.json();

@@ -156,8 +156,10 @@ async function createBarSession(
 ) {
 	const startTime = Date.now();
 	try {
-		// Delete any existing sessions first
-		await query('DELETE FROM clubfindr.bar_sessions WHERE bar_id = $1', [barId]);
+		// One app session per venue: replace the previous app session. Only the app's
+		// (is_mobile): the web dashboard keeps its own session in the same table since
+		// 2026-11-13, and an app login must not log the venue out of the dashboard.
+		await query('DELETE FROM clubfindr.bar_sessions WHERE bar_id = $1 AND is_mobile', [barId]);
 		console.log(`Session deletion took: ${Date.now() - startTime}ms`);
 
 		// Create the new session

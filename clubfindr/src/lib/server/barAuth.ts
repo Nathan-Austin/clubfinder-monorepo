@@ -1,5 +1,5 @@
-// Guard for endpoints that change a venue: only that venue may call them, by the barId
-// dashboard cookie or the Bearer token from /api/mobile/bars/login ($lib/taste/barSession).
+// Guard for endpoints that change a venue: only that venue may call them, by its web dashboard
+// session cookie or the Bearer token from /api/mobile/bars/login ($lib/taste/barSession).
 //
 //   const denied = await denyUnlessBarManager({ params, cookies, request });
 //   if (denied) return denied;
