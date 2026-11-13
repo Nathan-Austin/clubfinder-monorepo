@@ -360,6 +360,8 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     not schema-qualified and it counted a `genre_matches` table that does not exist, so it
     answered 500 to everyone — which is why the app reads `/api/mobile/bars/stats`, the
     token-based route where that same count is commented out. Both are fixed.
+    Until 2026-11-13 this guard could be bypassed with a forged plain `barId` cookie (KNOWN_ISSUES
+    52); it now accepts only a real venue session.
     `GET /api/mobile/bars/[barId]/stats` now duplicates `/api/mobile/bars/stats`; it could be
     removed once nothing is known to call it. `spotify-connect` itself was deleted with venue
     Spotify connect (2026-11-13).
@@ -621,18 +623,25 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `httpOnly` and unsigned; `/promoter-home` and `/promoter-home/events/*` trust it as is, so anyone
     who knows or guesses a promoter's user id can act as them. (`/api/spotify/search` accepts it too,
     `09fdbb3`, gated on `users.is_promoter`.)
-52. **Highest priority: every venue write guard accepts a plain `barId` cookie.** `canManageBar`
+52. _Fixed 2026-11-13 (`edb066d`)._ **Every venue write guard accepted a plain `barId` cookie.** `canManageBar`
     (`$lib/taste/barSession.ts`, behind `denyUnlessBarManager` in `$lib/server/barAuth`) returns true
     when `cookies.get('barId') === barId`. That cookie is set by `/login/bars` without `httpOnly` or
     any signature, so a request carrying `Cookie: barId=<any venue's id>` passes the guard on the
     mobile bar API writes (KNOWN_ISSUES 26: events, bar details, QR codes, promotions) and the venue
     taste endpoints; venue ids are in the public discovery responses. The Bearer path checks a real
     `bar_sessions` row and is fine. `/bars` also has a "Show Debug Info" panel that sets `barId` to
-    any value typed in. Found 2026-11-13 while writing this item; not yet reproduced by a test.
-53. **`/login/bars` re-sends every cookie without its flags.** After `cookies.set(...)` with
+    any value typed in. Worse than this item first said: `/api/bars/[barId]` (GET, with the venue's
+    e-mail, and PATCH, including `general_email`) had its check switched off "for debugging", so it
+    needed no cookie at all. Now `/login/bars` creates a `bar_sessions` row (as the app's Bearer
+    token is) in an encrypted httpOnly `barSession` cookie, `canManageBar` accepts only that or the
+    Bearer token, every `/api/bars/[barId]` handler uses `denyUnlessBarManager`, `/bars` takes the
+    venue from the session, the debug panel is gone and `/api/logout` ends the session. The app login
+    now replaces only the app's own session (`is_mobile`), so it no longer logs the dashboard out.
+    Covered by `tests/security-fixes.spec.ts` and the `canManageBar` unit tests.
+53. _Fixed 2026-11-13 (`edb066d`)._ **`/login/bars` re-sent every cookie without its flags.** After `cookies.set(...)` with
     `httpOnly`/`secure`, the success path loops over `cookies.getAll()` and appends
     `Set-Cookie: name=value; Path=/` for each, which can replace them with flag-less copies (and
-    echoes request cookies back).
+    echoes request cookies back). The loop is gone: SvelteKit sends `cookies.set()` with its flags.
 54. **Wildcard CORS on `/api/*`.** `hooks.server.ts` sets `Access-Control-Allow-Origin: *` on every
     `/api/*` response and preflight; `OPTIONS /api/spotify/artists` and nginx's
     `location /api/spotify/` block add the same. Low risk: no `Access-Control-Allow-Credentials` is
@@ -641,6 +650,16 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
 55. **Confirmation codes are rate-limited only in the browser.** `/register/confirm` (and the
     promoter and mobile confirm routes) accept unlimited attempts at a 6-hex-digit code within its
     10-30 minutes; the "3 attempts" limit is client-side. Only the global 60/minute IP limit applies.
-56. **`POST /api/mobile/signup/complete` needs no authentication**: it sets `onboarding_complete` and
-    `is_first_time` for whatever `userId` it is sent. Nothing in the web app or the mobile app calls
-    it.
+56. _Fixed 2026-11-13: deleted (`8858d8f`)._ **`POST /api/mobile/signup/complete` needed no
+    authentication**: it set `onboarding_complete` and `is_first_time` for whatever `userId` it was
+    sent. Nothing in the web app or the mobile app called it.
+57. _Fixed 2026-11-13 (`8858d8f`, `1e3bc71`)._ **Unauthenticated writes, debug routes and queries that
+    could not run** (`docs/section4-inventory.md`). `POST /api/mobile/checkin` recorded check-ins
+    for whatever `userId` it was sent, with no auth; it now takes the user from the session, checks
+    the QR code belongs to the venue and uses the server's time. `/api/save-cookie-consent` took
+    `userId` from the body; it uses the session. Deleted as uncalled: `/api/update-user` and the
+    SoundCloud and Tidal `debug-token` routes. Queries naming tables without `clubfindr.` (the pool
+    sets no `search_path`) are qualified: the mobile QR code routes, check-in and the promoter code
+    resend. `/update-info` wrote a non-existent `email` column, so changing one's e-mail failed; it
+    writes `general_email`, validates it and answers 409 for a taken address.
+    `tests/security-fixes.spec.ts` covers each one.

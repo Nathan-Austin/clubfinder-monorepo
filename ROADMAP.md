@@ -287,17 +287,24 @@ top artists or play counts on the web).
 - [ ] Input validation on all API endpoints and an audit of raw SQL. Inventory taken
       2026-11-13: [`clubfindr/docs/section4-inventory.md`](clubfindr/docs/section4-inventory.md)
       (no SQL injection found; 34 of 72 input-reading endpoints validate nothing; several queries
-      cannot work, e.g. the mobile QR code routes; a suggested order). KNOWN_ISSUES 51-56 are the
-      security findings
-- [ ] Promoter auth is a forgeable plain cookie (KNOWN_ISSUES 51)
-- [ ] **First:** every venue write guard (`canManageBar`) accepts a plain, forgeable `barId`
-      cookie, so the KNOWN_ISSUES 26 protection can be bypassed; plus the "set bar ID" debug
-      panel on `/bars` (KNOWN_ISSUES 52)
-- [ ] `/login/bars` re-sends every cookie without `HttpOnly`/`Secure` (KNOWN_ISSUES 53)
-- [ ] Wildcard CORS on `/api/spotify/*`, in the endpoint and in nginx (KNOWN_ISSUES 54)
+      cannot work, e.g. the mobile QR code routes; a suggested order). KNOWN_ISSUES 51-57 are the
+      security findings. The critical part was done 2026-11-13 (items below and KNOWN_ISSUES 57);
+      what remains is the endpoint-by-endpoint validation rollout (34 endpoints with none), the
+      SQL source guard and the request-body logging, planned as their own session
+- [ ] **Next:** promoter auth is a forgeable plain cookie (KNOWN_ISSUES 51), the same flaw the
+      venue guard had; give promoters a real session like the venue dashboard's
+- [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
+      `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
+      an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)
+- [x] `/login/bars` re-sent every cookie without `HttpOnly`/`Secure`, fixed 2026-11-13
+      (KNOWN_ISSUES 53)
+- [x] Unauthenticated writes (`/api/mobile/checkin`, `/api/save-cookie-consent`), dead and debug
+      routes, and the queries that could not run (QR codes, promoter resend, `/update-info` e-mail
+      change), fixed 2026-11-13 (KNOWN_ISSUES 57)
+- [ ] Wildcard CORS on all of `/api/*` (low risk, no credentials; KNOWN_ISSUES 54)
 - [ ] Confirmation-code attempts are limited only in the browser (KNOWN_ISSUES 55)
-- [ ] `POST /api/mobile/signup/complete` changes any user without authentication
-      (KNOWN_ISSUES 56)
+- [x] `POST /api/mobile/signup/complete` changed any user without authentication: deleted
+      2026-11-13 (KNOWN_ISSUES 56)
 - [x] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12), done 2026-11-12
 
 ## 5. Mobile app (`app_clubfindr`)

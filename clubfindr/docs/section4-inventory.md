@@ -4,6 +4,17 @@ Taken 2026-11-13 at `5cadae7` over `clubfindr/src` (77 `+server.ts` endpoints an
 A first pass to decide the work order, not a fix list: every finding below is unfixed unless it
 says otherwise. KNOWN_ISSUES 51-56 hold the security findings from the section 1 work.
 
+**Status, later on 2026-11-13** (`edb066d`, `8858d8f`, `1e3bc71`, tests in
+`tests/security-fixes.spec.ts`):
+
+- Fixed: section 3 items 1 (forged `barId` cookie, and `/api/bars/[barId]` with its check off),
+  3 (check-in), 4 (cookie consent), 5 and 6 (deleted, with `/api/update-user`), and 8 (cookie
+  flags); every query in section 2. KNOWN_ISSUES 52, 53, 56, 57.
+- Open: section 3 item 2 (promoter cookie, KNOWN_ISSUES 51, next) and 7 (confirmation-code
+  attempts, 55); the CORS wildcard (54); all of section 4 (the validation rollout, 34 endpoints)
+  and section 5 steps 4-5, planned as their own session. The new checks added today validate
+  only what each fixed route needed (ids, the cookie-consent shape, the e-mail format).
+
 Method: a heuristic scan of each endpoint (methods, where input comes from, auth calls, type
 checks, SQL built with `${…}` or `+`), then reading every flagged site by hand. The scan scripts
 were throwaway; the counts below are from them.
