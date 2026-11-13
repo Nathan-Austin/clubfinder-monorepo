@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Tilki (formerly clubfindr-mobile) is a React Native mobile application for discovering venues (bars/clubs) with Spotify integration. The app has dual user types: customers who discover venues, and bar managers who manage their business profiles.
+Tilki (formerly clubfindr-mobile) is a React Native mobile application for discovering venues (bars/clubs) that match the user's music taste. The app has dual user types: customers who discover venues, and bar managers who manage their business profiles.
 
 ## Commands
 
@@ -68,7 +68,7 @@ src/
 ├── screens/       # Screen components
 ├── services/      # Business logic
 │   ├── discoveryService.ts  # Venue discovery
-│   ├── spotifyService.ts    # Spotify OAuth
+│   ├── tasteService.ts      # Taste profile (artist picker, search)
 │   └── barManagementService.ts
 ├── types/         # TypeScript definitions
 └── utils/
@@ -77,12 +77,11 @@ src/
 
 ### Authentication Flow
 The app uses JWT authentication with two user types:
-1. **Customers**: Can discover venues, view Spotify integration
+1. **Customers**: Can discover venues from their taste profile
 2. **Bar Managers**: Can manage business profiles, view analytics
 
 Auth tokens are stored in AsyncStorage and automatically refreshed. The `AuthContext` handles:
 - Login/logout for both user types
-- Spotify OAuth integration
 - Token persistence and refresh
 - User type switching
 
@@ -100,10 +99,12 @@ Auth tokens are stored in AsyncStorage and automatically refreshed. The `AuthCon
 
 ### Key Features
 
-#### Spotify Integration
-- OAuth flow using `expo-auth-session`
-- Venue music discovery
-- Handled in `src/services/spotifyService.ts`
+#### Taste profile (no streaming login)
+- Users pick artists (`ArtistPickerScreen`, `services/tasteService.ts`); their genres drive
+  Discover, the Search tab's artist search and matching. Search goes through the server's own
+  Spotify app (`/api/taste/search`), never a user's Spotify account
+- Per-account and per-venue Spotify connect are retired (server ROADMAP section 1);
+  `utils/legacySpotify.ts` clears tokens older builds left in AsyncStorage
 
 #### QR Code System
 - QR generation for venues (`react-native-qrcode-svg`)
@@ -124,8 +125,6 @@ Auth tokens are stored in AsyncStorage and automatically refreshed. The `AuthCon
 
 Environment variables are loaded from `.env` using `react-native-dotenv`:
 - `API_BASE_URL`: Backend API endpoint
-- `SPOTIFY_CLIENT_ID`: Spotify app credentials
-- `SPOTIFY_CLIENT_SECRET`: Spotify OAuth secret
 
 ## Testing
 
@@ -162,5 +161,5 @@ matters (dates, matching, parsing) in plain functions with unit tests.
 The app requires:
 - Location (fine/coarse) for venue discovery
 - Camera for QR scanning
-- Bluetooth for Spotify integration
+- Bluetooth (declared in `app.json` for the retired Spotify integration; review before the next release)
 - Network access for API calls
