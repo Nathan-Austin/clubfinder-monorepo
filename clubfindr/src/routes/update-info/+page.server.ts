@@ -2,6 +2,9 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { query } from '$lib/db';
 import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
+import { validateEmail } from '$lib/passwordUtils';
+import { cookieManager } from '$lib/cookieManager';
+import { evictSessions } from '$lib/server/sessionCache';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// Check if user is authenticated
@@ -20,13 +23,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		props: {
 			name: result.rows[0].name,
-			email: result.rows[0].email
+			// The column is general_email; reading .email left the form's e-mail field empty
+			email: result.rows[0].general_email
 		}
 	};
 };
 
 export const actions = {
-	default: async ({ request, locals }) => {
+	default: async ({ request, locals, cookies }) => {
 		// Check if user is authenticated
 		if (!locals.user?.id) {
 			throw error(401, 'Unauthorized');
@@ -40,6 +44,10 @@ export const actions = {
 
 		if (!currentPassword) {
 			throw error(400, 'Current password is required');
+		}
+		const newEmail = email?.trim();
+		if (newEmail && !validateEmail(newEmail)) {
+			throw error(400, 'Please enter a valid e-mail address');
 		}
 
 		// Verify current password
@@ -67,9 +75,11 @@ export const actions = {
 			paramCount++;
 		}
 
-		if (email) {
-			updates.push(`email = $${paramCount}`);
-			values.push(email);
+		// users has general_email, not email: this wrote `email` and failed with a 500 whenever
+		// someone changed their address (docs/section4-inventory.md, section 2)
+		if (newEmail) {
+			updates.push(`general_email = $${paramCount}`);
+			values.push(newEmail);
 			paramCount++;
 		}
 
@@ -88,7 +98,18 @@ export const actions = {
                 WHERE id = $${paramCount}
             `;
 
-			await query(updateQuery, values);
+			try {
+				await query(updateQuery, values);
+			} catch (updateError) {
+				// general_email is UNIQUE: another account already has this address
+				if ((updateError as { code?: string }).code === '23505') {
+					throw error(409, 'That e-mail address is already used by another account');
+				}
+				throw updateError;
+			}
+			// hooks.server.ts caches the session's name and e-mail for up to five minutes
+			const sessionId = cookieManager.get(cookies, 'sessionId');
+			if (sessionId) evictSessions([sessionId]);
 		}
 
 		return { success: true };

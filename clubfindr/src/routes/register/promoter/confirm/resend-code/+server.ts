@@ -10,14 +10,21 @@ import { BAR_CODE_SECONDS_LEFT_SQL } from '$lib/server/barCodeExpiry';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { email } = await request.json();
-	const cityResult = await query(`SELECT city FROM users WHERE general_email = $1`, [email]);
-
-	if (!cityResult.rows.length) {
-		return json({ success: false, error: 'User not found' }, { status: 404 });
+	if (typeof email !== 'string' || !email.trim()) {
+		return json({ success: false, error: 'email is required' }, { status: 400 });
 	}
-	const normalizedCityName = normalizeCityName(cityResult.rows[0].city);
 
 	try {
+		// Schema-qualified: the pool sets no search_path, so `users` and `bars` did not resolve
+		// and this route always failed (docs/section4-inventory.md, section 2)
+		const cityResult = await query(`SELECT city FROM clubfindr.users WHERE general_email = $1`, [
+			email
+		]);
+		if (!cityResult.rows.length) {
+			return json({ success: false, error: 'User not found' }, { status: 404 });
+		}
+		const normalizedCityName = normalizeCityName(cityResult.rows[0].city);
+
 		// Query the bars table, filtering by email and city
 		const result = await query(
 			`SELECT resend_attempts, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
@@ -56,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Update the confirmation code and resend attempts
 		await query(
-			`UPDATE bars SET confirmation_code = $1, expires_at = $2, resend_attempts = resend_attempts + 1 WHERE general_email = $3 AND city = $4`,
+			`UPDATE clubfindr.bars SET confirmation_code = $1, expires_at = $2, resend_attempts = resend_attempts + 1 WHERE general_email = $3 AND city = $4`,
 			[confirmationCode, newExpiresAt, email, normalizedCityName]
 		);
 

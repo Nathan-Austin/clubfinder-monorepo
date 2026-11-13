@@ -11,9 +11,16 @@ export const DELETE: RequestHandler = async ({ params, request, cookies }) => {
 
 	try {
 		const { barId, qrId } = params;
+		// qrId is an integer column; anything else used to reach Postgres and answer 500
+		if (!/^[1-9][0-9]{0,9}$/.test(qrId ?? '')) {
+			return json({ success: false, message: 'qrId must be a positive integer' }, { status: 400 });
+		}
 
 		// Delete QR code
-		await pool.query('DELETE FROM bar_qr_codes WHERE id = $1 AND bar_id = $2', [qrId, barId]);
+		await pool.query('DELETE FROM clubfindr.bar_qr_codes WHERE id = $1 AND bar_id = $2', [
+			qrId,
+			barId
+		]);
 
 		return json({ success: true });
 	} catch (error) {

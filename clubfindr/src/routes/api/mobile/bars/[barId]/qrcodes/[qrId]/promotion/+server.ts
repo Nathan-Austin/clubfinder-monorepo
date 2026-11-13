@@ -12,13 +12,21 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
 	try {
 		const barId = params.barId;
 		const qrId = params.qrId;
+		// qrId is an integer column; anything else used to reach Postgres and answer 500
+		if (!/^[1-9][0-9]{0,9}$/.test(qrId ?? '')) {
+			return json({ success: false, message: 'qrId must be a positive integer' }, { status: 400 });
+		}
 		const { requestType } = await request.json();
+		// request_type is NOT NULL varchar(50); the app sends 'printed_materials'
+		if (typeof requestType !== 'string' || !/^[a-z_]{1,50}$/.test(requestType)) {
+			return json({ success: false, message: 'requestType is required' }, { status: 400 });
+		}
 
 		// Get QR code details from database
-		const qrResult = await pool.query('SELECT * FROM bar_qr_codes WHERE id = $1 AND bar_id = $2', [
-			qrId,
-			barId
-		]);
+		const qrResult = await pool.query(
+			'SELECT * FROM clubfindr.bar_qr_codes WHERE id = $1 AND bar_id = $2',
+			[qrId, barId]
+		);
 
 		if (!qrResult.rows.length) {
 			return json({ success: false, message: 'QR code not found' }, { status: 404 });
@@ -27,9 +35,10 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
 		const qrCode = qrResult.rows[0];
 
 		// Get bar details
-		const barResult = await pool.query('SELECT name, general_email FROM bars WHERE id = $1', [
-			barId
-		]);
+		const barResult = await pool.query(
+			'SELECT name, general_email FROM clubfindr.bars WHERE id = $1',
+			[barId]
+		);
 		const barName = barResult.rows[0]?.name || '';
 		const barEmail = barResult.rows[0]?.general_email;
 
@@ -47,7 +56,7 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
 
 		// Create promotion request record
 		await pool.query(
-			'INSERT INTO promotion_requests (bar_id, qr_id, request_type, qr_value, created_at) VALUES ($1, $2, $3, $4, NOW())',
+			'INSERT INTO clubfindr.promotion_requests (bar_id, qr_id, request_type, qr_value, created_at) VALUES ($1, $2, $3, $4, NOW())',
 			[barId, qrId, requestType, qrValue]
 		);
 

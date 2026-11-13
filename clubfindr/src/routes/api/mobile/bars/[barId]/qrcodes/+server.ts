@@ -3,21 +3,26 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { pool } from '$lib/db'; // Import your database module
+import { isUuid } from '$lib/taste/favouriteArtists';
 
 // Get all QR codes for a bar
 export const GET: RequestHandler = async ({ params }) => {
 	try {
 		const barId = params.barId;
+		if (!isUuid(barId)) {
+			return json({ success: false, message: 'barId must be a uuid' }, { status: 400 });
+		}
 
-		// Check if bar exists and get bar data
-		const bar = await pool.query('SELECT * FROM bars WHERE id = $1', [barId]);
+		// Check the bar exists. Tables are schema-qualified: the pool sets no search_path, so
+		// the unqualified names did not resolve (docs/section4-inventory.md, section 2)
+		const bar = await pool.query('SELECT 1 FROM clubfindr.bars WHERE id = $1', [barId]);
 		if (!bar.rows.length) {
 			return json({ success: false, message: 'Bar not found' }, { status: 404 });
 		}
 
 		// Get all QR codes for this bar
 		const result = await pool.query(
-			'SELECT * FROM bar_qr_codes WHERE bar_id = $1 ORDER BY created_at DESC',
+			'SELECT * FROM clubfindr.bar_qr_codes WHERE bar_id = $1 ORDER BY created_at DESC',
 			[barId]
 		);
 
@@ -60,7 +65,7 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
 
 		// Insert new QR code
 		const result = await pool.query(
-			'INSERT INTO bar_qr_codes (bar_id, title, type, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
+			'INSERT INTO clubfindr.bar_qr_codes (bar_id, title, type, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
 			[barId, title, type]
 		);
 
