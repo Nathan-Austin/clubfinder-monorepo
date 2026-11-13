@@ -196,9 +196,6 @@ CREATE TABLE clubfindr.bars (
     address text,
     postcode character varying(20),
     website character varying(255),
-    music_service character varying(50),
-    spotify_access_token character varying(1024),
-    spotify_refresh_token character varying(1024),
     apple_music_access_token character varying(255),
     apple_music_refresh_token character varying(255),
     deezer_access_token character varying(255),
@@ -211,10 +208,6 @@ CREATE TABLE clubfindr.bars (
     resend_attempts integer DEFAULT 0,
     expires_at timestamp with time zone,
     password_hash character varying(255),
-    spotify_app_name character varying(255),
-    spotify_email character varying(255),
-    spotify_id character varying(255),
-    spotify_connected boolean DEFAULT false,
     description text,
     opening_hours character varying(255),
     closing_hours character varying(255),
@@ -322,82 +315,6 @@ ALTER SEQUENCE clubfindr.promotion_requests_id_seq OWNED BY clubfindr.promotion_
 
 
 --
--- Name: spotify_apps; Type: TABLE; Schema: clubfindr; Owner: -
---
-
-CREATE TABLE clubfindr.spotify_apps (
-    id integer NOT NULL,
-    app_name character varying(255) NOT NULL,
-    client_id character varying(255) NOT NULL,
-    client_secret character varying(255) NOT NULL,
-    user_count integer DEFAULT 0,
-    is_active boolean DEFAULT false,
-    created_at timestamp without time zone NOT NULL,
-    app_type character varying(50) DEFAULT 'user'::character varying,
-    app_id character varying(32)
-);
-
-
---
--- Name: spotify_apps_id_seq; Type: SEQUENCE; Schema: clubfindr; Owner: -
---
-
-CREATE SEQUENCE clubfindr.spotify_apps_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: spotify_apps_id_seq; Type: SEQUENCE OWNED BY; Schema: clubfindr; Owner: -
---
-
-ALTER SEQUENCE clubfindr.spotify_apps_id_seq OWNED BY clubfindr.spotify_apps.id;
-
-
---
--- Name: spotify_task_log; Type: TABLE; Schema: clubfindr; Owner: -
---
-
-CREATE TABLE clubfindr.spotify_task_log (
-    id integer NOT NULL,
-    task_id character varying(255) NOT NULL,
-    task_name character varying(255) NOT NULL,
-    entity_type character varying(50),
-    entity_id uuid,
-    status character varying(50),
-    started_at timestamp without time zone,
-    completed_at timestamp without time zone,
-    result jsonb,
-    error text,
-    retries integer DEFAULT 0
-);
-
-
---
--- Name: spotify_task_log_id_seq; Type: SEQUENCE; Schema: clubfindr; Owner: -
---
-
-CREATE SEQUENCE clubfindr.spotify_task_log_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: spotify_task_log_id_seq; Type: SEQUENCE OWNED BY; Schema: clubfindr; Owner: -
---
-
-ALTER SEQUENCE clubfindr.spotify_task_log_id_seq OWNED BY clubfindr.spotify_task_log.id;
-
-
---
 -- Name: bar_favourite_artists; Type: TABLE; Schema: clubfindr; Owner: -
 -- (not in the production dump this file was taken from; see migrations/20261108_add_bar_favourite_artists.sql)
 --
@@ -480,15 +397,9 @@ CREATE TABLE clubfindr.user_sessions (
     user_id uuid,
     session_id uuid NOT NULL,
     genres text[],
-    access_token character varying(1000),
-    refresh_token character varying(1000),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     last_accessed timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    user_city character varying(100),
-    spotify_user_id character varying(100),
-    spotify_email character varying(150),
-    spotify_username character varying(150),
-    spotify_app_id integer
+    user_city character varying(100)
 );
 
 
@@ -514,10 +425,8 @@ CREATE TABLE clubfindr.password_resets (
 CREATE TABLE clubfindr.users (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     general_email character varying(255) NOT NULL,
-    spotify_email character varying(255),
     apple_music_email character varying(255),
     deezer_email character varying(255),
-    spotify_user_id character varying(255),
     apple_music_user_id character varying(255),
     deezer_user_id character varying(255),
     password_hash text NOT NULL,
@@ -532,13 +441,10 @@ CREATE TABLE clubfindr.users (
     confirmed boolean DEFAULT false,
     resend_attempts integer DEFAULT 0,
     expires_at timestamp with time zone,
-    access_token character varying(1000),
-    refresh_token character varying(1000),
     interested_events text[],
     google_id character varying(255),
     facebook_id character varying(255),
     is_promoter boolean DEFAULT false,
-    spotify_app_name character varying(255),
     is_first_time boolean DEFAULT false,
     onboarding_complete boolean DEFAULT false
 );
@@ -592,20 +498,6 @@ ALTER TABLE ONLY clubfindr.bar_qr_codes ALTER COLUMN id SET DEFAULT nextval('clu
 --
 
 ALTER TABLE ONLY clubfindr.promotion_requests ALTER COLUMN id SET DEFAULT nextval('clubfindr.promotion_requests_id_seq'::regclass);
-
-
---
--- Name: spotify_apps id; Type: DEFAULT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.spotify_apps ALTER COLUMN id SET DEFAULT nextval('clubfindr.spotify_apps_id_seq'::regclass);
-
-
---
--- Name: spotify_task_log id; Type: DEFAULT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.spotify_task_log ALTER COLUMN id SET DEFAULT nextval('clubfindr.spotify_task_log_id_seq'::regclass);
 
 
 --
@@ -783,30 +675,6 @@ ALTER TABLE ONLY clubfindr.promotion_requests
 
 
 --
--- Name: spotify_apps spotify_apps_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.spotify_apps
-    ADD CONSTRAINT spotify_apps_pkey PRIMARY KEY (id);
-
-
---
--- Name: spotify_task_log spotify_task_log_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.spotify_task_log
-    ADD CONSTRAINT spotify_task_log_pkey PRIMARY KEY (id);
-
-
---
--- Name: spotify_task_log spotify_task_log_task_id_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.spotify_task_log
-    ADD CONSTRAINT spotify_task_log_task_id_key UNIQUE (task_id);
-
-
---
 -- Name: artists unique_artist_city; Type: CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -944,22 +812,6 @@ ALTER TABLE ONLY clubfindr.users
 
 
 --
--- Name: users users_spotify_email_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.users
-    ADD CONSTRAINT users_spotify_email_key UNIQUE (spotify_email);
-
-
---
--- Name: users users_spotify_user_id_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.users
-    ADD CONSTRAINT users_spotify_user_id_key UNIQUE (spotify_user_id);
-
-
---
 -- Name: venues venues_name_city_key; Type: CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -1065,20 +917,6 @@ CREATE INDEX idx_events_promoter_id ON clubfindr.events USING btree (promoter_id
 --
 
 CREATE INDEX idx_password_resets_reset_token ON clubfindr.password_resets USING btree (reset_token);
-
-
---
--- Name: idx_spotify_task_entity; Type: INDEX; Schema: clubfindr; Owner: -
---
-
-CREATE INDEX idx_spotify_task_entity ON clubfindr.spotify_task_log USING btree (entity_type, entity_id);
-
-
---
--- Name: idx_spotify_task_status; Type: INDEX; Schema: clubfindr; Owner: -
---
-
-CREATE INDEX idx_spotify_task_status ON clubfindr.spotify_task_log USING btree (status);
 
 
 --

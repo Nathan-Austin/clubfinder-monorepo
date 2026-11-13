@@ -33,19 +33,36 @@ DELETE FROM clubfindr.password_resets
                    WHERE password_hash = 'temp'
                      AND general_email ~ ('^deleted-[0-9]+-' || id::text || '@example\.com$'));
 
+-- The Spotify columns are cleared only while they exist: 20261113_drop_spotify_connect.sql
+-- drops them, and dev/schema.sql (which CI applies every migration to) no longer has them.
+-- Before that change this was one UPDATE; on the old schema it does exactly the same.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'clubfindr' AND table_name = 'users'
+                AND column_name = 'spotify_email') THEN
+    EXECUTE $q$
+      UPDATE clubfindr.users
+         SET spotify_email = NULL,
+             spotify_user_id = NULL,
+             spotify_app_name = NULL,
+             access_token = NULL,
+             refresh_token = NULL
+       WHERE password_hash = 'temp'
+         AND general_email ~ ('^deleted-[0-9]+-' || id::text || '@example\.com$')
+    $q$;
+  END IF;
+END
+$$;
+
 UPDATE clubfindr.users
    SET name = NULL,
-       spotify_email = NULL,
        apple_music_email = NULL,
        deezer_email = NULL,
-       spotify_user_id = NULL,
        apple_music_user_id = NULL,
        deezer_user_id = NULL,
        google_id = NULL,
        facebook_id = NULL,
-       spotify_app_name = NULL,
-       access_token = NULL,
-       refresh_token = NULL,
        city = '',
        preferences = NULL,
        interested_events = NULL,

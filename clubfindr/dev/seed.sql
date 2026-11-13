@@ -55,8 +55,6 @@ TRUNCATE
 	clubfindr.user_sessions,
 	clubfindr.password_resets,
 	clubfindr.oauth_states,
-	clubfindr.spotify_task_log,
-	clubfindr.spotify_apps,
 	clubfindr.users,
 	clubfindr.venues
 RESTART IDENTITY CASCADE;
@@ -90,7 +88,7 @@ VALUES
 	('00000000-0000-4000-8000-000000000003', 'bar@clubfindr.test',
 	 '$2a$10$/P75P1c.9/qjpX.ZbvABfeo.f938kHNpqPCHLEasNO2.9A9bsrk2O',
 	 'Bo Barkeep', 'manager', 'berlin', true, false, true, '[]'::jsonb, NULL),
-	-- Regular user who never connected Spotify (no spotify_email, empty
+	-- Regular user with no listening data (empty
 	-- preferences): taste comes only from the favourite artists below.
 	('00000000-0000-4000-8000-000000000004', 'fan@clubfindr.test',
 	 '$2a$10$XnvrXIPC16BZM/l32dMJUee0CFDXVbcY5fXNUfx8Q6/KK4pcrm9.W',
@@ -132,39 +130,38 @@ INSERT INTO clubfindr.promoters (id, name, email)
 VALUES ('00000000-0000-4000-8000-000000000002', 'Paz Promoter', 'promoter@clubfindr.test');
 
 -- ---------------------------------------------------------------------------
--- Bars (barfindr). Only the bar manager's bar has a password. music_service
--- is NULL so logging in does not try to reach Spotify.
+-- Bars (barfindr). Only the bar manager's bar has a password.
 -- ---------------------------------------------------------------------------
 
 INSERT INTO clubfindr.bars
 	(id, user_id, name, contact_person, general_email, phone, address, postcode,
-	 website, music_service, city, confirmed, password_hash, description,
+	 website, city, confirmed, password_hash, description,
 	 opening_hours, closing_hours, smoking_allowed, bar_types)
 VALUES
 	('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-000000000003',
 	 'The Copper Lantern', 'Bo Barkeep', 'bar@clubfindr.test', '+49 30 0000001',
-	 'Fiktivstraße 12', '10999', 'https://copper-lantern.example', NULL, 'berlin', true,
+	 'Fiktivstraße 12', '10999', 'https://copper-lantern.example', 'berlin', true,
 	 '$2a$10$/P75P1c.9/qjpX.ZbvABfeo.f938kHNpqPCHLEasNO2.9A9bsrk2O',
 	 'Candle-lit cocktail bar with a deep house and dub techno soundtrack.',
 	 '18:00', '02:00', false, ARRAY['cocktail', 'lounge']),
 	('00000000-0000-4000-8000-0000000000b2', '00000000-0000-4000-8000-000000000002',
 	 'Static Orchard', 'Paz Promoter', 'static-orchard@clubfindr.test', '+49 30 0000002',
-	 'Beispielallee 3', '10245', 'https://static-orchard.example', NULL, 'berlin', true,
+	 'Beispielallee 3', '10245', 'https://static-orchard.example', 'berlin', true,
 	 NULL, 'Courtyard bar run by the Orchard Sessions crew. Minimal and acid techno.',
 	 '17:00', '03:00', true, ARRAY['dive', 'live music']),
 	('00000000-0000-4000-8000-0000000000b3', NULL,
 	 'Fern & Feedback', 'Ari Example', 'fern-feedback@clubfindr.test', '+49 30 0000003',
-	 'Musterweg 45', '10437', 'https://fern-feedback.example', NULL, 'berlin', true,
+	 'Musterweg 45', '10437', 'https://fern-feedback.example', 'berlin', true,
 	 NULL, 'Record bar spinning ambient, downtempo and nu jazz.',
 	 '16:00', '01:00', false, ARRAY['wine', 'vinyl']),
 	('00000000-0000-4000-8000-0000000000b4', NULL,
 	 'The Mossy Anvil', 'Sam Sample', 'mossy-anvil@clubfindr.test', '+44 20 0000004',
-	 '7 Placeholder Lane', 'E1 0XX', 'https://mossy-anvil.example', NULL, 'london', true,
+	 '7 Placeholder Lane', 'E1 0XX', 'https://mossy-anvil.example', 'london', true,
 	 NULL, 'Pub basement with UK garage, grime and dubstep nights.',
 	 '17:00', '01:00', false, ARRAY['pub']),
 	('00000000-0000-4000-8000-0000000000b5', NULL,
 	 'Lighthouse Pantry', 'Kim Demo', 'lighthouse-pantry@clubfindr.test', '+31 20 0000005',
-	 'Voorbeeldgracht 88', '1015 XX', 'https://lighthouse-pantry.example', NULL, 'amsterdam', true,
+	 'Voorbeeldgracht 88', '1015 XX', 'https://lighthouse-pantry.example', 'amsterdam', true,
 	 NULL, 'Canal-side bar with afro house and amapiano at weekends.',
 	 '15:00', '01:00', false, ARRAY['canal', 'cocktail']);
 
@@ -397,9 +394,5 @@ JOIN LATERAL (
 INSERT INTO clubfindr.bar_events (bar_id, event_date, theme_name, description, start_time, end_time, special_genres)
 VALUES ('00000000-0000-4000-8000-0000000000b2', CURRENT_DATE + 7, 'Orchard All-Nighter',
 	'Promoter-run courtyard all-nighter.', '22:00', '06:00', ARRAY['techno', 'acid techno']);
-
--- spotify_apps is left empty on purpose: with no client credentials the app
--- skips the Spotify OAuth redirect instead of sending testers to a broken
--- Spotify login page.
 
 COMMIT;
