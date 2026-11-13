@@ -284,8 +284,11 @@ top artists or play counts on the web).
       Logout now evicts the session cache too (KNOWN_ISSUES 41)
 - [x] Store the refreshed Spotify token expiry (KNOWN_ISSUES 2), or drop the flow with section 1:
       dropped with it (2026-11-13), so there is no per-user token to refresh
-- [ ] Input validation on all API endpoints and an audit of raw SQL. Inventory started
-      2026-11-13, see KNOWN_ISSUES 51-56 for what the section 1 work already turned up
+- [ ] Input validation on all API endpoints and an audit of raw SQL. Inventory taken
+      2026-11-13: [`clubfindr/docs/section4-inventory.md`](clubfindr/docs/section4-inventory.md)
+      (no SQL injection found; 34 of 72 input-reading endpoints validate nothing; several queries
+      cannot work, e.g. the mobile QR code routes; a suggested order). KNOWN_ISSUES 51-56 are the
+      security findings
 - [ ] Promoter auth is a forgeable plain cookie (KNOWN_ISSUES 51)
 - [ ] **First:** every venue write guard (`canManageBar`) accepts a plain, forgeable `barId`
       cookie, so the KNOWN_ISSUES 26 protection can be bypassed; plus the "set bar ID" debug

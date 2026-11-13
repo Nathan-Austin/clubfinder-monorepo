@@ -633,9 +633,11 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `httpOnly`/`secure`, the success path loops over `cookies.getAll()` and appends
     `Set-Cookie: name=value; Path=/` for each, which can replace them with flag-less copies (and
     echoes request cookies back).
-54. **Wildcard CORS on `/api/spotify/*`.** `OPTIONS /api/spotify/artists` answers
-    `Access-Control-Allow-Origin: *`, and nginx's `location /api/spotify/` block adds the same header
-    to every response there.
+54. **Wildcard CORS on `/api/*`.** `hooks.server.ts` sets `Access-Control-Allow-Origin: *` on every
+    `/api/*` response and preflight; `OPTIONS /api/spotify/artists` and nginx's
+    `location /api/spotify/` block add the same. Low risk: no `Access-Control-Allow-Credentials` is
+    sent, so browsers do not attach cookies cross-origin (`docs/section4-inventory.md`). Narrow it
+    once the app's needs are known.
 55. **Confirmation codes are rate-limited only in the browser.** `/register/confirm` (and the
     promoter and mobile confirm routes) accept unlimited attempts at a 6-hex-digit code within its
     10-30 minutes; the "3 attempts" limit is client-side. Only the global 60/minute IP limit applies.
