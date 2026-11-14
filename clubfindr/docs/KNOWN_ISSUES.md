@@ -527,10 +527,10 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     `src/lib/server/no-pooled-transactions.test.ts`; `tests/transactions.spec.ts` shows the stranded
     transaction from Postgres's side when run alone (in the full suite other traffic can absorb the
     leak, which is also how it hid in production).
-40. **`App.Locals.user.id` is typed `number`**, but `users.id` is a uuid, so every `locals.user.id`
-    is a string at runtime. Hidden while the session cache was an untyped `Map`; the cache is
-    typed by `App.Locals` now (`$lib/server/sessionCache`), which keeps the existing contract.
-    Correcting `app.d.ts` means checking each reader of `locals.user`.
+40. _Fixed 2026-11-14 (`c474b5c`)._ **`App.Locals.user.id` was typed `number`**, but `users.id` is
+    a uuid, so every `locals.user.id` was a string at runtime. It is typed `string` now, with the
+    `role` the hooks already set; the session cache's type follows. The one reader,
+    `/update-info`, passes it as a query parameter and needed no change.
 41. _Fixed 2026-11-12._ **Logout does not evict the session cache.** `/logout` deleted the session
     row and the cookies, but not the `hooks.server.ts` cache entry, so a copy of the session id kept
     working for up to five minutes. It calls `evictSessions` now (`tests/auth.spec.ts`).
@@ -650,12 +650,18 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `httpOnly`/`secure`, the success path loops over `cookies.getAll()` and appends
     `Set-Cookie: name=value; Path=/` for each, which can replace them with flag-less copies (and
     echoes request cookies back). The loop is gone: SvelteKit sends `cookies.set()` with its flags.
-54. **Wildcard CORS on `/api/*`.** `hooks.server.ts` sets `Access-Control-Allow-Origin: *` on every
-    `/api/*` response and preflight; `OPTIONS /api/spotify/artists` and nginx's
-    `location /api/spotify/` block add the same. Low risk: no `Access-Control-Allow-Credentials` is
-    sent, so browsers do not attach cookies cross-origin (`docs/section4-inventory.md`). Decided
-    2026-11-14: allow only `https://clubfindr.com` and `https://www.clubfindr.com`, plus localhost
-    in dev; the native app needs no wildcard CORS.
+54. _Fixed 2026-11-14 (`6973e8f`); nginx by hand._ **Wildcard CORS on `/api/*`.** Every `/api/*`
+    response and preflight carried `Access-Control-Allow-Origin: *`, from `hooks.server.ts`, from
+    four routes of their own (`/api/spotify/artists`, `/api/mobile/signup`, `/api/mobile/events`,
+    `/api/mobile/bars`), and from nginx, whose `location /` and `location /api/spotify/` blocks
+    added it to every response of the site and answered every preflight themselves. No
+    `Access-Control-Allow-Credentials` was sent, so browsers never attached cookies cross-origin,
+    but any site could read the API's answers from its visitors' browsers. `$lib/server/cors` now
+    echoes `https://clubfindr.com`, `https://www.clubfindr.com`, the deployment's own `ORIGIN`, and
+    under `vite dev` any localhost port; any other origin gets the answer with no CORS header, and
+    `Vary: Origin` always. The native app sends no Origin and is unaffected.
+    `deploy/nginx/sveltekit.config` drops its CORS blocks; until the live site file is changed
+    by hand (ROADMAP section 1 follow-ups), nginx still adds its wildcard on top.
 55. _Fixed 2026-11-14._ **Confirmation codes were rate-limited only in the browser.**
     `/register/confirm`, `/register/promoter/confirm`, `/api/mobile/bars/confirm`, the app's
     `/api/verify-confirmation` and `/api/verify-email-code`, and `/api/delete-user-data` accepted
@@ -689,23 +695,26 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     the parallel branch of the 2026-11-13 security work and taken from it;
     `tests/security-fixes.spec.ts` deletes a scanned code. The spotify_service teardown runbook
     applies it by hand in step 3, since that deploy runs with `MIGRATIONS_APPLIED=1`.
-59. **e2e tests race for the seeded venue's app session.** Since 2026-11-13 an app login as a
-    venue replaces that venue's previous app session (`is_mobile`), so two tests logging
-    `bar@clubfindr.test` into the app at the same time invalidate each other's token: the loser
-    gets 403 "Not logged in as this venue". `tests/security-fixes.spec.ts` (7 logins),
-    `mobile-bar-auth.spec.ts` (3) and `venue-taste.spec.ts` (1) all do it, and the suite is
-    `fullyParallel` (4 workers locally). `security-fixes.spec.ts` now runs serially, which made
-    it pass 3/3 alone, but the three files together still failed 1 run in 2 locally. CI hides it
-    with fewer workers and one retry. Fix: give tests that log a venue into the app their own
-    seeded venue (or one per file), rather than sharing `…b1`.
-60. **`dev/setup.sh` never rebuilds an existing schema.** It loads `dev/schema.sql` only when the
-    `clubfindr` schema is missing, then reloads the seed, so a dev database created before a
-    schema change keeps the old columns and constraints, and `dev/check-migrations.sh` and the e2e
-    suite then test the wrong schema (on 2026-11-14 a database from 2026-11-10 still had the
-    Spotify columns and failed the migration check). Every checkout shares that one database.
-    Until setup.sh can detect drift, rebuild by hand under the e2e lease:
-    `psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev -c 'DROP SCHEMA clubfindr CASCADE'`
-    then `dev/setup.sh`. CI always starts from an empty database, so it is unaffected.
+59. _Fixed 2026-11-14 (`b0d972f`)._ **e2e tests raced for the seeded venue's app session.** Since
+    2026-11-13 an app login as a venue replaces that venue's previous app session (`is_mobile`), so
+    two tests logging `bar@clubfindr.test` into the app at the same time invalidated each other's
+    token (403 "Not logged in as this venue"): 7 logins in `security-fixes.spec.ts`, 3 in
+    `mobile-bar-auth.spec.ts`, 1 in `venue-taste.spec.ts`; 1 run in 2 failed locally. Each of those
+    tests now registers, confirms and logs in a venue of its own (`tests/venue.ts`) and removes it
+    afterwards; no seed change, so no reseed. `security-fixes.spec.ts` runs in parallel again. This
+    brought out a second fault: `mobileApi` drew X-Forwarded-For from one fixed range with a
+    per-worker counter, so parallel workers shared rate-limit buckets and got 429s; addresses are
+    keyed by worker now. The full suite passed three runs in a row afterwards.
+60. _Fixed 2026-11-14 (`72bf587`)._ **`dev/setup.sh` never checked an existing schema.** It
+    loads `dev/schema.sql` only when the `clubfindr` schema is missing, then reloads the seed, so a
+    dev database created before a schema change kept the old columns and constraints, and
+    `dev/check-migrations.sh` and the e2e suite tested the wrong schema (on 2026-11-14 a database
+    from 2026-11-10 still had the Spotify columns). When the schema exists, setup.sh now compares
+    it with a scratch copy built from `dev/schema.sql` (`dev/schema-catalog.sql`) and, on any
+    difference, stops before the seed with the diff and the by-hand rebuild under the e2e lease;
+    it never rebuilds on its own, since every checkout shares the database.
+    `dev/setup.sh --check-schema` runs only the check. CI starts from an empty database and never
+    reaches it.
 61. _Fixed 2026-11-14._ **Promoter registration wrote no `promoters` row.** `events.promoter_id`
     references `promoters(id)`, and `/promoter-home` keys events by the promoter's `users.id`, so
     the two ids must be the same (the seed gives the seeded promoter both). `/register/promoter`

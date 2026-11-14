@@ -93,6 +93,15 @@ Things to do by hand or decide, collected while building the items above.
       "for Spotify integration" (KNOWN_ISSUES 48); changing them affects the next store review
 - [ ] Remove the now unused `expo-auth-session` from the app with the Expo upgrade
       (KNOWN_ISSUES 35)
+- [ ] By hand on the server, after the deploy of `6973e8f` or later: take the CORS blocks out of
+      the live nginx site (KNOWN_ISSUES 54). In `/etc/nginx/sites-available/sveltekit.config`,
+      in both `location /api/spotify/` and `location /`, delete the three
+      `add_header 'Access-Control-…' '*' always;` lines and the whole
+      `if ($request_method = 'OPTIONS') { … return 204; }` block (the repo copy in
+      `deploy/nginx/` shows the result; edit the live file rather than copying it over, since
+      certbot manages parts of it), then `sudo nginx -t && sudo systemctl reload nginx`. Check:
+      `curl -sI -H 'Origin: https://evil.example' https://www.clubfindr.com/api/mobile/config`
+      shows no `access-control-allow-origin`. Until then nginx keeps adding its wildcard
 - [x] Venues could not confirm a registration, fixed 2026-11-13 (`d25f205`, `124ba76`): the web
       confirm step demanded Spotify cookies, and every venue code read as expired on a server
       east of UTC (KNOWN_ISSUES 49)
@@ -305,10 +314,9 @@ top artists or play counts on the web).
       `event_id`, both fixed (KNOWN_ISSUES 62, 63, with a backfill migration for the old events);
       registration wrote no `promoters` row, so such a promoter could not create events, fixed
       with a backfill migration too (KNOWN_ISSUES 61)
-- [ ] **Next:** the CORS restriction (KNOWN_ISSUES 54), with the e2e race on the seeded venue's
-      app session (KNOWN_ISSUES 59), drift detection in `dev/setup.sh` (60) and the
-      `App.Locals.user.id` type (40); the validation rollout to the write and read/search
-      endpoints after that
+- [ ] **Next:** the validation rollout to the write and read/search endpoints
+      (`section4-inventory.md`, section 4). Done 2026-11-14 on the way: KNOWN_ISSUES 40, 54
+      (nginx by hand), 59 and 60
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)
@@ -317,9 +325,10 @@ top artists or play counts on the web).
 - [x] Unauthenticated writes (`/api/mobile/checkin`, `/api/save-cookie-consent`), dead and debug
       routes, and the queries that could not run (QR codes, promoter resend, `/update-info` e-mail
       change), fixed 2026-11-13 (KNOWN_ISSUES 57)
-- [ ] Wildcard CORS on all of `/api/*` (low risk, no credentials; KNOWN_ISSUES 54). Decided
-      2026-11-14: allow only `https://clubfindr.com` and `https://www.clubfindr.com`, plus
-      localhost in dev; the native app needs no wildcard CORS
+- [x] Wildcard CORS on all of `/api/*` (KNOWN_ISSUES 54): fixed 2026-11-14 (`6973e8f`), only
+      `https://clubfindr.com`, `https://www.clubfindr.com`, the deployment's own `ORIGIN` and
+      localhost under `vite dev`; the live nginx file still needs its CORS blocks removed by hand
+      (section 1 follow-ups)
 - [x] Confirmation-code attempts were limited only in the browser (KNOWN_ISSUES 55): fixed
       2026-11-14, counted in the database (`confirmation_attempts` on `bars` and `users`), five
       guesses per issued code across every confirm endpoint, then 429 until a new code

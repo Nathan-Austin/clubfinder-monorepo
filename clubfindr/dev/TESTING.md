@@ -64,7 +64,9 @@ dev/setup.sh
 
 1. Finds or starts Postgres on `127.0.0.1:54329`.
 2. Creates the `clubfindr_dev` database and role (password `clubfindr_dev`) if missing.
-3. Loads `dev/schema.sql` if the `clubfindr` schema does not exist yet.
+3. Loads `dev/schema.sql` if the `clubfindr` schema does not exist yet. If it exists, compares
+   it with what `dev/schema.sql` builds and stops before the seed on any difference, printing
+   it and how to rebuild (KNOWN_ISSUES 60); it never rebuilds on its own.
 4. Loads `dev/seed.sql`, which empties every `clubfindr` table and inserts the test data.
 5. Writes `.env` from `.env.example` with the local database settings, random `CRYPTO_KEY`
    and `JWT_SECRET` values and `MAIL_TRANSPORT=capture` (e-mail goes to
@@ -75,7 +77,8 @@ It is safe to re-run; each run resets the data to the seed. It never overwrites 
 it did not write; use `dev/setup.sh --force` to replace one (the old file is kept as
 `.env.bak`). A `.env` from before the upgrade uses the old `VITE_*` names: `--force`
 rewrites it with the current ones.
-`dev/setup.sh --stop` stops the Postgres it started.
+`dev/setup.sh --stop` stops the Postgres it started. `dev/setup.sh --check-schema` only
+compares the existing schema with `dev/schema.sql`: no seed, no `.env`, nothing created.
 
 Settings can be changed with `DEV_PG_HOST`, `DEV_PG_USER`, `DEV_PG_PASSWORD` and
 `DEV_PG_IMAGE`.
