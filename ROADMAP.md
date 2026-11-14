@@ -290,7 +290,11 @@ top artists or play counts on the web).
       security findings. The critical part was done 2026-11-13 (items below and KNOWN_ISSUES 57);
       what remains is the endpoint-by-endpoint validation rollout (34 endpoints with none), the
       SQL source guard and the request-body logging, planned as their own session. Decided
-      2026-11-14: hand-written guards in `$lib/server/validate.ts`, no validation library
+      2026-11-14: hand-written guards in `$lib/server/validate.ts`, no validation library.
+      2026-11-14: the helper is in (`dda3f13`) and the 16 auth and account endpoints use it
+      (`64223aa`, `96c1970`; `tests/input-validation.spec.ts`), each answering bad input with a
+      400 in the shape its clients already read. Left: the inventory's write and read/search
+      groups (`section4-inventory.md`, section 4), and NUL bytes (KNOWN_ISSUES 64)
 - [x] Promoter auth was a forgeable plain cookie (KNOWN_ISSUES 51), the same flaw the venue
       guard had: fixed 2026-11-14 (`00c8e3e`) with a `user_sessions` session (no new table) in the
       encrypted httpOnly cookie, checked against `users.is_promoter`. Two promoter bugs came out
@@ -298,8 +302,9 @@ top artists or play counts on the web).
       `event_id`, both fixed (KNOWN_ISSUES 62, 63, with a backfill migration for the old events);
       registration wrote no `promoters` row, so such a promoter could not create events, fixed
       with a backfill migration too (KNOWN_ISSUES 61)
-- [ ] **Next:** the validation helper and its rollout to the auth and account endpoints (the
-      input validation item above), then the request-body logging and the SQL source guard
+- [ ] **Next:** the request-body logging and the SQL source guard (inventory section 5, step 5),
+      then the CORS restriction (KNOWN_ISSUES 54); the validation rollout to the write and
+      read/search endpoints after that
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)

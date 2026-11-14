@@ -723,3 +723,10 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     it, while `PATCH`/`DELETE /promoter-home/events/[eventId]` look events up by it. It is set to
     a random uuid on creation now, and `migrations/20261114_events_event_id_backfill.sql` gives
     the events created before one as well.
+64. **A NUL byte in any text field is a 500.** Postgres refuses `\u0000` in `text` and
+    `varchar` (`invalid byte sequence for encoding "UTF8": 0x00`), and nothing strips or refuses
+    it first, so a JSON string carrying one passes `$lib/server/validate`'s `text()` (and every
+    endpoint that checks nothing) and fails at the INSERT or UPDATE. Found 2026-11-14 during the
+    validation rollout. Low impact, self-inflicted only, but it is bad input that should be a 400. Fix: refuse control characters in `text()`. That removes the trigger
+    `tests/transactions.spec.ts` uses to fail a promoter registration half-way (a NUL in the
+    business name), so the same change needs another way to make that test's venue INSERT fail.

@@ -15,6 +15,12 @@ says otherwise. KNOWN_ISSUES 51-56 hold the security findings from the section 1
   and section 5 steps 4-5, planned as their own session. The new checks added today validate
   only what each fixed route needed (ids, the cookie-consent shape, the e-mail format).
 
+**Status, 2026-11-14:** section 3 items 2 (KNOWN_ISSUES 51, `00c8e3e`) and 7 (KNOWN_ISSUES 55,
+`5c9e679`) are fixed. Section 5 step 4 is under way: `$lib/server/validate.ts` exists (`dda3f13`)
+and every endpoint in the **Auth and account** group of section 4 uses it (`64223aa`,
+`96c1970`), with `tests/input-validation.spec.ts` sending each one bad input. Still open: the
+**Writes** and **Reads / search** groups, and section 5 step 5.
+
 Method: a heuristic scan of each endpoint (methods, where input comes from, auth calls, type
 checks, SQL built with `${…}` or `+`), then reading every flagged site by hand. The scan scripts
 were throwaway; the counts below are from them.
