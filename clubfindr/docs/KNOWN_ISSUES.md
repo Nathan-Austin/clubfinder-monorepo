@@ -723,10 +723,12 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     it, while `PATCH`/`DELETE /promoter-home/events/[eventId]` look events up by it. It is set to
     a random uuid on creation now, and `migrations/20261114_events_event_id_backfill.sql` gives
     the events created before one as well.
-64. **A NUL byte in any text field is a 500.** Postgres refuses `\u0000` in `text` and
-    `varchar` (`invalid byte sequence for encoding "UTF8": 0x00`), and nothing strips or refuses
-    it first, so a JSON string carrying one passes `$lib/server/validate`'s `text()` (and every
-    endpoint that checks nothing) and fails at the INSERT or UPDATE. Found 2026-11-14 during the
-    validation rollout. Low impact, self-inflicted only, but it is bad input that should be a 400. Fix: refuse control characters in `text()`. That removes the trigger
-    `tests/transactions.spec.ts` uses to fail a promoter registration half-way (a NUL in the
-    business name), so the same change needs another way to make that test's venue INSERT fail.
+64. _Fixed 2026-11-14 (`62431e0`)._ **A NUL byte in any text field was a 500.** Postgres refuses
+    `\u0000` in `text` and `varchar` (`invalid byte sequence for encoding "UTF8": 0x00`), and
+    nothing refused it first, so a JSON string carrying one passed `$lib/server/validate`'s
+    `text()` and failed at the INSERT or UPDATE. `text()`, `email()` and `stringArray()` now
+    refuse control characters (tab, newline and carriage return stay allowed). Endpoints not yet
+    on the helper (the write and read/search groups of the inventory) still pass one through.
+    `tests/transactions.spec.ts` used a NUL byte to fail a promoter registration half-way; it
+    now adds a `BEFORE INSERT` trigger on `bars` for the test, matching only its own e-mail
+    prefix and dropped as soon as its request is answered.

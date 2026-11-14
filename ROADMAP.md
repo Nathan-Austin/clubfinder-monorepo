@@ -293,8 +293,11 @@ top artists or play counts on the web).
       2026-11-14: hand-written guards in `$lib/server/validate.ts`, no validation library.
       2026-11-14: the helper is in (`dda3f13`) and the 16 auth and account endpoints use it
       (`64223aa`, `96c1970`; `tests/input-validation.spec.ts`), each answering bad input with a
-      400 in the shape its clients already read. Left: the inventory's write and read/search
-      groups (`section4-inventory.md`, section 4), and NUL bytes (KNOWN_ISSUES 64)
+      400 in the shape its clients already read, worded for people where a page or the app shows
+      it (`c7bf6ec`), and control characters refused (KNOWN_ISSUES 64). The request-body and
+      e-mail logging is gone and the SQL source guard is in, both enforced by source tests
+      (`e362d29`, `bdd4952`). Left: the inventory's write and read/search groups
+      (`section4-inventory.md`, section 4)
 - [x] Promoter auth was a forgeable plain cookie (KNOWN_ISSUES 51), the same flaw the venue
       guard had: fixed 2026-11-14 (`00c8e3e`) with a `user_sessions` session (no new table) in the
       encrypted httpOnly cookie, checked against `users.is_promoter`. Two promoter bugs came out
@@ -302,9 +305,10 @@ top artists or play counts on the web).
       `event_id`, both fixed (KNOWN_ISSUES 62, 63, with a backfill migration for the old events);
       registration wrote no `promoters` row, so such a promoter could not create events, fixed
       with a backfill migration too (KNOWN_ISSUES 61)
-- [ ] **Next:** the request-body logging and the SQL source guard (inventory section 5, step 5),
-      then the CORS restriction (KNOWN_ISSUES 54); the validation rollout to the write and
-      read/search endpoints after that
+- [ ] **Next:** the CORS restriction (KNOWN_ISSUES 54), with the e2e race on the seeded venue's
+      app session (KNOWN_ISSUES 59), drift detection in `dev/setup.sh` (60) and the
+      `App.Locals.user.id` type (40); the validation rollout to the write and read/search
+      endpoints after that
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)
