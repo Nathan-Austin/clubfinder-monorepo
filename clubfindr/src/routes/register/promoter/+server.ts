@@ -66,6 +66,18 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				}
 			}
 
+			// events.promoter_id references promoters(id) and /promoter-home keys events by the
+			// promoter's users.id, so the promoter needs a promoters row with that same id; without
+			// it every event the new promoter created failed on the foreign key (KNOWN_ISSUES 61).
+			// ON CONFLICT DO NOTHING covers a row that already exists and an e-mail another
+			// promoters row already holds.
+			await client.query(
+				`INSERT INTO clubfindr.promoters (id, name, email)
+				 VALUES ($1, $2, $3)
+				 ON CONFLICT DO NOTHING`,
+				[userId, contactPerson, email]
+			);
+
 			await client.query(
 				`INSERT INTO clubfindr.bars (user_id, name, contact_person, general_email, phone, address, postcode, 
 				 website, city, confirmation_code, expires_at) 

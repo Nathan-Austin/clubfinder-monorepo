@@ -56,13 +56,6 @@ async function registerPromoter(api: APIRequestContext) {
 		'SELECT id FROM clubfindr.users WHERE general_email = $1',
 		[email]
 	);
-	// events.promoter_id references promoters(id), and registration writes no promoters row, so
-	// a new promoter cannot create an event until one exists (KNOWN_ISSUES 61). Not what this
-	// spec is about: give the account the row the seed gives the seeded promoter.
-	await devQuery(
-		'INSERT INTO clubfindr.promoters (id, name, email) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-		[user.id, 'Promoter Auth', email]
-	);
 	return { email, userId: user.id };
 }
 
