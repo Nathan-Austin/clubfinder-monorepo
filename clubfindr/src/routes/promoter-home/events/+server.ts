@@ -35,9 +35,12 @@ export async function POST({ request, cookies }: RequestEvent) {
 
 		// One INSERT, atomic by itself. It used to sit inside query('BEGIN') … query('COMMIT'),
 		// which on a pooled connection is not a transaction (KNOWN_ISSUES 39).
-		// Insert the event
+		// events.event_id is the key the edit and delete routes below look an event up by (the
+		// scrapers fill it with the source's id); it has no default, and this INSERT left it NULL,
+		// so no event created here could ever be edited or deleted (KNOWN_ISSUES 63).
 		const result = await query(
 			`INSERT INTO clubfindr.events (
+                    event_id,
                     event_name,
                     club_name,
                     club_address,
@@ -50,9 +53,10 @@ export async function POST({ request, cookies }: RequestEvent) {
                     city,
                     promoter_id,
                     track_ids
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING event_id`,
 			[
+				crypto.randomUUID(),
 				eventData.event_name,
 				eventData.club_name,
 				eventData.club_address,
