@@ -4,13 +4,28 @@ import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from '@sveltejs/kit';
 import { BAR_CODE_SECONDS_LEFT_SQL } from '$lib/server/barCodeExpiry';
+import { email as emailCheck, readJsonObject } from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { email } = await request.json();
+		// Checked before any query: an e-mail that was not a string threw at .trim() (500)
+		// (ROADMAP section 4). The confirm page shows this text as it is, and sends an empty
+		// e-mail when the visitor never registered, so it says what to do rather than which field
+		// failed.
+		const checked = emailCheck((await readJsonObject(request))?.email);
+		if (!checked.ok) {
+			return json(
+				{
+					success: false,
+					error: 'Enter the e-mail address you registered with, or register first.'
+				},
+				{ status: 400 }
+			);
+		}
+		const email = checked.value;
 		console.log('Resend confirmation request received for email:', email);
 
-		const normalizedEmail = email.trim().toLowerCase();
+		const normalizedEmail = email.toLowerCase();
 
 		// Query the bars table directly without dependency on the users table
 		console.log('Querying bars table for user information');

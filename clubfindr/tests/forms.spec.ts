@@ -96,7 +96,10 @@ test.describe('forms', () => {
 		await page.goto('/register/confirm');
 		await acceptCookies(page);
 		await page.locator('a', { hasText: 'Resend Code' }).click();
-		await expect(page.locator('body')).toContainText(/not found|Failed|try again/i);
+		// No e-mail to resend to: a 400 since input validation (ROADMAP section 4), a 404 before
+		await expect(page.locator('body')).toContainText(
+			/registered with, or register first|not found|Failed|try again/i
+		);
 	});
 
 	test('users-home: attendance feedback selects and city change', async ({ page, pageErrors }) => {

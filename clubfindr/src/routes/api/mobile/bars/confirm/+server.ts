@@ -6,18 +6,28 @@ import { sendEmail } from '$lib/email';
 import { generateJWT } from '$lib/authUtils';
 import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
+import {
+	confirmationCode as codeCheck,
+	email as emailCheck,
+	fields,
+	readJsonObject
+} from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { email, confirmationCode } = await request.json();
-	if (typeof email !== 'string' || !email.trim() || typeof confirmationCode !== 'string') {
-		return json({ success: false, error: 'Invalid confirmation code or email' }, { status: 400 });
-	}
+	// Checked before any query, so a malformed guess never spends an attempt (ROADMAP section 4)
+	const body = await readJsonObject(request);
+	const input = fields({
+		email: emailCheck(body?.email),
+		confirmationCode: codeCheck(body?.confirmationCode)
+	});
+	if (!input.ok) return json({ success: false, error: input.message }, { status: 400 });
+	const { email, confirmationCode } = input.value;
 
 	try {
 		// Every guess spends one of the code's attempts, in the statement that reads it
 		// (KNOWN_ISSUES 55); the code is compared here rather than in the WHERE clause so a
 		// wrong guess still counts
-		const attempt = await spendCodeAttempt(pool, 'bars', email.trim(), [
+		const attempt = await spendCodeAttempt(pool, 'bars', email, [
 			'id',
 			'name',
 			'confirmation_code',
@@ -29,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (
 			attempt.outcome === 'not_found' ||
 			!attempt.row.confirmation_code ||
-			attempt.row.confirmation_code !== confirmationCode.trim().toUpperCase()
+			attempt.row.confirmation_code !== confirmationCode
 		) {
 			return json(
 				{

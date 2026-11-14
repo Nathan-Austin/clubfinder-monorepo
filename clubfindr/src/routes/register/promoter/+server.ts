@@ -6,6 +6,14 @@ import { normalizeCityName } from '$lib/cityName';
 import { hashPassword } from '$lib/server/passwordUtils';
 import type { RequestHandler } from '@sveltejs/kit';
 import { clearCaptchaVerified, hasVerifiedCaptcha } from '$lib/server/captcha';
+import { validatePassword } from '$lib/passwordUtils';
+import {
+	email as emailCheck,
+	fields,
+	password as passwordCheck,
+	readJsonObject,
+	text
+} from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	// Same gate as POST /register: the page's captcha alone proved nothing (KNOWN_ISSUES 28)
@@ -16,6 +24,27 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		);
 	}
 
+	// Checked before anything is written (ROADMAP section 4): a body that was not JSON threw
+	// here, outside the try, and a weak password threw in hashPassword below, both as 500s; the
+	// lengths are the columns' (bars.name, contact_person and website varchar(255), phone and
+	// postcode varchar(20), city varchar(100)), which a longer value failed on, also as a 500
+	const body = await readJsonObject(request);
+	const input = fields({
+		businessName: text(body?.businessName, 'businessName', { max: 255 }),
+		contactPerson: text(body?.contactPerson, 'contactPerson', { max: 255 }),
+		email: emailCheck(body?.email, 'email', { strict: true }),
+		phone: text(body?.phone, 'phone', { max: 20, optional: true }),
+		address: text(body?.address, 'address', { max: 500, optional: true }),
+		postcode: text(body?.postcode, 'postcode', { max: 20, optional: true }),
+		cityName: text(body?.cityName, 'cityName', { max: 100 }),
+		website: text(body?.website, 'website', { max: 255, optional: true }),
+		password: passwordCheck(body?.password)
+	});
+	if (!input.ok) return json({ success: false, message: input.message }, { status: 400 });
+	const strength = validatePassword(input.value.password);
+	if (!strength.isValid) {
+		return json({ success: false, message: strength.errors.join(', ') }, { status: 400 });
+	}
 	const {
 		businessName,
 		contactPerson,
@@ -26,7 +55,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		cityName,
 		website,
 		password
-	} = await request.json();
+	} = input.value;
 
 	const confirmationCode = randomBytes(3).toString('hex').toUpperCase();
 	const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();

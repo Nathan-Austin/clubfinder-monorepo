@@ -8,14 +8,21 @@
 
 import type { RequestHandler } from '@sveltejs/kit';
 import { sendEmail } from '$lib/email';
+import { email as emailCheck, fields, readJsonObject, text } from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { name, email, reason } = await request.json();
-
-		if (!name || !email || !reason) {
-			return new Response('Missing required fields', { status: 400 });
-		}
+		// Checked before anything is sent: any type and any length went into the admin's mail,
+		// and a body that was not JSON answered 500 (ROADMAP section 4). Plain-text answers, as
+		// before.
+		const body = await readJsonObject(request);
+		const input = fields({
+			name: text(body?.name, 'name', { max: 100 }),
+			email: emailCheck(body?.email),
+			reason: text(body?.reason, 'reason', { max: 2000 })
+		});
+		if (!input.ok) return new Response(input.message, { status: 400 });
+		const { name, email, reason } = input.value;
 
 		await sendEmail(
 			'admin@clubfindr.com',

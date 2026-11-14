@@ -4,20 +4,31 @@ import { pool, query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
+import {
+	confirmationCode as codeCheck,
+	email as emailCheck,
+	fields,
+	readJsonObject
+} from '$lib/server/validate';
 
 // Confirms a promoter's venue (/register/promoter) with the e-mailed code. bars.general_email is
 // unique, so the venue is found by e-mail alone; it used to be looked up by e-mail and the
 // user's city as well, which added nothing.
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { email, confirmationCode } = await request.json();
-		if (typeof email !== 'string' || !email.trim() || typeof confirmationCode !== 'string') {
-			return json({ error: 'E-mail and confirmation code are required.' }, { status: 400 });
-		}
+		// Checked before any query, so a malformed guess never spends an attempt (ROADMAP
+		// section 4)
+		const body = await readJsonObject(request);
+		const input = fields({
+			email: emailCheck(body?.email),
+			confirmationCode: codeCheck(body?.confirmationCode)
+		});
+		if (!input.ok) return json({ error: input.message }, { status: 400 });
+		const { email, confirmationCode } = input.value;
 
 		// Every guess spends one of the code's attempts, in the statement that reads it
 		// (KNOWN_ISSUES 55)
-		const attempt = await spendCodeAttempt(pool, 'bars', email.trim(), [
+		const attempt = await spendCodeAttempt(pool, 'bars', email, [
 			'confirmation_code',
 			`${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left`
 		]);
@@ -36,14 +47,14 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Validate the provided confirmation code
-		if (!confirmation_code || confirmation_code !== confirmationCode.trim().toUpperCase()) {
+		if (!confirmation_code || confirmation_code !== confirmationCode) {
 			return json({ error: 'Invalid confirmation code' }, { status: 400 });
 		}
 
 		await query(
 			`UPDATE clubfindr.bars SET confirmed = true, confirmation_attempts = 0
 			 WHERE LOWER(general_email) = LOWER($1)`,
-			[email.trim()]
+			[email]
 		);
 
 		return json({ success: true });

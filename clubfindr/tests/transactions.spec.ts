@@ -67,10 +67,13 @@ test('a promoter registration commits its user and its venue together', async ({
 test('a promoter registration that fails half-way rolls back and leaves no transaction open', async ({
 	page
 }) => {
-	// The user row goes in first, then the venue's INSERT fails (bars.name is NOT NULL). The
-	// whole transaction must roll back on its own connection: no user left behind, and nothing
-	// "idle in transaction" for an unrelated request to inherit (KNOWN_ISSUES 39). This took
-	// over from the Spotify-registration test when that endpoint was retired.
+	// The user and promoters rows go in first, then the venue's INSERT fails: Postgres refuses a
+	// NUL byte in text, and the business name is the one value only the venue row stores. The
+	// whole transaction must roll back on its own connection: no user or promoters row left
+	// behind, and nothing "idle in transaction" for an unrelated request to inherit
+	// (KNOWN_ISSUES 39). This took over from the Spotify-registration test when that endpoint was
+	// retired; it sent a null business name until input validation (ROADMAP section 4) began
+	// refusing that with a 400 before the transaction starts.
 	const verified = await page.request.post('/api/verify-captcha', {
 		data: { recaptchaResponse: 'mock-captcha-ok' }
 	});
@@ -79,7 +82,7 @@ test('a promoter registration that fails half-way rolls back and leaves no trans
 	const email = `${unique('tx-promoter-fail')}@clubfindr.test`;
 	const response = await page.request.post('/register/promoter', {
 		data: {
-			businessName: null,
+			businessName: 'Transaction\u0000Venue',
 			contactPerson: 'Transaction Test',
 			email,
 			phone: '+49 30 1234567',
@@ -94,6 +97,7 @@ test('a promoter registration that fails half-way rolls back and leaves no trans
 	expect(await devQuery(`SELECT 1 FROM clubfindr.users WHERE general_email = $1`, [email])).toEqual(
 		[]
 	);
+	expect(await devQuery(`SELECT 1 FROM clubfindr.promoters WHERE email = $1`, [email])).toEqual([]);
 
 	// Wait past the threshold first: expect.poll would call straight away, before anything had
 	// been stranded long enough to count, and pass whatever the code did

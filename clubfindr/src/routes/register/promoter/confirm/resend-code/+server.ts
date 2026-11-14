@@ -7,12 +7,14 @@ import { randomBytes } from 'crypto';
 import type { RequestHandler } from '@sveltejs/kit';
 import { normalizeCityName } from '$lib/cityName';
 import { BAR_CODE_SECONDS_LEFT_SQL } from '$lib/server/barCodeExpiry';
+import { email as emailCheck, readJsonObject } from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { email } = await request.json();
-	if (typeof email !== 'string' || !email.trim()) {
-		return json({ success: false, error: 'email is required' }, { status: 400 });
-	}
+	// Checked before any query: a body that was not JSON threw here, outside the try (500)
+	// (ROADMAP section 4)
+	const checked = emailCheck((await readJsonObject(request))?.email);
+	if (!checked.ok) return json({ success: false, error: checked.message }, { status: 400 });
+	const email = checked.value;
 
 	try {
 		// Schema-qualified: the pool sets no search_path, so `users` and `bars` did not resolve

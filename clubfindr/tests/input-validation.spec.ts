@@ -18,7 +18,15 @@ const NOT_JSON: Case = { label: 'a body that is not JSON', body: 'email=a@b.c' }
 const JSON_ARRAY: Case = { label: 'a JSON array', body: '[]' };
 const longEmail = `${'a'.repeat(250)}@clubfindr.test`;
 
-const ENDPOINTS: { path: string; key: 'message' | 'error'; cases: Case[] }[] = [
+// `key` is the field the 400 names its reason in; 'text' for an endpoint that answers plain text.
+// `captcha`: the endpoint sits behind the solved-captcha cookie (403 without it), so the test
+// solves one first; it is spent only by a successful registration.
+const ENDPOINTS: {
+	path: string;
+	key: 'message' | 'error' | 'text';
+	captcha?: boolean;
+	cases: Case[];
+}[] = [
 	// Batch 1: logins, code senders and the app's code checks
 	{
 		path: '/login/bars',
@@ -92,13 +100,103 @@ const ENDPOINTS: { path: string; key: 'message' | 'error'; cases: Case[] }[] = [
 			{ label: 'an oversize e-mail', body: { email: longEmail, confirmationCode: '123456' } },
 			{ label: 'a code with a symbol', body: { email: 'a@b.c', confirmationCode: '12345!' } }
 		]
+	},
+	// Batch 2: venue and promoter registration, captcha and access requests
+	{
+		path: '/api/mobile/bars/confirm',
+		key: 'error',
+		cases: [
+			NOT_JSON,
+			{ label: 'a code that is a number', body: { email: 'a@b.c', confirmationCode: 123456 } },
+			{ label: 'no e-mail', body: { confirmationCode: 'A1B2C3' } }
+		]
+	},
+	{
+		path: '/api/mobile/bars/resend-code',
+		key: 'error',
+		cases: [NOT_JSON, { label: 'an e-mail that is an object', body: { email: { a: 1 } } }]
+	},
+	{
+		path: '/register/promoter',
+		key: 'message',
+		captcha: true,
+		cases: [
+			NOT_JSON,
+			{ label: 'nothing filled in', body: {} },
+			{ label: 'a phone longer than the column', body: promoter({ phone: '1'.repeat(21) }) },
+			{ label: 'a business name that is a number', body: promoter({ businessName: 7 }) },
+			{ label: 'an address without a domain', body: promoter({ email: 'promoter@localhost' }) },
+			{ label: 'a weak password', body: promoter({ password: 'short' }) }
+		]
+	},
+	{
+		path: '/register/promoter/confirm',
+		key: 'error',
+		cases: [
+			NOT_JSON,
+			{ label: 'a code of the wrong length', body: { email: 'a@b.c', confirmationCode: 'ABC' } }
+		]
+	},
+	{
+		path: '/register/promoter/confirm/resend-code',
+		key: 'error',
+		cases: [NOT_JSON, { label: 'an e-mail that is a number', body: { email: 42 } }]
+	},
+	{
+		path: '/register/confirm/resend-code',
+		key: 'error',
+		cases: [
+			NOT_JSON,
+			{ label: 'an e-mail that is a number', body: { email: 42 } },
+			{ label: 'no e-mail', body: {} }
+		]
+	},
+	{
+		path: '/api/verify-captcha',
+		key: 'message',
+		cases: [
+			NOT_JSON,
+			{ label: 'no token', body: {} },
+			{ label: 'an oversize token', body: { recaptchaResponse: 'x'.repeat(10_001) } }
+		]
+	},
+	{
+		path: '/api/request-access',
+		key: 'text',
+		cases: [
+			NOT_JSON,
+			{ label: 'a name that is a list', body: { name: ['x'], email: 'a@b.c', reason: 'test' } },
+			{ label: 'an oversize reason', body: { name: 'x', email: 'a@b.c', reason: 'x'.repeat(2001) } }
+		]
 	}
 ];
 
-for (const { path, key, cases } of ENDPOINTS) {
+/** A promoter registration body that passes every check, with `changes` applied. */
+function promoter(changes: Record<string, unknown>) {
+	return {
+		businessName: 'Validation Promoter',
+		contactPerson: 'Validation Test',
+		email: `validation-${Date.now()}@clubfindr.test`,
+		phone: '+49 30 1234567',
+		address: 'Teststrasse 1',
+		postcode: '10115',
+		cityName: 'Berlin',
+		website: '',
+		password: 'Valid#Pass2026x',
+		...changes
+	};
+}
+
+for (const { path, key, captcha, cases } of ENDPOINTS) {
 	test(`${path} answers bad input with a 400 in its own shape`, async ({ playwright, baseURL }) => {
 		const api = await mobileApi(playwright, baseURL);
 		try {
+			if (captcha) {
+				const solved = await api.post('/api/verify-captcha', {
+					data: { recaptchaResponse: 'mock-captcha-ok' }
+				});
+				expect(solved.status()).toBe(200);
+			}
 			for (const { label, body } of cases) {
 				const response = await api.post(path, {
 					headers: { 'Content-Type': 'application/json' },
@@ -107,8 +205,14 @@ for (const { path, key, cases } of ENDPOINTS) {
 					data: typeof body === 'string' ? Buffer.from(body) : body
 				});
 				expect.soft(response.status(), `${path}, ${label}`).toBe(400);
-				const payload = await response.json().catch(() => null);
-				expect.soft(typeof payload?.[key], `${path}, ${label}: a "${key}" field`).toBe('string');
+				if (key === 'text') {
+					expect
+						.soft((await response.text()).length, `${path}, ${label}: a reason`)
+						.toBeGreaterThan(0);
+				} else {
+					const payload = await response.json().catch(() => null);
+					expect.soft(typeof payload?.[key], `${path}, ${label}: a "${key}" field`).toBe('string');
+				}
 			}
 		} finally {
 			await api.dispose();
