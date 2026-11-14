@@ -1,5 +1,11 @@
 # Retiring spotify_service and Spotify connect on the server
 
+> **Done in production on 2026-11-14** (steps 0-9; step 10 skipped), with the deploy of `7122896`,
+> which also applied `20261113_user_checkins_qr_nullable.sql` in step 3. Backups are in
+> `~/backups` on the server: the schema dump, the `spotify_apps` listing, the old nginx site and
+> `spotify_service-2026-11-14/` (its `.env`, `config.json` and `app_info.json`, which hold
+> credentials). Kept for reference; do not run it again.
+
 ROADMAP section 1 removed per-account and per-venue Spotify connect from the code and retired
 `spotify_service`. The repo side is done; this is the server side, done by hand, in order. It
 covers the deploy that ships the change (which stops twice, by design), the services, sudoers,
@@ -168,16 +174,16 @@ instead of copying the repo file over it.
 ## 9. Leftovers on disk, env keys and the Spotify dashboard
 
 The deploy removed the tracked files; untracked ones stay in `~/clubfinder/spotify_service/`
-(logs, screenshots, `pending_queue/`, `app_info.json`, `.env.local`) and the venv lives outside the
+(logs, screenshots, `pending_queue/`, `app_info.json`, `config.json`, `.env`) and the venv lives outside the
 repo.
 
 ```bash
 ls -la ~/clubfinder/spotify_service/
 ```
 
-- **Secrets**: `spotify_service/.env.local` and `app_info.json` hold live credentials
+- **Secrets**: `spotify_service/.env`, `config.json` and `app_info.json` hold live credentials
   (KNOWN_ISSUES 33). Deleting the per-user Spotify apps (below) makes the Spotify ones useless;
-  the mail credentials in `.env.local` may be shared with other services, so check before
+  the mail credentials in `.env` may be shared with other services, so check before
   rotating. Whether to keep a copy is the owner's call; if so, move it into `~/backups` (mode 700).
 - Then remove the directory and the venv:
   `rm -rf ~/clubfinder/spotify_service ~/spotify_service_env`.
@@ -189,8 +195,10 @@ ls -la ~/clubfinder/spotify_service/
   `PUBLIC_SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`: that is the one server-side app.
   `barfindr/.env`: `SPOTIFY_REDIRECT_URI` is unused too.
 - **Spotify developer dashboard** (https://developer.spotify.com/dashboard): delete the apps
-  spotify_service created for user and venue connect (the names in the step 4 list, e.g.
-  "Party Recommender …"). **Keep** the server-side app whose client id is
+  spotify_service created for user and venue connect (the names in the step 4 list).
+  **Names do not tell you which**: in production "Party Recommender" is the server-side app
+  (artist search), while "Party Recommender 1-3" and "Clubfindr Bars 1" were the connect apps.
+  Decide by client id only. **Keep** the server-side app whose client id is
   `PUBLIC_SPOTIFY_CLIENT_ID` in `clubfindr/.env`, and every app data_collection uses
   (`NEW_SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_ID`, and any listed in `SPOTIFY_CREDENTIALS`, in
   `data_collection/.env`). Compare client ids before deleting:

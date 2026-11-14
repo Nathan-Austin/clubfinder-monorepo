@@ -80,8 +80,10 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
 
 Things to do by hand or decide, collected while building the items above.
 
-- [ ] Run [`deploy/TEARDOWN-spotify-service.md`](deploy/TEARDOWN-spotify-service.md) on the
-      server with the deploy of `a5f407f` or later: stop the three spotify-automation units
+- [x] Run [`deploy/TEARDOWN-spotify-service.md`](deploy/TEARDOWN-spotify-service.md) on the
+      server, done 2026-11-14 with the deploy of `7122896` (steps 0-9; the barfindr wind-down,
+      step 10, is still open and waits for its tables to empty). Left for the owner: deleting
+      the four connect apps on the Spotify dashboard. With the deploy of `a5f407f` or later: stop the three spotify-automation units
       **before** pushing; the deploy stops for the barfindr requirements and for the destructive
       migration (apply 20261111 and the timestamptz one by hand, finish with
       `MIGRATIONS_APPLIED=1`, then the drop once the new code is live); then units, sudoers,
