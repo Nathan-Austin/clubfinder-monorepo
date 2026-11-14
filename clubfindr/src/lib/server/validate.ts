@@ -42,6 +42,12 @@ export async function readJsonObject(request: Request): Promise<Record<string, u
 	}
 }
 
+// Control characters other than tab, newline and carriage return. Postgres refuses a NUL byte in
+// text and varchar ("invalid byte sequence for encoding UTF8: 0x00"), which made any string
+// carrying one a 500 at the INSERT (KNOWN_ISSUES 64); the rest have no business in a form field.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+
 /** RFC 5321's limit for a whole address. */
 export const MAX_EMAIL_LENGTH = 254;
 // Lookups (logins, resends, confirmations) accept anything shaped like an address, so no
@@ -57,6 +63,7 @@ export function email(value: unknown, field = 'email', { strict = false } = {}):
 	if (trimmed.length > MAX_EMAIL_LENGTH) {
 		return fail(`${field} must be at most ${MAX_EMAIL_LENGTH} characters`);
 	}
+	if (CONTROL_CHARACTERS.test(trimmed)) return fail(`${field} must be a valid e-mail address`);
 	if (!(strict ? EMAIL_STRICT : EMAIL_LOOSE).test(trimmed)) {
 		return fail(`${field} must be a valid e-mail address`);
 	}
@@ -78,6 +85,8 @@ export function text(
 	if (typeof value !== 'string') return fail(`${field} must be a string`);
 	const trimmed = value.trim();
 	if (trimmed.length > max) return fail(`${field} must be at most ${max} characters`);
+	if (CONTROL_CHARACTERS.test(trimmed))
+		return fail(`${field} contains characters that are not allowed`);
 	return ok(trimmed);
 }
 
@@ -158,7 +167,12 @@ export function stringArray(
 	if (value.length > maxItems) return fail(`${field} must have at most ${maxItems} entries`);
 	const items: string[] = [];
 	for (const item of value) {
-		if (typeof item !== 'string' || !item.trim() || item.trim().length > maxLength) {
+		if (
+			typeof item !== 'string' ||
+			!item.trim() ||
+			item.trim().length > maxLength ||
+			CONTROL_CHARACTERS.test(item)
+		) {
 			return fail(`${field} entries must be text of 1 to ${maxLength} characters`);
 		}
 		items.push(item.trim());

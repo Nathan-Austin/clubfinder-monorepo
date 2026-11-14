@@ -63,6 +63,17 @@ describe('text', () => {
 			expect(text(value, 'name', { max: 10, optional: true })).toEqual({ ok: true, value: '' });
 		}
 	});
+	it('refuses control characters, NUL first, but keeps tabs and line breaks', () => {
+		for (const value of ['Velour\u0000', 'a\u0007b', 'a\u001Bb', 'a\u007Fb']) {
+			expect(text(value, 'name', { max: 20 }), JSON.stringify(value)).toEqual({
+				ok: false,
+				message: 'name contains characters that are not allowed'
+			});
+		}
+		expect(text('line one\nline\ttwo\r\n3', 'reason', { max: 50 }).ok).toBe(true);
+		expect(email('fan\u0000@clubfindr.test').ok).toBe(false);
+		expect(stringArray(['club\u0000'], 'barTypes', { maxItems: 2, maxLength: 10 }).ok).toBe(false);
+	});
 	it('refuses non-strings even when optional', () => {
 		expect(text(42, 'name', { max: 10, optional: true }).ok).toBe(false);
 		expect(text({}, 'name', { max: 10 }).ok).toBe(false);

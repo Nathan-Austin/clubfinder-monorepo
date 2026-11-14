@@ -35,7 +35,8 @@ const ENDPOINTS: {
 			NOT_JSON,
 			{ label: 'an e-mail that is a number', body: { email: 42, password: 'Secret#2026' } },
 			{ label: 'a password that is an object', body: { email: 'a@b.c', password: { $ne: '' } } },
-			{ label: 'an oversize e-mail', body: { email: longEmail, password: 'Secret#2026' } }
+			{ label: 'an oversize e-mail', body: { email: longEmail, password: 'Secret#2026' } },
+			{ label: 'a NUL byte in the e-mail', body: { email: 'a\u0000@b.c', password: 'Secret#2026' } }
 		]
 	},
 	{
@@ -126,7 +127,9 @@ const ENDPOINTS: {
 			{ label: 'a phone longer than the column', body: promoter({ phone: '1'.repeat(21) }) },
 			{ label: 'a business name that is a number', body: promoter({ businessName: 7 }) },
 			{ label: 'an address without a domain', body: promoter({ email: 'promoter@localhost' }) },
-			{ label: 'a weak password', body: promoter({ password: 'short' }) }
+			{ label: 'a weak password', body: promoter({ password: 'short' }) },
+			// A 500 at the venue INSERT before (KNOWN_ISSUES 64)
+			{ label: 'a NUL byte in the name', body: promoter({ businessName: 'Bar\u0000' }) }
 		]
 	},
 	{
