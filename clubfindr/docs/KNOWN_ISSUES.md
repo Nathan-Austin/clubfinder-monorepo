@@ -656,11 +656,18 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     sent, so browsers do not attach cookies cross-origin (`docs/section4-inventory.md`). Decided
     2026-11-14: allow only `https://clubfindr.com` and `https://www.clubfindr.com`, plus localhost
     in dev; the native app needs no wildcard CORS.
-55. **Confirmation codes are rate-limited only in the browser.** `/register/confirm` (and the
-    promoter and mobile confirm routes) accept unlimited attempts at a 6-hex-digit code within its
-    10-30 minutes; the "3 attempts" limit is client-side. Only the global 60/minute IP limit applies.
-    Decided 2026-11-14: count failed attempts in the database (a small migration), so the limit
-    survives a restart.
+55. _Fixed 2026-11-14._ **Confirmation codes were rate-limited only in the browser.**
+    `/register/confirm`, `/register/promoter/confirm`, `/api/mobile/bars/confirm`, the app's
+    `/api/verify-confirmation` and `/api/verify-email-code`, and `/api/delete-user-data` accepted
+    unlimited attempts at a 6-hex-digit code within its 10-60 minutes; the "3 attempts" limit was
+    client-side, and only the global 60/minute IP limit applied. `bars` and `users` now carry
+    `confirmation_attempts` (`migrations/20261114_confirmation_attempts.sql`): each guess spends
+    one in the same `UPDATE … RETURNING` that reads the code (`$lib/server/codeAttempts`), so
+    parallel guesses cannot overshoot, and at `CODE_MAX_ATTEMPTS` (5) the endpoint answers 429
+    until a new code is issued; registering, every resend and the verification and deletion code
+    senders set it back to 0, as does a confirmed code. In the database, not memory, so a restart
+    does not refill it. The confirm pages still stop at 3 on their own; the server's 5 is the
+    limit that holds. Covered by `tests/confirmation-attempts.spec.ts`.
 56. _Fixed 2026-11-13: deleted (`8858d8f`)._ **`POST /api/mobile/signup/complete` needed no
     authentication**: it set `onboarding_complete` and `is_first_time` for whatever `userId` it was
     sent. Nothing in the web app or the mobile app called it.
@@ -699,13 +706,13 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     Until setup.sh can detect drift, rebuild by hand under the e2e lease:
     `psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev -c 'DROP SCHEMA clubfindr CASCADE'`
     then `dev/setup.sh`. CI always starts from an empty database, so it is unaffected.
-61. **Promoter registration writes no `promoters` row.** `events.promoter_id` references
-    `promoters(id)`, and `/promoter-home` keys events by the promoter's `users.id`, so the two ids
-    must be the same (the seed gives the seeded promoter both). `/register/promoter` inserts the
-    user and the venue but never the `promoters` row, so a promoter registered through the form
-    cannot create an event: the INSERT fails on the foreign key and answers 500. Found 2026-11-14
-    writing `tests/promoter-auth.spec.ts`, which inserts the row itself for now. Fix: write the
-    row in the registration transaction (and backfill production's promoters).
+61. _Fixed 2026-11-14._ **Promoter registration wrote no `promoters` row.** `events.promoter_id`
+    references `promoters(id)`, and `/promoter-home` keys events by the promoter's `users.id`, so
+    the two ids must be the same (the seed gives the seeded promoter both). `/register/promoter`
+    inserted the user and the venue but never the `promoters` row, so a promoter registered
+    through the form could not create an event: the INSERT failed on the foreign key and answered 500. Found writing `tests/promoter-auth.spec.ts`. The registration transaction writes the row
+    now, and `migrations/20261114_promoters_for_registered_promoters.sql` backfills the accounts
+    registered before (name from the user, else their venue, else the e-mail).
 62. _Fixed 2026-11-14 (`92e5289`)._ **A registered promoter's login answered 500.**
     `/register/promoter` writes a `bars` row under the promoter's e-mail with no password, and
     `/login/bars` compared the password against that null hash, which `bcryptjs` throws on, so
@@ -714,5 +721,5 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
 63. _Fixed 2026-11-14 (`013e684`)._ **Events created on the promoter dashboard could never be
     edited or deleted.** `events.event_id` has no default and the dashboard's INSERT never set
     it, while `PATCH`/`DELETE /promoter-home/events/[eventId]` look events up by it. It is set to
-    a random uuid on creation now. Events created before have a NULL `event_id` and still cannot
-    be reached through those routes.
+    a random uuid on creation now, and `migrations/20261114_events_event_id_backfill.sql` gives
+    the events created before one as well.

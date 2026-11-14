@@ -295,9 +295,11 @@ top artists or play counts on the web).
       guard had: fixed 2026-11-14 (`00c8e3e`) with a `user_sessions` session (no new table) in the
       encrypted httpOnly cookie, checked against `users.is_promoter`. Two promoter bugs came out
       of its test: a registered promoter's login answered 500 and dashboard events had no
-      `event_id`, both fixed (KNOWN_ISSUES 62, 63); registration still writes no `promoters` row,
-      so such a promoter cannot create events (KNOWN_ISSUES 61, open)
-- [ ] **Next:** confirmation-code attempts limited on the server (KNOWN_ISSUES 55, below)
+      `event_id`, both fixed (KNOWN_ISSUES 62, 63, with a backfill migration for the old events);
+      registration wrote no `promoters` row, so such a promoter could not create events, fixed
+      with a backfill migration too (KNOWN_ISSUES 61)
+- [ ] **Next:** the validation helper and its rollout to the auth and account endpoints (the
+      input validation item above), then the request-body logging and the SQL source guard
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)
@@ -309,8 +311,9 @@ top artists or play counts on the web).
 - [ ] Wildcard CORS on all of `/api/*` (low risk, no credentials; KNOWN_ISSUES 54). Decided
       2026-11-14: allow only `https://clubfindr.com` and `https://www.clubfindr.com`, plus
       localhost in dev; the native app needs no wildcard CORS
-- [ ] Confirmation-code attempts are limited only in the browser (KNOWN_ISSUES 55). Decided
-      2026-11-14: count attempts in the database (a small migration), not in memory
+- [x] Confirmation-code attempts were limited only in the browser (KNOWN_ISSUES 55): fixed
+      2026-11-14, counted in the database (`confirmation_attempts` on `bars` and `users`), five
+      guesses per issued code across every confirm endpoint, then 429 until a new code
 - [x] `POST /api/mobile/signup/complete` changed any user without authentication: deleted
       2026-11-13 (KNOWN_ISSUES 56)
 - [x] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12), done 2026-11-12
