@@ -51,24 +51,10 @@ psql_dev() {
 [ "$(psql_dev -tAc "SELECT 1 FROM pg_namespace WHERE nspname = 'clubfindr'")" = 1 ] ||
 	die "schema clubfindr does not exist; run dev/setup.sh first"
 
-# One line per column, index and constraint of the clubfindr schema, in a stable order
+# One line per column, index and constraint of the clubfindr schema (dev/schema-catalog.sql,
+# shared with dev/setup.sh's drift check)
 snapshot() {
-	psql_dev -tA <<'SQL'
-SET search_path = clubfindr;
-SELECT kind || ' ' || detail FROM (
-	SELECT 'column' AS kind,
-	       table_name || '.' || column_name || ' ' || data_type || ' null=' || is_nullable
-	         || ' default=' || coalesce(column_default, '') AS detail
-	FROM information_schema.columns WHERE table_schema = 'clubfindr'
-	UNION ALL
-	SELECT 'index', indexname || ' ' || indexdef
-	FROM pg_indexes WHERE schemaname = 'clubfindr'
-	UNION ALL
-	SELECT 'constraint', conrelid::regclass || ' ' || conname || ' ' || pg_get_constraintdef(oid)
-	FROM pg_constraint WHERE connamespace = 'clubfindr'::regnamespace
-) catalog
-ORDER BY 1;
-SQL
+	psql_dev -tA <"$DEV_DIR/schema-catalog.sql"
 }
 
 mapfile -t FILES < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' | sort)

@@ -5,9 +5,16 @@
 #   dev/setup.sh            set up (or refresh) everything
 #   dev/setup.sh --force    also overwrite a .env that this script did not write
 #   dev/setup.sh --stop     stop the Postgres this script started
+#   dev/setup.sh --check-schema
+#                           only compare the dev database's schema with dev/schema.sql
+#                           (no seed, no .env); exits 1 on a difference
 #
 # Safe to re-run: it reuses a running server, creates the database and schema
 # only when missing, and reloads the seed (which wipes the clubfindr tables).
+# An existing schema is never reloaded or rebuilt: every checkout shares this
+# database. If it differs from dev/schema.sql (a database created before a
+# schema change), the script stops before the seed and says how to rebuild it
+# (KNOWN_ISSUES 60).
 #
 # Postgres, first match wins:
 #   1. A server already accepting the dev credentials below.
@@ -45,12 +52,14 @@ SEED_PORT=54329
 
 FORCE=0
 STOP=0
+CHECK_ONLY=0
 case "${1:-}" in
 --force) FORCE=1 ;;
 --stop) STOP=1 ;;
+--check-schema) CHECK_ONLY=1 ;;
 "") ;;
 *)
-	echo "usage: dev/setup.sh [--force|--stop]" >&2
+	echo "usage: dev/setup.sh [--force|--stop|--check-schema]" >&2
 	exit 2
 	;;
 esac
@@ -112,7 +121,12 @@ if [ $STOP = 1 ]; then
 	exit 0
 fi
 
-if [ "$DB" != "$SEED_DB" ] || [ "$PORT" != "$SEED_PORT" ]; then
+# --check-schema writes nothing but a scratch database, so it may also look at a
+# clubfindr_dev_* copy (which is how the check itself is tested)
+DB_OK=0
+[ "$DB" = "$SEED_DB" ] && DB_OK=1
+[ $CHECK_ONLY = 1 ] && case "$DB" in "$SEED_DB"_*) DB_OK=1 ;; esac
+if [ $DB_OK = 0 ] || [ "$PORT" != "$SEED_PORT" ]; then
 	die "refusing to run: the seed only loads into database '$SEED_DB' on port $SEED_PORT
 (got DEV_PG_DB='$DB', DEV_PG_PORT='$PORT')"
 fi
@@ -145,6 +159,11 @@ wait_until_ready() {
 # --- 1. Postgres -------------------------------------------------------------
 
 MODE=""
+
+# --check-schema looks at a running server only; it never starts, creates or loads anything
+if [ $CHECK_ONLY = 1 ] && ! { command -v psql >/dev/null 2>&1 && dev_login_works; }; then
+	die "--check-schema: no dev Postgres accepting connections on $HOST:$PORT"
+fi
 
 if command -v psql >/dev/null 2>&1 && dev_login_works; then
 	MODE=existing
@@ -203,6 +222,49 @@ fi
 
 # --- 2. Database, schema and seed --------------------------------------------
 
+# Compares the existing clubfindr schema with what dev/schema.sql builds, catalog line by
+# catalog line (dev/schema-catalog.sql), using a scratch database it drops again. Stops with
+# the difference and the way to rebuild, rather than rebuilding: the database is shared by
+# every checkout, and a rebuild wipes it (KNOWN_ISSUES 60).
+check_schema_drift() {
+	local scratch="${SEED_DB}_schemacheck" expected actual
+	psql_dev postgres -c 'SET client_min_messages = warning' \
+		-c "DROP DATABASE IF EXISTS \"$scratch\"" \
+		-c "CREATE DATABASE \"$scratch\" OWNER \"$DBUSER\"" >/dev/null
+	# shellcheck disable=SC2064 # expand now: the name is fixed
+	trap "psql_dev postgres -c 'DROP DATABASE IF EXISTS \"$scratch\"' >/dev/null 2>&1 || true" EXIT
+	grep -vE '^\\(un)?restrict ' "$DEV_DIR/schema.sql" |
+		PGOPTIONS='-c client_min_messages=warning' psql_dev "$scratch" >/dev/null
+	expected=$(psql_dev "$scratch" -tA <"$DEV_DIR/schema-catalog.sql")
+	actual=$(psql_dev "$DB" -tA <"$DEV_DIR/schema-catalog.sql")
+	psql_dev postgres -c "DROP DATABASE IF EXISTS \"$scratch\"" >/dev/null
+	trap - EXIT
+	if [ "$expected" = "$actual" ]; then
+		log "Schema clubfindr matches dev/schema.sql"
+		return 0
+	fi
+	{
+		echo "setup: the clubfindr schema in '$DB' differs from dev/schema.sql (- schema.sql, + database):"
+		# diff exits 1 when there is a difference, which is the point here; under pipefail that
+		# would end the script before the explanation below
+		{ diff <(echo "$expected") <(echo "$actual") || true; } | grep -E '^[<>]' |
+			sed 's/^</-/; s/^>/+/; s/^/    /'
+		echo
+		echo "It was most likely created before a schema change. setup.sh does not rebuild it on its"
+		echo "own: every checkout shares this database, and a rebuild wipes it (KNOWN_ISSUES 60)."
+		echo "Apply the missing migrations from migrations/ by hand, or, holding the e2e lease"
+		echo "(dev/e2e-lock.sh), rebuild it:"
+		echo
+		echo "  PGPASSWORD=$DBPASS psql -h $HOST -p $PORT -U $DBUSER -d $DB -c 'DROP SCHEMA clubfindr CASCADE'"
+		echo "  dev/setup.sh"
+	} >&2
+	exit 1
+}
+
+if [ $CHECK_ONLY = 1 ] && [ "$(psql_dev "$DB" -tAc "SELECT 1 FROM pg_namespace WHERE nspname = 'clubfindr'" 2>/dev/null)" != 1 ]; then
+	die "--check-schema: database '$DB' has no clubfindr schema to check"
+fi
+
 if [ "$(psql_dev postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB'")" != 1 ]; then
 	log "Creating database $DB"
 	psql_dev postgres -c "CREATE DATABASE \"$DB\" OWNER \"$DBUSER\""
@@ -215,6 +277,11 @@ if [ "$(psql_dev "$DB" -tAc "SELECT 1 FROM pg_namespace WHERE nspname = 'clubfin
 	grep -vE '^\\(un)?restrict ' "$DEV_DIR/schema.sql" | psql_dev "$DB" >/dev/null
 else
 	log "Schema clubfindr already exists; not reloading it"
+	check_schema_drift
+fi
+
+if [ $CHECK_ONLY = 1 ]; then
+	exit 0
 fi
 
 # Guard, checked against the live connection: the seed wipes every table
