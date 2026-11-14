@@ -10,7 +10,7 @@ export const SESSION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Whatever hooks.server.ts puts in locals.user. Typed by App.Locals rather than restated, so the
- * cache cannot drift from it (note App.Locals still says `id: number`, though users.id is a uuid).
+ * cache cannot drift from it.
  */
 export type CachedSessionUser = NonNullable<App.Locals['user']>;
 
