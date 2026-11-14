@@ -7,6 +7,9 @@ import {
 	type CachedSessionUser
 } from '$lib/server/sessionCache';
 import { USER_SESSION_MAX_AGE_DAYS } from '$lib/server/promoterAuth';
+import { applyCors } from '$lib/server/cors';
+import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 
 // Rate limiting for security
 const RATE_LIMIT = new Map();
@@ -104,30 +107,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (url.pathname === '/' || url.pathname.startsWith('/login/') || isStaticAsset) {
 		return await resolve(event);
 	}
-	// Check for API paths that need CORS headers
+	// /api/* answers browsers from the site's own origins only ($lib/server/cors, KNOWN_ISSUES
+	// 54); it sent `Access-Control-Allow-Origin: *` to everyone until 2026-11-14
 	if (url.pathname.startsWith('/api/')) {
-		// For OPTIONS requests (preflight)
+		const corsOptions = { dev, configuredOrigin: env.ORIGIN };
+		const origin = request.headers.get('origin');
+
+		// Preflight: answered here for every /api/* route, with the headers or without them
 		if (request.method === 'OPTIONS') {
-			return new Response(null, {
-				status: 204,
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-					'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-					'Access-Control-Max-Age': '86400' // 24 hours
-				}
-			});
+			const headers = new Headers();
+			applyCors(headers, origin, corsOptions);
+			if (headers.has('Access-Control-Allow-Origin')) {
+				headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+			}
+			return new Response(null, { status: 204, headers });
 		}
 
-		// For actual API requests, continue but make sure to add CORS headers to the response
 		const actualResponse = await resolve(event);
-
-		// Create a new response with CORS headers
 		const corsResponse = new Response(actualResponse.body, actualResponse);
-		corsResponse.headers.set('Access-Control-Allow-Origin', '*');
-		corsResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-		corsResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+		applyCors(corsResponse.headers, origin, corsOptions);
 		return corsResponse;
 	}
 	// For API endpoints that need auth, check the session

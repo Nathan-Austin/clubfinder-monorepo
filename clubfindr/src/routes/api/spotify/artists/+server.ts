@@ -23,16 +23,6 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	return svelteJson({ genresList });
 };
 
-export const OPTIONS: RequestHandler = async () => {
-	return new Response(null, {
-		headers: {
-			'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
-			'Access-Control-Allow-Origin': '*'
-		}
-	});
-};
-
 export const POST: RequestHandler = async ({ cookies, request }) => {
 	try {
 		const { selectedIds } = await request.json();

@@ -125,8 +125,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				{
 					status: 400,
 					headers: {
-						'Content-Type': 'application/json',
-						'Access-Control-Allow-Origin': '*'
+						'Content-Type': 'application/json'
 					}
 				}
 			);
@@ -173,8 +172,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return new Response(JSON.stringify([]), {
 				status: 200,
 				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*'
+					'Content-Type': 'application/json'
 				}
 			});
 		}
@@ -228,8 +226,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		return new Response(JSON.stringify(formattedBars), {
 			status: 200,
 			headers: {
-				'Content-Type': 'application/json',
-				'Access-Control-Allow-Origin': '*'
+				'Content-Type': 'application/json'
 			}
 		});
 	} catch (error) {
@@ -243,21 +240,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			{
 				status: 500,
 				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*'
+					'Content-Type': 'application/json'
 				}
 			}
 		);
 	}
-};
-
-// Handle OPTIONS requests for CORS preflight
-export const OPTIONS: RequestHandler = async () => {
-	return new Response(null, {
-		headers: {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-		}
-	});
 };
