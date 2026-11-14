@@ -41,8 +41,9 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       `$lib/taste/genreFallback.ts`, applied when an artist is added; still only verified
       against the mocks, not the live APIs
 - [x] Remove the Spotify connect step from web and mobile signup (`musicService` choice,
-      `spotify_service` add_user call; KNOWN_ISSUES 24). Behind `SPOTIFY_CONNECT_ENABLED=false`
-      (default still on), covering users and venues; the app reads `/api/mobile/config`
+      `spotify_service` add_user call; KNOWN_ISSUES 24). First behind
+      `SPOTIFY_CONNECT_ENABLED=false`, covering users and venues; since 2026-11-13 the connect
+      code is deleted and the flag is no longer read (`/api/mobile/config` answers `false`)
 - [x] Fix `/bars` so a venue can create events without connecting Spotify (KNOWN_ISSUES 4)
 - [x] Venues set their genres and typical artists by hand through the same picker, and
       `barfindr` stops polling venue Spotify playback. Done in three pieces:
@@ -50,9 +51,9 @@ Per-user Spotify connect goes; one server-side Spotify app stays, for artist dat
       dashboard, feeding matching); **polling retired 2026-11-12** (the `spotify_genre_polling`
       and `process_bar_batch` tasks, their beat entry and `barfindr`'s `spotify_service.py` are
       gone; the remaining aggregate and cleanup tasks drain `bar_genre_profiles` and
-      `bar_genre_aggregates` within 24 hours of the deploy; `spotipy` stays in
-      `requirements.txt` until the full `spotify_service` retirement so the deploy does not
-      stop for a by-hand requirements step); and **bare genres, also 2026-11-12**
+      `bar_genre_aggregates` within 24 hours of the deploy; `spotipy` left
+      `requirements.txt` with the `spotify_service` retirement, `ac4f6a4`); and **bare genres,
+      also 2026-11-12**
       (`bars.declared_genres`, `GET`/`PUT /api/venues/:barId/taste/genres`, the "Genres you
       play" dashboard section): a venue says "we play techno" with no artist needed, only
       genres the cluster matcher knows are accepted, and both matchers fold them in at the
@@ -83,11 +84,7 @@ Things to do by hand or decide, collected while building the items above.
 - [x] Run [`deploy/TEARDOWN-spotify-service.md`](deploy/TEARDOWN-spotify-service.md) on the
       server, done 2026-11-14 with the deploy of `7122896` (steps 0-9; the barfindr wind-down,
       step 10, is still open and waits for its tables to empty). Left for the owner: deleting
-      the four connect apps on the Spotify dashboard. With the deploy of `a5f407f` or later: stop the three spotify-automation units
-      **before** pushing; the deploy stops for the barfindr requirements and for the destructive
-      migration (apply 20261111 and the timestamptz one by hand, finish with
-      `MIGRATIONS_APPLIED=1`, then the drop once the new code is live); then units, sudoers,
-      nginx, leftovers, `.env` keys and the Spotify dashboard apps
+      the four connect apps on the Spotify dashboard
 - [ ] Run the app on a device before the next release (KNOWN_ISSUES 29): Discover, Search,
       signup and venue registration all changed in section 1 without a device run
 - [ ] Owner's decision: the Privacy Policy and Terms (app screens and web `/policies/*`) still
@@ -292,9 +289,11 @@ top artists or play counts on the web).
       cannot work, e.g. the mobile QR code routes; a suggested order). KNOWN_ISSUES 51-57 are the
       security findings. The critical part was done 2026-11-13 (items below and KNOWN_ISSUES 57);
       what remains is the endpoint-by-endpoint validation rollout (34 endpoints with none), the
-      SQL source guard and the request-body logging, planned as their own session
+      SQL source guard and the request-body logging, planned as their own session. Decided
+      2026-11-14: hand-written guards in `$lib/server/validate.ts`, no validation library
 - [ ] **Next:** promoter auth is a forgeable plain cookie (KNOWN_ISSUES 51), the same flaw the
-      venue guard had; give promoters a real session like the venue dashboard's
+      venue guard had; give promoters a real session like the venue dashboard's. Decided
+      2026-11-14: reuse `user_sessions` (no new table) and check `users.is_promoter`
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)
@@ -303,8 +302,11 @@ top artists or play counts on the web).
 - [x] Unauthenticated writes (`/api/mobile/checkin`, `/api/save-cookie-consent`), dead and debug
       routes, and the queries that could not run (QR codes, promoter resend, `/update-info` e-mail
       change), fixed 2026-11-13 (KNOWN_ISSUES 57)
-- [ ] Wildcard CORS on all of `/api/*` (low risk, no credentials; KNOWN_ISSUES 54)
-- [ ] Confirmation-code attempts are limited only in the browser (KNOWN_ISSUES 55)
+- [ ] Wildcard CORS on all of `/api/*` (low risk, no credentials; KNOWN_ISSUES 54). Decided
+      2026-11-14: allow only `https://clubfindr.com` and `https://www.clubfindr.com`, plus
+      localhost in dev; the native app needs no wildcard CORS
+- [ ] Confirmation-code attempts are limited only in the browser (KNOWN_ISSUES 55). Decided
+      2026-11-14: count attempts in the database (a small migration), not in memory
 - [x] `POST /api/mobile/signup/complete` changed any user without authentication: deleted
       2026-11-13 (KNOWN_ISSUES 56)
 - [x] Reduce request logging in `hooks.server.ts` (KNOWN_ISSUES 12), done 2026-11-12
