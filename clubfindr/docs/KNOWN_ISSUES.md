@@ -196,7 +196,7 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
     MusicBrainz switches use `$env/dynamic/private` at runtime, so tests can switch them
     without a rebuild and a missing optional key cannot break a build. Either document both
     conventions or move the optional keys to required placeholders.
-21. _Checked against the live APIs 2026-11-10; follow-ups open._ **Spotify, Last.fm and
+21. _Checked against the live APIs 2026-11-10; follow-ups done 2026-11-11._ **Spotify, Last.fm and
     MusicBrainz responses had only been checked against the mocks** (`tests/mock-spotify.ts`,
     `tests/mock-lastfm.ts`, `tests/mock-musicbrainz.ts`), which follow the public docs.
     On 2026-11-10 the app's own client functions (`spotifyArtistLookup.ts`, `lastfm.ts`,
@@ -623,7 +623,8 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
 51. **Promoter auth is a plain cookie.** `/login/bars` sets `promoterId` to the user's id, not
     `httpOnly` and unsigned; `/promoter-home` and `/promoter-home/events/*` trust it as is, so anyone
     who knows or guesses a promoter's user id can act as them. (`/api/spotify/search` accepts it too,
-    `09fdbb3`, gated on `users.is_promoter`.)
+    `09fdbb3`, gated on `users.is_promoter`.) Decided 2026-11-14: promoters get a `user_sessions`
+    session, checked against `users.is_promoter`, rather than a table of their own.
 52. _Fixed 2026-11-13 (`edb066d`)._ **Every venue write guard accepted a plain `barId` cookie.** `canManageBar`
     (`$lib/taste/barSession.ts`, behind `denyUnlessBarManager` in `$lib/server/barAuth`) returns true
     when `cookies.get('barId') === barId`. That cookie is set by `/login/bars` without `httpOnly` or
@@ -646,11 +647,14 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
 54. **Wildcard CORS on `/api/*`.** `hooks.server.ts` sets `Access-Control-Allow-Origin: *` on every
     `/api/*` response and preflight; `OPTIONS /api/spotify/artists` and nginx's
     `location /api/spotify/` block add the same. Low risk: no `Access-Control-Allow-Credentials` is
-    sent, so browsers do not attach cookies cross-origin (`docs/section4-inventory.md`). Narrow it
-    once the app's needs are known.
+    sent, so browsers do not attach cookies cross-origin (`docs/section4-inventory.md`). Decided
+    2026-11-14: allow only `https://clubfindr.com` and `https://www.clubfindr.com`, plus localhost
+    in dev; the native app needs no wildcard CORS.
 55. **Confirmation codes are rate-limited only in the browser.** `/register/confirm` (and the
     promoter and mobile confirm routes) accept unlimited attempts at a 6-hex-digit code within its
     10-30 minutes; the "3 attempts" limit is client-side. Only the global 60/minute IP limit applies.
+    Decided 2026-11-14: count failed attempts in the database (a small migration), so the limit
+    survives a restart.
 56. _Fixed 2026-11-13: deleted (`8858d8f`)._ **`POST /api/mobile/signup/complete` needed no
     authentication**: it set `onboarding_complete` and `is_first_time` for whatever `userId` it was
     sent. Nothing in the web app or the mobile app called it.
