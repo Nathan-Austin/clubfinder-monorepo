@@ -291,9 +291,13 @@ top artists or play counts on the web).
       what remains is the endpoint-by-endpoint validation rollout (34 endpoints with none), the
       SQL source guard and the request-body logging, planned as their own session. Decided
       2026-11-14: hand-written guards in `$lib/server/validate.ts`, no validation library
-- [ ] **Next:** promoter auth is a forgeable plain cookie (KNOWN_ISSUES 51), the same flaw the
-      venue guard had; give promoters a real session like the venue dashboard's. Decided
-      2026-11-14: reuse `user_sessions` (no new table) and check `users.is_promoter`
+- [x] Promoter auth was a forgeable plain cookie (KNOWN_ISSUES 51), the same flaw the venue
+      guard had: fixed 2026-11-14 (`00c8e3e`) with a `user_sessions` session (no new table) in the
+      encrypted httpOnly cookie, checked against `users.is_promoter`. Two promoter bugs came out
+      of its test: a registered promoter's login answered 500 and dashboard events had no
+      `event_id`, both fixed (KNOWN_ISSUES 62, 63); registration still writes no `promoters` row,
+      so such a promoter cannot create events (KNOWN_ISSUES 61, open)
+- [ ] **Next:** confirmation-code attempts limited on the server (KNOWN_ISSUES 55, below)
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)

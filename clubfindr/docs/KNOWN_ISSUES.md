@@ -620,11 +620,17 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
 
 Open security findings for ROADMAP section 4, noticed during the section 1 work and left alone:
 
-51. **Promoter auth is a plain cookie.** `/login/bars` sets `promoterId` to the user's id, not
-    `httpOnly` and unsigned; `/promoter-home` and `/promoter-home/events/*` trust it as is, so anyone
-    who knows or guesses a promoter's user id can act as them. (`/api/spotify/search` accepts it too,
-    `09fdbb3`, gated on `users.is_promoter`.) Decided 2026-11-14: promoters get a `user_sessions`
-    session, checked against `users.is_promoter`, rather than a table of their own.
+51. _Fixed 2026-11-14 (`00c8e3e`)._ **Promoter auth was a plain cookie.** `/login/bars` set
+    `promoterId` to the user's id, not `httpOnly` and unsigned; `/promoter-home` and
+    `/promoter-home/events/*` trusted it as is, so anyone who knew or guessed a promoter's user id
+    could act as them (`/api/spotify/search` accepted it too). A promoter now gets a
+    `user_sessions` row, the same session a regular login creates, in the encrypted httpOnly
+    `sessionId` cookie, and every promoter route resolves it and checks `users.is_promoter`
+    (`$lib/server/promoterAuth`). The dashboard login reuses a live session rather than replacing
+    it, so it does not log the same person out of the app; `/api/logout` ends the row and evicts
+    it from the cache; the `promoterId` cookie stays, httpOnly, for the layout's partner menu
+    only. Existing promoters were logged out once. Covered by `tests/promoter-auth.spec.ts`, which
+    registers its own promoters so as not to share the seeded one's session (59).
 52. _Fixed 2026-11-13 (`edb066d`)._ **Every venue write guard accepted a plain `barId` cookie.** `canManageBar`
     (`$lib/taste/barSession.ts`, behind `denyUnlessBarManager` in `$lib/server/barAuth`) returns true
     when `cookies.get('barId') === barId`. That cookie is set by `/login/bars` without `httpOnly` or
@@ -693,3 +699,20 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     Until setup.sh can detect drift, rebuild by hand under the e2e lease:
     `psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev -c 'DROP SCHEMA clubfindr CASCADE'`
     then `dev/setup.sh`. CI always starts from an empty database, so it is unaffected.
+61. **Promoter registration writes no `promoters` row.** `events.promoter_id` references
+    `promoters(id)`, and `/promoter-home` keys events by the promoter's `users.id`, so the two ids
+    must be the same (the seed gives the seeded promoter both). `/register/promoter` inserts the
+    user and the venue but never the `promoters` row, so a promoter registered through the form
+    cannot create an event: the INSERT fails on the foreign key and answers 500. Found 2026-11-14
+    writing `tests/promoter-auth.spec.ts`, which inserts the row itself for now. Fix: write the
+    row in the registration transaction (and backfill production's promoters).
+62. _Fixed 2026-11-14 (`92e5289`)._ **A registered promoter's login answered 500.**
+    `/register/promoter` writes a `bars` row under the promoter's e-mail with no password, and
+    `/login/bars` compared the password against that null hash, which `bcryptjs` throws on, so
+    every promoter registered through the form got "Error during login". The seed hid it: the
+    seeded promoter's venue has a different e-mail. A venue row without a password is skipped.
+63. _Fixed 2026-11-14 (`013e684`)._ **Events created on the promoter dashboard could never be
+    edited or deleted.** `events.event_id` has no default and the dashboard's INSERT never set
+    it, while `PATCH`/`DELETE /promoter-home/events/[eventId]` look events up by it. It is set to
+    a random uuid on creation now. Events created before have a NULL `event_id` and still cannot
+    be reached through those routes.
