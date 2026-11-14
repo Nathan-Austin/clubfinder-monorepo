@@ -1,5 +1,10 @@
 # Production handover: moving clubfindr to the upgraded stack
 
+> **Historical.** The checklist for the move from Node 18 to Node 24, kept for the record; the
+> unticked boxes were not maintained here. Production now runs Node 24, and some keys below
+> (`SPOTIFY_SERVICE_URL`, the Spotify redirect URIs) went with Spotify connect. The current
+> setup is in [`../../deploy/README.md`](../../deploy/README.md).
+
 This covers the production server (Node 18.19.1, PM2, nginx, `deploy/deploy.sh`) and the
 GitHub Actions workflows, which are outside this directory. Steps are in the order to do
 them; items marked **before merge** must be in place before `main` carries this code,

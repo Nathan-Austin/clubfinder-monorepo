@@ -1,5 +1,11 @@
 # Taste profile without Spotify: handover
 
+> **Historical (October 2026).** Written when Spotify connect still existed beside the taste
+> profile. Since 2026-11-13 the connect code, `spotify_service` and `SPOTIFY_CONNECT_ENABLED`
+> are gone, and the Spotify session steps in the genre precedence below no longer exist. For
+> current state see [`../../ROADMAP.md`](../../ROADMAP.md), [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md)
+> and [`../dev/TESTING.md`](../dev/TESTING.md).
+
 What was built on top of the `baseline` commit, how to run and test it, what was decided,
 what was deliberately left open, and what has **not** been verified against the real
 services. The design and the trace of the original flows are in

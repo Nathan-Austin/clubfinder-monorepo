@@ -82,7 +82,8 @@ docs/              design notes and KNOWN_ISSUES.md
 Users pick favourite artists (or import them from Last.fm) and the genres of those artists
 feed the club and bar matching, with no Spotify login. Design and trace of the old flows:
 `docs/taste-profile-design.md`; operational handover (how to run and test it, decisions,
-follow-ups, what was not verified live): `docs/HANDOVER.md`.
+follow-ups, what was not verified live; written before Spotify connect was removed):
+`docs/HANDOVER.md`.
 
 ## Production
 
