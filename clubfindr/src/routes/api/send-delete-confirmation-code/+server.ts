@@ -30,7 +30,7 @@ export async function POST({ request }) {
 		// another request's open transaction.
 		const result = await query(
 			`UPDATE clubfindr.users 
-			 SET confirmation_code = $1, expires_at = $2
+			 SET confirmation_code = $1, expires_at = $2, confirmation_attempts = 0
 			 WHERE general_email = $3
 			 RETURNING id`,
 			[confirmationCode, expiresAt, email]

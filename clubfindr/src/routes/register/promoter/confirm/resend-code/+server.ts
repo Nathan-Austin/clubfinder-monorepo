@@ -63,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Update the confirmation code and resend attempts
 		await query(
-			`UPDATE clubfindr.bars SET confirmation_code = $1, expires_at = $2, resend_attempts = resend_attempts + 1 WHERE general_email = $3 AND city = $4`,
+			`UPDATE clubfindr.bars SET confirmation_code = $1, expires_at = $2, resend_attempts = resend_attempts + 1, confirmation_attempts = 0 WHERE general_email = $3 AND city = $4`,
 			[confirmationCode, newExpiresAt, email, normalizedCityName]
 		);
 

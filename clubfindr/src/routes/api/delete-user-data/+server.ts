@@ -25,6 +25,7 @@ import { json } from '@sveltejs/kit';
 import { withTransaction } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
 import { evictSessions } from '$lib/server/sessionCache';
+import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
 
 export const POST = async ({ request, cookies }) => {
 	const { email, confirmationCode } = await request.json();
@@ -33,18 +34,26 @@ export const POST = async ({ request, cookies }) => {
 	}
 
 	const endedSessions = await withTransaction(async (client) => {
-		// FOR UPDATE: two requests with the same code cannot both get past this point
-		const result = await client.query(
-			`SELECT id FROM clubfindr.users
-			  WHERE general_email = $1
-			    AND confirmation_code = $2
-			    AND expires_at > NOW()
-			    FOR UPDATE`,
-			[email, confirmationCode]
-		);
-		if (result.rows.length === 0) return null;
+		// Every guess spends one of the code's attempts, in the statement that reads it
+		// (KNOWN_ISSUES 55). That UPDATE also locks the row for the rest of the transaction, so two
+		// requests with the same code cannot both get past this point (the second sees the code
+		// already cleared); FOR UPDATE on a SELECT used to do that.
+		const attempt = await spendCodeAttempt(client, 'users', email, [
+			'id',
+			'confirmation_code',
+			'expires_at > NOW() AS live'
+		]);
+		if (attempt.outcome === 'exhausted') return 'exhausted' as const;
+		if (
+			attempt.outcome === 'not_found' ||
+			!attempt.row.confirmation_code ||
+			attempt.row.confirmation_code !== confirmationCode ||
+			attempt.row.live !== true
+		) {
+			return null;
+		}
 
-		const userId: string = result.rows[0].id;
+		const userId = attempt.row.id as string;
 		// general_email has to stay unique, so it is replaced rather than cleared
 		const uniqueDeletedEmail = `deleted-${Date.now()}-${userId}@example.com`;
 
@@ -64,6 +73,7 @@ export const POST = async ({ request, cookies }) => {
 			        interested_events = NULL,
 			        confirmation_code = NULL,
 			        expires_at = NULL,
+			        confirmation_attempts = 0,
 			        updated_at = NOW()
 			  WHERE id = $1`,
 			[userId, uniqueDeletedEmail]
@@ -79,6 +89,9 @@ export const POST = async ({ request, cookies }) => {
 		return sessions.rows.map((row) => String(row.session_id));
 	});
 
+	if (endedSessions === 'exhausted') {
+		return json({ error: CODE_ATTEMPTS_EXHAUSTED }, { status: 429 });
+	}
 	if (endedSessions === null) {
 		return json({ error: 'Invalid or expired confirmation code.' }, { status: 400 });
 	}

@@ -82,7 +82,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				`INSERT INTO clubfindr.bars (user_id, name, contact_person, general_email, phone, address, postcode, 
 				 website, city, confirmation_code, expires_at) 
 				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-				 ON CONFLICT (general_email) DO UPDATE SET confirmation_code = $10, expires_at = $11`,
+				 ON CONFLICT (general_email) DO UPDATE SET confirmation_code = $10, expires_at = $11, confirmation_attempts = 0`,
 				[
 					userId,
 					businessName,

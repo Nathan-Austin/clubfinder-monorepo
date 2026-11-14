@@ -1,49 +1,49 @@
 //register/promoter/confirm/+sever.ts
 import { json } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
 import type { RequestHandler } from './$types';
-import { normalizeCityName } from '$lib/cityName';
 import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
+import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
+
+// Confirms a promoter's venue (/register/promoter) with the e-mailed code. bars.general_email is
+// unique, so the venue is found by e-mail alone; it used to be looked up by e-mail and the
+// user's city as well, which added nothing.
 export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const { email, confirmationCode } = await request.json();
+		if (typeof email !== 'string' || !email.trim() || typeof confirmationCode !== 'string') {
+			return json({ error: 'E-mail and confirmation code are required.' }, { status: 400 });
+		}
 
-		// Fetch the city and table name from user_bars table based on the user's email
-		const cityResult = await query(`SELECT city FROM clubfindr.users WHERE general_email = $1`, [
-			email
+		// Every guess spends one of the code's attempts, in the statement that reads it
+		// (KNOWN_ISSUES 55)
+		const attempt = await spendCodeAttempt(pool, 'bars', email.trim(), [
+			'confirmation_code',
+			`${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left`
 		]);
-
-		if (cityResult.rows.length === 0) {
+		if (attempt.outcome === 'exhausted') {
+			return json({ error: CODE_ATTEMPTS_EXHAUSTED }, { status: 429 });
+		}
+		if (attempt.outcome === 'not_found') {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
 
-		const normalizedCityName = normalizeCityName(cityResult.rows[0].city);
-
-		const result = await query(
-			`SELECT confirmation_code, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
-			 FROM clubfindr.bars WHERE general_email = $1 AND city = $2`,
-			[email, normalizedCityName]
-		);
-
-		if (result.rows.length === 0) {
-			return json({ error: 'User not found' }, { status: 404 });
-		}
-
-		const { confirmation_code, seconds_left } = result.rows[0];
+		const { confirmation_code, seconds_left } = attempt.row;
 
 		// Check if the confirmation code has expired
-		if (!barCodeStillValid(seconds_left)) {
+		if (!barCodeStillValid(seconds_left as number | null)) {
 			return json({ error: 'Confirmation code expired' }, { status: 400 });
 		}
 
 		// Validate the provided confirmation code
-		if (confirmation_code !== confirmationCode) {
+		if (!confirmation_code || confirmation_code !== confirmationCode.trim().toUpperCase()) {
 			return json({ error: 'Invalid confirmation code' }, { status: 400 });
 		}
 
 		await query(
-			`UPDATE clubfindr.bars SET confirmed = true  WHERE general_email = $1 AND city = $2`,
-			[email, normalizedCityName]
+			`UPDATE clubfindr.bars SET confirmed = true, confirmation_attempts = 0
+			 WHERE LOWER(general_email) = LOWER($1)`,
+			[email.trim()]
 		);
 
 		return json({ success: true });

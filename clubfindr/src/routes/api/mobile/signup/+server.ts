@@ -87,7 +87,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Store confirmation code and expiry in database
 		await query(
 			`UPDATE clubfindr.users 
-		SET confirmation_code = $1, expires_at = $2, confirmed = FALSE 
+		SET confirmation_code = $1, expires_at = $2, confirmed = FALSE, confirmation_attempts = 0
 		WHERE id = $3`,
 			[confirmationCode, expiresAt, userId]
 		);

@@ -8,9 +8,10 @@
 // It also logged the expected code next to the one received; it logs neither now.
 
 import { json } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
+import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -20,13 +21,16 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 		const normalizedEmail = email.trim().toLowerCase();
 
-		const result = await query(
-			`SELECT confirmation_code, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
-			 FROM clubfindr.bars WHERE LOWER(general_email) = $1`,
-			[normalizedEmail]
-		);
-
-		if (result.rows.length === 0) {
+		// Every guess spends one of the code's attempts, in the statement that reads it
+		// (KNOWN_ISSUES 55)
+		const attempt = await spendCodeAttempt(pool, 'bars', normalizedEmail, [
+			'confirmation_code',
+			`${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left`
+		]);
+		if (attempt.outcome === 'exhausted') {
+			return json({ error: CODE_ATTEMPTS_EXHAUSTED }, { status: 429 });
+		}
+		if (attempt.outcome === 'not_found') {
 			return json(
 				{
 					error:
@@ -36,9 +40,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		const { confirmation_code, seconds_left } = result.rows[0];
+		const { confirmation_code, seconds_left } = attempt.row;
 
-		if (!barCodeStillValid(seconds_left)) {
+		if (!barCodeStillValid(seconds_left as number | null)) {
 			return json(
 				{ error: 'Confirmation code has expired. Please request a new code.' },
 				{ status: 400 }
@@ -52,9 +56,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		await query(`UPDATE clubfindr.bars SET confirmed = true WHERE LOWER(general_email) = $1`, [
-			normalizedEmail
-		]);
+		await query(
+			`UPDATE clubfindr.bars SET confirmed = true, confirmation_attempts = 0
+			 WHERE LOWER(general_email) = $1`,
+			[normalizedEmail]
+		);
 
 		return json({ success: true });
 	} catch (error) {

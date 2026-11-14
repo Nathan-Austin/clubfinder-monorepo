@@ -53,6 +53,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			`UPDATE clubfindr.bars 
 			 SET confirmation_code = $1, 
 				 expires_at = $2, 
+				 confirmation_attempts = 0,
 				 updated_at = NOW()
 			 WHERE id = $3`,
 			[confirmationCode, expiresAt, barData.id]

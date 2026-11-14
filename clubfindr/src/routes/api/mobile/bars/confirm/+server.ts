@@ -1,24 +1,36 @@
 // routes/api/mobile/bars/confirm/+server.ts
 import { json } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
 import { generateJWT } from '$lib/authUtils';
 import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
+import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { email, confirmationCode } = await request.json();
+	if (typeof email !== 'string' || !email.trim() || typeof confirmationCode !== 'string') {
+		return json({ success: false, error: 'Invalid confirmation code or email' }, { status: 400 });
+	}
 
 	try {
-		// Validate the email and confirmation code
-		const result = await query(
-			`SELECT id, name, ${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left
-			 FROM clubfindr.bars 
-			 WHERE general_email = $1 AND confirmation_code = $2`,
-			[email, confirmationCode]
-		);
-
-		if (result.rows.length === 0) {
+		// Every guess spends one of the code's attempts, in the statement that reads it
+		// (KNOWN_ISSUES 55); the code is compared here rather than in the WHERE clause so a
+		// wrong guess still counts
+		const attempt = await spendCodeAttempt(pool, 'bars', email.trim(), [
+			'id',
+			'name',
+			'confirmation_code',
+			`${BAR_CODE_SECONDS_LEFT_SQL} AS seconds_left`
+		]);
+		if (attempt.outcome === 'exhausted') {
+			return json({ success: false, error: CODE_ATTEMPTS_EXHAUSTED }, { status: 429 });
+		}
+		if (
+			attempt.outcome === 'not_found' ||
+			!attempt.row.confirmation_code ||
+			attempt.row.confirmation_code !== confirmationCode.trim().toUpperCase()
+		) {
 			return json(
 				{
 					success: false,
@@ -28,7 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		const barData = result.rows[0];
+		const barData = attempt.row as { id: string; name: string; seconds_left: number | null };
 		// Check if the confirmation code has expired
 		if (!barCodeStillValid(barData.seconds_left)) {
 			return json(
@@ -46,6 +58,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			 SET confirmed = true, 
 			     confirmation_code = NULL, 
 			     expires_at = NULL,
+			     confirmation_attempts = 0,
 			     updated_at = NOW()
 			 WHERE id = $1`,
 			[barData.id]
