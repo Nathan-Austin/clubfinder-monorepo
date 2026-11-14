@@ -156,7 +156,7 @@ python3 soundcloud_api.py
 - `src/barfindr/database.py` - SQLAlchemy database setup (requires `DATABASE_URL`)
 - `src/barfindr/tasks.py` - Celery tasks (genre-aggregate refresh and cleanup; the Spotify
   playback polling was retired 2026-11-12, ROADMAP section 1)
-- `src/barfindr/encryption.py` - Credential encryption/decryption
+- `src/barfindr/encryption.py` - Credential encryption/decryption (unused, nothing imports it)
 - `migrations/` - Alembic database migrations
 
 **Background Tasks:**
@@ -193,8 +193,9 @@ python3 soundcloud_api.py
 **barfindr requires** (`barfindr/.env`, loaded by the systemd units):
 - `DATABASE_URL` - PostgreSQL connection string (required; no fallback)
 - `REDIS_URL` - Celery broker
-- `ENCRYPTION_KEY` - for stored Spotify credentials
-  (`SPOTIFY_REDIRECT_URI` is no longer read since the playback polling was retired)
+- `ENCRYPTION_KEY` and `SPOTIFY_REDIRECT_URI` are no longer read: the playback polling is
+  retired and nothing imports `src/barfindr/encryption.py` since the venue Spotify columns
+  were dropped
 
 ### Testing
 
