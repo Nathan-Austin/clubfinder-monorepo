@@ -96,8 +96,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			}
 		}
 
-		// Check bar manager credentials
-		if ((barManagerResult?.rowCount ?? 0) > 0) {
+		// Check bar manager credentials. A promoter's own venue row (/register/promoter writes one
+		// under the promoter's e-mail) has no password, and comparing against a null hash throws,
+		// which answered 500 to every registered promoter's login (KNOWN_ISSUES 62): a venue row
+		// without a password is not a venue account, so it is skipped.
+		if ((barManagerResult?.rowCount ?? 0) > 0 && barManagerResult.rows[0].password_hash) {
 			const barData = barManagerResult.rows[0];
 			const storedBarPassword = barData.password_hash;
 			const isBarPasswordCorrect = await comparePassword(password, storedBarPassword);
