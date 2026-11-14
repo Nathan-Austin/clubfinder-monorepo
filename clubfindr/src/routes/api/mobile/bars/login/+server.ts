@@ -4,6 +4,7 @@ import { query } from '$lib/db';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { v4 as uuidv4 } from 'uuid';
 import {
+	SAY,
 	email as emailCheck,
 	fields,
 	password as passwordCheck,
@@ -33,7 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return new Response(
 				JSON.stringify({
 					success: false,
-					message: input.message
+					message: SAY.login
 				}),
 				{
 					status: 400,

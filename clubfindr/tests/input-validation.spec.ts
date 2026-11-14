@@ -219,3 +219,46 @@ for (const { path, key, captcha, cases } of ENDPOINTS) {
 		}
 	});
 }
+
+// Where a page or the app shows the answer as it is, it reads as a sentence, not a field name
+// (ROADMAP section 4, 2026-11-14): one per kind of form, and labelled fields on registration.
+test('the 400s people see are worded for people', async ({ playwright, baseURL }) => {
+	const api = await mobileApi(playwright, baseURL);
+	try {
+		const say = async (path: string, data: Record<string, unknown>, key = 'message') => {
+			const response = await api.post(path, { data });
+			expect(response.status(), path).toBe(400);
+			return (await response.json())[key];
+		};
+		const login = 'Enter your e-mail address and password.';
+		expect(await say('/login/bars', { email: 42, password: 'x' })).toBe(login);
+		expect(await say('/api/mobile/login', { email: 'a@b.c' })).toBe(login);
+		expect(await say('/api/mobile/bars/login', {})).toBe(login);
+		expect(await say('/api/request-password-reset', { email: 'nope' })).toBe(
+			'Enter the e-mail address of your account.'
+		);
+		const code = 'Enter your e-mail address and the six-character code from the e-mail.';
+		expect(await say('/api/verify-confirmation', { email: 'a@b.c', confirmationCode: '1' })).toBe(
+			code
+		);
+		expect(
+			await say('/register/promoter/confirm', { email: 'a@b.c', confirmationCode: 'x' }, 'error')
+		).toBe(code);
+
+		const solved = await api.post('/api/verify-captcha', {
+			data: { recaptchaResponse: 'mock-captcha-ok' }
+		});
+		expect(solved.status()).toBe(200);
+		expect(await say('/register/promoter', promoter({ businessName: '' }))).toBe(
+			'Business name is required'
+		);
+		expect(await say('/register/promoter', promoter({ phone: '1'.repeat(21) }))).toBe(
+			'Phone must be at most 20 characters'
+		);
+		expect(await say('/register/promoter', promoter({ password: 'short' }))).toContain(
+			'Password must be at least 8 characters long'
+		);
+	} finally {
+		await api.dispose();
+	}
+});

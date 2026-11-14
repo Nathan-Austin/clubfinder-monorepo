@@ -2,13 +2,13 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { generateConfirmationCode } from '$lib/codegen.js';
 import { sendVerificationEmail } from '$lib/email';
-import { email as emailCheck, readJsonObject } from '$lib/server/validate';
+import { SAY, email as emailCheck, readJsonObject } from '$lib/server/validate';
 
 export async function POST({ request }) {
 	try {
 		// Checked before any query (ROADMAP section 4)
 		const checked = emailCheck((await readJsonObject(request))?.email);
-		if (!checked.ok) return json({ success: false, message: checked.message }, { status: 400 });
+		if (!checked.ok) return json({ success: false, message: SAY.email }, { status: 400 });
 		const email = checked.value;
 		console.log(`Resending verification code to: ${email}`);
 

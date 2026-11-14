@@ -5,6 +5,7 @@ import { json } from '@sveltejs/kit';
 import { pool, query } from '$lib/db';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
 import {
+	SAY,
 	confirmationCode as codeCheck,
 	email as emailCheck,
 	fields,
@@ -20,7 +21,7 @@ export async function POST({ request }) {
 		email: emailCheck(body?.email),
 		confirmationCode: codeCheck(body?.confirmationCode)
 	});
-	if (!input.ok) return json({ success: false, message: input.message }, { status: 400 });
+	if (!input.ok) return json({ success: false, message: SAY.code }, { status: 400 });
 	const { email, confirmationCode } = input.value;
 	try {
 		// Every guess spends one of the code's attempts, in the statement that reads it

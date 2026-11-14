@@ -9,6 +9,7 @@ import { pool } from '$lib/db';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
 import {
+	SAY,
 	email as emailCheck,
 	fields,
 	password as passwordCheck,
@@ -28,7 +29,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return new Response(
 				JSON.stringify({
 					success: false,
-					message: input.message
+					message: SAY.login
 				}),
 				{
 					status: 400,

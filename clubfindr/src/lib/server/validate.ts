@@ -13,6 +13,17 @@
 
 export type Check<T> = { ok: true; value: T } | { ok: false; message: string };
 
+/**
+ * What a person sees. The checks' own messages name the field ("email is required"), which suits
+ * an API client; where a page or the app shows the answer as it is, an endpoint sends one of
+ * these instead, or passes a readable label as the field name ("Business name is required").
+ */
+export const SAY = {
+	login: 'Enter your e-mail address and password.',
+	email: 'Enter the e-mail address of your account.',
+	code: 'Enter your e-mail address and the six-character code from the e-mail.'
+} as const;
+
 const ok = <T>(value: T): Check<T> => ({ ok: true, value });
 const fail = <T>(message: string): Check<T> => ({ ok: false, message });
 
@@ -47,7 +58,7 @@ export function email(value: unknown, field = 'email', { strict = false } = {}):
 		return fail(`${field} must be at most ${MAX_EMAIL_LENGTH} characters`);
 	}
 	if (!(strict ? EMAIL_STRICT : EMAIL_LOOSE).test(trimmed)) {
-		return fail(`${field} must be an e-mail address`);
+		return fail(`${field} must be a valid e-mail address`);
 	}
 	return ok(trimmed);
 }

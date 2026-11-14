@@ -4,13 +4,13 @@ import { query } from '$lib/db';
 import { randomBytes } from 'crypto';
 import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
-import { email as emailCheck, readJsonObject } from '$lib/server/validate';
+import { SAY, email as emailCheck, readJsonObject } from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
 	// Checked before any query: a body that was not JSON threw here, outside the try (500)
 	// (ROADMAP section 4)
 	const checked = emailCheck((await readJsonObject(request))?.email);
-	if (!checked.ok) return json({ success: false, error: checked.message }, { status: 400 });
+	if (!checked.ok) return json({ success: false, error: SAY.email }, { status: 400 });
 	const email = checked.value;
 
 	try {

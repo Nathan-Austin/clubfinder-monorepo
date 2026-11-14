@@ -5,7 +5,7 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { generateConfirmationCode } from '$lib/codegen.js';
 import { sendVerificationEmail, sendDeletionConfirmationEmail } from '$lib/email';
-import { email as emailCheck, fields, oneOf, readJsonObject } from '$lib/server/validate';
+import { SAY, email as emailCheck, oneOf, readJsonObject } from '$lib/server/validate';
 
 const PURPOSES = ['email_verification', 'account_deletion'] as const;
 
@@ -15,12 +15,15 @@ export async function POST({ request }) {
 		// verification, as before; one that is neither of the two is refused instead of being
 		// quietly treated as verification.
 		const body = await readJsonObject(request);
-		const input = fields({
-			email: emailCheck(body?.email),
-			purpose: oneOf(body?.purpose, 'purpose', PURPOSES, 'email_verification')
-		});
-		if (!input.ok) return json({ success: false, message: input.message }, { status: 400 });
-		const { email, purpose } = input.value;
+		const checkedEmail = emailCheck(body?.email);
+		if (!checkedEmail.ok) return json({ success: false, message: SAY.email }, { status: 400 });
+		// A wrong purpose is the app's mistake, not the person's: that message names the field
+		const checkedPurpose = oneOf(body?.purpose, 'purpose', PURPOSES, 'email_verification');
+		if (!checkedPurpose.ok) {
+			return json({ success: false, message: checkedPurpose.message }, { status: 400 });
+		}
+		const email = checkedEmail.value;
+		const purpose = checkedPurpose.value;
 		console.log(`Sending ${purpose} code to: ${email}`);
 
 		// Find user by email

@@ -17,9 +17,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		// before.
 		const body = await readJsonObject(request);
 		const input = fields({
-			name: text(body?.name, 'name', { max: 100 }),
-			email: emailCheck(body?.email),
-			reason: text(body?.reason, 'reason', { max: 2000 })
+			name: text(body?.name, 'Name', { max: 100 }),
+			email: emailCheck(body?.email, 'E-mail'),
+			reason: text(body?.reason, 'Reason', { max: 2000 })
 		});
 		if (!input.ok) return new Response(input.message, { status: 400 });
 		const { name, email, reason } = input.value;

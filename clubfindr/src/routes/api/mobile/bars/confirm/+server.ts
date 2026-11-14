@@ -7,6 +7,7 @@ import { generateJWT } from '$lib/authUtils';
 import { BAR_CODE_SECONDS_LEFT_SQL, barCodeStillValid } from '$lib/server/barCodeExpiry';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
 import {
+	SAY,
 	confirmationCode as codeCheck,
 	email as emailCheck,
 	fields,
@@ -20,7 +21,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		email: emailCheck(body?.email),
 		confirmationCode: codeCheck(body?.confirmationCode)
 	});
-	if (!input.ok) return json({ success: false, error: input.message }, { status: 400 });
+	if (!input.ok) return json({ success: false, error: SAY.code }, { status: 400 });
 	const { email, confirmationCode } = input.value;
 
 	try {

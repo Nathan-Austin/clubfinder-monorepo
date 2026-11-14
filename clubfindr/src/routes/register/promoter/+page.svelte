@@ -98,7 +98,9 @@
 				// Redirect to the confirmation page
 				window.location.href = responseData.redirectUrl;
 			} else {
-				alert('Registration failed. Please try again.');
+				// The server says what was wrong (a weak password, a missing field) since input
+				// validation (ROADMAP section 4); before, every failure read the same
+				alert(responseData.message || 'Registration failed. Please try again.');
 			}
 		} catch (error) {
 			console.error('Error during registration:', error);

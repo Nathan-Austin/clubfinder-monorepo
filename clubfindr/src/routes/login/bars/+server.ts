@@ -8,6 +8,7 @@ import { USER_SESSION_COOKIE, createPromoterSession } from '$lib/server/promoter
 import { comparePassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
 import {
+	SAY,
 	email as emailCheck,
 	fields,
 	password as passwordCheck,
@@ -22,7 +23,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	const body = await readJsonObject(request);
 	const input = fields({ email: emailCheck(body?.email), password: passwordCheck(body?.password) });
 	if (!input.ok) {
-		return new Response(JSON.stringify({ success: false, message: input.message }), {
+		return new Response(JSON.stringify({ success: false, message: SAY.login }), {
 			status: 400,
 			headers: { 'Content-Type': 'application/json' }
 		});

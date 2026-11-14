@@ -30,15 +30,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	// postcode varchar(20), city varchar(100)), which a longer value failed on, also as a 500
 	const body = await readJsonObject(request);
 	const input = fields({
-		businessName: text(body?.businessName, 'businessName', { max: 255 }),
-		contactPerson: text(body?.contactPerson, 'contactPerson', { max: 255 }),
-		email: emailCheck(body?.email, 'email', { strict: true }),
-		phone: text(body?.phone, 'phone', { max: 20, optional: true }),
-		address: text(body?.address, 'address', { max: 500, optional: true }),
-		postcode: text(body?.postcode, 'postcode', { max: 20, optional: true }),
-		cityName: text(body?.cityName, 'cityName', { max: 100 }),
-		website: text(body?.website, 'website', { max: 255, optional: true }),
-		password: passwordCheck(body?.password)
+		// Readable labels: the registration page shows the message as it is
+		businessName: text(body?.businessName, 'Business name', { max: 255 }),
+		contactPerson: text(body?.contactPerson, 'Contact person', { max: 255 }),
+		email: emailCheck(body?.email, 'E-mail', { strict: true }),
+		phone: text(body?.phone, 'Phone', { max: 20, optional: true }),
+		address: text(body?.address, 'Address', { max: 500, optional: true }),
+		postcode: text(body?.postcode, 'Postcode', { max: 20, optional: true }),
+		cityName: text(body?.cityName, 'City', { max: 100 }),
+		website: text(body?.website, 'Website', { max: 255, optional: true }),
+		password: passwordCheck(body?.password, 'Password')
 	});
 	if (!input.ok) return json({ success: false, message: input.message }, { status: 400 });
 	const strength = validatePassword(input.value.password);
