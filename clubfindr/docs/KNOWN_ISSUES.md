@@ -452,8 +452,9 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
 
 33. **Real production secrets sit in env files in the working copy.** Besides the
     `clubfindr/.env` that `dev/setup.sh` writes (dev values only), the checkout holds
-    `clubfindr/.env.bak`, `clubfindr/.env.pre-hardening`, `data_collection/.env` and
-    `spotify_service/.env.local`, which contain live credentials (mail passwords, OpenAI and
+    `clubfindr/.env.bak`, `clubfindr/.env.pre-hardening` and `data_collection/.env` (the
+    `spotify_service/.env.local` copy was deleted with that component on 2026-11-14), which contain
+    live credentials (mail passwords, OpenAI and
     Grok keys, OAuth and JWT secrets). They are gitignored and, since 2026-11-10, readable only
     by their owner. Agents and scripts must not open, print, copy or summarise them, nor create
     new env files with real keys; the e2e suite needs nothing but `clubfindr/.env` and the mocks.

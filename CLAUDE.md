@@ -228,7 +228,7 @@ shell timeout longer than `E2E_LEASE_WAIT_SECONDS` (default 1800).
 - Session caching with 5-minute TTL to reduce database load
 - Session timeout after 7 days of inactivity
 - **Env files other than `clubfindr/.env` may hold production secrets** (`.env.bak`,
-  `.env.pre-hardening`, `data_collection/.env`, `spotify_service/.env.local`; KNOWN_ISSUES 33).
+  `.env.pre-hardening`, `data_collection/.env`; KNOWN_ISSUES 33).
   Never open, print, copy or commit them, and never create env files with real keys. Tests use
   `clubfindr/.env` from `dev/setup.sh` and the `tests/mock-*.ts` servers; no live API calls
   from tests or scripts (KNOWN_ISSUES 21)
