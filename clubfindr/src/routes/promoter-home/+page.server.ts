@@ -2,13 +2,14 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
 import { toLocalIsoDate } from '$lib/localDate';
+import { promoterIdFromSession } from '$lib/server/promoterAuth';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	// Not logged in as a promoter: to the partner login (outside the try below, whose catch
-	// turns everything into a 500)
-	const promoterId = cookies.get('promoterId');
+	// Not logged in as a promoter (no session, a forged or expired one, or not a promoter): to
+	// the partner login (outside the try below, whose catch turns everything into a 500)
+	const promoterId = await promoterIdFromSession(pool, cookies);
 	if (!promoterId) {
 		redirect(302, '/login/bars');
 	}

@@ -6,6 +6,7 @@ import {
 	sessionCache as SESSION_CACHE,
 	type CachedSessionUser
 } from '$lib/server/sessionCache';
+import { USER_SESSION_MAX_AGE_DAYS } from '$lib/server/promoterAuth';
 
 // Rate limiting for security
 const RATE_LIMIT = new Map();
@@ -172,7 +173,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 				const lastAccessed = new Date(session.last_accessed);
 				const daysSinceLastAccess = (now - lastAccessed.getTime()) / (1000 * 60 * 60 * 24);
 
-				if (daysSinceLastAccess > 7) {
+				if (daysSinceLastAccess > USER_SESSION_MAX_AGE_DAYS) {
 					// Session expired
 					await query('DELETE FROM clubfindr.user_sessions WHERE session_id = $1', [sessionId]);
 					cookieManager.delete(event.cookies, 'sessionId', { path: '/' });

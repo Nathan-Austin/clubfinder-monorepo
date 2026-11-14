@@ -4,6 +4,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { pool, query } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
 import { BAR_SESSION_COOKIE, createBarSession } from '$lib/taste/barSession';
+import { USER_SESSION_COOKIE, createPromoterSession } from '$lib/server/promoterAuth';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
 
@@ -72,10 +73,19 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					maxAge: 60 * 60 * 24 * 7 // 1 week
 				});
 
-				// If user is a promoter, set promoter cookie
+				// A promoter's session: a user_sessions row (the same kind /login/users creates) in
+				// the encrypted httpOnly `sessionId` cookie. This is what /promoter-home and its
+				// event endpoints check ($lib/server/promoterAuth). The `promoterId` cookie below is
+				// only for the layout's partner menu and is never trusted: until 2026-11-14 it was
+				// the whole of promoter auth, plain and forgeable (KNOWN_ISSUES 51).
 				if (isPromoter) {
+					const sessionId = await createPromoterSession(pool, userId);
+					cookieManager.set(cookies, USER_SESSION_COOKIE, sessionId, {
+						maxAge: 60 * 60 * 24 * 7 // 1 week; the session itself expires 7 days after last use
+					});
 					cookies.set('promoterId', userId, {
 						path: '/',
+						httpOnly: true,
 						secure: true,
 						sameSite: 'lax',
 						maxAge: 60 * 60 * 24 * 7 // 1 week

@@ -13,15 +13,12 @@
 
 import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
+import { requirePromoter } from '$lib/server/promoterAuth';
 
 export async function DELETE({ params, cookies }: RequestEvent) {
+	const userId = await requirePromoter(pool, cookies);
 	try {
-		const userId = cookies.get('promoterId');
-		if (!userId) {
-			throw error(401, 'Unauthorized');
-		}
-
 		// params.eventId is now available because of the [eventId] folder
 		const eventId = params.eventId;
 
@@ -47,12 +44,8 @@ export async function DELETE({ params, cookies }: RequestEvent) {
 }
 
 export async function PATCH({ request, params, cookies }: RequestEvent) {
+	const userId = await requirePromoter(pool, cookies);
 	try {
-		const userId = cookies.get('promoterId');
-		if (!userId) {
-			throw error(401, 'Unauthorized');
-		}
-
 		// params.eventId is now available because of the [eventId] folder
 		const eventId = params.eventId;
 		const updates = await request.json();

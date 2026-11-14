@@ -2,16 +2,15 @@
 
 import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from '../$types';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
+import { requirePromoter } from '$lib/server/promoterAuth';
+
+// The promoter is taken from their session ($lib/server/promoterAuth), outside each try: the
+// catch below answers 500 to everything, which is what the 401 thrown inside it used to become.
 
 export async function GET({ cookies }: RequestEvent) {
+	const userId = await requirePromoter(pool, cookies);
 	try {
-		// Ensure user is authenticated and is a promoter
-		const userId = cookies.get('promoterId');
-		if (!userId) {
-			throw error(401, 'Unauthorized');
-		}
-
 		// Get all events for the promoter
 		const events = await query(
 			`SELECT 
@@ -30,13 +29,8 @@ export async function GET({ cookies }: RequestEvent) {
 }
 
 export async function POST({ request, cookies }: RequestEvent) {
+	const userId = await requirePromoter(pool, cookies);
 	try {
-		// Ensure user is authenticated and is a promoter
-		const userId = cookies.get('promoterId');
-		if (!userId) {
-			throw error(401, 'Unauthorized');
-		}
-
 		const eventData = await request.json();
 
 		// One INSERT, atomic by itself. It used to sit inside query('BEGIN') … query('COMMIT'),
