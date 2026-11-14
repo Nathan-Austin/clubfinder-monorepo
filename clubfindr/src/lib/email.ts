@@ -70,10 +70,11 @@ export async function sendEmail(
 
 		if (env.MAIL_TRANSPORT === 'capture') {
 			captureMail({ ...mailOptions, attachments: attachments?.map((a) => a.filename) });
-			console.log('Email captured (not sent) for:', to);
+			console.log(`Email captured (not sent): ${subject}`);
 		} else {
 			await smtpTransporter().sendMail(mailOptions);
-			console.log('Email sent to:', to);
+			// The subject, never the recipient: addresses do not belong in pm2 logs
+			console.log(`Email sent: ${subject}`);
 		}
 	} catch (error) {
 		console.error('Error sending email:', error);

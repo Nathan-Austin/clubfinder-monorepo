@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ cookies, locals, url }) => {
 			);
 
 			if (deleteResult.rowCount === 0) {
-				console.warn(`No session found for sessionId: ${sessionId}`);
+				console.warn('Logout: the session was already gone');
 			}
 			// The row is gone, but hooks.server.ts may still hold the session in memory for up to
 			// five minutes; without this a copied session id keeps working after logout

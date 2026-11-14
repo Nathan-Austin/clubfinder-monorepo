@@ -93,7 +93,6 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 
 		// Parse the request body
 		const data = await request.json();
-		console.log('Update data received:', data);
 
 		// Validate the input data
 		const validationErrors = validateBarUpdate(data);
@@ -149,7 +148,6 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 
 		// Execute the update
 		console.log('Executing SQL:', sql);
-		console.log('With parameters:', [barId, ...values]);
 		const result = await query(sql, [barId, ...values]);
 
 		if (!result?.rows?.length) {
@@ -162,7 +160,7 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 			);
 		}
 
-		console.log('Update successful, returned row:', result.rows[0]);
+		console.log(`Updated bar ${barId}: ${fields.join(', ')}`);
 
 		// If the bar name changed, update it in the cookie
 		if (data.name && cookies.get('barsName') !== data.name) {

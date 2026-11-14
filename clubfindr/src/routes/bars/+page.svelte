@@ -130,19 +130,7 @@
 				throw new Error('Bar ID not found. Please log in again.');
 			}
 
-			// Log the request details
 			console.log('Sending update to:', `/api/bars/${submissionBarId}`);
-			console.log('Update payload:', {
-				name: updatedDetails.name,
-				address: updatedDetails.address,
-				city: updatedDetails.city,
-				phone: updatedDetails.phone,
-				general_email: updatedDetails.email,
-				opening_hours: updatedDetails.openingHours,
-				description: updatedDetails.description,
-				smoking_allowed: updatedDetails.smoking_allowed,
-				bar_types: updatedDetails.bar_types
-			});
 
 			const response = await fetch(`/api/bars/${submissionBarId}`, {
 				method: 'PATCH',

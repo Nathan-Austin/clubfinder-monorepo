@@ -93,7 +93,7 @@ export class SoundCloudClient {
 		// Fallback: decode user ID from JWT and fetch public profile
 		const userId = SoundCloudClient.decodeJwtUserId(this.accessToken);
 		if (userId) {
-			console.log(`[SoundCloudClient] Decoded user ID from JWT: ${userId}`);
+			console.log('[SoundCloudClient] Using the user id decoded from the token');
 			return this.request<spUser>(`/users/${userId}`, {}, 'v2-public', false);
 		}
 

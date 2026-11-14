@@ -132,7 +132,6 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// Parse request body
 		const data = await request.json();
-		console.log('Request data received:', data);
 
 		const { city, date = toLocalIsoDate(), nearby } = data;
 		console.log('Parsed parameters:', { city, date, nearby });

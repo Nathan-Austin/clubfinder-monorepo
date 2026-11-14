@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		});
 	}
 	const { email, password } = input.value;
-	console.log('Received login attempt for:', email);
+	console.log('Partner login attempt');
 
 	try {
 		// Step 1: Try to authenticate as a regular user or promoter
@@ -48,7 +48,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		// If email doesn't exist in either table
 		if ((userResult?.rowCount ?? 0) === 0 && (barManagerResult?.rowCount ?? 0) === 0) {
-			console.log('User not found:', email);
+			console.log('Partner login: no account with that e-mail');
 			return new Response(JSON.stringify({ success: false, message: 'User not found' }), {
 				status: 401
 			});

@@ -69,7 +69,6 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
 
 		// Success logging
 		console.info('Token exchange successful:', {
-			tokenFormat: data.access_token?.substring(0, 10) + '...',
 			tokenType: data.token_type,
 			scope: data.scope || 'none',
 			expiresIn: data.expires_in

@@ -24,7 +24,7 @@ export async function POST({ request }) {
 		}
 		const email = checkedEmail.value;
 		const purpose = checkedPurpose.value;
-		console.log(`Sending ${purpose} code to: ${email}`);
+		console.log(`Sending a ${purpose} code`);
 
 		// Find user by email
 		const userResult = await query('SELECT id FROM clubfindr.users WHERE general_email = $1', [

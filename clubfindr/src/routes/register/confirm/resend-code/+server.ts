@@ -23,7 +23,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 		const email = checked.value;
-		console.log('Resend confirmation request received for email:', email);
 
 		const normalizedEmail = email.toLowerCase();
 
@@ -37,7 +36,6 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.log('Bars query result rows:', result.rows.length);
 
 		if (result.rows.length === 0) {
-			console.log('No bar found with email:', normalizedEmail);
 			return json(
 				{
 					success: false,
@@ -61,7 +59,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Check if resend attempts exceed the limit
 		if (resend_attempts >= 3) {
-			console.log('Maximum resend attempts reached for email:', normalizedEmail);
+			console.log('Venue code resend refused: maximum resend attempts reached');
 			return json(
 				{
 					success: false,

@@ -15,12 +15,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		// Parse request body
 		const data = await request.json();
-		console.log('Request data received:', {
-			email: data.email ? 'PRESENT' : 'MISSING',
-			password: data.password ? 'PRESENT' : 'MISSING',
-			name: data.name ? 'PRESENT' : 'MISSING',
-			isMobileApp: true,
-			isFirstTimeUser: data.isFirstTimeUser
+		// Which fields are missing, never their values
+		console.log('Signup request; missing fields:', {
+			missing: ['email', 'password', 'name'].filter((field) => !data?.[field]),
+			isFirstTimeUser: data?.isFirstTimeUser
 		});
 
 		const { name, email, password, isFirstTimeUser } = data;

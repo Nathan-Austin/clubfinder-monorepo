@@ -10,7 +10,6 @@ export async function POST({ request }) {
 		const checked = emailCheck((await readJsonObject(request))?.email);
 		if (!checked.ok) return json({ success: false, message: SAY.email }, { status: 400 });
 		const email = checked.value;
-		console.log(`Resending verification code to: ${email}`);
 
 		// Find user by email
 		const userResult = await query('SELECT id FROM clubfindr.users WHERE general_email = $1', [
