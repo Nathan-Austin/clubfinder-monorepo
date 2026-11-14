@@ -7,11 +7,27 @@ import { BAR_SESSION_COOKIE, createBarSession } from '$lib/taste/barSession';
 import { USER_SESSION_COOKIE, createPromoterSession } from '$lib/server/promoterAuth';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
+import {
+	email as emailCheck,
+	fields,
+	password as passwordCheck,
+	readJsonObject
+} from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('=== Starting login process ===');
 
-	const { email, password } = await request.json();
+	// Checked before any query: a body that was not JSON threw here, outside the try (500), and
+	// any other type went straight into the lookups (ROADMAP section 4)
+	const body = await readJsonObject(request);
+	const input = fields({ email: emailCheck(body?.email), password: passwordCheck(body?.password) });
+	if (!input.ok) {
+		return new Response(JSON.stringify({ success: false, message: input.message }), {
+			status: 400,
+			headers: { 'Content-Type': 'application/json' }
+		});
+	}
+	const { email, password } = input.value;
 	console.log('Received login attempt for:', email);
 
 	try {

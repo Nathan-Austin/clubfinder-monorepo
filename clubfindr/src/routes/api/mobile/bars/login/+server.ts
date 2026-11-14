@@ -3,6 +3,13 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { v4 as uuidv4 } from 'uuid';
+import {
+	email as emailCheck,
+	fields,
+	password as passwordCheck,
+	readJsonObject,
+	text
+} from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const startTime = Date.now();
@@ -11,18 +18,22 @@ export const POST: RequestHandler = async ({ request }) => {
 	console.log('========================');
 
 	try {
-		// Parse request body
-		const data = await request.json();
+		// Checked before any query: a body that was not JSON answered 500, and any other type went
+		// straight into the lookup; platform and version go into varchar(50) columns of
+		// bar_sessions (ROADMAP section 4)
+		const body = await readJsonObject(request);
 		console.log('Request parsing:', Date.now() - startTime, 'ms');
-
-		const { email, password, platform, version } = data;
-
-		// Basic validation
-		if (!email || !password) {
+		const input = fields({
+			email: emailCheck(body?.email),
+			password: passwordCheck(body?.password),
+			platform: text(body?.platform, 'platform', { max: 50, optional: true }),
+			version: text(body?.version, 'version', { max: 50, optional: true })
+		});
+		if (!input.ok) {
 			return new Response(
 				JSON.stringify({
 					success: false,
-					message: 'Missing email or password'
+					message: input.message
 				}),
 				{
 					status: 400,
@@ -30,6 +41,9 @@ export const POST: RequestHandler = async ({ request }) => {
 				}
 			);
 		}
+		const { email, password } = input.value;
+		const platform = input.value.platform || undefined;
+		const version = input.value.version || undefined;
 
 		// Get bar manager from database with all relevant fields
 		const dbStart = Date.now();

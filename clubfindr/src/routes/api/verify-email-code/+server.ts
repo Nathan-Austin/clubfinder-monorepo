@@ -1,17 +1,28 @@
 import { json } from '@sveltejs/kit';
 import { pool, query } from '$lib/db';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
+import {
+	confirmationCode as codeCheck,
+	email as emailCheck,
+	fields,
+	readJsonObject
+} from '$lib/server/validate';
 
 export async function POST({ request }) {
 	try {
-		const { email, confirmationCode } = await request.json();
-		if (typeof email !== 'string' || !email.trim() || typeof confirmationCode !== 'string') {
-			return json({ success: false, message: 'Invalid confirmation code' }, { status: 400 });
-		}
+		// Checked before any query, so a malformed guess never spends an attempt (ROADMAP
+		// section 4)
+		const body = await readJsonObject(request);
+		const input = fields({
+			email: emailCheck(body?.email),
+			confirmationCode: codeCheck(body?.confirmationCode)
+		});
+		if (!input.ok) return json({ success: false, message: input.message }, { status: 400 });
+		const { email, confirmationCode } = input.value;
 
 		// Every guess spends one of the code's attempts, in the statement that reads it
 		// (KNOWN_ISSUES 55)
-		const attempt = await spendCodeAttempt(pool, 'users', email.trim(), [
+		const attempt = await spendCodeAttempt(pool, 'users', email, [
 			'confirmation_code',
 			'expires_at'
 		]);
@@ -25,7 +36,7 @@ export async function POST({ request }) {
 		const { confirmation_code, expires_at } = attempt.row;
 
 		// Check if the confirmation code is valid
-		if (!confirmation_code || confirmation_code !== confirmationCode.trim()) {
+		if (!confirmation_code || String(confirmation_code).toUpperCase() !== confirmationCode) {
 			return json({ success: false, message: 'Invalid confirmation code' }, { status: 400 });
 		}
 
@@ -38,7 +49,7 @@ export async function POST({ request }) {
 		await query(
 			`UPDATE clubfindr.users SET confirmation_code = NULL, confirmed = TRUE, confirmation_attempts = 0
 			 WHERE LOWER(general_email) = LOWER($1)`,
-			[email.trim()]
+			[email]
 		);
 
 		return json({ success: true, message: 'Email verified successfully!' });

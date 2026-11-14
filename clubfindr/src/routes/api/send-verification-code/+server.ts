@@ -5,10 +5,22 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { generateConfirmationCode } from '$lib/codegen.js';
 import { sendVerificationEmail, sendDeletionConfirmationEmail } from '$lib/email';
+import { email as emailCheck, fields, oneOf, readJsonObject } from '$lib/server/validate';
+
+const PURPOSES = ['email_verification', 'account_deletion'] as const;
 
 export async function POST({ request }) {
 	try {
-		const { email, purpose } = await request.json();
+		// Checked before any query (ROADMAP section 4). A missing purpose still means e-mail
+		// verification, as before; one that is neither of the two is refused instead of being
+		// quietly treated as verification.
+		const body = await readJsonObject(request);
+		const input = fields({
+			email: emailCheck(body?.email),
+			purpose: oneOf(body?.purpose, 'purpose', PURPOSES, 'email_verification')
+		});
+		if (!input.ok) return json({ success: false, message: input.message }, { status: 400 });
+		const { email, purpose } = input.value;
 		console.log(`Sending ${purpose} code to: ${email}`);
 
 		// Find user by email
@@ -36,12 +48,9 @@ export async function POST({ request }) {
 		);
 
 		// Send email based on purpose
-		if (purpose === 'email_verification') {
-			await sendVerificationEmail(email, confirmationCode);
-		} else if (purpose === 'account_deletion') {
+		if (purpose === 'account_deletion') {
 			await sendDeletionConfirmationEmail(email, confirmationCode);
 		} else {
-			// Default to verification
 			await sendVerificationEmail(email, confirmationCode);
 		}
 

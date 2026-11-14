@@ -8,20 +8,27 @@ import { v4 as uuidv4 } from 'uuid';
 import { pool } from '$lib/db';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
+import {
+	email as emailCheck,
+	fields,
+	password as passwordCheck,
+	readJsonObject
+} from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		// Parse request body
-		const data = await request.json();
-
-		const { email, password } = data;
-
-		// Basic validation
-		if (!email || !password) {
+		// Checked before any query: a body that was not JSON answered 500, and any other type went
+		// straight into the lookup (ROADMAP section 4)
+		const body = await readJsonObject(request);
+		const input = fields({
+			email: emailCheck(body?.email),
+			password: passwordCheck(body?.password)
+		});
+		if (!input.ok) {
 			return new Response(
 				JSON.stringify({
 					success: false,
-					message: 'Missing email or password'
+					message: input.message
 				}),
 				{
 					status: 400,
@@ -29,6 +36,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				}
 			);
 		}
+		const { email, password } = input.value;
 
 		// Get user from database
 		const result = await query(

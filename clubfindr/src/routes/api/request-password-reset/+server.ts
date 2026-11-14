@@ -4,9 +4,15 @@ import { query } from '$lib/db';
 import { sendEmail } from '$lib/email';
 import { randomBytes } from 'crypto';
 import { hashToken } from '$lib/encryptionUtils';
+import { email as emailCheck, readJsonObject } from '$lib/server/validate';
 
 export const POST: RequestHandler = async ({ request, url }) => {
-	const { email } = await request.json();
+	// Checked before any query: a body that was not JSON threw here, outside the try (500), and a
+	// missing e-mail was looked up as NULL and answered success (ROADMAP section 4). A malformed
+	// address says nothing about which accounts exist, so refusing it leaks nothing.
+	const checked = emailCheck((await readJsonObject(request))?.email);
+	if (!checked.ok) return json({ success: false, message: checked.message }, { status: 400 });
+	const email = checked.value;
 
 	try {
 		// Generate a secure reset token
