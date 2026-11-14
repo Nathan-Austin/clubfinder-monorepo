@@ -1,5 +1,6 @@
-import { test, expect, openBarDashboard, mobileApi, bearer, type Page } from './fixtures';
+import { test, expect, mobileApi, bearer } from './fixtures';
 import type { APIRequestContext } from '@playwright/test';
+import { registerVenue, removeVenue, type TestVenue } from './venue';
 
 // Writes to a venue through the mobile API need that venue's session token
 // ($lib/server/barAuth). They used to accept anyone who knew the bar id. The reads customers
@@ -10,10 +11,9 @@ import type { APIRequestContext } from '@playwright/test';
 // its own X-Forwarded-For, like every test context (tests/fixtures.ts), so the per-IP rate
 // limiter does not lump it in with other tests.
 //
-// Logs in as the seeded `bar` user to clean up, so it runs in order with the other files that
-// do (tests/bars.spec.ts, tests/venue-taste.spec.ts are each serial; different files never
-// share a context).
-test.describe.configure({ mode: 'default' });
+// The tests that log a venue into the app use a venue of their own (tests/venue.ts): an app
+// login replaces the venue's previous app session, so sharing the seeded venue with other files
+// raced (KNOWN_ISSUES 59). The guard tests below only need its id.
 
 const BAR_ID = '00000000-0000-4000-8000-0000000000b1';
 const UNKNOWN_TOKEN = '99999999-9999-4999-8999-999999999999';
@@ -76,47 +76,54 @@ test('reads used for discovery stay public', async ({ playwright, baseURL }) => 
 // but this route answered anyone who knew the bar id.
 test('a venue’s own figures need that venue’s token', async ({ playwright, baseURL }) => {
 	const api = await mobileApi(playwright, baseURL);
-	const path = `/api/mobile/bars/${BAR_ID}/stats`;
-	expect((await api.get(path)).status(), 'stats without a token').toBe(403);
-	expect((await api.get(path, { headers: bearer(UNKNOWN_TOKEN) })).status()).toBe(403);
+	let venue: TestVenue | undefined;
+	try {
+		venue = await registerVenue(api, 'stats');
+		const path = `/api/mobile/bars/${venue.barId}/stats`;
+		expect((await api.get(path)).status(), 'stats without a token').toBe(403);
+		expect((await api.get(path, { headers: bearer(UNKNOWN_TOKEN) })).status()).toBe(403);
+		// The seeded venue's token is not this venue's
+		const other = await api.get(`/api/mobile/bars/${BAR_ID}/stats`, {
+			headers: bearer(venue.token)
+		});
+		expect(other.status()).toBe(403);
 
-	const loggedIn = await api.post('/api/mobile/bars/login', {
-		data: { email: 'bar@clubfindr.test', password: 'BarManager#2026' }
-	});
-	const { token } = await loggedIn.json();
-	const mine = await api.get(path, { headers: bearer(token) });
-	expect(mine.status(), await mine.text()).toBe(200);
-	await api.dispose();
+		const mine = await api.get(path, { headers: bearer(venue.token) });
+		expect(mine.status(), await mine.text()).toBe(200);
+	} finally {
+		await removeVenue(venue);
+		await api.dispose();
+	}
 });
 
 test('the venue’s own token can create an event; the token works straight after login', async ({
-	page,
 	playwright,
 	baseURL
 }) => {
 	const api = await mobileApi(playwright, baseURL);
-	const loggedIn = await api.post('/api/mobile/bars/login', {
-		data: { email: 'bar@clubfindr.test', password: 'BarManager#2026' }
-	});
-	expect(loggedIn.status()).toBe(200);
-	const { token } = await loggedIn.json();
+	let venue: TestVenue | undefined;
+	try {
+		// registerVenue logs in last: the token is used here for the first time
+		venue = await registerVenue(api, 'create');
+		const BAR = venue.barId;
 
-	// The very first request after login: the session row must already exist
-	const theme = `Mobile Auth Night ${Date.now()}`;
-	const created = await api.post(`/api/mobile/bars/${BAR_ID}/events`, {
-		data: { theme_name: theme, event_date: '2031-06-22', start_time: '21:00' },
-		headers: bearer(token)
-	});
-	expect(created.status(), await created.text()).toBe(200);
-	const { event } = await created.json();
-	expect(event.theme_name).toBe(theme);
+		// The very first request after login: the session row must already exist
+		const theme = `Mobile Auth Night ${Date.now()}`;
+		const created = await api.post(`/api/mobile/bars/${BAR}/events`, {
+			data: { theme_name: theme, event_date: '2031-06-22', start_time: '21:00' },
+			headers: bearer(venue.token)
+		});
+		expect(created.status(), await created.text()).toBe(200);
+		const { event } = await created.json();
+		expect(event.theme_name).toBe(theme);
 
-	// Customers see it without any token
-	const listed = await (await api.get(`/api/mobile/bars/${BAR_ID}/events`)).json();
-	expect(listed.events.map((e: { theme_name: string }) => e.theme_name)).toContain(theme);
-	await api.dispose();
-
-	await cleanUp(page, event.id);
+		// Customers see it without any token
+		const listed = await (await api.get(`/api/mobile/bars/${BAR}/events`)).json();
+		expect(listed.events.map((e: { theme_name: string }) => e.theme_name)).toContain(theme);
+	} finally {
+		await removeVenue(venue);
+		await api.dispose();
+	}
 });
 
 // KNOWN_ISSUES 27: EventFormScreen has always sent PUT here, to a route that did not exist, so
@@ -127,74 +134,73 @@ test('the venue’s own token can edit and delete one of its events', async ({
 	baseURL
 }) => {
 	const api = await mobileApi(playwright, baseURL);
-	const loggedIn = await api.post('/api/mobile/bars/login', {
-		data: { email: 'bar@clubfindr.test', password: 'BarManager#2026' }
-	});
-	const { token } = await loggedIn.json();
+	let venue: TestVenue | undefined;
+	try {
+		venue = await registerVenue(api, 'edit');
+		const BAR = venue.barId;
+		const token = venue.token;
 
-	const theme = `Mobile Edit Night ${Date.now()}`;
-	const created = await api.post(`/api/mobile/bars/${BAR_ID}/events`, {
-		data: { theme_name: theme, event_date: '2031-06-22', start_time: '21:00' },
-		headers: bearer(token)
-	});
-	expect(created.status(), await created.text()).toBe(200);
-	const { event } = await created.json();
+		const theme = `Mobile Edit Night ${Date.now()}`;
+		const created = await api.post(`/api/mobile/bars/${BAR}/events`, {
+			data: { theme_name: theme, event_date: '2031-06-22', start_time: '21:00' },
+			headers: bearer(token)
+		});
+		expect(created.status(), await created.text()).toBe(200);
+		const { event } = await created.json();
 
-	// The edit the app sends, with the same body shape as creating
-	const edited = await api.put(`/api/mobile/bars/${BAR_ID}/events/${event.id}`, {
-		data: {
-			theme_name: `${theme} (edited)`,
-			event_date: '2031-06-23',
-			start_time: '22:00',
-			special_genres: ['techno']
-		},
-		headers: bearer(token)
-	});
-	expect(edited.status(), await edited.text()).toBe(200);
-	const updated = (await edited.json()).event;
-	expect(updated.theme_name).toBe(`${theme} (edited)`);
-	// Still a plain calendar date after the round trip (KNOWN_ISSUES 17)
-	expect(updated.event_date).toBe('2031-06-23');
-	expect(updated.special_genres).toEqual(['techno']);
+		// The edit the app sends, with the same body shape as creating
+		const edited = await api.put(`/api/mobile/bars/${BAR}/events/${event.id}`, {
+			data: {
+				theme_name: `${theme} (edited)`,
+				event_date: '2031-06-23',
+				start_time: '22:00',
+				special_genres: ['techno']
+			},
+			headers: bearer(token)
+		});
+		expect(edited.status(), await edited.text()).toBe(200);
+		const updated = (await edited.json()).event;
+		expect(updated.theme_name).toBe(`${theme} (edited)`);
+		// Still a plain calendar date after the round trip (KNOWN_ISSUES 17)
+		expect(updated.event_date).toBe('2031-06-23');
+		expect(updated.special_genres).toEqual(['techno']);
 
-	// An event of another venue (or one that does not exist) is not found, not forbidden
-	expect(
-		(
-			await api.put(`/api/mobile/bars/${BAR_ID}/events/${EVENT_ID}`, {
-				data: { theme_name: 'x', event_date: '2031-06-22' },
-				headers: bearer(token)
-			})
-		).status()
-	).toBe(404);
+		// An event of another venue (or one that does not exist) is not found, not forbidden
+		expect(
+			(
+				await api.put(`/api/mobile/bars/${BAR}/events/${EVENT_ID}`, {
+					data: { theme_name: 'x', event_date: '2031-06-22' },
+					headers: bearer(token)
+				})
+			).status()
+		).toBe(404);
 
-	// Missing required fields are reported the way the app expects
-	const invalid = await api.put(`/api/mobile/bars/${BAR_ID}/events/${event.id}`, {
-		data: { description: 'no theme, no date' },
-		headers: bearer(token)
-	});
-	expect(invalid.status()).toBe(400);
-	expect((await invalid.json()).validationErrors).toHaveLength(2);
+		// Missing required fields are reported the way the app expects
+		const invalid = await api.put(`/api/mobile/bars/${BAR}/events/${event.id}`, {
+			data: { description: 'no theme, no date' },
+			headers: bearer(token)
+		});
+		expect(invalid.status()).toBe(400);
+		expect((await invalid.json()).validationErrors).toHaveLength(2);
 
-	// Deleting now works from the app too
-	const removed = await api.delete(`/api/mobile/bars/${BAR_ID}/events/${event.id}`, {
-		headers: bearer(token)
-	});
-	expect(removed.status(), await removed.text()).toBe(200);
-	expect(
-		(
-			await api.delete(`/api/mobile/bars/${BAR_ID}/events/${event.id}`, {
-				headers: bearer(token)
-			})
-		).status(),
-		'deleting it twice'
-	).toBe(404);
+		// Deleting now works from the app too
+		const removed = await api.delete(`/api/mobile/bars/${BAR}/events/${event.id}`, {
+			headers: bearer(token)
+		});
+		expect(removed.status(), await removed.text()).toBe(200);
+		expect(
+			(
+				await api.delete(`/api/mobile/bars/${BAR}/events/${event.id}`, {
+					headers: bearer(token)
+				})
+			).status(),
+			'deleting it twice'
+		).toBe(404);
 
-	const listed = await (await api.get(`/api/mobile/bars/${BAR_ID}/events`)).json();
-	expect(listed.events.map((e: { id: string }) => e.id)).not.toContain(event.id);
-	await api.dispose();
+		const listed = await (await api.get(`/api/mobile/bars/${BAR}/events`)).json();
+		expect(listed.events.map((e: { id: string }) => e.id)).not.toContain(event.id);
+	} finally {
+		await removeVenue(venue);
+		await api.dispose();
+	}
 });
-
-async function cleanUp(page: Page, eventId: string) {
-	await openBarDashboard(page);
-	expect((await page.request.delete(`/api/bars/${BAR_ID}/events/${eventId}`)).ok()).toBe(true);
-}

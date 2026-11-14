@@ -9,6 +9,7 @@ import {
 } from './fixtures';
 import type { APIRequestContext } from '@playwright/test';
 import { devQuery } from './db';
+import { registerVenue, removeVenue, venueToken, type TestVenue } from './venue';
 
 // The critical fixes of 2026-11-13 (KNOWN_ISSUES 52, 53, 57; docs/section4-inventory.md):
 // - the venue write guards accepted a plain, forgeable `barId` cookie, and /api/bars/[barId]
@@ -23,20 +24,12 @@ import { devQuery } from './db';
 
 const BAR_ID = '00000000-0000-4000-8000-0000000000b1';
 
-// One app session per venue: each barToken() login replaces the venue's previous app session,
-// so tests in this file that log the seeded venue in must not overlap (KNOWN_ISSUES 59)
-test.describe.configure({ mode: 'serial' });
+// Tests that log a venue into the app use a venue of their own (tests/venue.ts): an app login
+// replaces the venue's previous app session, so sharing the seeded one raced, within this file
+// (which ran serially for it) and with other files (KNOWN_ISSUES 59)
 const OTHER_BAR_ID = '00000000-0000-4000-8000-0000000000b2';
 const PASSWORD = testPassword();
 const unique = (label: string) => `${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-
-async function barToken(api: APIRequestContext): Promise<string> {
-	const loggedIn = await api.post('/api/mobile/bars/login', {
-		data: { email: 'bar@clubfindr.test', password: 'BarManager#2026' }
-	});
-	expect(loggedIn.status()).toBe(200);
-	return (await loggedIn.json()).token;
-}
 
 /** A new user, logged in through the app's endpoints: their id and session token. */
 async function userSession(api: APIRequestContext) {
@@ -121,15 +114,29 @@ test.describe('venue guards trust only a real session', () => {
 		// Another venue stays out of reach for this session
 		expect((await page.request.get(`/api/bars/${OTHER_BAR_ID}`)).status()).toBe(403);
 
-		// An app login by the same venue replaces the app's session only, not this one (it used
-		// to delete every session of the venue)
-		const app = await mobileApi(playwright, baseURL);
-		await barToken(app);
-		await app.dispose();
-		expect((await page.request.get(`/api/bars/${BAR_ID}`)).status()).toBe(200);
-
 		expect((await page.request.post('/api/logout')).status()).toBe(200);
 		expect((await page.request.get(`/api/bars/${BAR_ID}`)).status()).toBe(403);
+
+		// An app login by the same venue replaces the app's session only, not the dashboard's (it
+		// used to delete every session of the venue). With a venue of its own, logged in to both.
+		const app = await mobileApi(playwright, baseURL);
+		const web = await mobileApi(playwright, baseURL);
+		let venue: TestVenue | undefined;
+		try {
+			venue = await registerVenue(app, 'two-sessions');
+			const dashboard = await web.post('/login/bars', {
+				data: { email: venue.email, password: venue.password }
+			});
+			expect(dashboard.status(), await dashboard.text()).toBe(200);
+			expect((await web.get(`/api/bars/${venue.barId}`)).status()).toBe(200);
+
+			await venueToken(app, venue.email);
+			expect((await web.get(`/api/bars/${venue.barId}`)).status()).toBe(200);
+		} finally {
+			await removeVenue(venue);
+			await app.dispose();
+			await web.dispose();
+		}
 	});
 });
 
@@ -139,43 +146,50 @@ test.describe('QR codes and check-in', () => {
 		baseURL
 	}) => {
 		const api = await mobileApi(playwright, baseURL);
-		const token = await barToken(api);
-		const title = unique('QR');
+		let venue: TestVenue | undefined;
+		try {
+			venue = await registerVenue(api, 'qr');
+			const BAR = venue.barId;
+			const token = venue.token;
+			const title = unique('QR');
 
-		const created = await api.post(`/api/mobile/bars/${BAR_ID}/qrcodes`, {
-			data: { title, type: 'table' },
-			headers: bearer(token)
-		});
-		expect(created.status(), await created.text()).toBe(200);
-		const listed = await (await api.get(`/api/mobile/bars/${BAR_ID}/qrcodes`)).json();
-		const qr = listed.qrCodes.find((q: { title: string }) => q.title === title);
-		expect(qr, 'the new QR code is listed').toBeDefined();
+			const created = await api.post(`/api/mobile/bars/${BAR}/qrcodes`, {
+				data: { title, type: 'table' },
+				headers: bearer(token)
+			});
+			expect(created.status(), await created.text()).toBe(200);
+			const listed = await (await api.get(`/api/mobile/bars/${BAR}/qrcodes`)).json();
+			const qr = listed.qrCodes.find((q: { title: string }) => q.title === title);
+			expect(qr, 'the new QR code is listed').toBeDefined();
 
-		const promoted = await api.post(`/api/mobile/bars/${BAR_ID}/qrcodes/${qr.id}/promotion`, {
-			data: { requestType: 'printed_materials' },
-			headers: bearer(token)
-		});
-		expect(promoted.status(), await promoted.text()).toBe(200);
-		expect(
-			await devQuery('SELECT 1 FROM clubfindr.promotion_requests WHERE qr_id = $1', [qr.id])
-		).toHaveLength(1);
+			const promoted = await api.post(`/api/mobile/bars/${BAR}/qrcodes/${qr.id}/promotion`, {
+				data: { requestType: 'printed_materials' },
+				headers: bearer(token)
+			});
+			expect(promoted.status(), await promoted.text()).toBe(200);
+			expect(
+				await devQuery('SELECT 1 FROM clubfindr.promotion_requests WHERE qr_id = $1', [qr.id])
+			).toHaveLength(1);
 
-		expect(
-			(
-				await api.delete(`/api/mobile/bars/${BAR_ID}/qrcodes/not-a-number`, {
-					headers: bearer(token)
-				})
-			).status()
-		).toBe(400);
-		const deleted = await api.delete(`/api/mobile/bars/${BAR_ID}/qrcodes/${qr.id}`, {
-			headers: bearer(token)
-		});
-		expect(deleted.status()).toBe(200);
-		const after = await (await api.get(`/api/mobile/bars/${BAR_ID}/qrcodes`)).json();
-		expect(after.qrCodes.map((q: { id: number }) => q.id)).not.toContain(qr.id);
+			expect(
+				(
+					await api.delete(`/api/mobile/bars/${BAR}/qrcodes/not-a-number`, {
+						headers: bearer(token)
+					})
+				).status()
+			).toBe(400);
+			const deleted = await api.delete(`/api/mobile/bars/${BAR}/qrcodes/${qr.id}`, {
+				headers: bearer(token)
+			});
+			expect(deleted.status()).toBe(200);
+			const after = await (await api.get(`/api/mobile/bars/${BAR}/qrcodes`)).json();
+			expect(after.qrCodes.map((q: { id: number }) => q.id)).not.toContain(qr.id);
 
-		await devQuery('DELETE FROM clubfindr.promotion_requests WHERE qr_id = $1', [qr.id]);
-		await api.dispose();
+			await devQuery('DELETE FROM clubfindr.promotion_requests WHERE qr_id = $1', [qr.id]);
+		} finally {
+			await removeVenue(venue);
+			await api.dispose();
+		}
 	});
 
 	test('check-in records the session user only, for a QR code of that venue', async ({
@@ -229,37 +243,45 @@ test.describe('QR codes and check-in', () => {
 		// user_checkins.qr_code_id is ON DELETE SET NULL; while the column was NOT NULL,
 		// deleting any scanned code failed (migrations/20261113_user_checkins_qr_nullable.sql)
 		const api = await mobileApi(playwright, baseURL);
-		const token = await barToken(api);
-		const title = unique('QR-scanned');
-		const created = await api.post(`/api/mobile/bars/${BAR_ID}/qrcodes`, {
-			data: { title, type: 'table' },
-			headers: bearer(token)
-		});
-		expect(created.status(), await created.text()).toBe(200);
-		const [qr] = await devQuery<{ id: number }>(
-			'SELECT id FROM clubfindr.bar_qr_codes WHERE bar_id = $1 AND title = $2',
-			[BAR_ID, title]
-		);
+		let venue: TestVenue | undefined;
+		try {
+			venue = await registerVenue(api, 'qr-scanned');
+			const BAR = venue.barId;
+			const token = venue.token;
+			const title = unique('QR-scanned');
+			const created = await api.post(`/api/mobile/bars/${BAR}/qrcodes`, {
+				data: { title, type: 'table' },
+				headers: bearer(token)
+			});
+			expect(created.status(), await created.text()).toBe(200);
+			const [qr] = await devQuery<{ id: number }>(
+				'SELECT id FROM clubfindr.bar_qr_codes WHERE bar_id = $1 AND title = $2',
+				[BAR, title]
+			);
 
-		const user = await userSession(api);
-		const checkin = await api.post('/api/mobile/checkin', {
-			data: { barId: BAR_ID, qrId: String(qr.id) },
-			headers: bearer(user.token)
-		});
-		expect(checkin.status(), await checkin.text()).toBe(200);
+			const user = await userSession(api);
+			const checkin = await api.post('/api/mobile/checkin', {
+				data: { barId: BAR, qrId: String(qr.id) },
+				headers: bearer(user.token)
+			});
+			expect(checkin.status(), await checkin.text()).toBe(200);
 
-		const deleted = await api.delete(`/api/mobile/bars/${BAR_ID}/qrcodes/${qr.id}`, {
-			headers: bearer(token)
-		});
-		expect(deleted.status(), await deleted.text()).toBe(200);
-		expect(
-			await devQuery('SELECT bar_id, qr_code_id FROM clubfindr.user_checkins WHERE user_id = $1', [
-				user.userId
-			])
-		).toEqual([{ bar_id: BAR_ID, qr_code_id: null }]);
+			const deleted = await api.delete(`/api/mobile/bars/${BAR}/qrcodes/${qr.id}`, {
+				headers: bearer(token)
+			});
+			expect(deleted.status(), await deleted.text()).toBe(200);
+			expect(
+				await devQuery(
+					'SELECT bar_id, qr_code_id FROM clubfindr.user_checkins WHERE user_id = $1',
+					[user.userId]
+				)
+			).toEqual([{ bar_id: BAR, qr_code_id: null }]);
 
-		await devQuery('DELETE FROM clubfindr.user_checkins WHERE user_id = $1', [user.userId]);
-		await api.dispose();
+			await devQuery('DELETE FROM clubfindr.user_checkins WHERE user_id = $1', [user.userId]);
+		} finally {
+			await removeVenue(venue);
+			await api.dispose();
+		}
 	});
 });
 

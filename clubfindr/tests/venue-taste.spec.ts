@@ -1,4 +1,5 @@
-import { test, expect, openBarDashboard } from './fixtures';
+import { test, expect, openBarDashboard, mobileApi, bearer } from './fixtures';
+import { registerVenue, removeVenue, type TestVenue } from './venue';
 import type { Page } from './fixtures';
 
 // The artists a venue says it plays (ROADMAP section 1, KNOWN_ISSUES 4): the shared
@@ -309,31 +310,37 @@ test('the venue taste endpoints need a venue login', async ({ page }) => {
 	}
 });
 
-test('a mobile bar session token works in place of the dashboard cookie', async ({ page }) => {
-	const loggedIn = await page.request.post('/api/mobile/bars/login', {
-		data: { email: 'bar@clubfindr.test', password: 'BarManager#2026' }
-	});
-	expect(loggedIn.status()).toBe(200);
-	const { token, barData } = await loggedIn.json();
-	expect(barData.id).toBe(BAR_ID);
+// A venue of its own (tests/venue.ts): an app login replaces the venue's previous app session,
+// so logging the seeded venue into the app raced the other files that did (KNOWN_ISSUES 59)
+test('a mobile bar session token works in place of the dashboard cookie', async ({
+	playwright,
+	baseURL
+}) => {
+	const api = await mobileApi(playwright, baseURL);
+	let venue: TestVenue | undefined;
+	try {
+		venue = await registerVenue(api, 'taste-token');
 
-	// A fresh context would carry no cookies anyway; the header is what authorises here
-	const response = await page.request.get(`/api/venues/${BAR_ID}/taste/artists`, {
-		headers: { Authorization: `Bearer ${token}` }
-	});
-	expect(response.status()).toBe(200);
-	expect((await response.json()).artists.map((a: { name: string }) => a.name)).toEqual(
-		SEEDED_ARTISTS
-	);
+		// A cookie-less context: the header is what authorises here
+		const response = await api.get(`/api/venues/${venue.barId}/taste/artists`, {
+			headers: bearer(venue.token)
+		});
+		expect(response.status()).toBe(200);
+		expect((await response.json()).artists).toEqual([]);
 
-	// The same token is no good for another venue
-	expect(
-		(
-			await page.request.get(`/api/venues/${OTHER_BAR_ID}/taste/artists`, {
-				headers: { Authorization: `Bearer ${token}` }
-			})
-		).status()
-	).toBe(403);
+		// The same token is no good for another venue
+		for (const other of [BAR_ID, OTHER_BAR_ID]) {
+			expect(
+				(
+					await api.get(`/api/venues/${other}/taste/artists`, { headers: bearer(venue.token) })
+				).status(),
+				other
+			).toBe(403);
+		}
+	} finally {
+		await removeVenue(venue);
+		await api.dispose();
+	}
 });
 
 test.describe('venue artists on the dashboard', () => {

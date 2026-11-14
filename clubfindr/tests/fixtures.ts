@@ -91,7 +91,8 @@ export const test = base.extend<{ pageErrors: string[] }>({
 		});
 		ipCounter += 1;
 		await context.setExtraHTTPHeaders({
-			'x-forwarded-for': `10.${testInfo.workerIndex % 250}.${Math.floor(ipCounter / 250) % 250}.${ipCounter % 250}`
+			// Second octet 0-199 by worker; mobileApi below uses 200-249, so the two never meet
+			'x-forwarded-for': `10.${testInfo.workerIndex % 200}.${Math.floor(ipCounter / 250) % 250}.${ipCounter % 250}`
 		});
 		await use(context);
 	},
@@ -169,6 +170,11 @@ let mobileIpCounter = 0;
  * `Authorization: Bearer` header can authenticate its calls, so a test cannot pass on a
  * browser cookie by accident. It gets its own X-Forwarded-For (the per-IP rate limiter), from
  * a range the browser contexts above never use. Dispose it at the end of the test.
+ *
+ * The address is keyed by worker as well as by count: the counter is per worker process, so
+ * with one fixed range (10.251.x.y, until 2026-11-14) every worker handed out the same
+ * addresses, and contexts in parallel workers shared a rate-limit bucket. Tests that register a
+ * venue of their own (tests/venue.ts) make enough requests for that to answer 429.
  */
 export async function mobileApi(
 	playwright: { request: APIRequest },
@@ -178,7 +184,7 @@ export async function mobileApi(
 	return playwright.request.newContext({
 		baseURL,
 		extraHTTPHeaders: {
-			'x-forwarded-for': `10.251.${Math.floor(mobileIpCounter / 250) % 250}.${mobileIpCounter % 250}`
+			'x-forwarded-for': `10.${200 + (test.info().workerIndex % 50)}.${Math.floor(mobileIpCounter / 250) % 250}.${mobileIpCounter % 250}`
 		}
 	});
 }
