@@ -22,6 +22,10 @@ import { devQuery } from './db';
 // them. Throwaway users and QR codes are created per test and removed afterwards.
 
 const BAR_ID = '00000000-0000-4000-8000-0000000000b1';
+
+// One app session per venue: each barToken() login replaces the venue's previous app session,
+// so tests in this file that log the seeded venue in must not overlap (KNOWN_ISSUES 59)
+test.describe.configure({ mode: 'serial' });
 const OTHER_BAR_ID = '00000000-0000-4000-8000-0000000000b2';
 const PASSWORD = testPassword();
 const unique = (label: string) => `${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -215,6 +219,46 @@ test.describe('QR codes and check-in', () => {
 		).toEqual([{ bar_id: BAR_ID }]);
 
 		await devQuery('DELETE FROM clubfindr.user_checkins WHERE user_id = $1', [userId]);
+		await api.dispose();
+	});
+
+	test('a QR code that has been scanned can still be deleted; the check-in stays', async ({
+		playwright,
+		baseURL
+	}) => {
+		// user_checkins.qr_code_id is ON DELETE SET NULL; while the column was NOT NULL,
+		// deleting any scanned code failed (migrations/20261113_user_checkins_qr_nullable.sql)
+		const api = await mobileApi(playwright, baseURL);
+		const token = await barToken(api);
+		const title = unique('QR-scanned');
+		const created = await api.post(`/api/mobile/bars/${BAR_ID}/qrcodes`, {
+			data: { title, type: 'table' },
+			headers: bearer(token)
+		});
+		expect(created.status(), await created.text()).toBe(200);
+		const [qr] = await devQuery<{ id: number }>(
+			'SELECT id FROM clubfindr.bar_qr_codes WHERE bar_id = $1 AND title = $2',
+			[BAR_ID, title]
+		);
+
+		const user = await userSession(api);
+		const checkin = await api.post('/api/mobile/checkin', {
+			data: { barId: BAR_ID, qrId: String(qr.id) },
+			headers: bearer(user.token)
+		});
+		expect(checkin.status(), await checkin.text()).toBe(200);
+
+		const deleted = await api.delete(`/api/mobile/bars/${BAR_ID}/qrcodes/${qr.id}`, {
+			headers: bearer(token)
+		});
+		expect(deleted.status(), await deleted.text()).toBe(200);
+		expect(
+			await devQuery('SELECT bar_id, qr_code_id FROM clubfindr.user_checkins WHERE user_id = $1', [
+				user.userId
+			])
+		).toEqual([{ bar_id: BAR_ID, qr_code_id: null }]);
+
+		await devQuery('DELETE FROM clubfindr.user_checkins WHERE user_id = $1', [user.userId]);
 		await api.dispose();
 	});
 });

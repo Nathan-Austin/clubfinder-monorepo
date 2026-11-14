@@ -58,19 +58,23 @@ yet**: the next stop needs the order in step 3.
 
 With `REQUIREMENTS_INSTALLED=1` the deploy would next stop for the migrations, because
 `20261113_drop_spotify_connect.sql` (and the changed `20261111_…` file) contain DROP/DELETE.
-`MIGRATIONS_APPLIED=1` skips *all* migrations, so apply the two the new code needs now, and keep
+`MIGRATIONS_APPLIED=1` skips *all* migrations, so apply the three the new code needs now, and keep
 the drop for step 4, after the old code has stopped running:
 
 ```bash
 cd ~/clubfinder
 TARGET=<the commit being deployed, as printed by the deploy>
 for f in clubfindr/migrations/20261111_finish_earlier_account_deletions.sql \
-         clubfindr/migrations/20261113_bars_expires_at_timestamptz.sql; do
+         clubfindr/migrations/20261113_bars_expires_at_timestamptz.sql \
+         clubfindr/migrations/20261113_user_checkins_qr_nullable.sql; do
   psql -v ON_ERROR_STOP=1 --single-transaction -f <(git show "$TARGET:$f") || break
 done
 psql -tAc "SELECT data_type FROM information_schema.columns
            WHERE table_schema='clubfindr' AND table_name='bars' AND column_name='expires_at'"
 # -> timestamp with time zone
+psql -tAc "SELECT is_nullable FROM information_schema.columns
+           WHERE table_schema='clubfindr' AND table_name='user_checkins' AND column_name='qr_code_id'"
+# -> YES
 
 REQUIREMENTS_INSTALLED=1 MIGRATIONS_APPLIED=1 bash <(git show "$TARGET:deploy/deploy.sh") "$TARGET"
 ```

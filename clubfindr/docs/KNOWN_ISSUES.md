@@ -663,3 +663,28 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     resend. `/update-info` wrote a non-existent `email` column, so changing one's e-mail failed; it
     writes `general_email`, validates it and answers 409 for a taken address.
     `tests/security-fixes.spec.ts` covers each one.
+58. _Fixed 2026-11-14._ **A QR code that had ever been scanned could not be deleted.**
+    `user_checkins.qr_code_id` was `NOT NULL` while its foreign key to `bar_qr_codes` is
+    `ON DELETE SET NULL`, so `DELETE /api/mobile/bars/:barId/qrcodes/:qrId` answered 500 for any
+    code with a check-in. `migrations/20261113_user_checkins_qr_nullable.sql` drops the
+    `NOT NULL` (mirrored in `dev/schema.sql`); the check-in stays, counted by `bar_id`. Found on
+    the parallel branch of the 2026-11-13 security work and taken from it;
+    `tests/security-fixes.spec.ts` deletes a scanned code. The spotify_service teardown runbook
+    applies it by hand in step 3, since that deploy runs with `MIGRATIONS_APPLIED=1`.
+59. **e2e tests race for the seeded venue's app session.** Since 2026-11-13 an app login as a
+    venue replaces that venue's previous app session (`is_mobile`), so two tests logging
+    `bar@clubfindr.test` into the app at the same time invalidate each other's token: the loser
+    gets 403 "Not logged in as this venue". `tests/security-fixes.spec.ts` (7 logins),
+    `mobile-bar-auth.spec.ts` (3) and `venue-taste.spec.ts` (1) all do it, and the suite is
+    `fullyParallel` (4 workers locally). `security-fixes.spec.ts` now runs serially, which made
+    it pass 3/3 alone, but the three files together still failed 1 run in 2 locally. CI hides it
+    with fewer workers and one retry. Fix: give tests that log a venue into the app their own
+    seeded venue (or one per file), rather than sharing `…b1`.
+60. **`dev/setup.sh` never rebuilds an existing schema.** It loads `dev/schema.sql` only when the
+    `clubfindr` schema is missing, then reloads the seed, so a dev database created before a
+    schema change keeps the old columns and constraints, and `dev/check-migrations.sh` and the e2e
+    suite then test the wrong schema (on 2026-11-14 a database from 2026-11-10 still had the
+    Spotify columns and failed the migration check). Every checkout shares that one database.
+    Until setup.sh can detect drift, rebuild by hand under the e2e lease:
+    `psql -h 127.0.0.1 -p 54329 -U clubfindr_dev -d clubfindr_dev -c 'DROP SCHEMA clubfindr CASCADE'`
+    then `dev/setup.sh`. CI always starts from an empty database, so it is unaffected.

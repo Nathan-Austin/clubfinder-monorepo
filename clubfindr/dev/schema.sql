@@ -351,7 +351,7 @@ CREATE TABLE clubfindr.user_checkins (
     id integer NOT NULL,
     user_id uuid NOT NULL,
     bar_id uuid NOT NULL,
-    qr_code_id integer NOT NULL,
+    qr_code_id integer,
     "timestamp" timestamp with time zone DEFAULT now() NOT NULL
 );
 
