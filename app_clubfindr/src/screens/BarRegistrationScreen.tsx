@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
+import { LIVE_CITIES } from '../constants/cities';
 
 type BarRegistrationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BarRegistration'>;
 
@@ -87,7 +88,10 @@ const BarRegistrationScreen = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // City options - this could be fetched from an API instead
-    const cityOptions = ['Berlin', 'London', 'Paris', 'Amsterdam', 'Madrid', 'Barcelona', 'Rome', 'New York'];
+    // The covered cities (data_collection/live_cities.txt, via constants/cities.ts). This was its
+    // own list with Rome and New York, which are not scraped (a venue there gets no events), and
+    // without Rotterdam, Ibiza and Stockholm. The name is sent; the server stores its slug.
+    const cityOptions = LIVE_CITIES.map((city) => city.name);
 
     // Validation functions
     const validateEmail = (email: string): boolean => {
