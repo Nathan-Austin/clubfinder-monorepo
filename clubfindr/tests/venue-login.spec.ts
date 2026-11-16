@@ -198,3 +198,26 @@ test('a venue resets its own password, and its old sessions end', async ({
 		await api.dispose();
 	}
 });
+
+// The Android app sends Platform.Version, a number (the API level), and from 2026-11-14 the
+// validator refused it: every Android venue login answered 400. Builds up to versionCode 9 still
+// send a number; later ones send text.
+test('the app venue login accepts the platform version as a number or as text', async ({
+	playwright,
+	baseURL
+}) => {
+	const api = await mobileApi(playwright, baseURL);
+	let venue: TestVenue | undefined;
+	try {
+		venue = await registerVenue(api, 'android');
+		for (const version of [34, '34', '17.5']) {
+			const login = await api.post('/api/mobile/bars/login', {
+				data: { email: venue.email, password: venue.password, platform: 'android', version }
+			});
+			expect(login.status(), `version ${JSON.stringify(version)}: ${await login.text()}`).toBe(200);
+		}
+	} finally {
+		await removeVenue(venue);
+		await api.dispose();
+	}
+});

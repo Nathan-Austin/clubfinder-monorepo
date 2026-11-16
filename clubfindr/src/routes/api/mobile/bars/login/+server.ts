@@ -28,7 +28,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			email: emailCheck(body?.email),
 			password: passwordCheck(body?.password),
 			platform: text(body?.platform, 'platform', { max: 50, optional: true }),
-			version: text(body?.version, 'version', { max: 50, optional: true })
+			// Android's Platform.Version is a number (the API level), and the app sent it as one:
+			// refusing that answered 400 to every Android venue login from 2026-11-14 to the
+			// deploy after 2026-11-16, so a number is taken as its text
+			version: text(
+				typeof body?.version === 'number' ? String(body.version) : body?.version,
+				'version',
+				{ max: 50, optional: true }
+			)
 		});
 		if (!input.ok) {
 			return new Response(
