@@ -592,7 +592,7 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
 
 ## Found during the section 1 close-out (13 November 2026)
 
-47. _Drafted 2026-11-16 (the commit "docs(policies)!: DRAFT legal text without Spotify connect"), awaiting the owner's approval; do not deploy before it._ **The legal text still describes Spotify connect.** The web privacy policy
+47. _Fixed 2026-11-16 (`47660c5`), approved by the owner the same evening; live on the web since that deploy and in the app from versionCode 10._ **The legal text still describes Spotify connect.** The web privacy policy
     (`/policies/privacy-policy`, 4 mentions) and terms (`/policies/terms-and-conditions`), and the
     app's `PrivacyPolicyScreen` and `TermsScreen`, name Spotify as a data source and connected
     service. Per-account Spotify data is no longer collected, and the drop migration removes what

@@ -61,8 +61,8 @@ device run: R8 and the Expo patch upgrade.
 [`app_clubfindr/DEVICE_CHECKLIST.md`](app_clubfindr/DEVICE_CHECKLIST.md). Found on the way and
 fixed: every Android venue login had answered 400 since 2026-11-14 (KNOWN_ISSUES 70), and venue
 registration could take over any account or venue (71); the rest is KNOWN_ISSUES 70-80. Waiting on
-the owner: **review the policy draft, the last commit on the branch, before pushing** (47), then
-**deploy the web side** so the venue reset, the personal-account venue login and the city endpoint
+the owner: done the same evening. The policy draft (47) was approved, and the web side was
+deployed (`49f279c`), so the venue reset, the personal-account venue login and the city endpoint
 go live (79; the migration only adds a table, so `deploy.sh` applies it). Follow-ups: SoundCloud and
 Tidal (78), `expo-notifications` (77), and the list in 80.
 
@@ -152,7 +152,7 @@ Things to do by hand or decide, collected while building the items above.
       2026-11-16 on Android (versionCode 9, Play internal testing): onboarding, adding genre groups
       and club matching work; the city was wrong (KNOWN_ISSUES 67). Venue dashboard, QR codes and
       check-in still to test
-- [ ] **Drafted 2026-11-16, the last commit on the branch; the owner reviews it before pushing.** Privacy Policy and Terms (app screens and web `/policies/*`) still name Spotify as a data
+- [x] **Done 2026-11-16 (`47660c5`), approved by the owner; live on the web, in the app from versionCode 10.** Privacy Policy and Terms (app screens and web `/policies/*`) still name Spotify as a data
       source and connected service (KNOWN_ISSUES 47). **Decided 2026-11-16: the agents draft the
       new wording, the owner approves it before it ships** (today's session, step 5)
 - [x] Done 2026-11-16 (`ab312d6`). `app_clubfindr/app.json` still declares the iOS Bluetooth permissions "for Spotify
