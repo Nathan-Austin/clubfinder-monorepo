@@ -1,11 +1,11 @@
 // This file is responsible for handling the login of bar managers
 // route: /login/bars/+server.ts
-import type { RequestHandler } from '@sveltejs/kit';
-import { pool, query } from '$lib/db';
+import { json, type RequestHandler } from '@sveltejs/kit';
+import { pool } from '$lib/db';
 import { cookieManager } from '$lib/cookieManager';
 import { BAR_SESSION_COOKIE, createBarSession } from '$lib/taste/barSession';
 import { USER_SESSION_COOKIE, createPromoterSession } from '$lib/server/promoterAuth';
-import { comparePassword } from '$lib/server/passwordUtils';
+import { findVenueLogin } from '$lib/server/venueLogin';
 import { normalizeCityName } from '$lib/cityName';
 import {
 	SAY,
@@ -32,228 +32,93 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	console.log('Partner login attempt');
 
 	try {
-		// Step 1: Try to authenticate as a regular user or promoter
-		const userResult = await query(
-			'SELECT id, password_hash, city, role, is_promoter FROM clubfindr.users WHERE general_email = $1',
-			[email]
-		);
+		// One lookup for the web and the app ($lib/server/venueLogin): a personal account and the
+		// venue it registered (bars.user_id), else the venue's own login, a confirmed venue only.
+		// Before 2026-11-16 a personal account here never opened a venue, and an unconfirmed
+		// venue got in (the app refused it) (KNOWN_ISSUES 69).
+		const login = await findVenueLogin(pool, email, password);
+		const cookieOptions = {
+			path: '/',
+			httpOnly: true,
+			secure: true,
+			sameSite: 'lax' as const,
+			maxAge: 60 * 60 * 24 * 7 // 1 week
+		};
+		const isPromoter = login.user?.is_promoter === true;
+		let normalizedCityName = login.user?.city ? normalizeCityName(login.user.city) : '';
 
-		// Step 2: Try to authenticate as a bar manager with additional fields
-		const barManagerResult = await query(
-			`SELECT b.id, b.password_hash, b.city, b.name
-             FROM clubfindr.bars b
-             WHERE b.general_email = $1`,
-			[email]
-		);
+		if (login.user) {
+			console.log('Partner login: personal account password correct');
+			cookies.set('userId', login.user.id, { ...cookieOptions, httpOnly: false });
+			cookies.set('city', normalizedCityName, cookieOptions);
 
-		// If email doesn't exist in either table
-		if ((userResult?.rowCount ?? 0) === 0 && (barManagerResult?.rowCount ?? 0) === 0) {
-			console.log('Partner login: no account with that e-mail');
-			return new Response(JSON.stringify({ success: false, message: 'User not found' }), {
-				status: 401
+			// A promoter's session: a user_sessions row (the same kind /login/users creates) in
+			// the encrypted httpOnly `sessionId` cookie. This is what /promoter-home and its
+			// event endpoints check ($lib/server/promoterAuth). The `promoterId` cookie below is
+			// only for the layout's partner menu and is never trusted: until 2026-11-14 it was
+			// the whole of promoter auth, plain and forgeable (KNOWN_ISSUES 51).
+			if (isPromoter) {
+				const sessionId = await createPromoterSession(pool, login.user.id);
+				cookieManager.set(cookies, USER_SESSION_COOKIE, sessionId, {
+					maxAge: 60 * 60 * 24 * 7 // 1 week; the session itself expires 7 days after last use
+				});
+				cookies.set('promoterId', login.user.id, cookieOptions);
+			}
+		}
+
+		if (login.venue) {
+			console.log('Partner login: venue opened via', login.via);
+			const barId = login.venue.id;
+			normalizedCityName =
+				normalizedCityName || (login.venue.city ? normalizeCityName(login.venue.city) : '');
+
+			// The venue's session: a bar_sessions row, the same kind the app's Bearer token
+			// is, in an encrypted httpOnly cookie. This is what the venue write guards check
+			// (canManageBar); the plain barId cookie below is only for the dashboard's own
+			// display and is never trusted (KNOWN_ISSUES 52).
+			const barSessionId = await createBarSession(pool, barId);
+			cookieManager.set(cookies, BAR_SESSION_COOKIE, barSessionId, {
+				maxAge: 60 * 60 * 24 * 7 // 1 week; the session itself slides for 30 days
 			});
+			cookies.set('barId', barId, { ...cookieOptions, httpOnly: false });
+			cookies.set('bar_email', login.venue.general_email, cookieOptions);
+			cookies.set('barsName', login.venue.name, cookieOptions);
+			cookies.set('bar_city', normalizedCityName, cookieOptions);
+			if (isPromoter) cookies.set('hasDualRole', 'true', { ...cookieOptions, httpOnly: false });
+
+			// SvelteKit sends every cookies.set() above with its own flags. This used to copy
+			// each cookie into a bare `Set-Cookie: name=value; Path=/` as well, which dropped
+			// HttpOnly and Secure (KNOWN_ISSUES 53).
+			return json({ success: true, redirectUrl: '/bars' });
 		}
 
-		// Check credentials and set appropriate cookies
-		let validCredentials = false;
-		let isPromoter = false;
-		let isBarManager = false;
-		let userId = null;
-		let normalizedCityName = null;
-
-		// Check user table credentials
-		if ((userResult?.rowCount ?? 0) > 0) {
-			const userData = userResult.rows[0];
-			const storedUserPassword = userData.password_hash;
-			const isUserPasswordCorrect = await comparePassword(password, storedUserPassword);
-
-			if (isUserPasswordCorrect) {
-				console.log('Regular user password correct');
-				validCredentials = true;
-				userId = userData.id;
-				normalizedCityName = normalizeCityName(userData.city);
-				isPromoter = userData.is_promoter;
-
-				// Set common cookies
-				cookies.set('userId', userId, {
-					path: '/',
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-
-				cookies.set('city', normalizedCityName, {
-					path: '/',
-					httpOnly: true,
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-
-				// A promoter's session: a user_sessions row (the same kind /login/users creates) in
-				// the encrypted httpOnly `sessionId` cookie. This is what /promoter-home and its
-				// event endpoints check ($lib/server/promoterAuth). The `promoterId` cookie below is
-				// only for the layout's partner menu and is never trusted: until 2026-11-14 it was
-				// the whole of promoter auth, plain and forgeable (KNOWN_ISSUES 51).
-				if (isPromoter) {
-					const sessionId = await createPromoterSession(pool, userId);
-					cookieManager.set(cookies, USER_SESSION_COOKIE, sessionId, {
-						maxAge: 60 * 60 * 24 * 7 // 1 week; the session itself expires 7 days after last use
-					});
-					cookies.set('promoterId', userId, {
-						path: '/',
-						httpOnly: true,
-						secure: true,
-						sameSite: 'lax',
-						maxAge: 60 * 60 * 24 * 7 // 1 week
-					});
-				}
-			} else {
-				console.log('Regular user password incorrect');
-			}
+		if (isPromoter) {
+			return json({ success: true, redirectUrl: '/promoter-home' });
 		}
 
-		// Check bar manager credentials. A promoter's own venue row (/register/promoter writes one
-		// under the promoter's e-mail) has no password, and comparing against a null hash throws,
-		// which answered 500 to every registered promoter's login (KNOWN_ISSUES 62): a venue row
-		// without a password is not a venue account, so it is skipped.
-		if ((barManagerResult?.rowCount ?? 0) > 0 && barManagerResult.rows[0].password_hash) {
-			const barData = barManagerResult.rows[0];
-			const storedBarPassword = barData.password_hash;
-			const isBarPasswordCorrect = await comparePassword(password, storedBarPassword);
-
-			if (isBarPasswordCorrect) {
-				console.log('Bar manager password correct');
-				validCredentials = true;
-				isBarManager = true;
-				const barId = barData.id;
-				const barName = barData.name;
-				normalizedCityName =
-					normalizedCityName || (barData.city ? normalizeCityName(barData.city) : '');
-
-				// The venue's session: a bar_sessions row, the same kind the app's Bearer token
-				// is, in an encrypted httpOnly cookie. This is what the venue write guards check
-				// (canManageBar); the plain barId cookie below is only for the dashboard's own
-				// display and is never trusted (KNOWN_ISSUES 52).
-				const barSessionId = await createBarSession(pool, barId);
-				cookieManager.set(cookies, BAR_SESSION_COOKIE, barSessionId, {
-					maxAge: 60 * 60 * 24 * 7 // 1 week; the session itself slides for 30 days
-				});
-
-				// Bar manager cookies. A venue is never sent through Spotify any more: the venue
-				// connect (and spotify_service add_bar) was retired with ROADMAP section 1.
-				cookies.set('barId', barId, {
-					path: '/',
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-
-				cookies.set('bar_email', email, {
-					path: '/',
-					httpOnly: true,
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-
-				cookies.set('barsName', barName, {
-					path: '/',
-					httpOnly: true,
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-
-				cookies.set('bar_city', normalizedCityName, {
-					path: '/',
-					httpOnly: true,
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-
-				// Continue to the bars page
-				console.log('=== Sending successful login response, redirecting to /bars ===');
-
-				// SvelteKit sends every cookies.set() above with its own flags. This used to copy
-				// each cookie into a bare `Set-Cookie: name=value; Path=/` as well, which dropped
-				// HttpOnly and Secure (KNOWN_ISSUES 53).
-				return new Response(JSON.stringify({ success: true, redirectUrl: '/bars' }), {
-					status: 200,
-					headers: { 'Content-Type': 'application/json' }
-				});
-			} else {
-				console.log('Bar manager password incorrect');
-			}
+		if (login.unconfirmed) {
+			return json(
+				{
+					success: false,
+					message: 'Please confirm your venue registration first: check your e-mail for the code.'
+				},
+				{ status: 403 }
+			);
 		}
 
-		// Handle role determination and response - this only executes if we haven't returned yet
-		if (validCredentials) {
-			// Set a cookie if user has dual roles
-			if (isPromoter && isBarManager) {
-				cookies.set('hasDualRole', 'true', {
-					path: '/',
-					secure: true,
-					sameSite: 'lax',
-					maxAge: 60 * 60 * 24 * 7 // 1 week
-				});
-			}
-
-			// Determine where to redirect the user
-			// Priority: Bar Manager > Promoter > Regular User
-			if (isBarManager) {
-				console.log('=== Sending successful login response for bar manager ===');
-				return new Response(JSON.stringify({ success: true, redirectUrl: '/bars' }), {
-					status: 200
-				});
-			} else if (isPromoter) {
-				console.log('=== Sending successful login response for promoter ===');
-				return new Response(JSON.stringify({ success: true, redirectUrl: '/promoter-home' }), {
-					status: 200
-				});
-			} else {
-				// Regular user shouldn't be using this login method
-				console.log('=== Redirecting regular user to correct login page ===');
-				return new Response(
-					JSON.stringify({
-						success: false,
-						message: 'Please use the regular user login',
-						redirectUrl: '/login/users'
-					}),
-					{
-						status: 303 // See Other - redirect to different resource
-					}
-				);
-			}
-		}
-
-		// Check if it's a regular user trying to use partner login
-		const regularUserCheck = await query(
-			'SELECT id FROM clubfindr.users WHERE general_email = $1 AND is_promoter = false AND (role IS NULL OR role != $2)',
-			[email, 'manager']
-		);
-
-		if ((regularUserCheck?.rowCount ?? 0) > 0) {
-			// This is a regular user trying to use the partner login
-			console.log('=== Regular user using partner login, redirecting to user login ===');
-			return new Response(
-				JSON.stringify({
+		if (login.user) {
+			// A regular account with no venue: this is the partner login
+			return json(
+				{
 					success: false,
 					message: 'Please use the regular user login',
 					redirectUrl: '/login/users'
-				}),
-				{
-					status: 303 // See Other - redirect to different resource
-				}
+				},
+				{ status: 303 }
 			);
-		} else {
-			// Truly invalid credentials for partner login
-			console.log('=== Invalid credentials ===');
-			return new Response(JSON.stringify({ success: false, message: 'Invalid credentials' }), {
-				status: 401
-			});
 		}
+
+		return json({ success: false, message: 'Invalid credentials' }, { status: 401 });
 	} catch (error) {
 		console.error('Error during login:', error);
 		return new Response(JSON.stringify({ success: false, message: 'Error during login' }), {

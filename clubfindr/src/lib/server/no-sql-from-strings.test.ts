@@ -39,6 +39,10 @@ const ALLOWED: Record<string, { expressions: string[]; why: string }> = {
 		expressions: ["updates.join(', ')", 'paramCount'],
 		why: 'three constant `column = $n` fragments; paramCount is the integer placeholder counter'
 	},
+	'lib/server/venueLogin.ts': {
+		expressions: ['VENUE_COLUMNS'],
+		why: 'a module constant listing bars columns; the e-mail and ids go in as $n'
+	},
 	'routes/api/mobile/bars/stats/+server.ts': {
 		expressions: ['timeConstraint'],
 		why: 'one of three constant fragments chosen by a switch'

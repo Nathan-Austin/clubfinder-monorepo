@@ -1,7 +1,7 @@
 // api/mobile/bar/login/+server.ts
 import type { RequestHandler } from '@sveltejs/kit';
-import { query } from '$lib/db';
-import { comparePassword } from '$lib/server/passwordUtils';
+import { pool, query } from '$lib/db';
+import { findVenueLogin } from '$lib/server/venueLogin';
 import { v4 as uuidv4 } from 'uuid';
 import {
 	SAY,
@@ -46,65 +46,33 @@ export const POST: RequestHandler = async ({ request }) => {
 		const platform = input.value.platform || undefined;
 		const version = input.value.version || undefined;
 
-		// Get bar manager from database with all relevant fields
+		// The same lookup as the web's /login/bars ($lib/server/venueLogin): a personal account
+		// opens the venue it registered, else the venue's own login; a confirmed venue only.
+		// Until 2026-11-16 this tried the venue's own login alone, and a venue row without a
+		// password (a promoter's) answered 500 (KNOWN_ISSUES 69, 62).
 		const dbStart = Date.now();
+		const login = await findVenueLogin(pool, email, password);
+		console.log('Venue login lookup:', Date.now() - dbStart, 'ms', login.via ?? 'no venue');
+
+		if (!login.venue) {
+			const message = login.unconfirmed
+				? 'Email not verified. Please check your email for verification instructions.'
+				: login.user
+					? 'No venue is linked to this account. Register your venue first.'
+					: 'Invalid credentials';
+			return new Response(JSON.stringify({ success: false, message }), {
+				status: login.unconfirmed || login.user ? 403 : 401,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+
 		const result = await query(
-			`SELECT 
-                b.id, b.password_hash, b.city, b.name, b.general_email,
-                b.address, b.phone, b.opening_hours, b.closing_hours, b.description, b.website,
-                b.confirmed as email_verified, b.contact_person, b.postcode
-             FROM clubfindr.bars b
-             WHERE b.general_email = $1`,
-			[email]
+			`SELECT b.id, b.city, b.name, b.general_email, b.address, b.phone, b.opening_hours,
+			        b.closing_hours, b.description, b.website, b.contact_person, b.postcode
+			   FROM clubfindr.bars b WHERE b.id = $1`,
+			[login.venue.id]
 		);
-		console.log('Database lookup:', Date.now() - dbStart, 'ms');
-
-		if (!result.rows || result.rows.length === 0) {
-			return new Response(
-				JSON.stringify({
-					success: false,
-					message: 'Invalid credentials'
-				}),
-				{
-					status: 401,
-					headers: { 'Content-Type': 'application/json' }
-				}
-			);
-		}
-
 		const barData = result.rows[0];
-
-		// Check if email is verified
-		if (!barData.email_verified) {
-			return new Response(
-				JSON.stringify({
-					success: false,
-					message: 'Email not verified. Please check your email for verification instructions.'
-				}),
-				{
-					status: 403,
-					headers: { 'Content-Type': 'application/json' }
-				}
-			);
-		}
-		// Check password
-		const passwordStart = Date.now();
-		const storedHashedPassword = barData.password_hash;
-		const isPasswordCorrect = await comparePassword(password, storedHashedPassword);
-		console.log('Password verification:', Date.now() - passwordStart, 'ms');
-
-		if (!isPasswordCorrect) {
-			return new Response(
-				JSON.stringify({
-					success: false,
-					message: 'Invalid credentials'
-				}),
-				{
-					status: 401,
-					headers: { 'Content-Type': 'application/json' }
-				}
-			);
-		}
 
 		// Generate token for mobile session
 		const tokenStart = Date.now();
