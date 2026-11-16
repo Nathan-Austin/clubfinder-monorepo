@@ -360,6 +360,16 @@ top artists or play counts on the web).
 - [ ] Loading states and network error recovery
 - [ ] Finish the QR scanner flow to open venue details
 - [ ] Configure Sentry for production with source maps
+- [ ] Turn on R8 for Android release builds and give Play the mapping file. Play warns on every
+      upload (first seen on versionCode 9, 2026-11-16): "no deobfuscation file associated with this
+      App Bundle". React Native release builds do not run R8 by default; enabling it (and resource
+      shrinking) through `expo-build-properties` (`android.enableMinifyInReleaseBuilds`,
+      `enableShrinkResourcesInReleaseBuilds`) makes the app smaller, which serves the February 2027
+      size requirement, and produces `mapping.txt` to upload with each bundle so Play can decode
+      crash and ANR stack traces. A local EAS build leaves it in its temporary build folder, so
+      copy it out before it is cleaned up. Needs a device run: R8 can strip classes that native
+      modules reach by reflection, which then crash only in release builds. Pairs with Sentry for
+      the JavaScript side
 
 ## 6. Data pipeline (`data_collection`)
 
