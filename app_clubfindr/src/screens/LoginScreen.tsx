@@ -21,6 +21,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import axiosClient from '../api/axiosClient';
 import networkUtils from '../utils/networkUtils';
 import { LoginResponse } from '../types/auth';
+import * as WebBrowser from 'expo-web-browser';
+import { API_URL } from '../config/env';
+import { loginErrorMessage } from '../utils/loginErrors';
 
 // Simplified navigation type
 type LoginScreenNavigationProp = StackNavigationProp<any>;
@@ -68,6 +71,17 @@ const LoginScreen = () => {
   // Navigate to email verification
   const goToEmailVerification = (email: string) => {
     navigation.navigate('EmailVerification', { email });
+  };
+
+  // The web's reset page, which since 2026-11-16 also resets a venue's own login (KNOWN_ISSUES
+  // 68); `from=bars` sends a venue back to the venue login afterwards. The page has always
+  // existed, so this works against a server without that change too: a venue then just gets
+  // no e-mail.
+  const openPasswordReset = () => {
+    const from = isBarLoginMode ? '?from=bars' : '';
+    WebBrowser.openBrowserAsync(`${API_URL}/password-reset${from}`).catch((error) =>
+      console.error('Could not open the password reset page:', error)
+    );
   };
 
   // Toggle login mode modal
@@ -175,22 +189,7 @@ const LoginScreen = () => {
       throw new Error(data.message || 'Login failed');
     } catch (error) {
       console.error('Login error:', error);
-
-      // Provide a more specific error message based on the error
-      let errorMessage = 'Could not log in. Please check your credentials and try again.';
-
-      if (error instanceof Error) {
-        if (error.message.includes('network') || error.message.includes('timeout') ||
-          error.message.includes('abort') || error.message.includes('Network request failed')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
-        } else if (error.message.includes('incorrect') || error.message.includes('invalid') ||
-          error.message.includes('wrong')) {
-          errorMessage = 'Email or password incorrect. Please try again.';
-        } else if (error.message.includes('verify') || error.message.includes('verification')) {
-          errorMessage = 'Email not verified. Please check your email for a verification link.';
-        }
-      }
-
+      const errorMessage = loginErrorMessage(error);
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setIsLoggingIn(false);
@@ -330,6 +329,14 @@ const LoginScreen = () => {
             )}
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.forgotPassword}
+            onPress={openPasswordReset}
+            testID="forgot-password-button"
+          >
+            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+          </TouchableOpacity>
+
           <View style={styles.signupContainer}>
             <Text style={styles.orText}>Don't have an account?</Text>
             <TouchableOpacity
@@ -425,6 +432,15 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#FFFFFF',
     marginTop: 8,
+    fontSize: 14,
+  },
+  forgotPassword: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 5,
+  },
+  forgotPasswordText: {
+    color: '#D35400',
     fontSize: 14,
   },
   orText: {
