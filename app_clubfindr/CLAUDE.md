@@ -26,9 +26,16 @@ npx expo start -c
 ```
 
 ### Build & Deployment
+**Always set `EAS_NO_VCS=1`.** `app_clubfindr/` holds an old nested `.git` (KNOWN_ISSUES 34), so
+with version control on, EAS packs that repository's last commit (2026-01-27), not the current
+code. With it set, EAS packs the folder minus `.easignore`. EAS CLI must run on Node 24 (the app
+needs Node >= 20.19.4), logged in as the project owner `adminclubfindr` (`eas whoami`).
 ```bash
-# Build APK for Android (configured in eas.json)
-eas build --platform android --profile preview
+# Installable APK for a phone (profile "preview"), built on this machine, ~20 min
+EAS_NO_VCS=1 eas build --platform android --profile preview --local --output clubfindr-preview.apk
+
+# Play Store bundle (profile "release", an .aab; `npm run build:android` also bumps the version)
+EAS_NO_VCS=1 eas build --platform android --profile release --local
 
 # Submit to app stores
 eas submit
