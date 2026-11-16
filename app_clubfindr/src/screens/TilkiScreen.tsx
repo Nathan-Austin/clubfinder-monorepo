@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
 import { cityForQueries } from '../services/cityService';
 import LoadError from '../components/LoadError';
+import { venueList } from '../utils/venueResponse';
 
 type TilkiScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Tilki'>;
 
@@ -245,11 +246,8 @@ const TilkiScreen = () => {
                             genres: genresList
                         }).then(response => ({
                             date,
-                            venues: response.data || []
-                        })).catch(error => {
-                            console.error(`Error fetching bars for date ${date}:`, error);
-                            return { date, venues: [] };
-                        })
+                            venues: venueList(response.data, 'bar')
+                        }))
                     );
                 }
 
@@ -263,15 +261,13 @@ const TilkiScreen = () => {
                             genres: genresList
                         }).then(response => ({
                             date,
-                            venues: response.data || []
-                        })).catch(error => {
-                            console.error(`Error fetching clubs for date ${date}:`, error);
-                            return { date, venues: [] };
-                        })
+                            venues: venueList(response.data, 'club')
+                        }))
                     );
                 }
 
-                // Wait for all requests to complete
+                // Wait for all requests. One failed or malformed day fails the whole load, so the
+                // screen shows "Try again" rather than a range with days silently missing.
                 const barResponses = await Promise.all(barPromises);
                 const clubResponses = await Promise.all(clubPromises);
 
@@ -282,14 +278,10 @@ const TilkiScreen = () => {
                     const { date, venues } = response;
                     console.log(`Got ${venues.length} bars`);
 
-                    if (venues && Array.isArray(venues)) {
-                        // Add venues with their dates
-                        const venuesWithDate = venues.map(venue => ({
-                            ...venue,
-                            date // Add the date to each venue
-                        }));
-                        allBarVenues.push(...venuesWithDate);
-                    }
+                    allBarVenues.push(...venues.map(venue => ({
+                        ...venue,
+                        date // Add the date to each venue
+                    })));
                 });
 
                 // Process club results - event_date should already be in the data
@@ -299,14 +291,10 @@ const TilkiScreen = () => {
                     const { date, venues } = response;
                     console.log(`Got ${venues.length} clubs for date ${date}`);
 
-                    if (venues && Array.isArray(venues)) {
-                        // Make sure clubs have the date explicitly set
-                        const venuesWithDate = venues.map(venue => ({
-                            ...venue,
-                            event_date: venue.event_date || date // Ensure event_date is set
-                        }));
-                        allClubVenues.push(...venuesWithDate);
-                    }
+                    allClubVenues.push(...venues.map(venue => ({
+                        ...venue,
+                        event_date: venue.event_date || date // Ensure event_date is set
+                    })));
                 });
 
                 console.log(`Total bars collected across dates: ${allBarVenues.length}`);
@@ -353,13 +341,13 @@ const TilkiScreen = () => {
                 ]);
 
                 // Add date to bar venues (for display purposes only)
-                barResults = (barResponse.data || []).map((venue: discoveryService.Venue) => ({
+                barResults = venueList(barResponse.data, 'bar').map((venue) => ({
                     ...venue,
                     date: selectedDate // Add the date for display purposes only
                 }));
 
                 // Make sure clubs have event_date set
-                clubResults = (clubResponse.data || []).map((venue: discoveryService.Venue) => ({
+                clubResults = venueList(clubResponse.data, 'club').map((venue) => ({
                     ...venue,
                     event_date: venue.event_date || selectedDate
                 }));
@@ -370,18 +358,14 @@ const TilkiScreen = () => {
             if (!isMounted.current) return;
 
             // Process bar results to remove duplicates
-            const uniqueBarVenues = Array.isArray(barResults)
-                ? barResults.filter((venue: any, index: number, self: any[]) =>
-                    index === self.findIndex((v: any) => v.id === venue.id)
-                )
-                : [];
+            const uniqueBarVenues = barResults.filter((venue, index, self) =>
+                index === self.findIndex((v) => v.id === venue.id)
+            );
 
             // Process club results to remove duplicates
-            const uniqueClubVenues = Array.isArray(clubResults)
-                ? clubResults.filter((venue: any, index: number, self: any[]) =>
-                    index === self.findIndex((v: any) => v.id === venue.id)
-                )
-                : [];
+            const uniqueClubVenues = clubResults.filter((venue, index, self) =>
+                index === self.findIndex((v) => v.id === venue.id)
+            );
 
             // Organize venues by date
             const barSections = organizeVenuesByDate(uniqueBarVenues, dateRangeStart, dateRangeEnd);
