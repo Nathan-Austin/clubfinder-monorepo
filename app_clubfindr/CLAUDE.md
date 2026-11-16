@@ -65,37 +65,52 @@ npx expo export --platform android --output-dir /tmp/expo-export   # bundles the
 ### Project Structure
 ```
 src/
-├── api/           # HTTP client with interceptors
-├── components/    # Reusable UI components
-├── config/        # Environment configuration
-├── constants/     # App constants (genres, etc.)
-├── contexts/      # Global state providers
-│   └── AuthContext.tsx  # Auth state, JWT management
-├── navigation/    # Navigation setup
-├── screens/       # Screen components
-├── services/      # Business logic
-│   ├── discoveryService.ts  # Venue discovery
-│   ├── tasteService.ts      # Taste profile (artist picker, search)
-│   └── barManagementService.ts
-├── types/         # TypeScript definitions
+├── api/axiosClient.ts       # The HTTP client: axios over services/NativeFetchService
+├── components/              # Reusable UI (CitySection, LoadError, LoginTypeModal, VenueCard…)
+├── config/env.ts            # API_URL and endpoint names
+├── constants/
+│   ├── cities.ts            # Covered cities + centres (= data_collection/live_cities.txt)
+│   └── unified-genres.json
+├── contexts/AuthContext.tsx # Session, user type, changeCity
+├── hooks/useCityProposal.ts # "You seem to be in Paris. Switch?"
+├── navigation/index.tsx
+├── screens/
+├── services/
+│   ├── NativeFetchService.ts # fetch + auth header; keeps the status of non-JSON errors
+│   ├── discoveryService.ts   # Venues, location, caches
+│   ├── cityService.ts        # The one place that reads and saves the user's city
+│   ├── mobileBarService.ts   # Venue register/confirm/login
+│   └── tasteService.ts       # Taste profile (artist picker, search)
+├── types/api.ts             # HttpError, errorMessage/errorStatus, ApiEvent, ApiBarData
 └── utils/
-    └── cache.ts   # Network-aware caching
+    ├── logger.ts            # log.debug/info (dev only), installConsoleGuard
+    ├── VenueCache.ts        # Nearby-venue cache (not per city: cleared on a city change)
+    └── NetworkCache.ts
 ```
 
 ### Authentication Flow
-The app uses JWT authentication with two user types:
+The app has two user types, each with its own login:
 1. **Customers**: Can discover venues from their taste profile
 2. **Bar Managers**: Can manage business profiles, view analytics
 
-Auth tokens are stored in AsyncStorage and automatically refreshed. The `AuthContext` handles:
-- Login/logout for both user types
-- Token persistence and refresh
+The session token is the server's `user_sessions` (customer) or `bar_sessions` (venue) id, stored
+in AsyncStorage as `authToken`; NativeFetchService sends it as `Authorization: Bearer` on every
+request. It is not a JWT and is not refreshed: it expires on the server after 7 (customer) or 30
+(venue) days without use. The `AuthContext` handles:
+- Login/logout for both user types; the venue login accepts the venue's own credentials or the
+  personal account that registered it (server `$lib/server/venueLogin`)
+- `changeCity`, which saves to the account and clears the venue caches
 - User type switching
 
 ### API Integration
-- Base URL configured via environment variables in `.env`
-- Axios interceptors add auth headers automatically
-- API client configured in `src/api/httpClient.ts`
+- **Every build talks to production**: `API_URL` is `https://www.clubfindr.com` (in
+  `config/env.ts`, `api/axiosClient.ts` and `services/NativeFetchService.ts`). A build installed
+  before a web deploy runs against the old server, so a new endpoint must fail safely there (a
+  404 reaches the caller as a 404: see `services/cityService.ts`)
+- `api/axiosClient` is axios with an adapter over NativeFetchService; `params` go into the URL,
+  failed requests carry `error.response.status`
+- In a `catch`, use `errorMessage(error, fallback)` / `errorStatus(error)` from `types/api.ts`,
+  not `error: any`
 - Services layer abstracts API calls
 
 ### Navigation Structure
@@ -118,20 +133,22 @@ Auth tokens are stored in AsyncStorage and automatically refreshed. The `AuthCon
 - QR scanning for check-ins (`expo-camera`)
 - Screens: `QRScannerScreen.tsx`, `QRCodeGeneratorScreen.tsx`
 
-#### Location Services
-- GPS-based venue discovery
-- Uses `expo-location`
-- Permissions handled in app.json
+#### Location and city
+- **Approximate location only** (`Accuracy.Low`, Android `ACCESS_COARSE_LOCATION`): Play wants a
+  declaration for fine location from 27 January 2027
+- The user's city is `users.city` on the server and `userCity` in AsyncStorage. Read it with
+  `cityForQueries()` from `services/cityService.ts`, never `AsyncStorage.getItem('userCity') ||
+  'berlin'`; change it with `AuthContext.changeCity` (`PUT /api/account/city`)
+- No fix → no position in a release build; under `__DEV__` the centre of the user's city
+- No venues loadable → `components/LoadError` with "Try again"; never made-up venues
 
 #### Caching System
-- Network-aware data caching in `src/utils/cache.ts`
-- Offline support with `@react-native-community/netinfo`
-- Automatic cache invalidation
+- `utils/VenueCache.ts` (nearby) and discoveryService's own cache, 30 minutes, not per city
+- Offline support with `@react-native-community/netinfo`; an expired cache beats an error
 
 ## Environment Configuration
 
-Environment variables are loaded from `.env` using `react-native-dotenv`:
-- `API_BASE_URL`: Backend API endpoint
+There is no `.env` for the API: the URL is hard-coded to production (see API Integration).
 
 ## Testing
 
@@ -143,7 +160,19 @@ npm test
 
 Test files follow the pattern `*.test.ts(x)` in `__tests__` folders (e.g.
 `src/utils/__tests__/localDate.test.ts`). Nothing runs on a device in CI, so put logic that
-matters (dates, matching, parsing) in plain functions with unit tests.
+matters (dates, matching, parsing) in plain functions with unit tests. Jest runs from this folder:
+use `path.resolve(...)`, not `__dirname` (not a global the lint config knows).
+
+Some tests read source or config rather than run code, because what they guard only shows on a
+device:
+- `screens/__tests__/textInputs.test.ts`: every `TextInput` sets `placeholderTextColor`, its
+  style a `color`, and e-mail fields `autoCorrect={false}` (KNOWN_ISSUES 69)
+- `utils/__tests__/noPersonalDataInLogs.test.ts`: no console call logs an e-mail, password, token
+  or code
+- `__tests__/appConfig.test.ts`: the permissions and Info.plist settings below
+- `constants/__tests__/cities.test.ts`: the city list matches `live_cities.txt` and the web's
+
+The checklist for a device run is `DEVICE_CHECKLIST.md`.
 
 ## Development Notes
 
@@ -164,9 +193,23 @@ matters (dates, matching, parsing) in plain functions with unit tests.
 - Local component state with useState
 - No Redux or MobX - use Context API for shared state
 
+### Logging
+`console.log/info/debug` print nothing in a release build (`installConsoleGuard` in `App.tsx`).
+New code uses `log.debug`/`log.info` (development only) and `log.warn`/`log.error` (every build)
+from `utils/logger.ts`, and never logs personal data or credentials.
+
 ### Permissions
-The app requires:
-- Location (fine/coarse) for venue discovery
-- Camera for QR scanning
-- Bluetooth (declared in `app.json` for the retired Spotify integration; review before the next release)
-- Network access for API calls
+**`app.json` does not decide the permissions by itself** (KNOWN_ISSUES 76): libraries declare
+their own in their manifests, and `expo-location`'s config plugin is applied even when not listed.
+- Android: `ACCESS_COARSE_LOCATION`, `CAMERA` (from the expo-camera plugin), network. What
+  libraries add and the app does not use is in `android.blockedPermissions`. `expo-notifications`
+  still brings its own (KNOWN_ISSUES 77)
+- iOS: iPhone only (`supportsTablet: false`); exactly two usage texts, camera (expo-camera plugin,
+  microphone off) and when-in-use location (expo-location plugin, "Always" off)
+- To check a change: copy the app to a scratch folder (never prebuild into this one), symlink
+  `node_modules`, then `EAS_NO_VCS=1 npx expo prebuild --platform android --clean --no-install`
+  and `SENTRY_DISABLE_AUTO_UPLOAD=true ./gradlew :app:processReleaseMainManifest`; the merged
+  manifest is under `android/app/build/intermediates/merged_manifest/release/`. For iOS, prebuild
+  `--platform ios` and read `ios/*/Info.plist`
+- `eas.json` uses `appVersionSource: "local"`: versions live in `app.json`, and
+  `scripts/bump-version.js` bumps `versionCode`
