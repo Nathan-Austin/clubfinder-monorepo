@@ -650,7 +650,7 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `httpOnly`/`secure`, the success path loops over `cookies.getAll()` and appends
     `Set-Cookie: name=value; Path=/` for each, which can replace them with flag-less copies (and
     echoes request cookies back). The loop is gone: SvelteKit sends `cookies.set()` with its flags.
-54. _Fixed 2026-11-14 (`6973e8f`); nginx by hand._ **Wildcard CORS on `/api/*`.** Every `/api/*`
+54. _Fixed 2026-11-14 (`6973e8f`); nginx applied 2026-11-16._ **Wildcard CORS on `/api/*`.** Every `/api/*`
     response and preflight carried `Access-Control-Allow-Origin: *`, from `hooks.server.ts`, from
     four routes of their own (`/api/spotify/artists`, `/api/mobile/signup`, `/api/mobile/events`,
     `/api/mobile/bars`), and from nginx, whose `location /` and `location /api/spotify/` blocks
@@ -660,8 +660,10 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     echoes `https://clubfindr.com`, `https://www.clubfindr.com`, the deployment's own `ORIGIN`, and
     under `vite dev` any localhost port; any other origin gets the answer with no CORS header, and
     `Vary: Origin` always. The native app sends no Origin and is unaffected.
-    `deploy/nginx/sveltekit.config` drops its CORS blocks; until the live site file is changed
-    by hand (ROADMAP section 1 follow-ups), nginx still adds its wildcard on top.
+    `deploy/nginx/sveltekit.config` drops its CORS blocks, and the live site file matches it
+    since 2026-11-16. Between the deploy and that change both sent the header, so the site's own
+    origins briefly got two `Access-Control-Allow-Origin` values. `cors.test.ts` fails if any
+    other source file sets the header.
 55. _Fixed 2026-11-14._ **Confirmation codes were rate-limited only in the browser.**
     `/register/confirm`, `/register/promoter/confirm`, `/api/mobile/bars/confirm`, the app's
     `/api/verify-confirmation` and `/api/verify-email-code`, and `/api/delete-user-data` accepted

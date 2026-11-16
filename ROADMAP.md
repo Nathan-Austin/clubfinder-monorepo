@@ -316,7 +316,7 @@ top artists or play counts on the web).
       with a backfill migration too (KNOWN_ISSUES 61)
 - [ ] **Next:** the validation rollout to the write and read/search endpoints
       (`section4-inventory.md`, section 4). Done 2026-11-14 on the way: KNOWN_ISSUES 40, 54
-      (nginx by hand), 59 and 60
+      (nginx applied 2026-11-16), 59 and 60
 - [x] Every venue write guard (`canManageBar`) accepted a plain, forgeable `barId` cookie, and
       `/api/bars/[barId]` had its check switched off: fixed 2026-11-13 with a real venue session in
       an encrypted httpOnly cookie (`edb066d`, KNOWN_ISSUES 52)
@@ -327,8 +327,9 @@ top artists or play counts on the web).
       change), fixed 2026-11-13 (KNOWN_ISSUES 57)
 - [x] Wildcard CORS on all of `/api/*` (KNOWN_ISSUES 54): fixed 2026-11-14 (`6973e8f`), only
       `https://clubfindr.com`, `https://www.clubfindr.com`, the deployment's own `ORIGIN` and
-      localhost under `vite dev`; the live nginx file still needs its CORS blocks removed by hand
-      (section 1 follow-ups)
+      localhost under `vite dev`. The live nginx site lost its CORS blocks on 2026-11-16 (backup
+      `~/backups/sveltekit.config.20261116-093050` on the server); checked live: a foreign origin
+      gets no CORS headers, both site origins exactly one, preflights 204
 - [x] Confirmation-code attempts were limited only in the browser (KNOWN_ISSUES 55): fixed
       2026-11-14, counted in the database (`confirmation_attempts` on `bars` and `users`), five
       guesses per issued code across every confirm endpoint, then 429 until a new code
