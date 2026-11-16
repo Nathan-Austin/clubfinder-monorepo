@@ -15,6 +15,7 @@ import { tasteApi, USER_TASTE_BASE } from '../services/tasteService';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
+import CitySection from '../components/CitySection';
 
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -84,6 +85,8 @@ const ProfileScreen = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      <CitySection />
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account Settings</Text>
 

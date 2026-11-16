@@ -26,6 +26,7 @@ import { artistsFromHits, genresOfSelection, type SearchArtist } from '../utils/
 
 // Import genre data
 import genreData from '../constants/unified-genres.json';
+import { cityForQueries } from '../services/cityService';
 
 // Artist search runs on the server-side Spotify app and the catalogue (GET /api/taste/search);
 // it used to need the user's own Spotify login, which is retired. Tracks are not searched any
@@ -92,8 +93,7 @@ const SearchScreen = () => {
             // Get today's date in YYYY-MM-DD format
             const today = new Date().toISOString().split('T')[0];
 
-            // Get city from storage or use default
-            const city = await AsyncStorage.getItem('userCity') || 'berlin';
+                        const city = await cityForQueries();
 
             console.log('Fetching venues with genres:', genres);
 

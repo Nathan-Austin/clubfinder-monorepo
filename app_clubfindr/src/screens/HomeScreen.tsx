@@ -19,6 +19,10 @@ import DistanceSelector from '../components/DistanceSelector';
 import * as discoveryService from '../services/discoveryService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import { cityForQueries } from '../services/cityService';
+import { useAuth } from '../contexts/AuthContext';
+import { useCityProposal } from '../hooks/useCityProposal';
+import { cityName } from '../constants/cities';
 
 type HomeScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Home'>;
 
@@ -35,6 +39,9 @@ const HomeScreen = () => {
 
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Home'>>();
+  const { user } = useAuth();
+  // "You seem to be in Paris": offers the city the phone is in (KNOWN_ISSUES 67)
+  useCityProposal();
   // Load venues when component mounts or when venue type/distance settings change
   useEffect(() => {
     const testLocation = async () => {
@@ -73,7 +80,8 @@ const HomeScreen = () => {
       // Regular venue loading
       fetchVenues();
     }
-  }, [venueType, distanceEnabled, maxDistance, route.params?.refresh]);
+  // user?.city: a city changed in Profile or by the proposal reloads the list, no new login
+  }, [venueType, distanceEnabled, maxDistance, route.params?.refresh, user?.city]);
 
   // Add this near the top of your HomeScreen component
   const testLocation = async () => {
@@ -121,8 +129,7 @@ const HomeScreen = () => {
     try {
       setLoading(true);
 
-      // Get city from storage or use default
-      const city = await AsyncStorage.getItem('userCity') || 'berlin';
+            const city = await cityForQueries();
       console.log(`Fetching ${venueType}s for city:`, city);
 
       // Use the cached version of the venue fetching functions
@@ -173,7 +180,7 @@ const HomeScreen = () => {
 
     try {
       // Force refresh the venue cache for the current venue type
-      const city = await AsyncStorage.getItem('userCity') || 'berlin';
+      const city = await cityForQueries();
       await discoveryService.refreshVenueCache(city, venueType);
 
       // Then fetch venues again (will use the fresh cache)
@@ -207,7 +214,8 @@ const HomeScreen = () => {
 
   // Format the section title based on venue type and distance
   const getSectionTitle = () => {
-    let title = `${venueType === 'bar' ? 'Bars' : 'Clubs'} in your area`;
+    const place = cityName(user?.city) || 'your area';
+    let title = `${venueType === 'bar' ? 'Bars' : 'Clubs'} in ${place}`;
     if (distanceEnabled) {
       const distanceText = maxDistance >= 1000
         ? `${(maxDistance / 1000).toFixed(1)}km`

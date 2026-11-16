@@ -1,6 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Venue } from './discoveryService';
+import { cityForQueries } from './cityService';
 
 // Types for genre matching
 interface GenreCluster {
@@ -257,8 +258,7 @@ export const processUserGenresAndFindVenues = async (
     venueType: 'bar' | 'club' = 'bar'
 ): Promise<Venue[]> => {
     try {
-        // Get city from storage or use default
-        const city = await AsyncStorage.getItem('userCity') || 'berlin';
+                const city = await cityForQueries();
 
         // Get today's date in YYYY-MM-DD format
         const today = new Date().toISOString().split('T')[0];

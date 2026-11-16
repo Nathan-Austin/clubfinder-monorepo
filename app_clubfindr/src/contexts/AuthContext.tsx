@@ -4,6 +4,9 @@ import * as authService from '../services/authService';
 import { purgeLegacySpotifyData } from '../utils/legacySpotify';
 import axiosClient from '../api/axiosClient';
 import * as mobileBarService from '../services/mobileBarService';
+import { saveUserCity, type SaveCityResult } from '../services/cityService';
+import { clearVenueCache } from '../services/discoveryService';
+import VenueCache from '../utils/VenueCache';
 
 // Use the same User type that we defined in authService
 import type { LoginResponse } from '../services/authService';
@@ -43,6 +46,12 @@ type AuthContextType = {
   barLogin: (email: string, password: string) => Promise<void>;
   /** Ends the artist picker step (Continue or Skip); RootNavigator then shows the tabs */
   finishArtistOnboarding: () => Promise<void>;
+  /**
+   * Changes the user's city (KNOWN_ISSUES 67) on the account and this phone, and drops the
+   * cached venues, which are not kept per city. `user.city` changes, so screens that depend on
+   * it fetch again: no new login.
+   */
+  changeCity: (city: string) => Promise<SaveCityResult>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -161,6 +170,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     await AsyncStorage.setItem('user', JSON.stringify(updated));
     setUser(updated);
+  };
+
+  const changeCity = async (city: string): Promise<SaveCityResult> => {
+    const result = await saveUserCity(city);
+    if (result.ok) {
+      await Promise.all([clearVenueCache(), VenueCache.clearCache()]);
+      setUser((current) => (current ? { ...current, city: result.city.slug } : current));
+    }
+    return result;
   };
 
   // Login with pre-fetched credentials
@@ -308,7 +326,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       refreshAuthState,
       userType,
       isBarManager: userType === 'bar',
-      finishArtistOnboarding
+      finishArtistOnboarding,
+      changeCity
     }}>
       {children}
     </AuthContext.Provider>

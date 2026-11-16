@@ -12,6 +12,7 @@ import VenueCache from '../utils/VenueCache';
 import VenueCacheMonitor from '../utils/VenueCacheMonitor';
 import * as discoveryService from '../services/discoveryService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cityForQueries } from '../services/cityService';
 
 interface CacheStats {
     bars: {
@@ -79,7 +80,7 @@ const VenueCacheDebugScreen = () => {
             setRefreshing(true);
 
             // Get the city
-            const city = await AsyncStorage.getItem('userCity') || 'berlin';
+            const city = await cityForQueries();
 
             // Refresh both caches
             await discoveryService.refreshVenueCache(city, 'bar');

@@ -1216,6 +1216,7 @@ export const testLocationServices = async () => {
 
 
 import * as genreMatchingService from './genreMatchingService';
+import { cityForQueries } from './cityService';
 
 /**
  * Process user genres and find venues for a specific date
@@ -1230,8 +1231,7 @@ export const processUserGenresAndFindVenuesForDate = async (
     venueType: 'bar' | 'club' = 'bar'
 ): Promise<Venue[]> => {
     try {
-        // Get city from storage or use default
-        const city = await AsyncStorage.getItem('userCity') || 'berlin';
+                const city = await cityForQueries();
 
         // Validate date format (YYYY-MM-DD)
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -1320,7 +1320,7 @@ export const getVenuesForDateRange = async (
         const genresList = genres.split(',');
 
         // Get city
-        const city = await AsyncStorage.getItem('userCity') || 'berlin';
+        const city = await cityForQueries();
 
         // Create date range
         const start = new Date(startDate);

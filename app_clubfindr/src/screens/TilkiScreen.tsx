@@ -22,6 +22,7 @@ import VenueToggle from '../components/VenueToggle';
 import DateSelector from '../components/DateSelector';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
+import { cityForQueries } from '../services/cityService';
 
 type TilkiScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Tilki'>;
 
@@ -212,7 +213,7 @@ const TilkiScreen = () => {
             let clubResults: discoveryService.Venue[] = [];
 
             // Get city
-            const city = await AsyncStorage.getItem('userCity') || 'berlin';
+            const city = await cityForQueries();
 
             if (isDateRange) {
                 console.log(`Fetching venues for date range: ${dateRangeStart} to ${dateRangeEnd}`);
