@@ -779,3 +779,12 @@ false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AU
     confirm or pick another in the app's Profile and on the web, save it to `users.city` through an
     authenticated endpoint, and refresh `userCity` without a fresh login. Note `discoveryService`
     also hard-codes Berlin as its last-resort coordinates.
+68. **Venues cannot reset a forgotten password.** `/login/bars` links "Forgot Password?" to
+    `/password-reset`, but `/api/request-password-reset` looks the address up in
+    `clubfindr.users` only, and `/api/reset-password` writes `users.password_hash`. A venue
+    registered through `/register` (or the app) logs in with `bars.password_hash` and its
+    `bars.general_email`, so the reset never reaches it, and a venue whose login is forgotten can
+    only be recovered in the database. Found 2026-11-16 when the owner could not log in to a venue
+    for the device run. Fix: let the reset find a `bars` row too (one token table, with the
+    account kind on the token), keep the same answer for unknown addresses, and offer the same link
+    in the app's venue login.

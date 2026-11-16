@@ -349,6 +349,8 @@ top artists or play counts on the web).
       (KNOWN_ISSUES 67). Propose it from the device location (nearest covered city), add a city
       picker in the app's Profile and on the web, save it to `users.city`. Until then a wrong city
       can only be fixed in the database
+- [ ] Venue password reset (KNOWN_ISSUES 68): "Forgot Password?" on the venue login only resets
+      `users` passwords, never a venue's own (`bars.password_hash`)
 - [ ] **Deadline 27 January 2027:** coarse location only (KNOWN_ISSUES 65). Drop
       `ACCESS_FINE_LOCATION` from `app.json` and request approximate location, so Play's new
       location policy needs no declaration; check venue distance sorting still reads right on a
