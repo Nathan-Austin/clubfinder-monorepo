@@ -6,6 +6,7 @@ import type { RequestHandler } from './$types';
 import { sendEmail } from '$lib/email';
 import { normalizeCityName } from '$lib/cityName';
 import { hashPassword } from '$lib/server/passwordUtils';
+import { VENUE_ALREADY_REGISTERED, saveVenueRegistration } from '$lib/server/venueRegistration';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const {
@@ -35,134 +36,30 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// One transaction on one connection (KNOWN_ISSUES 39): query('BEGIN') … query('COMMIT')
 		// ran each statement on whichever pooled connection was free.
-		barId = await withTransaction(async (client) => {
-			let barId: string | undefined;
-			// First check if the user already exists
-			const existingUserResult = await client.query(
-				`SELECT id FROM clubfindr.users WHERE general_email = $1`,
-				[email]
-			);
-
-			let userId;
-			if (existingUserResult.rows.length > 0) {
-				// User already exists, use their ID
-				userId = existingUserResult.rows[0].id;
-
-				// Update user role to manager if not already
-				await client.query(
-					`UPDATE clubfindr.users 
-	             SET role = 'manager', updated_at = NOW() 
-	             WHERE id = $1 AND (role IS NULL OR role != 'manager')`,
-					[userId]
-				);
-
-				// Update user password
-				await client.query(
-					`UPDATE clubfindr.users 
-	             SET password_hash = $1, updated_at = NOW() 
-	             WHERE id = $2`,
-					[hashedPassword, userId]
-				);
-			} else {
-				// Insert new user
-				const userIdResult = await client.query(
-					`INSERT INTO clubfindr.users (general_email, password_hash, city, role, created_at, updated_at) 
-	             VALUES ($1, $2, $3, 'manager', NOW(), NOW()) 
-	             RETURNING id`,
-					[email, hashedPassword, normalizedCityName]
-				);
-				userId = userIdResult.rows[0]?.id;
-				if (!userId) {
-					throw new Error('User registration failed.');
-				}
-			}
-
-			// Check if a bar with this email already exists
-			const existingBarResult = await client.query(
-				`SELECT id FROM clubfindr.bars WHERE general_email = $1`,
-				[email]
-			);
-
-			if (existingBarResult.rows.length > 0) {
-				// Update existing bar record
-				barId = existingBarResult.rows[0].id;
-				await client.query(
-					`UPDATE clubfindr.bars 
-	             SET user_id = $1,
-	                 name = $2,
-	                 contact_person = $3,
-	                 phone = $4,
-	                 address = $5,
-	                 postcode = $6,
-	                 website = $7,
-	                 city = $8,
-	                 confirmation_code = $9,
-	                 expires_at = $10,
-	                 password_hash = $11,
-	                 smoking_allowed = $13,
-	                 bar_types = $14
-	             WHERE general_email = $12
-	             RETURNING id`,
-					[
-						userId,
-						businessName,
-						contactPerson,
-						phone,
-						address,
-						postcode,
-						website,
-						normalizedCityName,
-						confirmationCode,
-						expiresAt,
-						hashedPassword,
-						email,
-						smokingAllowed,
-						barTypes
-					]
-				);
-			} else {
-				// Insert new bar record
-				const barResult = await client.query(
-					`INSERT INTO clubfindr.bars (
-	                user_id, 
-	                name, 
-	                contact_person, 
-	                general_email, 
-	                phone, 
-	                address, 
-	                postcode, 
-	                website,
-	                city,
-	                confirmation_code,
-	                expires_at,
-	                password_hash,
-	                smoking_allowed,
-	                bar_types
-	            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-	            RETURNING id`,
-					[
-						userId,
-						businessName,
-						contactPerson,
-						email,
-						phone,
-						address,
-						postcode,
-						website,
-						normalizedCityName,
-						confirmationCode,
-						expiresAt,
-						hashedPassword,
-						smokingAllowed,
-						barTypes
-					]
-				);
-
-				barId = barResult.rows[0].id;
-			}
-
-			return barId as string;
-		});
+		// $lib/server/venueRegistration: an existing personal account is linked, never changed,
+		// and a confirmed venue under the address is refused. Both used to be overwritten before
+		// any code was entered, which let anyone take over an account or a venue.
+		const saved = await withTransaction((client) =>
+			saveVenueRegistration(client, {
+				businessName,
+				contactPerson,
+				email,
+				phone,
+				address,
+				postcode,
+				website,
+				city: normalizedCityName,
+				confirmationCode,
+				expiresAt,
+				hashedPassword,
+				smokingAllowed,
+				barTypes
+			})
+		);
+		if ('conflict' in saved) {
+			return json({ success: false, message: VENUE_ALREADY_REGISTERED }, { status: 409 });
+		}
+		barId = saved.barId;
 
 		// Return success response immediately after commit
 		const response = json({
