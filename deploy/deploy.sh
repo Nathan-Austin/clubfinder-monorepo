@@ -127,9 +127,10 @@ if [ -n "$MIGS" ]; then
 	log "Migrations to apply:"
 	echo "$MIGS" | sed 's/^/  /'
 
-	# Comments stripped first, so a migration explaining what it does not drop is fine
+	# Comments stripped first, so a migration explaining what it does not drop is fine, and
+	# foreign-key actions (ON DELETE CASCADE, ON UPDATE ...), which delete nothing when applied
 	risky=$(echo "$MIGS" | while read -r f; do
-		git show "$TARGET:$f" | sed 's/--.*$//' |
+		git show "$TARGET:$f" | sed -E 's/--.*$//; s/\bon[[:space:]]+(delete|update)\b//Ig' |
 			grep -qiwE 'drop|truncate|delete|rename' && echo "  $f"
 	done || true)
 	[ -z "$risky" ] ||
