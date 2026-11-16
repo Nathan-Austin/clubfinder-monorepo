@@ -853,10 +853,26 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     notification (the Profile switch that pretended to was removed in `ed7a98e`). Left on the
     owner's instruction: they are deciding what notifications should do, and whether another
     package suits better; drop or replace it with the Expo upgrade (35).
-78. **SoundCloud and Tidal connect still exist on the web** (`/api/soundcloud`, `/api/tidal`, the
-    buttons on `/users-home`), outside the section 1 retirement. The policy draft (47) keeps them
-    on the owner's instruction. Follow-up checks: do both flows still work against their live
-    APIs, does anything use the tokens they store, and should they stay.
+78. **SoundCloud and Tidal connect are live on the web, outside the section 1 retirement.**
+    Checked read-only on 2026-11-16; nothing changed. The policy draft (47) keeps them on the
+    owner's instruction.
+    - Reachable: every logged-in user sees both buttons on the home page (`/`) and on
+      `/users-home`. No feature flag.
+    - Flow: OAuth (`/api/soundcloud/auth`, `/api/tidal/auth` with PKCE) → the callback stores
+      the access and refresh tokens **in encrypted httpOnly cookies only**, no table → `/soundcloud`
+      and `/tidal` read the user's likes, playlists and artists from the provider → the user picks
+      tracks → `/api/analyze-selections` → `/clubs`. Needs `SOUNDCLOUD_CLIENT_ID/SECRET` and
+      `TIDAL_CLIENT_ID/SECRET` at build time (static env). The mobile app has neither.
+    - Untested: nothing in the e2e suite or the mocks exercises either flow (the suite is offline
+      and blocks them), so whether they still work against the live providers is unknown.
+      `/soundcloud` uses SoundCloud's `v2` API for likes, which is not the documented public one.
+    - **The SoundCloud callback logs the whole callback URL** (`console.log('Full URL:', ...)`,
+      with the one-time OAuth `code` and `state`) and the auth step logs the `state`, into the pm2
+      logs. Short-lived and single-use, but a credential in a log, and
+      `no-personal-data-in-logs.test.ts` does not catch `url`/`state`/`code`. Fix when deciding
+      the flows' future.
+    - To decide: keep them (then a mock and an e2e spec each, and the log lines go), or retire them
+      like Spotify connect (the routes, the buttons, the two policy mentions, the env keys).
 79. **Until the web deploy, a city chosen in the app lives on the phone only.** Against a server
     without `PUT /api/account/city` the app keeps the choice locally and says so; the next login
     brings back the account's city. Goes away with the deploy; nothing to do but deploy.
@@ -866,13 +882,14 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
     - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
       services, mostly in screens.
-    - `BarRegistrationScreen` hard-codes its own 8 cities (with Rome and New York, which are not
-      scraped) instead of `constants/cities.ts`.
+    - _Done 2026-11-16 (`708e6a7`):_ `BarRegistrationScreen` hard-coded its own 8 cities (with
+      Rome and New York, which are not scraped); it uses `constants/cities.ts` now.
     - A personal-account password reset does not end that user's sessions (a venue reset does,
       since `7c05c8d`).
     - The axios adapter turns any successful body with an `error` key into a thrown error, and
       reports every success as status 200.
-    - TilkiScreen treats a malformed (non-array) answer as "nothing found" rather than an error.
+    - _Done 2026-11-16 (`955916c`):_ TilkiScreen treated a malformed answer as "nothing found",
+      and in date-range mode counted every failed day as no venues; both show "Try again" now.
     - `expo-dev-client` is a runtime dependency, not a dev one; move it in the Expo upgrade.
     - Sentry is initialised with an empty DSN (`App.tsx`), so release builds report nothing
       (ROADMAP section 5).

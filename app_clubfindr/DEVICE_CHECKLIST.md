@@ -86,12 +86,15 @@ Use a phone in **dark mode** for the first section (that's where the invisible t
 - [ ] Airplane mode, then open Home (and Tilki after a search): **"We couldn't load venues just
       now" with "Try again"**. No "Club XYZ, 123 Main St, Berlin".
 - [ ] Airplane mode off, tap Try again → the real list.
+- [ ] Tilki in **"This Week"** with airplane mode on: "Try again", not an empty week.
 
 ## 9. Things that changed in passing
 - [ ] Profile has no "Push Notifications" switch (it never did anything).
 - [ ] Discover, Search, Tilki: a genre search still returns venues (the city now comes from one
       place, `services/cityService`).
 - [ ] Onboarding artist picker after a fresh signup, as in this morning's run.
+- [ ] Bar Registration → City: the nine covered cities (London, Berlin, Amsterdam, Rotterdam,
+      Barcelona, Ibiza, Madrid, Paris, Stockholm); no Rome or New York.
 
 ## Report back
 For anything that fails: the screen, what you did, the message shown, and whether the web side
