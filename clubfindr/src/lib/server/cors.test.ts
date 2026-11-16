@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { allowedOrigin, applyCors } from './cors';
 
@@ -61,5 +63,36 @@ describe('applyCors', () => {
 		expect(headers.get('Access-Control-Allow-Methods')).toBeNull();
 		expect(headers.get('Content-Type')).toBe('application/json');
 		expect(headers.get('Vary')).toBe('Origin');
+	});
+});
+
+// Ported from the parallel branch of 2026-11-14: the headers come from this module only, so a
+// route cannot bring the wildcard back on its own (KNOWN_ISSUES 54)
+const SRC = path.join(import.meta.dirname, '..', '..');
+function sourceFiles(dir: string): string[] {
+	return readdirSync(dir).flatMap((name) => {
+		const full = path.join(dir, name);
+		if (statSync(full).isDirectory()) return sourceFiles(full);
+		return /\.(ts|js|svelte)$/.test(name) && !/\.test\.ts$/.test(name) ? [full] : [];
+	});
+}
+
+describe('CORS headers come from $lib/server/cors only', () => {
+	it('no other source file sets Access-Control-Allow-Origin (reading it is fine)', () => {
+		const offenders = sourceFiles(SRC)
+			.filter((file) => path.relative(SRC, file) !== path.join('lib', 'server', 'cors.ts'))
+			.filter((file) =>
+				readFileSync(file, 'utf8')
+					.split('\n')
+					.some(
+						(line) =>
+							!/^\s*(\/\/|\*)/.test(line) &&
+							// set/append calls and header-object keys; reading it (has/get) is fine
+							(/\.(set|append)\(\s*['"`]Access-Control-Allow-Origin/i.test(line) ||
+								/['"`]Access-Control-Allow-Origin['"`]\s*:/i.test(line))
+					)
+			)
+			.map((file) => path.relative(SRC, file));
+		expect(offenders, 'let hooks.server.ts add the headers through applyCors').toEqual([]);
 	});
 });
