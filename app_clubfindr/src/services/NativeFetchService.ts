@@ -37,6 +37,22 @@ const measureNetworkTiming = (): PerformanceMonitor => {
 };
 
 /**
+ * The parsed JSON body, or for a body that is not JSON (an HTML error page, e.g. a 404 from a
+ * server without the route), `{ message }` with its start. response.json() threw on those, and
+ * the error carried no status, so the caller saw a 500 instead of the real one.
+ */
+async function readBody(response: Response): Promise<any> {
+    const text = await response.text();
+    try {
+        return text ? JSON.parse(text) : {};
+    } catch (parseError) {
+        // A success that is not JSON is still an error, as before
+        if (response.ok) throw parseError;
+        return { message: `HTTP error ${response.status}`, responsePreview: text.substring(0, 200) };
+    }
+}
+
+/**
  * Native fetch service for making HTTP requests
  * A direct replacement for any native fetch service you were using before
  */
@@ -87,7 +103,7 @@ const nativeFetch = {
             performance.mark('networkEnd');
             performance.measure('network', 'networkStart', 'networkEnd');
 
-            const result = await response.json();
+            const result = await readBody(response);
             if (!response.ok) {
                 const error: any = new Error(`HTTP error ${response.status}`);
                 error.response = {
@@ -238,7 +254,7 @@ const nativeFetch = {
             performance.mark('networkEnd');
             performance.measure('network', 'networkStart', 'networkEnd');
 
-            const result = await response.json();
+            const result = await readBody(response);
             if (!response.ok) {
                 const error: any = new Error(`HTTP error ${response.status}`);
                 error.response = {
@@ -299,7 +315,7 @@ const nativeFetch = {
             performance.mark('networkEnd');
             performance.measure('network', 'networkStart', 'networkEnd');
 
-            const result = await response.json();
+            const result = await readBody(response);
             if (!response.ok) {
                 const error: any = new Error(`HTTP error ${response.status}`);
                 error.response = {
@@ -363,7 +379,7 @@ const nativeFetch = {
             performance.mark('networkEnd');
             performance.measure('network', 'networkStart', 'networkEnd');
 
-            const result = await response.json();
+            const result = await readBody(response);
             if (!response.ok) {
                 const error: any = new Error(`HTTP error ${response.status}`);
                 error.response = {
