@@ -1,4 +1,5 @@
 import axiosClient from '../api/axiosClient';
+import { log } from '../utils/logger';
 
 // Send confirmation code for email verification
 export const sendVerificationCode = async (email: string): Promise<any> => {
@@ -19,7 +20,8 @@ export const sendVerificationCode = async (email: string): Promise<any> => {
 // Verify email with confirmation code
 export const verifyEmailWithCode = async (email: string, confirmationCode: string): Promise<any> => {
     try {
-        console.log(`Verifying email for ${email} with code ${confirmationCode}`);
+        // Never the address or the code itself: a confirmation code in a log is a way in
+        log.debug('Verifying an e-mail confirmation code');
         const response = await axiosClient.post('/api/verify-email-code', {
             email,
             confirmationCode

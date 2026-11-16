@@ -9,6 +9,10 @@ import * as Sentry from '@sentry/react-native';
 import NetworkStatus from './src/components/NetworkStatus';
 import networkUtils from './src/utils/networkUtils';
 import { PaperProvider } from 'react-native-paper';
+import { installConsoleGuard } from './src/utils/logger';
+// A release build prints no console.log: the lines name endpoints, ids and the signed-in user
+installConsoleGuard();
+
 // Ignore specific warnings
 LogBox.ignoreLogs([
   'ViewPropTypes will be removed',

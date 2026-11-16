@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
+import { log } from '../utils/logger';
 
 type LoginCredentials = {
     email: string;
@@ -53,7 +54,7 @@ export type LoginResponse = {
  * Log in a user with email and password
  */
 export const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
-    console.log('AuthService: Attempting login with:', credentials.email);
+    log.debug('AuthService: attempting login');
 
     try {
         // Make sure we include the isMobileApp flag in the request
@@ -70,10 +71,8 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
         const data = response.data as LoginResponse;
 
         if (data.success && data.token) {
-            console.log('AuthService: Login successful, raw user data:', data.user);
             // Normalize the user data to handle different field names
             const normalizedUser = normalizeUserData(data.user);
-            console.log('AuthService: Normalized user data:', normalizedUser);
             console.log('AuthService: Normalized onboarding status:', normalizedUser.onboarding_complete);
 
             // Update the response with normalized user data
@@ -127,7 +126,6 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
  */
 const storeAuthData = async (token: string, user: User) => {
     try {
-        console.log('AuthService: Storing auth data, user:', user);
 
         // Save token for API requests
         await AsyncStorage.setItem('authToken', token);
@@ -135,12 +133,8 @@ const storeAuthData = async (token: string, user: User) => {
         // Save user data
         if (user) {
             const userJson = JSON.stringify(user);
-            console.log('AuthService: Storing user data:', userJson);
             await AsyncStorage.setItem('user', userJson);
 
-            // Verify stored data
-            const storedUser = await AsyncStorage.getItem('user');
-            console.log('AuthService: Verified stored user data:', storedUser);
         }
 
         // Save user's city if available

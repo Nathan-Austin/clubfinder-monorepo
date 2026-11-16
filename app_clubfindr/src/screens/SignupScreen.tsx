@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import axiosClient from '../api/axiosClient';
+import { log } from '../utils/logger';
 
 interface SignupResponse {
     success: boolean;
@@ -111,10 +112,9 @@ const SignupScreen = () => {
                 onboarding_complete: true // Mark onboarding as complete since we've accepted T&Cs
             };
 
-            console.log("Sending signup data:", {
-                ...signupData,
-                password: '******' // Don't log actual password
-            });
+            // The fields, never their values: this logged the e-mail and name of everyone
+            // signing up (the password was masked)
+            log.debug('Sending signup request', Object.keys(signupData).join(', '));
 
             // Make API request
             const response = await axiosClient.post('/api/mobile/signup', signupData);
