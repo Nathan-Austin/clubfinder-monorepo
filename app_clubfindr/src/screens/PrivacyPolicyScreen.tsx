@@ -59,9 +59,8 @@ const PrivacyPolicyScreen = () => {
                         <View style={styles.listItem}>
                             <Text style={styles.listItemBullet}>•</Text>
                             <Text style={styles.listItemText}>
-                                <Text style={styles.bold}>Personal Identification Information:</Text> Name; Email addresses (general and
-                                platform-specific, such as Spotify, Apple Music, Deezer); Phone number; Postal address;
-                                Password (stored as a hashed value).
+                                <Text style={styles.bold}>Personal Identification Information:</Text> Name; Email address;
+                                Phone number; Postal address; Password (stored as a hashed value).
                             </Text>
                         </View>
                         <View style={styles.listItem}>

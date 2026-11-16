@@ -167,7 +167,10 @@ const TermsScreen = () => {
                             <Text style={styles.listItemBullet}>•</Text>
                             <Text style={styles.listItemText}>
                                 <Text style={styles.bold}>Integration with Third Parties:</Text> Our Service may integrate with third-party
-                                services (e.g., Spotify, Apple Music, Deezer, SoundCloud).
+                                services. You may optionally connect a SoundCloud or Tidal account, and may import your
+                                listening history from Last.fm by giving us your username. We also look artists up in the
+                                Spotify, Last.fm and MusicBrainz catalogues using our own credentials, without connecting
+                                any account of yours.
                             </Text>
                         </View>
                         <View style={styles.listItem}>

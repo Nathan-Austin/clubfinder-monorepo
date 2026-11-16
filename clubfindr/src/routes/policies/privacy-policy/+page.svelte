@@ -108,26 +108,26 @@
 	</p>
 	<ul>
 		<li>
-			<strong>Personal Identification Information</strong>: Name; Email addresses (general and
-			platform-specific, such as Spotify, Apple Music, Deezer); Phone number; Postal address;
-			Password (stored as a hashed value).
+			<strong>Personal Identification Information</strong>: Name; Email address; Phone number;
+			Postal address; Password (stored as a hashed value).
 		</li>
 		<li>
 			<strong>Account and Authentication Data</strong>: User IDs; Session IDs; Access tokens and
-			refresh tokens for our Application and third-party services; Confirmation codes and
-			verification details.
+			refresh tokens for our Application and, where you choose to connect one, for SoundCloud or
+			Tidal; Confirmation codes and verification details.
 		</li>
 		<li>
-			<strong>Preferences and Usage Data</strong>: Genre preferences; Cookie preferences; Session
-			activity and timestamps.
+			<strong>Preferences and Usage Data</strong>: Genre preferences; the artists you choose as
+			favourites, and the genres we derive from them; your city; Cookie preferences; Session
+			activity and timestamps; Check-ins you make by scanning a venue's QR code.
 		</li>
 		<li>
 			<strong>Social and Online Presence</strong>: Profile links to social media and music platforms
-			(e.g., Spotify URI, SoundCloud link); Streaming service usernames and IDs.
+			(e.g., a SoundCloud link); a Last.fm username, if you use the Last.fm import.
 		</li>
 		<li>
 			<strong>Bar and Venue Information (for Managers)</strong>: Bar name; Contact person; Bar
-			contact details; Bar address and website; Music service used.
+			contact details; Bar address and website; the genres and artists the venue says it plays.
 		</li>
 		<li>
 			<strong>Artist Information</strong>: Artist name; Genres; Artist contact email; Primary city.
@@ -297,8 +297,21 @@
 
 	<h4>Third-Party Authentication Services</h4>
 	<p>
-		We use OAuth to allow Users to connect their accounts with services like Spotify, Apple Music,
-		Deezer, and SoundCloud. We collect user data according to the agreements on their OAuth login.
+		Users may, if they wish, connect a SoundCloud or Tidal account through OAuth. We collect user
+		data according to the agreements on their OAuth login. Connecting an account is optional: a
+		taste profile is built from the artists you name and the genres you pick, and the Last.fm import
+		asks only for a username.
+	</p>
+	<p>
+		We no longer ask Users to connect a Spotify, Apple Music or Deezer account, and no longer hold
+		tokens for them.
+	</p>
+
+	<h4>Music Catalogue Lookups</h4>
+	<p>
+		To find artists and their genres we query Spotify, Last.fm and MusicBrainz with our own
+		application credentials. What is sent is the artist name you are searching for or have chosen;
+		no account of yours is connected to those services, and they receive no identifier of yours.
 	</p>
 	<p>
 		<strong>Personal Data processed</strong>: various types of Data as specified in the privacy
@@ -306,16 +319,19 @@
 	</p>
 	<p><strong>Links to their privacy policies</strong>:</p>
 	<ul>
-		<li><a href="https://www.spotify.com/privacy" target="_blank">Spotify Privacy Policy</a></li>
 		<li>
-			<a href="https://www.apple.com/legal/privacy/" target="_blank">Apple Music Privacy Policy</a>
-		</li>
-		<li>
-			<a href="https://www.deezer.com/legal/personal-datas" target="_blank">Deezer Privacy Policy</a
-			>
+			<a href="https://www.spotify.com/privacy" target="_blank">Spotify Privacy Policy</a> (for the catalogue
+			lookups described above)
 		</li>
 		<li>
 			<a href="https://soundcloud.com/pages/privacy" target="_blank">SoundCloud Privacy Policy</a>
+		</li>
+		<li><a href="https://tidal.com/privacy" target="_blank">Tidal Privacy Policy</a></li>
+		<li>
+			<a href="https://www.last.fm/legal/privacy" target="_blank">Last.fm Privacy Policy</a>
+		</li>
+		<li>
+			<a href="https://metabrainz.org/privacy" target="_blank">MusicBrainz Privacy Policy</a>
 		</li>
 	</ul>
 

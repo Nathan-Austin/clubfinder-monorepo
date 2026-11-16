@@ -202,7 +202,10 @@
 	<ul>
 		<li>
 			<strong>Integration with Third Parties</strong>: Our Service may integrate with third-party
-			services (e.g., Spotify, Apple Music, Deezer, SoundCloud).
+			services. You may optionally connect a SoundCloud or Tidal account, and may import your
+			listening history from Last.fm by giving us your username. We also look artists up in the
+			Spotify, Last.fm and MusicBrainz catalogues using our own credentials, without connecting any
+			account of yours.
 		</li>
 		<li>
 			<strong>Third-Party Terms</strong>: Your use of these third-party services is subject to their
