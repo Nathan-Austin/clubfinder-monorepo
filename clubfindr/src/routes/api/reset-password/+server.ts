@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { query, withTransaction } from '$lib/db';
 import { hashPassword } from '$lib/server/passwordUtils';
 import { hashToken } from '$lib/encryptionUtils';
 
@@ -10,44 +10,63 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (typeof token !== 'string' || !token) {
 		return json({ success: false, message: 'Invalid or expired reset token' }, { status: 400 });
 	}
+	if (typeof newPassword !== 'string') {
+		return json({ success: false, message: 'Please enter a new password' }, { status: 400 });
+	}
 
 	try {
-		// Find the password reset record (stored as a hash of the token)
-		const resetResult = await query(
-			`SELECT user_id, expires_at 
-             FROM clubfindr.password_resets 
-             WHERE reset_token = $1`,
-			[hashToken(token)]
+		// The token belongs to a person's account (password_resets) or to a venue's own login
+		// (bar_password_resets, since 2026-11-16, KNOWN_ISSUES 68); both store only its hash
+		const tokenHash = hashToken(token);
+		const userReset = await query(
+			`SELECT user_id AS id, expires_at FROM clubfindr.password_resets WHERE reset_token = $1`,
+			[tokenHash]
 		);
+		const barReset =
+			(userReset.rowCount ?? 0) > 0
+				? null
+				: await query(
+						`SELECT bar_id AS id, expires_at FROM clubfindr.bar_password_resets WHERE reset_token = $1`,
+						[tokenHash]
+					);
+		const reset = userReset.rows[0] ?? barReset?.rows[0];
 
-		if (resetResult.rowCount === 0) {
+		if (!reset) {
 			return json({ success: false, message: 'Invalid or expired reset token' }, { status: 400 });
 		}
 
-		const { user_id, expires_at } = resetResult.rows[0];
-
-		// Check if token has expired
-		if (new Date(expires_at) < new Date()) {
+		if (new Date(reset.expires_at) < new Date()) {
 			return json({ success: false, message: 'Reset token has expired' }, { status: 400 });
 		}
 
-		// Hash the new password
+		// Validates the password's rules too ("Password must ...", answered below)
 		const hashedPassword = await hashPassword(newPassword);
 
-		// Update the user's password
+		if (barReset) {
+			await withTransaction(async (client) => {
+				await client.query(
+					`UPDATE clubfindr.bars SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+					[hashedPassword, reset.id]
+				);
+				await client.query(`DELETE FROM clubfindr.bar_password_resets WHERE bar_id = $1`, [
+					reset.id
+				]);
+				// A reset is often the answer to a login someone else knows: end the venue's
+				// dashboard and app sessions so the old password's sessions stop working
+				await client.query(`DELETE FROM clubfindr.bar_sessions WHERE bar_id = $1`, [reset.id]);
+			});
+			return json({ success: true });
+		}
+
 		await query(
-			`UPDATE clubfindr.users 
-             SET password_hash = $1, updated_at = NOW() 
-             WHERE id = $2`,
-			[hashedPassword, user_id]
+			`UPDATE clubfindr.users
+			 SET password_hash = $1, updated_at = NOW()
+			 WHERE id = $2`,
+			[hashedPassword, reset.id]
 		);
 
 		// Delete the used reset token
-		await query(
-			`DELETE FROM clubfindr.password_resets 
-             WHERE user_id = $1`,
-			[user_id]
-		);
+		await query(`DELETE FROM clubfindr.password_resets WHERE user_id = $1`, [reset.id]);
 
 		return json({ success: true });
 	} catch (error) {

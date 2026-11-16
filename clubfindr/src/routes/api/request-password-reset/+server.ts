@@ -15,44 +15,69 @@ export const POST: RequestHandler = async ({ request, url }) => {
 	const email = checked.value;
 
 	try {
-		// Generate a secure reset token
-		const resetToken = randomBytes(32).toString('hex');
+		// A person's account (users) and a venue's own login (bars.password_hash) can share an
+		// address, and either may be the one forgotten, so both get a link. Venues were left out
+		// until 2026-11-16 and could not reset at all (KNOWN_ISSUES 68). A venue row without a
+		// password (a promoter's) is not a login and gets none.
 		const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+		const links: { label: string; token: string }[] = [];
 
-		// Check if user exists
 		const userResult = await query('SELECT id FROM clubfindr.users WHERE general_email = $1', [
 			email
 		]);
+		if ((userResult.rowCount ?? 0) > 0) {
+			const token = randomBytes(32).toString('hex');
+			// Store only a hash of the token; the e-mailed link carries the token itself
+			await query(
+				`INSERT INTO clubfindr.password_resets (user_id, reset_token, expires_at)
+				 VALUES ($1, $2, $3)
+				 ON CONFLICT (user_id)
+				 DO UPDATE SET reset_token = $2, expires_at = $3, updated_at = NOW()`,
+				[userResult.rows[0].id, hashToken(token), tokenExpiry]
+			);
+			links.push({ label: 'Your personal account', token });
+		}
 
-		// Always return success even if email doesn't exist (security best practice)
-		if (userResult.rowCount === 0) {
+		const barResult = await query(
+			`SELECT id, name FROM clubfindr.bars
+			  WHERE general_email = $1 AND password_hash IS NOT NULL`,
+			[email]
+		);
+		if ((barResult.rowCount ?? 0) > 0) {
+			const token = randomBytes(32).toString('hex');
+			await query(
+				`INSERT INTO clubfindr.bar_password_resets (bar_id, reset_token, expires_at)
+				 VALUES ($1, $2, $3)
+				 ON CONFLICT (bar_id)
+				 DO UPDATE SET reset_token = $2, expires_at = $3, updated_at = NOW()`,
+				[barResult.rows[0].id, hashToken(token), tokenExpiry]
+			);
+			links.push({ label: `The venue login of ${barResult.rows[0].name}`, token });
+		}
+
+		// Always the same answer, whether or not the address has an account (security best practice)
+		if (links.length === 0) {
 			return json({ success: true });
 		}
 
-		const userId = userResult.rows[0].id;
-
-		// Store only a hash of the token; the e-mailed link carries the token itself
-		await query(
-			`INSERT INTO clubfindr.password_resets (user_id, reset_token, expires_at)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (user_id) 
-             DO UPDATE SET reset_token = $2, expires_at = $3, updated_at = NOW()`,
-			[userId, hashToken(resetToken), tokenExpiry]
-		);
-
-		// Send password reset email
 		// The site the request came from (ORIGIN in production), so the token matches the deployment
-		const resetLink = `${url.origin}/password-reset/${resetToken}`;
+		const linkText = links
+			.map((link) =>
+				links.length > 1
+					? `${link.label}:\n${url.origin}/password-reset/${link.token}`
+					: `${url.origin}/password-reset/${link.token}`
+			)
+			.join('\n\n');
 		await sendEmail(
 			email,
 			'Password Reset Request',
 			`You have requested to reset your password. Click the link below to set a new password:
-            
-            ${resetLink}
-            
-            This link will expire in 30 minutes.
-            
-            If you did not request this password reset, please ignore this email.`
+
+${linkText}
+
+This link will expire in 30 minutes.
+
+If you did not request this password reset, please ignore this email.`
 		);
 
 		return json({ success: true });

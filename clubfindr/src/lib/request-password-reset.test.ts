@@ -29,7 +29,9 @@ beforeEach(() => {
 		// SELECT id FROM users: the address exists
 		.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-1' }] } as never)
 		// INSERT INTO password_resets
-		.mockResolvedValueOnce({ rowCount: 1, rows: [] } as never);
+		.mockResolvedValueOnce({ rowCount: 1, rows: [] } as never)
+		// SELECT FROM bars: no venue login under this address
+		.mockResolvedValueOnce({ rowCount: 0, rows: [] } as never);
 });
 
 describe('POST /api/request-password-reset', () => {
@@ -51,5 +53,43 @@ describe('POST /api/request-password-reset', () => {
 		await requestReset('http://localhost:4173', 'listener@clubfindr.test');
 		const [, , text] = vi.mocked(sendEmail).mock.calls[0];
 		expect(text).toMatch(/http:\/\/localhost:4173\/password-reset\/[0-9a-f]{64}/);
+	});
+
+	// KNOWN_ISSUES 68: a venue's own login (bars.password_hash) gets a reset link too
+	it('sends a venue login its own link', async () => {
+		vi.mocked(query)
+			.mockReset()
+			.mockResolvedValueOnce({ rowCount: 0, rows: [] } as never) // no personal account
+			.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'bar-1', name: 'Club' }] } as never)
+			.mockResolvedValueOnce({ rowCount: 1, rows: [] } as never); // INSERT bar_password_resets
+		const response = await requestReset('https://staging.example.test', 'bar@clubfindr.test');
+		expect(response.status).toBe(200);
+		expect(vi.mocked(query).mock.calls[2][0]).toContain('bar_password_resets');
+		const [, , text] = vi.mocked(sendEmail).mock.calls[0];
+		expect(text.match(/https?:\/\/\S+/g)).toHaveLength(1);
+	});
+
+	it('labels one link per account when a person and a venue share the address', async () => {
+		vi.mocked(query)
+			.mockReset()
+			.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'user-1' }] } as never)
+			.mockResolvedValueOnce({ rowCount: 1, rows: [] } as never)
+			.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'bar-1', name: 'Club' }] } as never)
+			.mockResolvedValueOnce({ rowCount: 1, rows: [] } as never);
+		await requestReset('https://staging.example.test', 'both@clubfindr.test');
+		const [, , text] = vi.mocked(sendEmail).mock.calls[0];
+		expect(text.match(/https?:\/\/\S+/g)).toHaveLength(2);
+		expect(text).toContain('Your personal account:');
+		expect(text).toContain('The venue login of Club:');
+	});
+
+	it('sends nothing to an address with no account', async () => {
+		vi.mocked(query)
+			.mockReset()
+			.mockResolvedValueOnce({ rowCount: 0, rows: [] } as never)
+			.mockResolvedValueOnce({ rowCount: 0, rows: [] } as never);
+		const response = await requestReset('https://staging.example.test', 'nobody@clubfindr.test');
+		expect(response.status).toBe(200);
+		expect(sendEmail).not.toHaveBeenCalled();
 	});
 });

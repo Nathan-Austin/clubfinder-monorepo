@@ -1,13 +1,17 @@
 import bcryptjs from 'bcryptjs';
-import { test, expect, mobileApi, testPassword } from './fixtures';
+import { test, expect, mobileApi, bearer, testPassword } from './fixtures';
 import { registerVenue, removeVenue, type TestVenue } from './venue';
 import { devQuery } from './db';
+import { waitForMail } from './mail';
 
-// One venue login for the web and the app ($lib/server/venueLogin, KNOWN_ISSUES 69), 2026-11-16.
+// One venue login for the web and the app ($lib/server/venueLogin, KNOWN_ISSUES 69) and a
+// password reset that reaches a venue's own login (KNOWN_ISSUES 68), both 2026-11-16.
 //
 // Each test registers a venue of its own (tests/venue.ts, KNOWN_ISSUES 59). Registration makes
 // a personal account under the venue's address too, linked by bars.user_id; moving that account
 // to another address separates the two logins so each can be tried alone.
+
+const NEW_PASSWORD = testPassword();
 
 function uniqueEmail(label: string) {
 	return `test-${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@clubfindr.test`;
@@ -123,6 +127,72 @@ test('a promoter without a venue is refused by the app, not answered 500', async
 			[email]
 		);
 		await devQuery('DELETE FROM clubfindr.users WHERE general_email = $1', [email]);
+		await api.dispose();
+	}
+});
+
+test('a venue resets its own password, and its old sessions end', async ({
+	playwright,
+	baseURL
+}) => {
+	const api = await mobileApi(playwright, baseURL);
+	let venue: TestVenue | undefined;
+	let personal: string | undefined;
+	try {
+		venue = await registerVenue(api, 'reset');
+		// Only the venue's own login is left under its address
+		personal = await separatePersonalAccount(venue);
+		const oldToken = venue.token;
+		expect(
+			(
+				await api.get(`/api/mobile/bars/${venue.barId}/stats`, { headers: bearer(oldToken) })
+			).status()
+		).toBe(200);
+
+		const startedAt = Date.now();
+		const requested = await api.post('/api/request-password-reset', {
+			data: { email: venue.email }
+		});
+		expect(requested.status()).toBe(200);
+		const mail = await waitForMail(
+			(m) =>
+				m.to === venue!.email && Date.parse(m.at) >= startedAt && /password-reset\//.test(m.text)
+		);
+		const token = mail?.text.match(/\/password-reset\/([0-9a-f]{64})/)?.[1];
+		expect(token, 'a reset link for the venue').toBeDefined();
+
+		const reset = await api.post('/api/reset-password', {
+			data: { token, newPassword: NEW_PASSWORD }
+		});
+		expect(reset.status(), await reset.text()).toBe(200);
+
+		const fresh = await api.post('/api/mobile/bars/login', {
+			data: { email: venue.email, password: NEW_PASSWORD }
+		});
+		expect(fresh.status()).toBe(200);
+		expect(
+			(
+				await api.post('/api/mobile/bars/login', {
+					data: { email: venue.email, password: venue.password }
+				})
+			).status()
+		).toBe(401);
+		expect(
+			(
+				await api.get(`/api/mobile/bars/${venue.barId}/stats`, { headers: bearer(oldToken) })
+			).status()
+		).toBe(403);
+
+		// The link works once
+		expect(
+			(
+				await api.post('/api/reset-password', { data: { token, newPassword: NEW_PASSWORD } })
+			).status()
+		).toBe(400);
+	} finally {
+		if (personal)
+			await devQuery('DELETE FROM clubfindr.users WHERE general_email = $1', [personal]);
+		await removeVenue(venue);
 		await api.dispose();
 	}
 });

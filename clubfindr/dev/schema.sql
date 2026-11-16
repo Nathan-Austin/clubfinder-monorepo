@@ -944,6 +944,23 @@ ALTER TABLE ONLY clubfindr.password_resets
 
 
 --
+-- Name: bar_password_resets; Type: TABLE; Schema: clubfindr; Owner: -
+-- (see migrations/20261116_bar_password_resets.sql: reset tokens for a venue's own login)
+--
+
+CREATE TABLE clubfindr.bar_password_resets (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  bar_id uuid NOT NULL UNIQUE REFERENCES clubfindr.bars (id) ON DELETE CASCADE,
+  reset_token text NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_bar_password_resets_reset_token ON clubfindr.bar_password_resets USING btree (reset_token);
+
+
+--
 -- Name: bar_events bar_events_bar_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
