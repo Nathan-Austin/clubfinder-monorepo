@@ -5,6 +5,15 @@ Planned work for the Clubfinder monorepo. Detailed findings live in
 [`clubfindr/docs/KNOWN_ISSUES.md`](clubfindr/docs/KNOWN_ISSUES.md); this file is the
 ordered list of what I intend to do next.
 
+## Next app round: from the 2026-11-16 device run
+
+The owner ran `app_clubfindr/DEVICE_CHECKLIST.md` on versionCode 10 (27 passed). To fix next, in
+this order: QR sharing hangs (KNOWN_ISSUES 83), then retest check-in by scanning (84); event delete
+in the app (82); white-on-white text on the QR screen and any other venue screen (85); the wrong-
+password message (81); a redesign of the venue side's navigation, which is cut off on a phone (86).
+Not tested yet, for the next device run: a personal account with no venue, the venue password
+reset by e-mail, a non-Tilki QR code, changing the city on the web, and section 9 of the checklist.
+
 ## Today's session (2026-11-16): the mobile app
 
 **Agents: this section is the brief for today's session.** It ends in an Android build that the

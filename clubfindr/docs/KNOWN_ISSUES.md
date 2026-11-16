@@ -896,3 +896,32 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     - The debug build keeps `SYSTEM_ALERT_WINDOW` (react-native's debug manifest); Play only sees
       release builds.
     - iOS internal distribution (an ad-hoc profile in `eas.json`) waits for the Apple account.
+81. **A wrong password shows the generic login error.** Device run of versionCode 10
+    (2026-11-16): customer login with a wrong password says "Could not log in. Please check your
+    credentials and try again" instead of "Email or password incorrect". `utils/loginErrors.ts`
+    maps "invalid" correctly and the server answers 401 `{"message": "Invalid credentials"}`, so
+    the server's message is most likely lost before the mapping (the HTTP client turning a 401 into
+    an error without the body's `message`). Fix there, with a test that a 401 body reaches
+    `loginErrorMessage`.
+82. **Venues cannot delete an event in the app.** `BarHomeScreen.tsx` answers every delete with a
+    hard-coded "Event deletion is currently not available. Please contact support" alert, although
+    `DELETE /api/mobile/bars/:barId/events/:eventId` has existed since 2026-11-09. Wire the button
+    to it, with a confirmation.
+83. **Sharing a QR code hangs forever.** `QRCodeGeneratorScreen.shareQRCode` opens a modal holding
+    only a spinner and awaits `svgRef.current.toDataURL(callback)`; on the device the callback never
+    came, so the modal never closed. The modal has no cancel button and no `onRequestClose`
+    (Android's back button does nothing), and the try/catch does not cover the `setTimeout` body.
+    Fix: a timeout on the capture, the whole flow in one try/catch/finally that always closes the
+    modal, a cancel control and `onRequestClose`; consider `react-native-view-shot` if
+    `toDataURL` is unreliable on the new architecture.
+84. **Check-in by scanning not yet confirmed on a device.** The scan did not recognise the venue's
+    code in the run, but the code could only be shown from the stuck share screen (83). Retest
+    once sharing works, with a code shown full-size on a second screen; non-Tilki codes not tested.
+85. **White text on white on the QR code screen.** `QRCodeGeneratorScreen.tsx` styles its text
+    `#FFFFFF` (six places) for a dark theme, but some of its containers are white (`#FFFFFF`
+    backgrounds, lines 450 and 561), so parts of the screen cannot be read. The TextInput test of
+    KNOWN_ISSUES 69 does not cover `Text`; check every venue screen against its backgrounds.
+86. **The venue side's navigation is cut off.** The venue menus run across the top of the screen
+    and do not fit, so options are cut off on a phone. The venue screens need a navigation
+    redesign (bottom tabs like the customer side, or a menu that wraps or scrolls), checked on a
+    small phone.
