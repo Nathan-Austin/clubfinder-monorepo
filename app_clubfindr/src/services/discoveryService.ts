@@ -240,7 +240,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
             console.log(`Received ${eventsArray.length} events for bar ${venueId}`);
 
             // Format the events
-            return eventsArray.map((event: any) => ({
+            return eventsArray.map((event: ApiEvent) => ({
                 id: event.id || `event-${Math.random()}`,
                 theme_name: event.theme_name || 'Event',
                 description: event.description || '',
@@ -262,7 +262,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
 
                     if (response.data && Array.isArray(response.data)) {
                         console.log(`Received ${response.data.length} events for club ${clubName}`);
-                        return response.data.map((event: any) => ({
+                        return response.data.map((event: ApiEvent) => ({
                             id: event.id || `event-${Math.random()}`,
                             theme_name: event.name || event.event_name || 'Event',
                             description: event.description || '',
@@ -288,7 +288,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                 const response = await axiosClient.get(`/api/mobile/clubs/${venueId}`);
 
                 if (response.data) {
-                    let eventsData: any[] = [];
+                    let eventsData: ApiEvent[] = [];
                     
                     if (Array.isArray(response.data)) {
                         eventsData = response.data;
@@ -302,7 +302,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                     console.log(`Retrieved ${eventsData.length} events for club ${venueId} from /clubs/ endpoint`);
 
                     if (eventsData.length > 0) {
-                        return eventsData.map((event: any) => ({
+                        return eventsData.map((event: ApiEvent) => ({
                             id: event.id || `event-${Math.random()}`,
                             theme_name: event.name || event.event_name || 'Event',
                             description: event.description || '',
@@ -332,7 +332,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                         console.log(`Received ${response.data.length} events for club ${venueName}`);
 
                         // Format the club events
-                        return response.data.map((event: any) => ({
+                        return response.data.map((event: ApiEvent) => ({
                             id: event.id || `event-${Math.random()}`,
                             theme_name: event.name || event.event_name || 'Event',
                             description: event.description || '',
@@ -686,7 +686,7 @@ export const getVenues = async (
     const endpoint = venueType === 'bar' ? '/api/mobile/bars' : '/api/mobile/events';
 
     // Prepare the request data
-    const requestData: any = { city };
+    const requestData: { city: string; nearby?: boolean; date?: string } = { city };
 
     // For clubs when isNearbyMode is true, send the nearby flag
     if (venueType === 'club' && isNearbyMode) {
@@ -750,7 +750,7 @@ const refreshVenues = async (
     const endpoint = venueType === 'bar' ? '/api/mobile/bars' : '/api/mobile/events';
 
     // Prepare the request data
-    const requestData: any = { city };
+    const requestData: { city: string; nearby?: boolean; date?: string } = { city };
 
     // For clubs when isNearbyMode is true, send the nearby flag
     if (venueType === 'club' && isNearbyMode) {
@@ -885,7 +885,7 @@ export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'b
 };
 
 // Get diagnostic info about venue requests
-export const getVenueRequestDiagnostics = async (): Promise<any> => {
+export const getVenueRequestDiagnostics = async (): Promise<Record<string, unknown>> => {
     try {
         const barAttemptJson = await AsyncStorage.getItem('bar_last_attempt');
         const barSuccessJson = await AsyncStorage.getItem('bar_last_success');
@@ -944,6 +944,7 @@ export const clearVenueCache = async (venueType?: 'bar' | 'club'): Promise<void>
 import * as genreMatchingService from './genreMatchingService';
 import { cityForQueries, getUserCity } from './cityService';
 import { cityName, findLiveCity } from '../constants/cities';
+import type { ApiEvent } from '../types/api';
 
 /** No venues could be loaded: no network answer and nothing cached */
 export class VenuesUnavailableError extends Error {

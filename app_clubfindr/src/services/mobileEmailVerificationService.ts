@@ -1,8 +1,12 @@
 import axiosClient from '../api/axiosClient';
+import type { ApiResult, ApiResultWithData } from '../types/api';
+
+/** These three return the whole response, so callers read `response.data` */
+type ApiResponse = { data: ApiResult };
 import { log } from '../utils/logger';
 
 // Send confirmation code for email verification
-export const sendVerificationCode = async (email: string): Promise<any> => {
+export const sendVerificationCode = async (email: string): Promise<ApiResponse> => {
     try {
         // Use the same endpoint as delete account code verification
         // The backend will use the same logic with a different purpose
@@ -18,7 +22,7 @@ export const sendVerificationCode = async (email: string): Promise<any> => {
 };
 
 // Verify email with confirmation code
-export const verifyEmailWithCode = async (email: string, confirmationCode: string): Promise<any> => {
+export const verifyEmailWithCode = async (email: string, confirmationCode: string): Promise<ApiResultWithData> => {
     try {
         // Never the address or the code itself: a confirmation code in a log is a way in
         log.debug('Verifying an e-mail confirmation code');
@@ -54,7 +58,7 @@ export const verifyEmailWithCode = async (email: string, confirmationCode: strin
 };
 
 // Resend verification code
-export const resendVerificationCode = async (email: string): Promise<any> => {
+export const resendVerificationCode = async (email: string): Promise<ApiResponse> => {
     try {
         const response = await axiosClient.post('/api/resend-verification-code', {
             email,

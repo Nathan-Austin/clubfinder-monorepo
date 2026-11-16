@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import NetworkCache from '../utils/NetworkCache';
+import { httpError, errorMessage } from '../types/api';
 
 const API_URL = 'https://www.clubfindr.com';
 
@@ -41,7 +42,7 @@ const measureNetworkTiming = (): PerformanceMonitor => {
  * server without the route), `{ message }` with its start. response.json() threw on those, and
  * the error carried no status, so the caller saw a 500 instead of the real one.
  */
-async function readBody(response: Response): Promise<any> {
+async function readBody(response: Response): Promise<unknown> {
     const text = await response.text();
     try {
         return text ? JSON.parse(text) : {};
@@ -60,7 +61,7 @@ const nativeFetch = {
     /**
      * Make a GET request
      */
-    async get<T>(endpoint: string, queryParams?: Record<string, any>): Promise<T> {
+    async get<T>(endpoint: string, queryParams?: Record<string, string | number | boolean>): Promise<T> {
         const performance = measureNetworkTiming();
         try {
             // Append query parameters to the URL if provided
@@ -105,19 +106,17 @@ const nativeFetch = {
 
             const result = await readBody(response);
             if (!response.ok) {
-                const error: any = new Error(`HTTP error ${response.status}`);
-                error.response = {
+                throw httpError(`HTTP error ${response.status}`, {
                     status: response.status,
                     statusText: response.statusText,
                     headers: Object.fromEntries(response.headers.entries()),
                     data: result
-                };
-                throw error;
+                });
             }
 
             return result as T;
-        } catch (error: any) {
-            console.error(`[NativeFetch] GET ${endpoint} failed:`, error.message);
+        } catch (error) {
+            console.error(`[NativeFetch] GET ${endpoint} failed:`, errorMessage(error, 'request failed'));
             throw error;
         }
     },
@@ -125,7 +124,7 @@ const nativeFetch = {
     /**
      * Make a POST request
      */
-    async post<T>(endpoint: string, data?: any): Promise<T> {
+    async post<T>(endpoint: string, data?: unknown): Promise<T> {
         const performance = measureNetworkTiming();
         try {
             const url = `${API_URL}${endpoint}`;
@@ -181,33 +180,26 @@ const nativeFetch = {
                     throw new Error('Response is not JSON');
                 }
             } catch (parseError) {
-                const error: any = new Error('Invalid JSON response');
-                error.response = {
+                throw httpError('Invalid JSON response', {
                     status: response.status,
                     statusText: 'Invalid JSON response',
                     headers: Object.fromEntries(response.headers.entries()),
-                    data: {
-                        message: 'Invalid JSON response',
-                        responsePreview: responseText.substring(0, 200)
-                    }
-                };
-                throw error;
+                    data: { message: 'Invalid JSON response' }
+                });
             }
 
             if (!response.ok) {
-                const error: any = new Error(`HTTP error ${response.status}`);
-                error.response = {
+                throw httpError(`HTTP error ${response.status}`, {
                     status: response.status,
                     statusText: response.statusText,
                     headers: Object.fromEntries(response.headers.entries()),
                     data: result
-                };
-                throw error;
+                });
             }
 
             return result as T;
-        } catch (error: any) {
-            console.error(`[NativeFetch] POST ${endpoint} failed:`, error.message);
+        } catch (error) {
+            console.error(`[NativeFetch] POST ${endpoint} failed:`, errorMessage(error, 'request failed'));
             throw error;
         }
     },
@@ -215,7 +207,7 @@ const nativeFetch = {
     /**
      * Make a PUT request
      */
-    async put<T>(endpoint: string, data?: any): Promise<T> {
+    async put<T>(endpoint: string, data?: unknown): Promise<T> {
         const performance = measureNetworkTiming();
         try {
             const url = `${API_URL}${endpoint}`;
@@ -256,19 +248,17 @@ const nativeFetch = {
 
             const result = await readBody(response);
             if (!response.ok) {
-                const error: any = new Error(`HTTP error ${response.status}`);
-                error.response = {
+                throw httpError(`HTTP error ${response.status}`, {
                     status: response.status,
                     statusText: response.statusText,
                     headers: Object.fromEntries(response.headers.entries()),
                     data: result
-                };
-                throw error;
+                });
             }
 
             return result as T;
-        } catch (error: any) {
-            console.error(`[NativeFetch] PUT ${endpoint} failed:`, error.message);
+        } catch (error) {
+            console.error(`[NativeFetch] PUT ${endpoint} failed:`, errorMessage(error, 'request failed'));
             throw error;
         }
     },
@@ -276,7 +266,7 @@ const nativeFetch = {
     /**
      * Make a PATCH request
      */
-    async patch<T>(endpoint: string, data?: any): Promise<T> {
+    async patch<T>(endpoint: string, data?: unknown): Promise<T> {
         const performance = measureNetworkTiming();
         try {
             const url = `${API_URL}${endpoint}`;
@@ -317,19 +307,17 @@ const nativeFetch = {
 
             const result = await readBody(response);
             if (!response.ok) {
-                const error: any = new Error(`HTTP error ${response.status}`);
-                error.response = {
+                throw httpError(`HTTP error ${response.status}`, {
                     status: response.status,
                     statusText: response.statusText,
                     headers: Object.fromEntries(response.headers.entries()),
                     data: result
-                };
-                throw error;
+                });
             }
 
             return result as T;
-        } catch (error: any) {
-            console.error(`[NativeFetch] PATCH ${endpoint} failed:`, error.message);
+        } catch (error) {
+            console.error(`[NativeFetch] PATCH ${endpoint} failed:`, errorMessage(error, 'request failed'));
             throw error;
         }
     },
@@ -337,7 +325,7 @@ const nativeFetch = {
     /**
      * Make a DELETE request
      */
-    async delete<T>(endpoint: string, data?: any): Promise<T> {
+    async delete<T>(endpoint: string, data?: unknown): Promise<T> {
         const performance = measureNetworkTiming();
         try {
             const url = `${API_URL}${endpoint}`;
@@ -381,19 +369,17 @@ const nativeFetch = {
 
             const result = await readBody(response);
             if (!response.ok) {
-                const error: any = new Error(`HTTP error ${response.status}`);
-                error.response = {
+                throw httpError(`HTTP error ${response.status}`, {
                     status: response.status,
                     statusText: response.statusText,
                     headers: Object.fromEntries(response.headers.entries()),
                     data: result
-                };
-                throw error;
+                });
             }
 
             return result as T;
-        } catch (error: any) {
-            console.error(`[NativeFetch] DELETE ${endpoint} failed:`, error.message);
+        } catch (error) {
+            console.error(`[NativeFetch] DELETE ${endpoint} failed:`, errorMessage(error, 'request failed'));
             throw error;
         }
     }

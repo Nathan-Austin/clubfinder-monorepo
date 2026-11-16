@@ -1,4 +1,5 @@
 import axiosClient from '../api/axiosClient';
+import { errorMessage, type ApiBarData } from '../types/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -30,12 +31,11 @@ export const registerBar = async (formData: {
         });
 
         return response.data;
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error registering bar:', error);
 
         // Try to extract error message from response
-        const message = error.response?.data?.message ||
-            'Registration failed. Please check your information and try again.';
+        const message = errorMessage(error, 'Registration failed. Please check your information and try again.');
 
         return { success: false, message };
     }
@@ -55,12 +55,11 @@ export const confirmBarRegistration = async (
         });
 
         return response.data;
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error confirming bar registration:', error);
 
         // Extract error message from response if available
-        const errorMsg = error.response?.data?.error ||
-            'Failed to confirm registration. Please try again later.';
+        const errorMsg = errorMessage(error, 'Failed to confirm registration. Please try again later.');
 
         return { success: false, error: errorMsg };
     }
@@ -78,12 +77,11 @@ export const resendConfirmationCode = async (
         });
 
         return response.data;
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error resending confirmation code:', error);
 
         // Extract error message from response if available
-        const errorMsg = error.response?.data?.error ||
-            'Failed to resend confirmation code. Please try again later.';
+        const errorMsg = errorMessage(error, 'Failed to resend confirmation code. Please try again later.');
 
         return { success: false, error: errorMsg };
     }
@@ -94,7 +92,7 @@ export const resendConfirmationCode = async (
  */
 export const getBarProfile = async (): Promise<{
     success: boolean;
-    barData?: any;
+    barData?: ApiBarData;
     error?: string;
 }> => {
     try {
@@ -111,12 +109,12 @@ export const getBarProfile = async (): Promise<{
             success: true,
             barData: response.data
         };
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error fetching bar profile:', error);
 
         return {
             success: false,
-            error: error.response?.data?.message || 'Failed to load bar profile'
+            error: errorMessage(error, 'Failed to load bar profile')
         };
     }
 };
@@ -130,7 +128,7 @@ export const barLogin = async (
 ): Promise<{
     success: boolean;
     token?: string;
-    barData?: any;
+    barData?: ApiBarData;
     error?: string;
 }> => {
     try {
@@ -166,12 +164,12 @@ export const barLogin = async (
             success: false,
             error: response.data.message || 'Login failed'
         };
-    } catch (error: any) {
+    } catch (error) {
         console.error('Bar login error:', error);
 
         return {
             success: false,
-            error: error.response?.data?.message || 'Login failed. Please try again.'
+            error: errorMessage(error, 'Login failed. Please try again.')
         };
     }
 };

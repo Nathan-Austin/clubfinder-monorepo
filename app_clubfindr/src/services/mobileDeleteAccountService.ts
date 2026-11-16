@@ -1,9 +1,10 @@
 import axiosClient from '../api/axiosClient';
+import type { ApiResult } from '../types/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { purgeLegacySpotifyData } from '../utils/legacySpotify';
 
 // Send confirmation code for account deletion
-export const sendConfirmationCode = async (email: string): Promise<any> => {
+export const sendConfirmationCode = async (email: string): Promise<ApiResult> => {
     try {
         // Use the existing web endpoint
         const response = await axiosClient.post('/api/send-delete-confirmation-code', { email });

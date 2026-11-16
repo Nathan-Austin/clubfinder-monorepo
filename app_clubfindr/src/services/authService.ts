@@ -20,14 +20,17 @@ type User = {
 };
 
 // Helper function to normalize user data
-const normalizeUserData = (userData: any): User => {
+/** The user as the login endpoints send it: the fields below, under either spelling */
+type RawUser = Partial<User> & { onboarding_complete?: boolean };
+
+const normalizeUserData = (userData: RawUser): User => {
     if (!userData) return userData;
 
     // Determine the onboarding status from either property
     const isOnboardingComplete = userData.onboardingComplete === true || userData.onboarding_complete === true;
 
-    const normalized = {
-        ...userData,
+    const normalized: User = {
+        ...(userData as User),
         // Ensure both properties are set correctly
         onboardingComplete: isOnboardingComplete,
         onboarding_complete: isOnboardingComplete
@@ -89,7 +92,7 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
         }
 
         throw new Error('Invalid response format');
-    } catch (error: any) {
+    } catch (error) {
         console.error('AuthService: Login failed', error);
 
         // Try fallback login endpoint if the mobile one fails

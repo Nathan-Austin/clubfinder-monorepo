@@ -5,7 +5,7 @@ export interface NetworkDiagnostics {
     connectionType?: string;
     networkStrength?: 'strong' | 'medium' | 'weak' | 'unknown';
     lastPingTime?: number;
-    connectionInfo?: any;
+    connectionInfo?: Record<string, unknown>;
 }
 // Track network state
 let isConnected = true;
@@ -92,10 +92,10 @@ export const getTimeoutForConnection = (): number => {
 };
 
 // Helper to handle network failures
-export const handleNetworkFailure = async (error: any): Promise<string> => {
+export const handleNetworkFailure = async (error: unknown): Promise<string> => {
     const state = await NetInfo.fetch();
 
-    const errorMessage = error.message || '';
+    const errorMessage = error instanceof Error ? error.message : '';
 
     if (!state.isConnected) {
         return 'No internet connection. Please check your network settings and try again.';
