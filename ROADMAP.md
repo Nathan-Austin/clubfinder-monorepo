@@ -93,7 +93,7 @@ Things to do by hand or decide, collected while building the items above.
       "for Spotify integration" (KNOWN_ISSUES 48); changing them affects the next store review
 - [ ] Remove the now unused `expo-auth-session` from the app with the Expo upgrade
       (KNOWN_ISSUES 35)
-- [ ] By hand on the server, after the deploy of `6973e8f` or later: take the CORS blocks out of
+- [x] Done 2026-11-16 (the live site now matches `deploy/nginx/sveltekit.config`). By hand on the server, after the deploy of `6973e8f` or later: take the CORS blocks out of
       the live nginx site (KNOWN_ISSUES 54). In `/etc/nginx/sites-available/sveltekit.config`,
       in both `location /api/spotify/` and `location /`, delete the three
       `add_header 'Access-Control-…' '*' always;` lines and the whole
