@@ -28,34 +28,43 @@ iPhone only (`supportsTablet: false`); the agents draft a new Privacy Policy and
 Spotify for the owner to approve (KNOWN_ISSUES 47). Left out on purpose, each needing its own
 device run: R8 and the Expo patch upgrade.
 
-1. [ ] **Baseline, no code.** Read the app end to end and the items above. Report what you would
+1. [x] **Baseline, no code.** Read the app end to end and the items above. Report what you would
    clean up or restructure and why, anything broken the docs do not list yet, and a plan for
    steps 2-6 with any further decisions you need.
-2. [ ] **Login and accounts** (KNOWN_ISSUES 69, 68). Visible text in every `TextInput` on light
+2. [x] **Login and accounts** (KNOWN_ISSUES 69, 68). Visible text in every `TextInput` on light
    and dark phones (explicit `color` and `placeholderTextColor` everywhere, not only the login
    screen); `autoCorrect={false}` on e-mail fields; one shared venue-login lookup so the app
    accepts the same credentials as the web `/login/bars` (personal account first, then the
    venue's own); a password reset that also reaches venue logins, linked from the app's venue
    login too.
-3. [ ] **City** (KNOWN_ISSUES 67). Propose the city from the device location (the nearest city in
+3. [x] **City** (KNOWN_ISSUES 67). Propose the city from the device location (the nearest city in
    `data_collection/live_cities.txt`), let the user confirm or change it in the app's Profile and
    on the web, save it to `users.city` through an authenticated endpoint, and refresh the app's
    `userCity` without a new login. Remove the hard-coded Berlin fallbacks where they mislead.
-4. [ ] **Permissions and store readiness** (KNOWN_ISSUES 65, 66, 48; "iPhone / App Store" below).
+4. [x] **Permissions and store readiness** (KNOWN_ISSUES 65, 66, 48; "iPhone / App Store" below).
    Coarse location only; the `expo-camera` config plugin with a camera message and the
    microphone off; trim the unused Android permissions, checking the merged list with
    `npx expo prebuild --platform android --clean` in a scratch copy, never the repo's `android/`;
    drop `NSLocationAlwaysUsageDescription` and the two Bluetooth texts; `supportsTablet: false`;
    iOS settings in `eas.json` and `cli.appVersionSource`.
-5. [ ] **Cleanup, refactor and the policy draft.** Dead code and debug screens, `any` types in the
+5. [x] **Cleanup, refactor and the policy draft.** Dead code and debug screens, `any` types in the
    services, `console.log` gated for production builds, unit tests for the services steps 2-4
    touched, and splitting screens over 500 lines only where you are already working in them.
    Draft the Privacy Policy and Terms without Spotify (app screens and web `/policies/*`) as a
    separate commit, marked for the owner's approval.
-6. [ ] **Hand-over.** A device checklist for this evening (each fix above, plus the venue
+6. [x] **Hand-over.** A device checklist for this evening (each fix above, plus the venue
    dashboard, creating, sharing and deleting a QR code, and check-in by scanning), updated
    KNOWN_ISSUES, ROADMAP and `app_clubfindr/CLAUDE.md`, and a list of what you found but left for
    later.
+
+**Done 2026-11-16** on branch `hfi/…/oak`, not pushed. Tonight's device run:
+[`app_clubfindr/DEVICE_CHECKLIST.md`](app_clubfindr/DEVICE_CHECKLIST.md). Found on the way and
+fixed: every Android venue login had answered 400 since 2026-11-14 (KNOWN_ISSUES 70), and venue
+registration could take over any account or venue (71); the rest is KNOWN_ISSUES 70-80. Waiting on
+the owner: **review the policy draft, the last commit on the branch, before pushing** (47), then
+**deploy the web side** so the venue reset, the personal-account venue login and the city endpoint
+go live (79; the migration only adds a table, so `deploy.sh` applies it). Follow-ups: SoundCloud and
+Tidal (78), `expo-notifications` (77), and the list in 80.
 
 
 ## 1. Move away from Spotify for users
@@ -143,10 +152,10 @@ Things to do by hand or decide, collected while building the items above.
       2026-11-16 on Android (versionCode 9, Play internal testing): onboarding, adding genre groups
       and club matching work; the city was wrong (KNOWN_ISSUES 67). Venue dashboard, QR codes and
       check-in still to test
-- [ ] Privacy Policy and Terms (app screens and web `/policies/*`) still name Spotify as a data
+- [ ] **Drafted 2026-11-16, the last commit on the branch; the owner reviews it before pushing.** Privacy Policy and Terms (app screens and web `/policies/*`) still name Spotify as a data
       source and connected service (KNOWN_ISSUES 47). **Decided 2026-11-16: the agents draft the
       new wording, the owner approves it before it ships** (today's session, step 5)
-- [ ] `app_clubfindr/app.json` still declares the iOS Bluetooth permissions "for Spotify
+- [x] Done 2026-11-16 (`ab312d6`). `app_clubfindr/app.json` still declares the iOS Bluetooth permissions "for Spotify
       integration" (KNOWN_ISSUES 48). **Decided 2026-11-16: remove them** (today's session, step 4)
 - [ ] Remove the now unused `expo-auth-session` from the app with the Expo upgrade
       (KNOWN_ISSUES 35)
@@ -399,19 +408,19 @@ top artists or play counts on the web).
 
 ## 5. Mobile app (`app_clubfindr`)
 
-- [ ] **Found on the first device run:** the city follows the account, not the person
+- [x] Done 2026-11-16 (KNOWN_ISSUES 67, 79). **Found on the first device run:** the city follows the account, not the person
       (KNOWN_ISSUES 67). Propose it from the device location (nearest covered city), add a city
       picker in the app's Profile and on the web, save it to `users.city`. Until then a wrong city
       can only be fixed in the database
-- [ ] App login screen (KNOWN_ISSUES 69): typed text is white on white on some phones, the e-mail
+- [x] Done 2026-11-16. App login screen (KNOWN_ISSUES 69): typed text is white on white on some phones, the e-mail
       field leaves autocorrect on, and the app's venue login accepts fewer accounts than the web's
-- [ ] Venue password reset (KNOWN_ISSUES 68): "Forgot Password?" on the venue login only resets
+- [x] Done 2026-11-16, live with the web deploy. Venue password reset (KNOWN_ISSUES 68): "Forgot Password?" on the venue login only resets
       `users` passwords, never a venue's own (`bars.password_hash`)
-- [ ] **Deadline 27 January 2027:** coarse location only (KNOWN_ISSUES 65). Drop
+- [x] Done 2026-11-16 (`ab312d6`); distance sorting is on tonight's checklist. **Deadline 27 January 2027:** coarse location only (KNOWN_ISSUES 65). Drop
       `ACCESS_FINE_LOCATION` from `app.json` and request approximate location, so Play's new
       location policy needs no declaration; check venue distance sorting still reads right on a
       device
-- [ ] Trim the Android permissions to what the app uses (KNOWN_ISSUES 65): `RECORD_AUDIO`,
+- [x] Done 2026-11-16, checked on a merged manifest (KNOWN_ISSUES 76); `expo-notifications`' own are left (77). Trim the Android permissions to what the app uses (KNOWN_ISSUES 65): `RECORD_AUDIO`,
       `SYSTEM_ALERT_WINDOW`, the external-storage pair and the three Bluetooth ones, through the
       config plugins' options or `android.blockedPermissions`; verify with `aapt2 dump
       permissions` on a fresh build. Bluetooth overlaps the iOS owner decision below
@@ -419,10 +428,10 @@ top artists or play counts on the web).
 - [ ] A "genres you play" editor on the bar dashboard, against
       `PUT /api/venues/:barId/taste/genres` (the endpoint takes the app's session token
       already; the web dashboard has the section since 2026-11-12)
-- [ ] Unit tests for the services layer
-- [ ] Replace `any` types and gate `console.log` for production builds
-- [ ] Split screen components over 500 lines
-- [ ] Loading states and network error recovery
+- [ ] Unit tests for the services layer (started 2026-11-16: auth/bar login, city, the HTTP clients, location, logging; 25 tests → 97)
+- [x] Done 2026-11-16 for the services and the HTTP clients (`b6d6bb0`) and for logging (`5ee2f8c`); the screens still have `any` (KNOWN_ISSUES 80). Replace `any` types and gate `console.log` for production builds
+- [ ] Split screen components over 500 lines (LoginScreen done 2026-11-16; the rest are listed in KNOWN_ISSUES 80)
+- [ ] Loading states and network error recovery (Home and Tilki have an error with "Try again" since 2026-11-16, KNOWN_ISSUES 72)
 - [ ] Finish the QR scanner flow to open venue details
 - [ ] Configure Sentry for production with source maps
 - [ ] Turn on R8 for Android release builds and give Play the mapping file. Play warns on every
@@ -447,15 +456,15 @@ the in-app account deletion Apple requires exists (`DeleteAccountScreen`).
 - [ ] Owner: Apple Developer Program membership ($99/year), then the app record in App Store
       Connect for bundle id `com.clubfindr.mobile`; EAS then creates the iOS signing certificate
       and provisioning profile on the first build
-- [ ] Camera permission text, or the QR scanner crashes on iOS (KNOWN_ISSUES 66): add the
+- [x] Done 2026-11-16 (`ab312d6`). Camera permission text, or the QR scanner crashes on iOS (KNOWN_ISSUES 66): add the
       `expo-camera` config plugin with a camera message and the microphone off
-- [ ] `app.json` `ios.infoPlist`: drop `NSLocationAlwaysUsageDescription` (the app only needs
+- [x] Done 2026-11-16, checked on a prebuilt Info.plist: `expo-location`'s plugin had been putting the "Always" texts back (KNOWN_ISSUES 76). `app.json` `ios.infoPlist`: drop `NSLocationAlwaysUsageDescription` (the app only needs
       location while in use, and "Always" draws review questions) and the two Bluetooth strings
       "for Spotify integration" (KNOWN_ISSUES 48, nothing uses Bluetooth); App Review rejects
       permission texts that do not match what the app does
-- [ ] `supportsTablet` is `true`. **Decided 2026-11-16: iPhone only, set it to `false`** (no iPad
+- [x] Done 2026-11-16 (`b61fcd7`). `supportsTablet` is `true`. **Decided 2026-11-16: iPhone only, set it to `false`** (no iPad
       screenshots or iPad layout review; today's session, step 4)
-- [ ] `eas.json`: iOS settings for the `preview` (internal distribution or TestFlight) and
+- [x] Done 2026-11-16 (`b61fcd7`): `appVersionSource: "local"` (versions live in `app.json`), device builds, no auto-increment; an ad-hoc internal profile waits for the Apple account. `eas.json`: iOS settings for the `preview` (internal distribution or TestFlight) and
       `release` profiles, and `cli.appVersionSource` (EAS already warns it will become required)
       so iOS build numbers are managed
 - [ ] Privacy: the App Privacy answers in App Store Connect, the iOS privacy manifest

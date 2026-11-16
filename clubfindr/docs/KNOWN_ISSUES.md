@@ -592,12 +592,12 @@ folk`, `folk pop` and `traditional folk`. The southern African styles stay in "C
 
 ## Found during the section 1 close-out (13 November 2026)
 
-47. **The legal text still describes Spotify connect.** The web privacy policy
+47. _Drafted 2026-11-16 (the commit "docs(policies)!: DRAFT legal text without Spotify connect"), awaiting the owner's approval; do not deploy before it._ **The legal text still describes Spotify connect.** The web privacy policy
     (`/policies/privacy-policy`, 4 mentions) and terms (`/policies/terms-and-conditions`), and the
     app's `PrivacyPolicyScreen` and `TermsScreen`, name Spotify as a data source and connected
     service. Per-account Spotify data is no longer collected, and the drop migration removes what
     was stored. Left as it is on the owner's instruction (legal copy is the owner's call).
-48. **`app_clubfindr/app.json` declares iOS Bluetooth permissions "for Spotify integration"**
+48. _Fixed 2026-11-16 (`ab312d6`): both strings removed, on the owner's decision._ **`app_clubfindr/app.json` declares iOS Bluetooth permissions "for Spotify integration"**
     (`NSBluetoothAlwaysUsageDescription`, `NSBluetoothPeripheralUsageDescription`). Nothing in the
     app uses Bluetooth since the Spotify connect removal. Left on the owner's instruction: removing
     them changes the next App Store submission.
@@ -743,7 +743,7 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `tests/transactions.spec.ts` used a NUL byte to fail a promoter registration half-way; it
     now adds a `BEFORE INSERT` trigger on `bars` for the test, matching only its own e-mail
     prefix and dropped as soon as its request is answered.
-65. **The Android app asks for more than it needs, and Play's location policy tightens on
+65. _Fixed 2026-11-16 (`ab312d6`); confirm with `aapt2` on the next APK._ **The Android app asks for more than it needs, and Play's location policy tightens on
     27 January 2027.** Read from the built APK on 2026-11-16 (`aapt2 dump permissions`; target
     SDK 36, versionCode 8). Play's policy announcement of 29 October 2026 makes a Play Console
     declaration mandatory for apps holding `ACCESS_FINE_LOCATION`, justifying why coarse location
@@ -760,7 +760,7 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     alone does not show the merged list. Play reviewers ask about `RECORD_AUDIO` and
     `SYSTEM_ALERT_WINDOW` in particular. Not affected by that announcement: local network and the
     location button (API 37+ only), contacts, SMS/call log, all-files access, accessibility.
-66. **The iOS build has no camera permission text, so the QR scanner would crash on an iPhone.**
+66. _Fixed 2026-11-16 (`ab312d6`)._ **The iOS build has no camera permission text, so the QR scanner would crash on an iPhone.**
     `QRScannerScreen.tsx` uses `expo-camera`, but `expo-camera` is not in `app.json`'s `plugins`
     (only `expo-web-browser`, `@sentry/react-native`, `expo-router`), so prebuild writes no
     `NSCameraUsageDescription` and iOS terminates an app that opens the camera without one; App
@@ -768,7 +768,7 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `["expo-camera", { "cameraPermission": "…to scan venue QR codes", "microphonePermission":
 false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AUDIO` on Android
     (KNOWN_ISSUES 65). Found 2026-11-16 while listing what the App Store needs (ROADMAP section 5).
-67. **The app searches the account's stored city, and nobody can change it.** Found on the first
+67. _Fixed 2026-11-16 (`05771fa`, `ef9d31c`, `8a4b728`); the app side needs the web deploy, see 79._ **The app searches the account's stored city, and nobody can change it.** Found on the first
     device run (2026-11-16): the owner's app showed London clubs. The screens read
     `AsyncStorage` `userCity` (fallback `'berlin'`), which `AuthContext`/`authService` copy from
     `users.city` at every login; the phone's location only feeds the distance filter. Every
@@ -779,7 +779,7 @@ false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AU
     confirm or pick another in the app's Profile and on the web, save it to `users.city` through an
     authenticated endpoint, and refresh `userCity` without a fresh login. Note `discoveryService`
     also hard-codes Berlin as its last-resort coordinates.
-68. **Venues cannot reset a forgotten password.** `/login/bars` links "Forgot Password?" to
+68. _Fixed 2026-11-16 (`7c05c8d`, `6f26327`, `081f3ce`); live after the web deploy._ **Venues cannot reset a forgotten password.** `/login/bars` links "Forgot Password?" to
     `/password-reset`, but `/api/request-password-reset` looks the address up in
     `clubfindr.users` only, and `/api/reset-password` writes `users.password_hash`. A venue
     registered through `/register` (or the app) logs in with `bars.password_hash` and its
@@ -788,7 +788,7 @@ false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AU
     for the device run. Fix: let the reset find a `bars` row too (one token table, with the
     account kind on the token), keep the same answer for unknown addresses, and offer the same link
     in the app's venue login.
-69. **App login screen: invisible text, autocorrect on the e-mail, and a venue login narrower than
+69. _Fixed 2026-11-16 (`bf55d95`, `1bf4028`, `081f3ce`)._ **App login screen: invisible text, autocorrect on the e-mail, and a venue login narrower than
     the web's.** Found on the first device run (2026-11-16).
     - `LoginScreen.tsx` gives its inputs `backgroundColor: '#FFFFFF'` and no text colour, so the
       Android theme picks one, and on the owner's phone it picked white: what is typed cannot be
@@ -801,3 +801,81 @@ false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AU
       "Bar Manager Login" (`/api/mobile/bars/login`) only tries `bars`. A venue reached through a
       personal account on the web cannot log in from the app. Make both accept the same
       credentials, with one shared lookup.
+
+## Found during the mobile app session (16 November 2026)
+
+What each fix was, briefly; the commits have the detail. Device checks for all of it are in
+`app_clubfindr/DEVICE_CHECKLIST.md`.
+
+70. _Fixed 2026-11-16 (`8aa775c` server, `d506eb7` app)._ **Every Android venue login answered 400
+    since 2026-11-14.** The input validation of `64223aa` refuses a non-string `version`, and the
+    app sent `Platform.Version`, which on Android is a number (the API level). Probably why the
+    owner could not log in to a venue on the first device run (68 put it down to a forgotten
+    password). The server takes a number again (installed builds recover after the deploy) and
+    the app sends text (works against today's server too). `tests/venue-login.spec.ts`.
+71. _Fixed 2026-11-16 (`0eb25f3`)._ **Venue registration could take over any account or venue.**
+    `/register` and `/api/mobile/bars/register`, before any code was entered, set the password of
+    an existing personal account under the address to the one typed, and overwrote an existing
+    venue's password while keeping it confirmed, so the new password worked at once. Neither
+    needed the mailbox. `$lib/server/venueRegistration` links an existing account without
+    changing it and refuses a confirmed venue (409, which tells a caller a venue exists under the
+    address: accepted by the owner). A promoter can no longer register a real venue under their
+    own address (accepted by the owner). The owner chose not to check production for past abuse.
+    `tests/venue-register-takeover.spec.ts`; three of its four tests fail on the old code.
+72. _Fixed 2026-11-16 (`8a4b728`)._ **The app made up venues and a position.** With no network and
+    no cache it showed ten hard-coded Berlin venues ("Club XYZ, 123 Main St") as real results in
+    any city, and with no GPS fix it put the phone in Berlin, so a London user's distance filter
+    dropped every venue (which then brought out the fake ones). An error with "Try again" now
+    (`components/LoadError`), and no position in a release build; under `__DEV__` the centre of
+    the user's city (`constants/cities.ts`), as the owner asked.
+73. _Fixed 2026-11-16 (`6ec97a0`)._ **A non-JSON error reply lost its status in the app.**
+    NativeFetchService parsed the body before the status, so an HTML 404 (a route the server does
+    not have) reached callers as a 500. The city endpoint's fallback for older servers needs the
+    real 404.
+74. _Fixed 2026-11-16 (`b6d6bb0`)._ **`axiosClient` dropped `params`.** The adapter passed only
+    `config.data` on, so `axiosClient.get(url, { params })` sent no query string. Its one user was
+    dead code against an endpoint that does not exist; it is a trap no longer.
+75. _Fixed 2026-11-16 (`5ee2f8c`)._ **The app logged personal data, and every build logged.** The
+    e-mail verification service logged the address and the confirmation code, signup the whole
+    body (password masked), `authService` the stored user. Release builds print no console.log
+    now (`utils/logger`), and `noPersonalDataInLogs.test.ts` keeps such values out.
+76. _Fixed 2026-11-16 (`ab312d6`); keep in mind for any new library._ **`app.json` does not decide
+    the app's permissions on its own.** `expo-location`, `expo-camera` and `expo-file-system`
+    declare `ACCESS_FINE_LOCATION`, `RECORD_AUDIO` and the storage pair in their own manifests,
+    and react-native's debug manifest `SYSTEM_ALERT_WINDOW`; only `android.blockedPermissions`
+    removes them. And `expo-location`'s config plugin is applied even when not listed, and put
+    Expo's default "Always" location texts back in the Info.plist. Check a permission change with
+    `expo prebuild` plus `:app:processReleaseMainManifest` in a scratch copy of the app;
+    `src/__tests__/appConfig.test.ts` holds the settings in place.
+77. **`expo-notifications` brings permissions the app does not use.** `POST_NOTIFICATIONS`,
+    `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `VIBRATE`, `READ_APP_BADGE`, FCM's
+    `c2dm.permission.RECEIVE` and about 20 launcher-badge permissions; nothing in the app sends a
+    notification (the Profile switch that pretended to was removed in `ed7a98e`). Left on the
+    owner's instruction: they are deciding what notifications should do, and whether another
+    package suits better; drop or replace it with the Expo upgrade (35).
+78. **SoundCloud and Tidal connect still exist on the web** (`/api/soundcloud`, `/api/tidal`, the
+    buttons on `/users-home`), outside the section 1 retirement. The policy draft (47) keeps them
+    on the owner's instruction. Follow-up checks: do both flows still work against their live
+    APIs, does anything use the tokens they store, and should they stay.
+79. **Until the web deploy, a city chosen in the app lives on the phone only.** Against a server
+    without `PUT /api/account/city` the app keeps the choice locally and says so; the next login
+    brings back the account's city. Goes away with the deploy; nothing to do but deploy.
+80. **Left alone on purpose in the session, for later:**
+    - Screens over 500 lines not worked in: `discoveryService.ts` (1221), `BarRegistrationScreen`
+      (901), `SearchScreen` (849), `TilkiScreen` (768), `VenueDetailsScreen` (759),
+      `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
+    - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
+      services, mostly in screens.
+    - `BarRegistrationScreen` hard-codes its own 8 cities (with Rome and New York, which are not
+      scraped) instead of `constants/cities.ts`.
+    - A personal-account password reset does not end that user's sessions (a venue reset does,
+      since `7c05c8d`).
+    - The axios adapter turns any successful body with an `error` key into a thrown error, and
+      reports every success as status 200.
+    - TilkiScreen treats a malformed (non-array) answer as "nothing found" rather than an error.
+    - `expo-dev-client` is a runtime dependency, not a dev one; move it in the Expo upgrade.
+    - Sentry is initialised with an empty DSN (`App.tsx`), so release builds report nothing
+      (ROADMAP section 5).
+    - The debug build keeps `SYSTEM_ALERT_WINDOW` (react-native's debug manifest); Play only sees
+      release builds.
+    - iOS internal distribution (an ad-hoc profile in `eas.json`) waits for the Apple account.
