@@ -411,7 +411,7 @@ export const getCurrentLocation = async (): Promise<{ latitude: number, longitud
 
         try {
             const location = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
+                accuracy: Location.Accuracy.Low,
             });
 
             return {
@@ -1056,7 +1056,7 @@ export const testLocationServices = async () => {
         // Try to get location
         console.log('Getting current position...');
         const position = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced
+            accuracy: Location.Accuracy.Low
         });
         console.log('Got position:', position);
 

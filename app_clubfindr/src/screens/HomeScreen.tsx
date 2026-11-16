@@ -99,7 +99,7 @@ const HomeScreen = () => {
       Alert.alert('Getting location...', 'Please wait');
 
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced
+        accuracy: Location.Accuracy.Low
       });
 
       Alert.alert(

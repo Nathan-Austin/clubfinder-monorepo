@@ -14,7 +14,7 @@ const getCurrentLocation = async (): Promise<{ latitude: number, longitude: numb
 
         try {
             const location = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Balanced,
+                accuracy: Location.Accuracy.Low,
             });
             return {
                 latitude: location.coords.latitude,
