@@ -768,3 +768,14 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `["expo-camera", { "cameraPermission": "…to scan venue QR codes", "microphonePermission":
 false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AUDIO` on Android
     (KNOWN_ISSUES 65). Found 2026-11-16 while listing what the App Store needs (ROADMAP section 5).
+67. **The app searches the account's stored city, and nobody can change it.** Found on the first
+    device run (2026-11-16): the owner's app showed London clubs. The screens read
+    `AsyncStorage` `userCity` (fallback `'berlin'`), which `AuthContext`/`authService` copy from
+    `users.city` at every login; the phone's location only feeds the distance filter. Every
+    current sign-up path stores Berlin (`/login/users`, `/api/mobile/signup`), so London came from
+    an older flow, and neither the app's Profile screen, nor `/update-info`, nor any endpoint
+    writes `users.city` afterwards. Fix: propose the city from the device location (nearest of
+    `data_collection/live_cities.txt`, which the app already has permission for), let the user
+    confirm or pick another in the app's Profile and on the web, save it to `users.city` through an
+    authenticated endpoint, and refresh `userCity` without a fresh login. Note `discoveryService`
+    also hard-codes Berlin as its last-resort coordinates.

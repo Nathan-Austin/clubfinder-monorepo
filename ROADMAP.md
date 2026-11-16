@@ -86,7 +86,10 @@ Things to do by hand or decide, collected while building the items above.
       step 10, is still open and waits for its tables to empty). Left for the owner: deleting
       the four connect apps on the Spotify dashboard
 - [ ] Run the app on a device before the next release (KNOWN_ISSUES 29): Discover, Search,
-      signup and venue registration all changed in section 1 without a device run
+      signup and venue registration all changed in section 1 without a device run. Started
+      2026-11-16 on Android (versionCode 9, Play internal testing): onboarding, adding genre groups
+      and club matching work; the city was wrong (KNOWN_ISSUES 67). Venue dashboard, QR codes and
+      check-in still to test
 - [ ] Owner's decision: the Privacy Policy and Terms (app screens and web `/policies/*`) still
       name Spotify as a data source and connected service (KNOWN_ISSUES 47)
 - [ ] Owner's decision: `app_clubfindr/app.json` still declares the iOS Bluetooth permissions
@@ -342,6 +345,10 @@ top artists or play counts on the web).
 
 ## 5. Mobile app (`app_clubfindr`)
 
+- [ ] **Found on the first device run:** the city follows the account, not the person
+      (KNOWN_ISSUES 67). Propose it from the device location (nearest covered city), add a city
+      picker in the app's Profile and on the web, save it to `users.city`. Until then a wrong city
+      can only be fixed in the database
 - [ ] **Deadline 27 January 2027:** coarse location only (KNOWN_ISSUES 65). Drop
       `ACCESS_FINE_LOCATION` from `app.json` and request approximate location, so Play's new
       location policy needs no declaration; check venue distance sorting still reads right on a
