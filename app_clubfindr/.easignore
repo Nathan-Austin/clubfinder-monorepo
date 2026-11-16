@@ -1,4 +1,13 @@
+# EAS uses this file instead of .gitignore when it packs the project. Keep it a superset of
+# .gitignore: EAS reinstalls node_modules itself, and the build outputs and the old nested
+# .git (KNOWN_ISSUES 34) have no business in the upload.
 /android
-node_modules/expo-router
 /ios
+node_modules/
+.expo/
+dist/
+.git/
+*.apk
+*.aab
+.DS_Store
 ../data_collection
