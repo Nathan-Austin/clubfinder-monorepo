@@ -20,7 +20,7 @@ export const registerBar = async (formData: {
         // Add platform info to the request
         const deviceInfo = {
             platform: Platform.OS,
-            version: Platform.Version,
+            version: String(Platform.Version),
             isMobileApp: true
         };
 
@@ -139,7 +139,10 @@ export const barLogin = async (
             password,
             isMobileApp: true,
             platform: Platform.OS,
-            version: Platform.Version
+            // Text: Android's Platform.Version is a number (the API level), which the server
+            // refused from 2026-11-14 until it learnt to take one, so every Android venue login
+            // answered 400. A string works against both.
+            version: String(Platform.Version)
         });
 
         if (response.data.success && response.data.token) {
