@@ -132,6 +132,7 @@ const EmailVerificationScreen = ({ navigation, route }: EmailVerificationScreenP
                 <View style={styles.form}>
                     <Text style={styles.label}>Enter verification code:</Text>
                     <TextInput
+                        placeholderTextColor="#888"
                         style={styles.input}
                         value={confirmationCode}
                         onChangeText={setConfirmationCode}

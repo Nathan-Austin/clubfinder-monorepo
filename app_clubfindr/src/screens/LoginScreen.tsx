@@ -280,6 +280,8 @@ const LoginScreen = () => {
           </Modal>
 
           <TextInput
+            autoCorrect={false}
+            placeholderTextColor="#666"
             style={styles.input}
             placeholder="Email"
             value={email}
@@ -297,6 +299,7 @@ const LoginScreen = () => {
 
           <TextInput
             ref={passwordInputRef}
+            placeholderTextColor="#666"
             style={styles.input}
             placeholder="Password"
             value={password}
@@ -396,6 +399,9 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#FFFFFF',
+    // Explicit, or the Android theme picks one: white on this white field on some phones
+    // (KNOWN_ISSUES 69)
+    color: '#000000',
     padding: 15,
     borderRadius: 5,
     marginBottom: 15,

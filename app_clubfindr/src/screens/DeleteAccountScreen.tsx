@@ -147,6 +147,8 @@ const DeleteAccountScreen = ({ navigation }: DeleteAccountScreenProps) => {
                     <View style={styles.form}>
                         <Text style={styles.label}>Confirm your email address:</Text>
                         <TextInput
+                            autoCorrect={false}
+                            placeholderTextColor="#888"
                             style={styles.input}
                             value={email}
                             onChangeText={setEmail}
@@ -191,6 +193,7 @@ const DeleteAccountScreen = ({ navigation }: DeleteAccountScreenProps) => {
                     <View style={styles.form}>
                         <Text style={styles.label}>Enter the confirmation code sent to your email:</Text>
                         <TextInput
+                            placeholderTextColor="#888"
                             style={styles.input}
                             value={confirmationCode}
                             onChangeText={setConfirmationCode}

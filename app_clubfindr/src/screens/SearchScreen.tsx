@@ -378,6 +378,7 @@ const SearchScreen = () => {
                 <View style={styles.innerContainer}>
                     <View style={styles.searchSection}>
                         <TextInput
+                            placeholderTextColor="#888"
                             style={styles.searchInput}
                             placeholder="Search for artists..."
                             value={searchQuery}

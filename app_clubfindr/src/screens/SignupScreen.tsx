@@ -150,6 +150,7 @@ const SignupScreen = () => {
 
                 <View style={styles.form}>
                     <TextInput
+                        placeholderTextColor="#666"
                         style={[styles.input, errors.name ? styles.inputError : null]}
                         placeholder="Full Name"
                         value={name}
@@ -168,6 +169,8 @@ const SignupScreen = () => {
                     {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
 
                     <TextInput
+                        autoCorrect={false}
+                        placeholderTextColor="#666"
                         style={[styles.input, errors.email ? styles.inputError : null]}
                         placeholder="Email"
                         value={email}
@@ -187,6 +190,7 @@ const SignupScreen = () => {
                     {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
 
                     <TextInput
+                        placeholderTextColor="#666"
                         style={[styles.input, errors.password ? styles.inputError : null]}
                         placeholder="Password"
                         value={password}

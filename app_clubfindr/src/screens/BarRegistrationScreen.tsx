@@ -319,6 +319,7 @@ const BarRegistrationScreen = () => {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Email Address *</Text>
                             <TextInput
+                                autoCorrect={false}
                                 style={[styles.input, emailError ? styles.inputError : null]}
                                 value={email}
                                 onChangeText={(text) => {

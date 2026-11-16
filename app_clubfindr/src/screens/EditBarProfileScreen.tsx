@@ -321,6 +321,7 @@ const EditBarProfileScreen = () => {
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Email *</Text>
                         <TextInput
+                            autoCorrect={false}
                             style={[styles.input, errors.general_email ? styles.inputError : null]}
                             value={profile.general_email}
                             onChangeText={(value) => updateField('general_email', value)}
