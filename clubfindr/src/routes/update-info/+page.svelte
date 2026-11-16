@@ -2,6 +2,9 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import PasswordToggle from '$lib/components/PasswordToggle.svelte';
+	import CityPicker from '$lib/components/CityPicker.svelte';
+
+	let { data } = $props();
 
 	let formData = $state({
 		name: '',
@@ -50,6 +53,8 @@
 	>
 		Update Profile
 	</h1>
+
+	<CityPicker city={data.city} cities={data.cities} />
 
 	<form
 		method="POST"

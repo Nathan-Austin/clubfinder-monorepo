@@ -5,6 +5,7 @@ import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
 import { validateEmail } from '$lib/passwordUtils';
 import { cookieManager } from '$lib/cookieManager';
 import { evictSessions } from '$lib/server/sessionCache';
+import { LIVE_CITIES, findLiveCity } from '$lib/cities';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	// Check if user is authenticated
@@ -12,9 +13,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(401, 'Unauthorized');
 	}
 
-	const result = await query('SELECT name, general_email FROM clubfindr.users WHERE id = $1', [
-		locals.user.id
-	]);
+	const result = await query(
+		'SELECT name, general_email, city FROM clubfindr.users WHERE id = $1',
+		[locals.user.id]
+	);
 
 	if (result.rows.length === 0) {
 		throw error(404, 'User not found');
@@ -25,7 +27,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 			name: result.rows[0].name,
 			// The column is general_email; reading .email left the form's e-mail field empty
 			email: result.rows[0].general_email
-		}
+		},
+		// The city section saves through PUT /api/account/city, not this form's action: it needs
+		// no password (KNOWN_ISSUES 67)
+		city: findLiveCity(result.rows[0].city)?.slug ?? null,
+		cities: LIVE_CITIES.map(({ name, slug }) => ({ name, slug }))
 	};
 };
 
