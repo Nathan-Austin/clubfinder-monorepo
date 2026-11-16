@@ -5,6 +5,59 @@ Planned work for the Clubfinder monorepo. Detailed findings live in
 [`clubfindr/docs/KNOWN_ISSUES.md`](clubfindr/docs/KNOWN_ISSUES.md); this file is the
 ordered list of what I intend to do next.
 
+## Today's session (2026-11-16): the mobile app
+
+**Agents: this section is the brief for today's session.** It ends in an Android build that the
+owner installs from Play internal testing and tests on a phone this evening, so everything must be
+finished, committed and checked by the end of step 6. The items it draws on are in section 5
+("Mobile app" and "iPhone / App Store") and KNOWN_ISSUES 29, 35, 47, 48 and 65-69; 65-69 come from
+the first device run, earlier today.
+
+**Rules for the whole session.** State which worktree you are in in every reply. Run every
+command, build and test in the foreground. Coordinate the shared database with
+`dev/e2e-lock.sh run --wait` and never reseed it. Small atomic commits; do not push. In every
+reply, sections for: what changed, what broke and how you fixed it, checks run, decisions for the
+owner. Every app change passes the app's four CI checks (`npm run lint`, `npm run typecheck`,
+`npm test`, `npx expo export --platform android`); server changes also pass the clubfindr checks
+and their e2e specs. Do not change `app.json`'s `versionCode` (the owner's build bumps it) and do
+not build with EAS. Run git from the repository root (`app_clubfindr/` holds an old nested
+`.git`, KNOWN_ISSUES 34).
+
+**Owner's decisions, already made:** remove the iOS Bluetooth texts (KNOWN_ISSUES 48); the app is
+iPhone only (`supportsTablet: false`); the agents draft a new Privacy Policy and Terms without
+Spotify for the owner to approve (KNOWN_ISSUES 47). Left out on purpose, each needing its own
+device run: R8 and the Expo patch upgrade.
+
+1. [ ] **Baseline, no code.** Read the app end to end and the items above. Report what you would
+   clean up or restructure and why, anything broken the docs do not list yet, and a plan for
+   steps 2-6 with any further decisions you need.
+2. [ ] **Login and accounts** (KNOWN_ISSUES 69, 68). Visible text in every `TextInput` on light
+   and dark phones (explicit `color` and `placeholderTextColor` everywhere, not only the login
+   screen); `autoCorrect={false}` on e-mail fields; one shared venue-login lookup so the app
+   accepts the same credentials as the web `/login/bars` (personal account first, then the
+   venue's own); a password reset that also reaches venue logins, linked from the app's venue
+   login too.
+3. [ ] **City** (KNOWN_ISSUES 67). Propose the city from the device location (the nearest city in
+   `data_collection/live_cities.txt`), let the user confirm or change it in the app's Profile and
+   on the web, save it to `users.city` through an authenticated endpoint, and refresh the app's
+   `userCity` without a new login. Remove the hard-coded Berlin fallbacks where they mislead.
+4. [ ] **Permissions and store readiness** (KNOWN_ISSUES 65, 66, 48; "iPhone / App Store" below).
+   Coarse location only; the `expo-camera` config plugin with a camera message and the
+   microphone off; trim the unused Android permissions, checking the merged list with
+   `npx expo prebuild --platform android --clean` in a scratch copy, never the repo's `android/`;
+   drop `NSLocationAlwaysUsageDescription` and the two Bluetooth texts; `supportsTablet: false`;
+   iOS settings in `eas.json` and `cli.appVersionSource`.
+5. [ ] **Cleanup, refactor and the policy draft.** Dead code and debug screens, `any` types in the
+   services, `console.log` gated for production builds, unit tests for the services steps 2-4
+   touched, and splitting screens over 500 lines only where you are already working in them.
+   Draft the Privacy Policy and Terms without Spotify (app screens and web `/policies/*`) as a
+   separate commit, marked for the owner's approval.
+6. [ ] **Hand-over.** A device checklist for this evening (each fix above, plus the venue
+   dashboard, creating, sharing and deleting a QR code, and check-in by scanning), updated
+   KNOWN_ISSUES, ROADMAP and `app_clubfindr/CLAUDE.md`, and a list of what you found but left for
+   later.
+
+
 ## 1. Move away from Spotify for users
 
 Spotify's development-mode limits cap each app at a handful of users, so per-user
@@ -90,10 +143,11 @@ Things to do by hand or decide, collected while building the items above.
       2026-11-16 on Android (versionCode 9, Play internal testing): onboarding, adding genre groups
       and club matching work; the city was wrong (KNOWN_ISSUES 67). Venue dashboard, QR codes and
       check-in still to test
-- [ ] Owner's decision: the Privacy Policy and Terms (app screens and web `/policies/*`) still
-      name Spotify as a data source and connected service (KNOWN_ISSUES 47)
-- [ ] Owner's decision: `app_clubfindr/app.json` still declares the iOS Bluetooth permissions
-      "for Spotify integration" (KNOWN_ISSUES 48); changing them affects the next store review
+- [ ] Privacy Policy and Terms (app screens and web `/policies/*`) still name Spotify as a data
+      source and connected service (KNOWN_ISSUES 47). **Decided 2026-11-16: the agents draft the
+      new wording, the owner approves it before it ships** (today's session, step 5)
+- [ ] `app_clubfindr/app.json` still declares the iOS Bluetooth permissions "for Spotify
+      integration" (KNOWN_ISSUES 48). **Decided 2026-11-16: remove them** (today's session, step 4)
 - [ ] Remove the now unused `expo-auth-session` from the app with the Expo upgrade
       (KNOWN_ISSUES 35)
 - [ ] Owner, in Play Console: declare trader status (required from November 2026), and check
@@ -399,8 +453,8 @@ the in-app account deletion Apple requires exists (`DeleteAccountScreen`).
       location while in use, and "Always" draws review questions) and the two Bluetooth strings
       "for Spotify integration" (KNOWN_ISSUES 48, nothing uses Bluetooth); App Review rejects
       permission texts that do not match what the app does
-- [ ] Decide `supportsTablet` (now `true`): iPad support means iPad screenshots and an iPad
-      layout check in review; `false` keeps it an iPhone app
+- [ ] `supportsTablet` is `true`. **Decided 2026-11-16: iPhone only, set it to `false`** (no iPad
+      screenshots or iPad layout review; today's session, step 4)
 - [ ] `eas.json`: iOS settings for the `preview` (internal distribution or TestFlight) and
       `release` profiles, and `cli.appVersionSource` (EAS already warns it will become required)
       so iOS build numbers are managed
