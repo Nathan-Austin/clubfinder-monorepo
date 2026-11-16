@@ -371,6 +371,35 @@ top artists or play counts on the web).
       modules reach by reflection, which then crash only in release builds. Pairs with Sentry for
       the JavaScript side
 
+### iPhone / App Store
+
+The app has never been built for iOS. **No Mac is needed to ship it**: EAS builds iOS in Expo's
+cloud (`EAS_NO_VCS=1 eas build --platform ios`), TestFlight installs test builds on an iPhone, and
+`eas submit` uploads to App Store Connect. A Mac only adds the iOS simulator and Xcode debugging.
+Checked 2026-11-16: no Google/Facebook sign-in in the app, so Sign in with Apple is not required;
+the in-app account deletion Apple requires exists (`DeleteAccountScreen`).
+
+- [ ] Owner: Apple Developer Program membership ($99/year), then the app record in App Store
+      Connect for bundle id `com.clubfindr.mobile`; EAS then creates the iOS signing certificate
+      and provisioning profile on the first build
+- [ ] Camera permission text, or the QR scanner crashes on iOS (KNOWN_ISSUES 66): add the
+      `expo-camera` config plugin with a camera message and the microphone off
+- [ ] `app.json` `ios.infoPlist`: drop `NSLocationAlwaysUsageDescription` (the app only needs
+      location while in use, and "Always" draws review questions) and the two Bluetooth strings
+      "for Spotify integration" (KNOWN_ISSUES 48, nothing uses Bluetooth); App Review rejects
+      permission texts that do not match what the app does
+- [ ] Decide `supportsTablet` (now `true`): iPad support means iPad screenshots and an iPad
+      layout check in review; `false` keeps it an iPhone app
+- [ ] `eas.json`: iOS settings for the `preview` (internal distribution or TestFlight) and
+      `release` profiles, and `cli.appVersionSource` (EAS already warns it will become required)
+      so iOS build numbers are managed
+- [ ] Privacy: the App Privacy answers in App Store Connect, the iOS privacy manifest
+      (`ios.privacyManifests` for the required-reason APIs the libraries use), and a Privacy
+      Policy that no longer names Spotify (KNOWN_ISSUES 47)
+- [ ] First TestFlight build on an iPhone: safe areas and the notch, keyboard over the forms,
+      location and camera prompts, the QR scan and share sheet, sign-up and the artist step
+- [ ] Sentry on iOS with the JavaScript source maps (the section 5 Sentry item)
+
 ## 6. Data pipeline (`data_collection`)
 
 - [ ] Replace pickle files with JSON

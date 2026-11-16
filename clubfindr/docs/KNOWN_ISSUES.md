@@ -760,3 +760,11 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     alone does not show the merged list. Play reviewers ask about `RECORD_AUDIO` and
     `SYSTEM_ALERT_WINDOW` in particular. Not affected by that announcement: local network and the
     location button (API 37+ only), contacts, SMS/call log, all-files access, accessibility.
+66. **The iOS build has no camera permission text, so the QR scanner would crash on an iPhone.**
+    `QRScannerScreen.tsx` uses `expo-camera`, but `expo-camera` is not in `app.json`'s `plugins`
+    (only `expo-web-browser`, `@sentry/react-native`, `expo-router`), so prebuild writes no
+    `NSCameraUsageDescription` and iOS terminates an app that opens the camera without one; App
+    Review rejects it too. Android is unaffected (the library's manifest adds `CAMERA`). Fix: add
+    `["expo-camera", { "cameraPermission": "…to scan venue QR codes", "microphonePermission":
+false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AUDIO` on Android
+    (KNOWN_ISSUES 65). Found 2026-11-16 while listing what the App Store needs (ROADMAP section 5).
