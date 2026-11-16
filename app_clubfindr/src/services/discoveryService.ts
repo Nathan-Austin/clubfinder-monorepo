@@ -432,12 +432,15 @@ export const getCurrentLocation = async (): Promise<{ latitude: number, longitud
                 }
             } catch { }
 
-            // Final fallback - use a default location
-            console.log('Using default location as fallback');
-            return {
-                latitude: 52.52, // Berlin coordinates as default
-                longitude: 13.405
-            };
+            // No fix at all. This returned Berlin's coordinates until 2026-11-16, so distances in
+            // every other city were measured from Berlin and the distance filter dropped every
+            // venue. A release build has no position then (distances are left out); a development
+            // build, often an emulator without GPS, stands at the centre of the user's city.
+            if (__DEV__) {
+                const centre = findLiveCity(await getUserCity());
+                if (centre) return { latitude: centre.latitude, longitude: centre.longitude };
+            }
+            return null;
         }
     } catch (error) {
         console.error('Error getting location:', error);
@@ -665,8 +668,8 @@ const processVenues = async (
             venuesNeedingGeocoding++;
             try {
                 const addressToGeocode = processedVenue.address && processedVenue.address.trim()
-                    ? `${processedVenue.address}, ${processedVenue.city || 'Berlin'}`
-                    : `${processedVenue.name}, ${processedVenue.city || 'Berlin'}`;
+                    ? `${processedVenue.address}, ${processedVenue.city || cityName(await cityForQueries())}`
+                    : `${processedVenue.name}, ${processedVenue.city || cityName(await cityForQueries())}`;
 
                 console.log(`Geocoding address: ${addressToGeocode}`);
                 const coordinates = await geocodeAddress(addressToGeocode);
@@ -820,9 +823,10 @@ export const getVenues = async (
         return expiredCache;
     }
 
-    // Final fallback: Return hardcoded data
-    console.log(`All approaches failed, using fallback ${venueType} data`);
-    return venueType === 'bar' ? getFallbackBars() : getFallbackClubs();
+    // Nothing from the network and no cache at all. This returned made-up Berlin venues until
+    // 2026-11-16, which looked like real results in any city; the screens show an error with
+    // "Try again" instead (components/LoadError).
+    throw new VenuesUnavailableError(venueType);
 };
 
 // Also update the refreshVenues function to match
@@ -1034,148 +1038,6 @@ export const clearVenueCache = async (venueType?: 'bar' | 'club'): Promise<void>
     }
 };
 
-// Fallback bars
-export const getFallbackBars = (): Venue[] => {
-    return [
-        {
-            id: '1',
-            name: 'Club XYZ',
-            address: '123 Main St, Berlin',
-            genres: ['House', 'Techno', 'Electronic'],
-            currentTrack: {
-                name: 'Strobe',
-                artist: 'Deadmau5'
-            },
-            similarity: 0.85,
-            venueType: 'bar'
-        },
-        {
-            id: '2',
-            name: 'Groove Lounge',
-            address: '456 Park Ave, Berlin',
-            genres: ['Hip Hop', 'R&B', 'Soul'],
-            currentTrack: {
-                name: 'Gin & Juice',
-                artist: 'Snoop Dogg'
-            },
-            similarity: 0.72,
-            venueType: 'bar'
-        },
-        {
-            id: '3',
-            name: 'Rhythm Room',
-            address: '789 Broadway, Berlin',
-            genres: ['Jazz', 'Blues', 'Funk'],
-            currentTrack: {
-                name: 'Take Five',
-                artist: 'Dave Brubeck'
-            },
-            similarity: 0.65,
-            venueType: 'bar'
-        },
-        {
-            id: '4',
-            name: 'Tresor',
-            address: 'Köpenicker Str. 70, Berlin',
-            genres: ['Techno', 'Industrial', 'Electronic'],
-            currentTrack: {
-                name: 'Spastik',
-                artist: 'Plastikman'
-            },
-            similarity: 0.91,
-            venueType: 'bar'
-        },
-        {
-            id: '5',
-            name: 'Berghain',
-            address: 'Am Wriezener Bahnhof, Berlin',
-            genres: ['Techno', 'House', 'Minimal'],
-            currentTrack: {
-                name: 'The Bells',
-                artist: 'Jeff Mills'
-            },
-            similarity: 0.89,
-            venueType: 'bar'
-        }
-    ];
-};
-
-// Fallback clubs
-export const getFallbackClubs = (): Venue[] => {
-    return [
-        {
-            id: 'c1',
-            name: 'Matrix Club',
-            address: 'Warschauer Platz 18, Berlin',
-            genres: ['Techno', 'House', 'EDM'],
-            similarity: 0.93,
-            venueType: 'club',
-            event_name: 'Techno Tuesday',
-            event_date: '2025-03-18',
-            start_time: '22:00',
-            end_time: '05:00',
-            popularity: 'High',
-            price: '15€'
-        },
-        {
-            id: 'c2',
-            name: 'Watergate',
-            address: 'Falckensteinstraße 49, Berlin',
-            genres: ['Deep House', 'Tech House', 'Minimal'],
-            similarity: 0.87,
-            venueType: 'club',
-            event_name: 'Deep Vibes',
-            event_date: '2025-03-20',
-            start_time: '23:00',
-            end_time: '08:00',
-            popularity: 'Medium',
-            price: '18€'
-        },
-        {
-            id: 'c3',
-            name: 'Sisyphos',
-            address: 'Hauptstraße 15, Berlin',
-            genres: ['Techno', 'Electronic', 'Experimental'],
-            similarity: 0.78,
-            venueType: 'club',
-            event_name: 'Endless Night',
-            event_date: '2025-03-21',
-            start_time: '00:00',
-            end_time: '12:00',
-            popularity: 'High',
-            price: '20€'
-        },
-        {
-            id: 'c4',
-            name: 'YAAM',
-            address: 'An der Schillingbrücke 3, Berlin',
-            genres: ['Reggae', 'Dancehall', 'Hip Hop'],
-            similarity: 0.69,
-            venueType: 'club',
-            event_name: 'Reggae Beach',
-            event_date: '2025-03-19',
-            start_time: '18:00',
-            end_time: '02:00',
-            popularity: 'Medium',
-            price: '10€'
-        },
-        {
-            id: 'c5',
-            name: 'Ritter Butzke',
-            address: 'Ritterstraße 26, Berlin',
-            genres: ['House', 'Techno', 'Disco'],
-            similarity: 0.82,
-            venueType: 'club',
-            event_name: 'Saturday Night Fever',
-            event_date: '2025-03-22',
-            start_time: '23:59',
-            end_time: '10:00',
-            popularity: 'High',
-            price: '16€'
-        }
-    ];
-};
-
 // Add this to your discovery service
 export const testLocationServices = async () => {
     try {
@@ -1216,7 +1078,16 @@ export const testLocationServices = async () => {
 
 
 import * as genreMatchingService from './genreMatchingService';
-import { cityForQueries } from './cityService';
+import { cityForQueries, getUserCity } from './cityService';
+import { cityName, findLiveCity } from '../constants/cities';
+
+/** No venues could be loaded: no network answer and nothing cached */
+export class VenuesUnavailableError extends Error {
+    constructor(venueType: 'bar' | 'club') {
+        super(`Could not load ${venueType}s`);
+        this.name = 'VenuesUnavailableError';
+    }
+}
 
 /**
  * Process user genres and find venues for a specific date

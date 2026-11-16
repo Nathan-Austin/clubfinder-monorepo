@@ -23,6 +23,7 @@ import DateSelector from '../components/DateSelector';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
 import { cityForQueries } from '../services/cityService';
+import LoadError from '../components/LoadError';
 
 type TilkiScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Tilki'>;
 
@@ -44,6 +45,7 @@ const TilkiScreen = () => {
 
     // Loading states
     const [loading, setLoading] = useState(true);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
     // Data states
@@ -194,6 +196,7 @@ const TilkiScreen = () => {
 
         try {
             setLoading(true);
+            setLoadFailed(false);
 
             // Get stored genres
             const storedGenres = await AsyncStorage.getItem('selected-genres');
@@ -371,14 +374,14 @@ const TilkiScreen = () => {
                 ? barResults.filter((venue: any, index: number, self: any[]) =>
                     index === self.findIndex((v: any) => v.id === venue.id)
                 )
-                : discoveryService.getFallbackBars();
+                : [];
 
             // Process club results to remove duplicates
             const uniqueClubVenues = Array.isArray(clubResults)
                 ? clubResults.filter((venue: any, index: number, self: any[]) =>
                     index === self.findIndex((v: any) => v.id === venue.id)
                 )
-                : discoveryService.getFallbackClubs();
+                : [];
 
             // Organize venues by date
             const barSections = organizeVenuesByDate(uniqueBarVenues, dateRangeStart, dateRangeEnd);
@@ -402,7 +405,7 @@ const TilkiScreen = () => {
                 setClubVenues([]);
                 setVenues([]);
                 setVenueSections([]);
-                Alert.alert('Error', 'Failed to load venues. Please try again.');
+                setLoadFailed(true);
             }
         } finally {
             if (isMounted.current) {
@@ -525,7 +528,11 @@ const TilkiScreen = () => {
 
             {/* Venue list */}
             <View style={{ flex: 1 }}>
-                {loading ? (
+                {!loading && loadFailed ? (
+                    <View style={styles.loaderContainer}>
+                        <LoadError onRetry={loadMatchingVenues} />
+                    </View>
+                ) : loading ? (
                     <View style={styles.loaderContainer}>
                         <ActivityIndicator
                             size="large"

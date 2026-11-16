@@ -23,6 +23,7 @@ import { cityForQueries } from '../services/cityService';
 import { useAuth } from '../contexts/AuthContext';
 import { useCityProposal } from '../hooks/useCityProposal';
 import { cityName } from '../constants/cities';
+import LoadError from '../components/LoadError';
 
 type HomeScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Home'>;
 
@@ -30,6 +31,7 @@ const HomeScreen = () => {
   const [venues, setVenues] = useState<discoveryService.Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [debugTapCount, setDebugTapCount] = useState(0);
 
   // New state for venue type toggle and distance filter
@@ -128,6 +130,7 @@ const HomeScreen = () => {
   const fetchVenues = async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
 
             const city = await cityForQueries();
       console.log(`Fetching ${venueType}s for city:`, city);
@@ -146,29 +149,15 @@ const HomeScreen = () => {
       console.log(`Fetched ${venueData?.length || 0} ${venueType}s${distanceEnabled ? ' with distance filter' : ''}`);
 
       if (venueData && venueData.length > 0) {
-        // Add additional logging to check venue data
-        const venuesWithDistance = venueData.filter(v => v.distance !== undefined);
-        console.log(`Venues with distance: ${venuesWithDistance.length}/${venueData.length}`);
-        if (venuesWithDistance.length > 0) {
-          console.log(`Distance range: ${Math.min(...venuesWithDistance.map(v => v.distance!))}m to ${Math.max(...venuesWithDistance.map(v => v.distance!))}m`);
-        }
-
         setVenues(venueData.slice(0, 5)); // Just the first 5 for preview
       } else {
-        // Use fallback data if API returns empty
-        console.log(`Using fallback ${venueType} data`);
-        const fallbackData = venueType === 'bar'
-          ? discoveryService.getFallbackBars()
-          : discoveryService.getFallbackClubs();
-        setVenues(fallbackData.slice(0, 5));
+        // A real answer with nothing in it: the "No bars found" card, not made-up venues
+        setVenues([]);
       }
     } catch (error) {
       console.error(`Failed to fetch nearby ${venueType}s:`, error);
-      // Use fallback data on error
-      const fallbackData = venueType === 'bar'
-        ? discoveryService.getFallbackBars()
-        : discoveryService.getFallbackClubs();
-      setVenues(fallbackData.slice(0, 5));
+      setVenues([]);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -261,6 +250,8 @@ const HomeScreen = () => {
 
         {loading ? (
           <ActivityIndicator size="large" color="#D35400" style={styles.loader} />
+        ) : loadFailed ? (
+          <LoadError onRetry={fetchVenues} />
         ) : venues.length > 0 ? (
           venues.map((venue) => (
             <VenueCard
