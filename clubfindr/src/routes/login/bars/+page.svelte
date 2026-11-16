@@ -129,7 +129,7 @@
 		</div>
 
 		<div class="form-actions">
-			<a href="/password-reset" class="forgot-password">Forgot Password?</a>
+			<a href="/password-reset?from=bars" class="forgot-password">Forgot Password?</a>
 		</div>
 
 		<button type="submit" class="login-button" disabled={isSubmitting}>

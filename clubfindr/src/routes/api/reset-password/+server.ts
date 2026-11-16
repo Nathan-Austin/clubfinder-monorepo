@@ -55,7 +55,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				// dashboard and app sessions so the old password's sessions stop working
 				await client.query(`DELETE FROM clubfindr.bar_sessions WHERE bar_id = $1`, [reset.id]);
 			});
-			return json({ success: true });
+			return json({ success: true, account: 'venue' });
 		}
 
 		await query(
@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Delete the used reset token
 		await query(`DELETE FROM clubfindr.password_resets WHERE user_id = $1`, [reset.id]);
 
-		return json({ success: true });
+		return json({ success: true, account: 'user' });
 	} catch (error) {
 		console.error('Error resetting password:', error);
 

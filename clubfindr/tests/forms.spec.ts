@@ -19,6 +19,23 @@ test.describe('forms', () => {
 		expect(pageErrors).toEqual([]);
 	});
 
+	// KNOWN_ISSUES 68: the venue login's link (and the app's) leads back to the venue login
+	test('password reset from the venue login goes back to it', async ({ page }) => {
+		await page.goto('/login/bars');
+		await acceptCookies(page);
+		await page.getByRole('link', { name: 'Forgot Password?' }).click();
+		await expect(page).toHaveURL(/\/password-reset\?from=bars$/);
+		await expect(page.getByRole('link', { name: 'Back to Login' })).toHaveAttribute(
+			'href',
+			'/login/bars'
+		);
+		await page.goto('/password-reset');
+		await expect(page.getByRole('link', { name: 'Back to Login' })).toHaveAttribute(
+			'href',
+			'/login/users'
+		);
+	});
+
 	test('password reset with token: mismatching passwords are rejected locally', async ({
 		page
 	}) => {

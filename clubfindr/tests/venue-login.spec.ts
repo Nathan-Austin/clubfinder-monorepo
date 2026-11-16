@@ -165,6 +165,8 @@ test('a venue resets its own password, and its old sessions end', async ({
 			data: { token, newPassword: NEW_PASSWORD }
 		});
 		expect(reset.status(), await reset.text()).toBe(200);
+		// so the page sends the venue back to /login/bars
+		expect((await reset.json()).account).toBe('venue');
 
 		const fresh = await api.post('/api/mobile/bars/login', {
 			data: { email: venue.email, password: NEW_PASSWORD }

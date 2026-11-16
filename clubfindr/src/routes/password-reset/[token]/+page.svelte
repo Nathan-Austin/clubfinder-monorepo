@@ -55,9 +55,11 @@
 				password = '';
 				confirmPassword = '';
 
-				// Redirect to login page after 3 seconds
+				// Back to the login the password belongs to after 3 seconds: a venue's own login is
+				// /login/bars (KNOWN_ISSUES 68)
+				const loginPage = result.account === 'venue' ? '/login/bars' : '/login/users';
 				setTimeout(() => {
-					window.location.href = '/login/users';
+					window.location.href = loginPage;
 				}, 3000);
 			} else {
 				errorMessage = result.message || 'Failed to update password. Please try again.';

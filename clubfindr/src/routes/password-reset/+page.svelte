@@ -1,5 +1,9 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { validateEmail } from '$lib/passwordUtils';
+	// Came from the venue login (/login/bars, or the app's venue login): back there, not to the
+	// personal one
+	const backTo = page.url.searchParams.get('from') === 'bars' ? '/login/bars' : '/login/users';
 	let email = $state('');
 	let emailError = $state('');
 	let isSubmitting = $state(false);
@@ -94,7 +98,7 @@
 		</button>
 
 		<div class="links">
-			<a href="/login/users">Back to Login</a>
+			<a href={backTo}>Back to Login</a>
 		</div>
 	</form>
 </main>
