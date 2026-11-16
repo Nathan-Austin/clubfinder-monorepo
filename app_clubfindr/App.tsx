@@ -5,9 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Alert, LogBox } from 'react-native';
 import RootNavigator from './src/navigation';
 import { AuthProvider } from './src/contexts/AuthContext';
-import * as WebBrowser from 'expo-web-browser';
 import * as Sentry from '@sentry/react-native';
-import Constants from 'expo-constants';
 import NetworkStatus from './src/components/NetworkStatus';
 import networkUtils from './src/utils/networkUtils';
 import { PaperProvider } from 'react-native-paper';
@@ -27,9 +25,6 @@ Sentry.init({
 
 // Initialize network monitoring
 networkUtils.initNetworkMonitoring();
-
-// Ensure authentication session can complete properly
-WebBrowser.maybeCompleteAuthSession();
 
 export default function App() {
   // Add application-level error handling

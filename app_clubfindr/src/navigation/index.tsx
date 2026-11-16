@@ -25,7 +25,6 @@ import { Venue } from '../services/discoveryService';
 import BarHomeScreen from '../screens/BarHomeScreen';
 import EditBarProfileScreen from '../screens/EditBarProfileScreen';
 import EventFormScreen from '../screens/EventFormScreen';
-import VenueCacheDebugScreen from '../screens/VenueCacheDebugScreen';
 import QRCodeGeneratorScreen from '../screens/QRCodeGeneratorScreen';
 import QRScannerScreen from '../screens/QRScannerScreen';
 import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPickerScreen';
@@ -53,7 +52,6 @@ export type RootStackParamList = {
   BarConfirmation: { email: string };
   BarDashboard: undefined;
   BarManager: undefined;
-  VenueCacheDebug: undefined;
   QRScanner: undefined;
   /** Artist picker step after login, in place of the tabs (see RootNavigator) */
   ArtistOnboarding: ArtistPickerParams;
@@ -254,15 +252,6 @@ const RootNavigator = () => {
             options={{
               title: 'Delete Account',
               headerStyle: { backgroundColor: '#FF5252' },
-              headerTintColor: '#FFFFFF'
-            }}
-          />
-          <Stack.Screen
-            name="VenueCacheDebug"
-            component={VenueCacheDebugScreen}
-            options={{
-              title: 'Cache Manager',
-              headerStyle: { backgroundColor: '#D35400' },
               headerTintColor: '#FFFFFF'
             }}
           />

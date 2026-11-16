@@ -4,11 +4,8 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
-  TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -18,7 +15,6 @@ import VenueToggle from '../components/VenueToggle';
 import DistanceSelector from '../components/DistanceSelector';
 import * as discoveryService from '../services/discoveryService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
 import { cityForQueries } from '../services/cityService';
 import { useAuth } from '../contexts/AuthContext';
 import { useCityProposal } from '../hooks/useCityProposal';
@@ -32,7 +28,6 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [debugTapCount, setDebugTapCount] = useState(0);
 
   // New state for venue type toggle and distance filter
   const [venueType, setVenueType] = useState<'bar' | 'club'>('bar');
@@ -46,13 +41,6 @@ const HomeScreen = () => {
   useCityProposal();
   // Load venues when component mounts or when venue type/distance settings change
   useEffect(() => {
-    const testLocation = async () => {
-      const result = await discoveryService.testLocationServices();
-      console.log('Location test result:', result);
-    };
-
-    testLocation();
-
     if (route.params?.refresh) {
       // Check if we have matching venues stored
       const loadMatchingVenues = async () => {
@@ -84,47 +72,6 @@ const HomeScreen = () => {
     }
   // user?.city: a city changed in Profile or by the proposal reloads the list, no new login
   }, [venueType, distanceEnabled, maxDistance, route.params?.refresh, user?.city]);
-
-  // Add this near the top of your HomeScreen component
-  const testLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      console.log('Permission status:', status);
-
-      if (status !== 'granted') {
-        Alert.alert('Permission not granted', 'Location permission is required for distance filtering');
-        return;
-      }
-
-      Alert.alert('Getting location...', 'Please wait');
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Low
-      });
-
-      Alert.alert(
-        'Location found!',
-        `Latitude: ${location.coords.latitude}\nLongitude: ${location.coords.longitude}`
-      );
-    } catch (error) {
-      console.error('Location test error:', error);
-      Alert.alert('Location Error', error instanceof Error ? error.message : 'Unknown error');
-    }
-  };
-  const handleDebugTap = () => {
-    setDebugTapCount(prev => {
-      const newCount = prev + 1;
-      if (newCount >= 5) {
-        // Reset count
-        setTimeout(() => setDebugTapCount(0), 1000);
-
-        // Navigate to debug screen
-        navigation.navigate('VenueCacheDebug');
-        return 0;
-      }
-      return newCount;
-    });
-  };
 
   // Fetch venues based on the selected type and distance
   const fetchVenues = async () => {
@@ -228,12 +175,6 @@ const HomeScreen = () => {
           selectedType={venueType}
           onTypeChange={handleVenueTypeChange}
         />
-        {false && (
-          <TouchableWithoutFeedback onPress={handleDebugTap}>
-            <View style={styles.matchesContainer}>
-              <Text style={styles.matchesText}>Tap 5 times to debug venue cache</Text>
-            </View>
-          </TouchableWithoutFeedback>)}
 
         {/* Add the distance selector */}
         <DistanceSelector
@@ -282,33 +223,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
   },
-  testButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  testButton: {
-    backgroundColor: '#D35400',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#D35400',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.8,
-  },
   section: {
     padding: 20,
   },
@@ -336,28 +250,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     opacity: 0.6,
     textAlign: 'center',
-  },
-  matchesContainer: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 8,
-    padding: 20,
-    alignItems: 'center',
-  },
-  matchesText: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  discoverButton: {
-    backgroundColor: '#D35400',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    width: 200,
-  },
-  discoverButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
 });
 

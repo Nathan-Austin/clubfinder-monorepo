@@ -489,95 +489,6 @@ export const calculateDistance = (
     return R * c; // distance in meters
 };
 
-// Use direct fetch API with error handling
-const tryDirectFetch = async (
-    city: string,
-    date: string,
-    endpoint: string
-): Promise<Venue[]> => {
-    console.log(`Attempting direct fetch API for ${endpoint}...`);
-
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
-
-        // Get auth token if available
-        const token = await AsyncStorage.getItem('authToken');
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Connection': 'close',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            // Add a unique identifier to prevent any caching
-            'X-Request-ID': Date.now().toString()
-        };
-
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        // Add platform info
-        headers['User-Agent'] = `ClubFindr-Mobile/${Platform.OS}-${Platform.Version}`;
-
-        // Add timestamp parameter to URL to prevent caching
-        const cacheBuster = `_t=${Date.now()}`;
-        const url = `https://www.clubfindr.com${endpoint}?${cacheBuster}`;
-
-        console.log('Direct fetch URL:', url);
-        console.log('Direct fetch headers:', JSON.stringify(headers));
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ city, date }),
-            signal: controller.signal,
-            // Explicitly disable caching
-            cache: 'no-store' as RequestCache
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-
-        // Log response headers to debug content type
-        console.log('Response headers:', {
-            contentType: response.headers.get('content-type'),
-            contentLength: response.headers.get('content-length')
-        });
-
-        const responseText = await response.text();
-        console.log('Direct fetch response length:', responseText.length);
-        console.log('Response preview:', responseText.substring(0, 100));
-
-        // Try to detect if we got HTML/text instead of JSON
-        if (responseText.trim().startsWith('<') || responseText.trim().startsWith('T')) {
-            console.error('Received non-JSON response:', responseText.substring(0, 200));
-            throw new Error('Invalid response format - expected JSON');
-        }
-
-        try {
-            const data = JSON.parse(responseText);
-            if (!Array.isArray(data)) {
-                console.error('Response is not an array:', data);
-                throw new Error('Response is not an array');
-            }
-
-            console.log(`Direct fetch success! Got ${data.length} venues`);
-            return data as Venue[];
-        } catch (parseError) {
-            console.error('Failed to parse JSON response:', parseError);
-            console.log('Response preview:', responseText.substring(0, 200));
-            throw new Error('Invalid JSON response');
-        }
-    } catch (error) {
-        console.log('Direct fetch failed:', error);
-        throw error;
-    }
-};
 
 // Process venues to add coordinates and distance info
 // Modified processVenues function for discoveryService.ts
@@ -880,16 +791,6 @@ export const getNearbyClubs = (city: string, date?: string | null, maxDistance?:
     return getVenues(city, date || null, 'club', maxDistance, isNearbyMode);
 };
 
-export const getMatchingVenues = async (city: string, date: string): Promise<Venue[]> => {
-    try {
-        const response = await axiosClient.get('/api/venues/matching', { params: { city, date } });
-        return response.data as Venue[];
-    } catch (error) {
-        console.error('Failed to fetch matching venues:', error);
-        return [];
-    }
-};
-
 export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'bar'): Promise<Venue | null> => {
     const endpoint = venueType === 'bar' ? `/api/mobile/bars/${id}` : `/api/mobile/events/${id}`;
     console.log(`Fetching details for ${venueType} with ID: ${id} from endpoint: ${endpoint}`);
@@ -1018,7 +919,7 @@ export const getVenueRequestDiagnostics = async (): Promise<any> => {
             },
             currentPlatform: `${Platform.OS}-${Platform.Version}`
         };
-    } catch (error) {
+    } catch {
         return { error: 'Failed to get diagnostics' };
     }
 };
@@ -1038,43 +939,6 @@ export const clearVenueCache = async (venueType?: 'bar' | 'club'): Promise<void>
     }
 };
 
-// Add this to your discovery service
-export const testLocationServices = async () => {
-    try {
-        console.log('Testing location services...');
-
-        // Check permissions
-        const permissionStatus = await Location.getForegroundPermissionsAsync();
-        console.log('Permission status:', permissionStatus);
-
-        if (permissionStatus.status !== 'granted') {
-            console.log('Requesting permissions...');
-            const request = await Location.requestForegroundPermissionsAsync();
-            console.log('Permission request result:', request);
-        }
-
-        // Try to get location
-        console.log('Getting current position...');
-        const position = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Low
-        });
-        console.log('Got position:', position);
-
-        return {
-            success: true,
-            position: {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude
-            }
-        };
-    } catch (error) {
-        console.error('Location test failed:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-        };
-    }
-};
 
 
 import * as genreMatchingService from './genreMatchingService';

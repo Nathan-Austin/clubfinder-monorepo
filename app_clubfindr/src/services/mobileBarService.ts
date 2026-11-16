@@ -176,39 +176,10 @@ export const barLogin = async (
     }
 };
 
-/**
- * Update bar information
- */
-export const updateBarInfo = async (
-    updateData: Partial<{
-        name: string;
-        contactPerson: string;
-        phone: string;
-        address: string;
-        postcode: string;
-        city: string;
-        website: string;
-    }>
-): Promise<{ success: boolean; message?: string }> => {
-    try {
-        const response = await axiosClient.put('/api/mobile/bars/update', updateData);
-
-        return response.data;
-    } catch (error: any) {
-        console.error('Error updating bar information:', error);
-
-        return {
-            success: false,
-            message: error.response?.data?.message || 'Failed to update bar information'
-        };
-    }
-};
-
 export default {
     registerBar,
     confirmBarRegistration,
     resendConfirmationCode,
     getBarProfile,
-    barLogin,
-    updateBarInfo
+    barLogin
 };

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Switch,
   Alert,
   RefreshControl
 } from 'react-native';
@@ -20,12 +19,11 @@ import CitySection from '../components/CitySection';
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const ProfileScreen = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [genres, setGenres] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // The taste profile's genres (the artists picked in the app or on the web, and a Last.fm
   // import), which is what matching uses now that Spotify connect is retired
@@ -72,12 +70,6 @@ const ProfileScreen = () => {
     setRefreshing(false);
   };
 
-  // Toggle notifications
-  const toggleNotifications = () => {
-    setNotificationsEnabled(!notificationsEnabled);
-    // In a real app, you'd update user preferences in storage
-  };
-
   return (
     <ScrollView
       style={styles.container}
@@ -87,19 +79,6 @@ const ProfileScreen = () => {
     >
       <CitySection />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account Settings</Text>
-
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>Push Notifications</Text>
-          <Switch
-            trackColor={{ false: '#767577', true: '#D35400' }}
-            thumbColor={notificationsEnabled ? '#ffffff' : '#f4f3f4'}
-            onValueChange={toggleNotifications}
-            value={notificationsEnabled}
-          />
-        </View>
-      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Music Preferences</Text>
@@ -177,37 +156,6 @@ const ProfileScreen = () => {
 import { Ionicons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
-  header: {
-    padding: 20,
-    backgroundColor: '#D35400',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 5,
-  },
-  email: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.8,
-  },
-  city: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.7,
-    marginTop: 5,
-  },
-  debugButton: {
-    backgroundColor: '#D35400',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  debugButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
   container: {
     flex: 1,
     backgroundColor: '#121212',
@@ -222,16 +170,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 15,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  settingLabel: {
-    color: '#FFFFFF',
-    fontSize: 16,
   },
   loader: {
     marginVertical: 20,

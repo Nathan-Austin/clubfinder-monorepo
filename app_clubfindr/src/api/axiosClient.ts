@@ -57,47 +57,4 @@ const instance: AxiosInstance = axios.create({
     }
 });
 
-/**
- * Test login endpoint using axios
- * Used to verify TLS connection settings
- */
-export const testLoginWithAxios = async (email: string, password: string) => {
-    try {
-        console.log('[TLS Test] Attempting login...');
-        const startTime = Date.now();
-
-        try {
-            const response = await instance.post('/api/mobile/login', {
-                email,
-                password
-            });
-
-            const endTime = Date.now();
-            console.log(`[TLS Test] Login completed in ${endTime - startTime}ms`);
-
-            return {
-                success: true,
-                data: response.data,
-                timing: endTime - startTime
-            };
-        } catch (error: any) {
-            throw error;
-        }
-    } catch (error: any) {
-        const errorDetails = error.response?.data || { message: error.message };
-        console.error('[TLS Test] Login failed:', {
-            status: error.response?.status,
-            message: errorDetails.message || error.message,
-            data: errorDetails
-        });
-        return {
-            success: false,
-            error: errorDetails.message || error.message,
-            status: error.response?.status,
-            data: errorDetails,
-            timing: Date.now() - error.startTime || Date.now()
-        };
-    }
-};
-
 export default instance;
