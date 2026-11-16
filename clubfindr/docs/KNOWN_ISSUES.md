@@ -788,3 +788,16 @@ false, "recordAudioAndroid": false }]`, which also removes the unused `RECORD_AU
     for the device run. Fix: let the reset find a `bars` row too (one token table, with the
     account kind on the token), keep the same answer for unknown addresses, and offer the same link
     in the app's venue login.
+69. **App login screen: invisible text, autocorrect on the e-mail, and a venue login narrower than
+    the web's.** Found on the first device run (2026-11-16).
+    - `LoginScreen.tsx` gives its inputs `backgroundColor: '#FFFFFF'` and no text colour, so the
+      Android theme picks one, and on the owner's phone it picked white: what is typed cannot be
+      seen. Set `color` and `placeholderTextColor` on every `TextInput` (other screens probably
+      share the pattern; check them all on a device in dark mode).
+    - The e-mail input sets `autoCapitalize="none"` but not `autoCorrect={false}`, so a keyboard
+      can change the address as it is typed.
+    - The web venue login (`/login/bars`) first tries a personal account (`users`, for a person
+      who manages a venue) and then the venue's own login (`bars.password_hash`); the app's
+      "Bar Manager Login" (`/api/mobile/bars/login`) only tries `bars`. A venue reached through a
+      personal account on the web cannot log in from the app. Make both accept the same
+      credentials, with one shared lookup.
