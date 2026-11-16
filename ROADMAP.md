@@ -93,6 +93,9 @@ Things to do by hand or decide, collected while building the items above.
       "for Spotify integration" (KNOWN_ISSUES 48); changing them affects the next store review
 - [ ] Remove the now unused `expo-auth-session` from the app with the Expo upgrade
       (KNOWN_ISSUES 35)
+- [ ] Owner, in Play Console: declare trader status (required from November 2026), and check
+      the app against the February 2027 memory and code-size quality requirements (the release
+      APK is 123 MB; the Expo upgrade is the natural time to look)
 - [x] Done 2026-11-16 (the live site now matches `deploy/nginx/sveltekit.config`). By hand on the server, after the deploy of `6973e8f` or later: take the CORS blocks out of
       the live nginx site (KNOWN_ISSUES 54). In `/etc/nginx/sites-available/sveltekit.config`,
       in both `location /api/spotify/` and `location /`, delete the three
@@ -339,6 +342,15 @@ top artists or play counts on the web).
 
 ## 5. Mobile app (`app_clubfindr`)
 
+- [ ] **Deadline 27 January 2027:** coarse location only (KNOWN_ISSUES 65). Drop
+      `ACCESS_FINE_LOCATION` from `app.json` and request approximate location, so Play's new
+      location policy needs no declaration; check venue distance sorting still reads right on a
+      device
+- [ ] Trim the Android permissions to what the app uses (KNOWN_ISSUES 65): `RECORD_AUDIO`,
+      `SYSTEM_ALERT_WINDOW`, the external-storage pair and the three Bluetooth ones, through the
+      config plugins' options or `android.blockedPermissions`; verify with `aapt2 dump
+      permissions` on a fresh build. Bluetooth overlaps the iOS owner decision below
+      (KNOWN_ISSUES 48)
 - [ ] A "genres you play" editor on the bar dashboard, against
       `PUT /api/venues/:barId/taste/genres` (the endpoint takes the app's session token
       already; the web dashboard has the section since 2026-11-12)

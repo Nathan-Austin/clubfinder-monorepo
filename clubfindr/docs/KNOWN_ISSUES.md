@@ -743,3 +743,20 @@ Open security findings for ROADMAP section 4, noticed during the section 1 work 
     `tests/transactions.spec.ts` used a NUL byte to fail a promoter registration half-way; it
     now adds a `BEFORE INSERT` trigger on `bars` for the test, matching only its own e-mail
     prefix and dropped as soon as its request is answered.
+65. **The Android app asks for more than it needs, and Play's location policy tightens on
+    27 January 2027.** Read from the built APK on 2026-11-16 (`aapt2 dump permissions`; target
+    SDK 36, versionCode 8). Play's policy announcement of 29 October 2026 makes a Play Console
+    declaration mandatory for apps holding `ACCESS_FINE_LOCATION`, justifying why coarse location
+    is not enough. The app finds venues in a city and sorts them by distance, which approximate
+    location (about 1-3 km) serves, so the fix is to drop `ACCESS_FINE_LOCATION` from
+    `app.json` `android.permissions` and request only `ACCESS_COARSE_LOCATION` (expo-location:
+    `Accuracy.Low`/`Balanced`), rather than file a declaration. Also requested, none of which the
+    app needs: `RECORD_AUDIO`, `SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE`,
+    `WRITE_EXTERNAL_STORAGE`, and `BLUETOOTH`/`BLUETOOTH_ADMIN`/`BLUETOOTH_CONNECT` (the
+    Spotify-era entries in `app.json`; the iOS side is KNOWN_ISSUES 48). The first four most
+    likely come from library config plugins (e.g. expo-camera adds `RECORD_AUDIO` unless told
+    not to); remove them with the plugins' own options or `android.blockedPermissions` in
+    `app.json`, then confirm against `aapt2 dump permissions` on a fresh build, since `app.json`
+    alone does not show the merged list. Play reviewers ask about `RECORD_AUDIO` and
+    `SYSTEM_ALERT_WINDOW` in particular. Not affected by that announcement: local network and the
+    location button (API 37+ only), contacts, SMS/call log, all-files access, accessibility.
