@@ -15,6 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { RouteProp } from '@react-navigation/native';
 import * as emailVerificationService from '../services/mobileEmailVerificationService';
+import { log } from '../utils/logger';
 
 type EmailVerificationScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'EmailVerification'>;
@@ -61,7 +62,7 @@ const EmailVerificationScreen = ({ navigation, route }: EmailVerificationScreenP
 
             // Call service to verify the confirmation code
             const response = await emailVerificationService.verifyEmailWithCode(email, confirmationCode);
-            console.log('Verification response:', response);
+            log.debug('Verification response:', response);
 
             if (response.success) {
                 Alert.alert(

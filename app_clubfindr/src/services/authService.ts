@@ -37,11 +37,11 @@ const normalizeUserData = (userData: RawUser): User => {
         onboarding_complete: isOnboardingComplete
     };
 
-    console.log('AuthService: Normalizing user data');
-    console.log('AuthService: Original onboardingComplete:', userData.onboardingComplete);
-    console.log('AuthService: Original onboarding_complete:', userData.onboarding_complete);
-    console.log('AuthService: Normalized onboardingComplete:', normalized.onboardingComplete);
-    console.log('AuthService: Normalized onboarding_complete:', normalized.onboarding_complete);
+    log.debug('AuthService: Normalizing user data');
+    log.debug('AuthService: Original onboardingComplete:', userData.onboardingComplete);
+    log.debug('AuthService: Original onboarding_complete:', userData.onboarding_complete);
+    log.debug('AuthService: Normalized onboardingComplete:', normalized.onboardingComplete);
+    log.debug('AuthService: Normalized onboarding_complete:', normalized.onboarding_complete);
 
     return normalized;
 };
@@ -68,7 +68,7 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
             isMobileApp: true
         };
 
-        console.log('AuthService: Sending login request');
+        log.debug('AuthService: Sending login request');
 
         // Use axiosClient
         const response = await axiosClient.post('/api/mobile/login', loginData);
@@ -77,7 +77,7 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
         if (data.success && data.token) {
             // Normalize the user data to handle different field names
             const normalizedUser = normalizeUserData(data.user);
-            console.log('AuthService: Normalized onboarding status:', normalizedUser.onboarding_complete);
+            log.debug('AuthService: Normalized onboarding status:', normalizedUser.onboarding_complete);
 
             // Update the response with normalized user data
             const normalizedResponse = {
@@ -122,7 +122,7 @@ const storeAuthData = async (token: string, user: User) => {
             await AsyncStorage.setItem('userCity', user.city);
         }
 
-        console.log('AuthService: Authentication data stored successfully');
+        log.debug('AuthService: Authentication data stored successfully');
     } catch (error) {
         console.error('Failed to store auth data', error);
     }
@@ -132,7 +132,7 @@ const storeAuthData = async (token: string, user: User) => {
  * Log out a user
  */
 export const logout = async (): Promise<void> => {
-    console.log('AuthService: Logging out');
+    log.debug('AuthService: Logging out');
     await AsyncStorage.removeItem('authToken');
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('userCity');

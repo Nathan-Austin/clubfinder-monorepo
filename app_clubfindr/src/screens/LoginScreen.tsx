@@ -24,6 +24,7 @@ import LoginTypeModal from '../components/LoginTypeModal';
 import * as WebBrowser from 'expo-web-browser';
 import { API_URL } from '../config/env';
 import { loginErrorMessage } from '../utils/loginErrors';
+import { log } from '../utils/logger';
 
 // Simplified navigation type
 type LoginScreenNavigationProp = StackNavigationProp<any>;
@@ -111,20 +112,20 @@ const LoginScreen = () => {
         return;
       }
 
-      console.log('Starting login request...');
+      log.debug('Starting login request...');
       const loginStart = Date.now();
 
       // First check network connection
       try {
         const networkInfo = await networkUtils.getNetworkState();
-        console.log('Network diagnostics:', JSON.stringify(networkInfo));
+        log.debug('Network diagnostics:', JSON.stringify(networkInfo));
 
         if (!networkInfo.isConnected) {
           throw new Error('No internet connection. Please check your network settings and try again.');
         }
       } catch (networkError) {
         // Continue anyway - we'll try the request
-        console.log('Network check error:', networkError);
+        log.debug('Network check error:', networkError);
       }
 
       // No fallback to the web's /login/users (KNOWN_ISSUES 81): it ran on every failure, a wrong
@@ -137,10 +138,10 @@ const LoginScreen = () => {
       });
 
       const data = loginResponse.data as LoginResponse;
-      console.log(`Login request took: ${Date.now() - loginStart}ms`);
+      log.debug(`Login request took: ${Date.now() - loginStart}ms`);
 
       if (data.success && data.token && data.user) {
-        console.log('Login successful, checking email verification...');
+        log.debug('Login successful, checking email verification...');
 
         // Check if email is verified
         if (data.user.emailVerified === false) {

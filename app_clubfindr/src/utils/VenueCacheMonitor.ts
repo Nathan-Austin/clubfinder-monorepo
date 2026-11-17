@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import VenueCache from './VenueCache';
+import { log } from './logger';
 
 // Keys for monitoring
 const VENUE_CACHE_HITS = 'venue_cache_hits';
@@ -157,7 +158,7 @@ export default class VenueCacheMonitor {
             await AsyncStorage.removeItem(`${VENUE_CACHE_MISSES}_club`);
             await AsyncStorage.removeItem(`${VENUE_CACHE_FILTER_TIME}_bar`);
             await AsyncStorage.removeItem(`${VENUE_CACHE_FILTER_TIME}_club`);
-            console.log('Cache statistics reset');
+            log.debug('Cache statistics reset');
         } catch (error) {
             console.error('Error resetting cache statistics:', error);
         }

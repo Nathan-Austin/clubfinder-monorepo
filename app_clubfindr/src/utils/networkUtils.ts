@@ -1,5 +1,6 @@
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
+import { log } from './logger';
 export interface NetworkDiagnostics {
     isConnected: boolean;
     connectionType?: string;
@@ -48,7 +49,7 @@ export const initNetworkMonitoring = () => {
             connectionQuality = 'good'; // Default to good instead of unknown
         }
 
-        console.log(`Network state changed: ${isConnected ? 'Connected' : 'Disconnected'}, Type: ${connectionType}, Quality: ${connectionQuality}`);
+        log.debug(`Network state changed: ${isConnected ? 'Connected' : 'Disconnected'}, Type: ${connectionType}, Quality: ${connectionQuality}`);
     });
 };
 

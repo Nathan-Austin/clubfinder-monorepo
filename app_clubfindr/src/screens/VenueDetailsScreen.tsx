@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Activity
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation';
 import * as discoveryService from '../services/discoveryService';
+import { log } from '../utils/logger';
 
 type VenueDetailsScreenProps = {
     route: RouteProp<RootStackParamList, 'VenueDetails'>;
@@ -61,7 +62,7 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
                 venue.club_name
             );
 
-            console.log(`Fetched ${venueEvents.length} events for ${venue.name}`);
+            log.debug(`Fetched ${venueEvents.length} events for ${venue.name}`);
 
             // Format the events for display if needed
             const formattedEvents = venueEvents.map(event => {
@@ -88,7 +89,7 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
             console.error('Error fetching venue events:', error);
             // If we already have events in the venue object, use those
             if (venue.events && venue.events.length > 0) {
-                console.log('Using events from venue object');
+                log.debug('Using events from venue object');
                 setEvents(venue.events);
             }
         } finally {

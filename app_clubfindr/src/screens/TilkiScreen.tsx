@@ -25,6 +25,7 @@ import axiosClient from '../api/axiosClient';
 import { cityForQueries } from '../services/cityService';
 import LoadError from '../components/LoadError';
 import { venueList } from '../utils/venueResponse';
+import { log } from '../utils/logger';
 
 type TilkiScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Tilki'>;
 
@@ -113,15 +114,15 @@ const TilkiScreen = () => {
 
     // Organize venues by date
     const organizeVenuesByDate = (venues: discoveryService.Venue[], startDate: string, endDate: string): VenueSection[] => {
-        console.log(`Organizing venues by date: ${startDate} to ${endDate}`);
-        console.log(`Total venues to organize: ${venues.length}`);
+        log.debug(`Organizing venues by date: ${startDate} to ${endDate}`);
+        log.debug(`Total venues to organize: ${venues.length}`);
 
         // Create a map to store venues grouped by date
         const venuesByDate = new Map<string, discoveryService.Venue[]>();
 
         // If it's a single date, just create one section
         if (startDate === endDate) {
-            console.log(`Single date: ${startDate}, creating one section`);
+            log.debug(`Single date: ${startDate}, creating one section`);
             return [{
                 date: startDate,
                 title: formatDisplayDate(startDate),
@@ -143,7 +144,7 @@ const TilkiScreen = () => {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        console.log(`Date range created: ${dateRange.join(', ')}`);
+        log.debug(`Date range created: ${dateRange.join(', ')}`);
 
         // Assign venues to their dates
         venues.forEach(venue => {
@@ -193,7 +194,7 @@ const TilkiScreen = () => {
 
     // Function to fetch venues based on selected date and venue type
     const loadMatchingVenues = async () => {
-        console.log(`Loading venues for type: ${venueType}, date: ${selectedDate}, isRange: ${isDateRange}`);
+        log.debug(`Loading venues for type: ${venueType}, date: ${selectedDate}, isRange: ${isDateRange}`);
 
         try {
             setLoading(true);
@@ -220,7 +221,7 @@ const TilkiScreen = () => {
             const city = await cityForQueries();
 
             if (isDateRange) {
-                console.log(`Fetching venues for date range: ${dateRangeStart} to ${dateRangeEnd}`);
+                log.debug(`Fetching venues for date range: ${dateRangeStart} to ${dateRangeEnd}`);
 
                 // Create array of dates in the range
                 const startDate = new Date(dateRangeStart);
@@ -276,7 +277,7 @@ const TilkiScreen = () => {
 
                 barResponses.forEach(response => {
                     const { date, venues } = response;
-                    console.log(`Got ${venues.length} bars`);
+                    log.debug(`Got ${venues.length} bars`);
 
                     allBarVenues.push(...venues.map(venue => ({
                         ...venue,
@@ -289,7 +290,7 @@ const TilkiScreen = () => {
 
                 clubResponses.forEach(response => {
                     const { date, venues } = response;
-                    console.log(`Got ${venues.length} clubs for date ${date}`);
+                    log.debug(`Got ${venues.length} clubs for date ${date}`);
 
                     allClubVenues.push(...venues.map(venue => ({
                         ...venue,
@@ -297,8 +298,8 @@ const TilkiScreen = () => {
                     })));
                 });
 
-                console.log(`Total bars collected across dates: ${allBarVenues.length}`);
-                console.log(`Total clubs collected across dates: ${allClubVenues.length}`);
+                log.debug(`Total bars collected across dates: ${allBarVenues.length}`);
+                log.debug(`Total clubs collected across dates: ${allClubVenues.length}`);
 
                 // Remove duplicates
                 const barVenueMap = new Map<string, discoveryService.Venue>();
@@ -319,10 +320,10 @@ const TilkiScreen = () => {
                 barResults = Array.from(barVenueMap.values());
                 clubResults = Array.from(clubVenueMap.values());
 
-                console.log(`After deduplication: ${barResults.length} unique bars and ${clubResults.length} unique clubs`);
+                log.debug(`After deduplication: ${barResults.length} unique bars and ${clubResults.length} unique clubs`);
             } else {
                 // For a single date, just fetch venues for that day
-                console.log(`Fetching venues for single date: ${selectedDate}`);
+                log.debug(`Fetching venues for single date: ${selectedDate}`);
 
                 // For clubs - use the date parameter
                 // For single date view
@@ -352,7 +353,7 @@ const TilkiScreen = () => {
                     event_date: venue.event_date || selectedDate
                 }));
 
-                console.log(`Fetched ${barResults.length} bars and ${clubResults.length} clubs for date ${selectedDate}`);
+                log.debug(`Fetched ${barResults.length} bars and ${clubResults.length} clubs for date ${selectedDate}`);
             }
 
             if (!isMounted.current) return;
@@ -378,7 +379,7 @@ const TilkiScreen = () => {
             setClubSections(clubSections);
 
             // Update current view based on selected venue type
-            console.log(`Setting current venues to ${venueType} venues`);
+            log.debug(`Setting current venues to ${venueType} venues`);
             setVenues(venueType === 'bar' ? uniqueBarVenues : uniqueClubVenues);
             setVenueSections(venueType === 'bar' ? barSections : clubSections);
 
@@ -400,7 +401,7 @@ const TilkiScreen = () => {
 
     // Handle date change
     const handleDateChange = (date: string, isRange: boolean = false, rangeStart?: string, rangeEnd?: string) => {
-        console.log(`Date change called: ${date}, isRange: ${isRange}, range: ${rangeStart} - ${rangeEnd}`);
+        log.debug(`Date change called: ${date}, isRange: ${isRange}, range: ${rangeStart} - ${rangeEnd}`);
 
         // Set the selected date
         setSelectedDate(date);
@@ -436,7 +437,7 @@ const TilkiScreen = () => {
 
     // Handle venue type change
     const handleVenueTypeChange = (type: 'bar' | 'club') => {
-        console.log(`Venue type changed to: ${type}`);
+        log.debug(`Venue type changed to: ${type}`);
         setVenueType(type);
         setVenues(type === 'bar' ? barVenues : clubVenues);
         setVenueSections(type === 'bar' ? barSections : clubSections);

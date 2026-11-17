@@ -1,3 +1,4 @@
+import { log } from './logger';
 interface DNSEntry {
     hostname: string;
     timestamp: number;
@@ -23,7 +24,7 @@ class NetworkCache {
     async resolveDNS(hostname: string): Promise<string> {
         // Just log the hostname and return it
         // Let the native networking stack handle actual DNS resolution
-        console.log(`DNS resolved ${hostname} to ${hostname}`);
+        log.debug(`DNS resolved ${hostname} to ${hostname}`);
         this.dnsCache.add({ hostname, timestamp: Date.now() });
         return hostname;
     }
@@ -33,7 +34,7 @@ class NetworkCache {
         for (const entry of this.dnsCache) {
             if (now - entry.timestamp > this.DNS_CACHE_TTL) {
                 this.dnsCache.delete(entry);
-                console.log(`Cleaned up DNS cache entry for ${entry.hostname}`);
+                log.debug(`Cleaned up DNS cache entry for ${entry.hostname}`);
             }
         }
     }

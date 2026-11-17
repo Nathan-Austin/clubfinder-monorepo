@@ -4,6 +4,7 @@ import axiosClient from '../api/axiosClient';
 import * as Location from 'expo-location';
 import LocalVenueFilterService from './localVenueFilterService';
 import VenueCache from '../utils/VenueCache';
+import { log } from '../utils/logger';
 
 export type Event = {
     id: string;
@@ -72,7 +73,7 @@ const logAttempt = async (city: string, venueType: 'bar' | 'club') => {
             platform: `${Platform.OS}-${Platform.Version}`
         }));
     } catch (e) {
-        console.log(`Failed to log ${venueType} attempt:`, e);
+        log.debug(`Failed to log ${venueType} attempt:`, e);
     }
 };
 
@@ -84,7 +85,7 @@ const logSuccess = async (count: number, venueType: 'bar' | 'club') => {
             count
         }));
     } catch (e) {
-        console.log(`Failed to log ${venueType} success:`, e);
+        log.debug(`Failed to log ${venueType} success:`, e);
     }
 };
 
@@ -98,7 +99,7 @@ const logSuccess = async (count: number, venueType: 'bar' | 'club') => {
 export const getNearbyVenuesWithCache = async (city: string, date?: string | null, maxDistance?: number): Promise<Venue[]> => {
     try {
         // Log this request for diagnostics
-        console.log(`Getting nearby bars for ${city} with distance filter: ${maxDistance || 'none'}`);
+        log.debug(`Getting nearby bars for ${city} with distance filter: ${maxDistance || 'none'}`);
 
         // Use local venue filter service with a fetch function
         return LocalVenueFilterService.getVenuesWithLocalFiltering(
@@ -127,7 +128,7 @@ export const getNearbyVenuesWithCache = async (city: string, date?: string | nul
 export const getNearbyClubsWithCache = async (city: string, date?: string | null, maxDistance?: number): Promise<Venue[]> => {
     try {
         // Log this request for diagnostics
-        console.log(`Getting nearby clubs for ${city} with distance filter: ${maxDistance || 'none'}`);
+        log.debug(`Getting nearby clubs for ${city} with distance filter: ${maxDistance || 'none'}`);
 
         // Use local venue filter service with a fetch function
         return LocalVenueFilterService.getVenuesWithLocalFiltering(
@@ -153,7 +154,7 @@ export const getNearbyClubsWithCache = async (city: string, date?: string | null
  */
 export const refreshVenueCache = async (city: string, venueType: 'bar' | 'club'): Promise<void> => {
     try {
-        console.log(`Force refreshing ${venueType} cache for ${city}`);
+        log.debug(`Force refreshing ${venueType} cache for ${city}`);
 
         // Clear the existing cache
         await VenueCache.clearCache(venueType);
@@ -164,7 +165,7 @@ export const refreshVenueCache = async (city: string, venueType: 'bar' | 'club')
         // Save to cache
         if (venues && venues.length > 0) {
             await VenueCache.saveToCache(venues, venueType);
-            console.log(`Successfully refreshed ${venueType} cache with ${venues.length} venues`);
+            log.debug(`Successfully refreshed ${venueType} cache with ${venues.length} venues`);
         }
     } catch (error) {
         console.error(`Error refreshing ${venueType} cache:`, error);
@@ -179,9 +180,9 @@ const saveToCache = async (venues: Venue[], venueType: 'bar' | 'club'): Promise<
 
         await AsyncStorage.setItem(cacheKey, JSON.stringify(venues));
         await AsyncStorage.setItem(timestampKey, Date.now().toString());
-        console.log(`Cached ${venues.length} ${venueType}s`);
+        log.debug(`Cached ${venues.length} ${venueType}s`);
     } catch (e) {
-        console.log('Cache save error:', e);
+        log.debug('Cache save error:', e);
     }
 };
 
@@ -203,15 +204,15 @@ const getFromCache = async (venueType: 'bar' | 'club', ignoreExpiry = false): Pr
 
             const cacheTime = parseInt(timestamp);
             if (Date.now() - cacheTime > CACHE_DURATION) {
-                console.log('Cache expired, should refresh');
+                log.debug('Cache expired, should refresh');
                 return null;
             }
         }
 
-        console.log(`Retrieved ${venues.length} ${venueType}s from cache`);
+        log.debug(`Retrieved ${venues.length} ${venueType}s from cache`);
         return venues;
     } catch (e) {
-        console.log('Cache read error:', e);
+        log.debug('Cache read error:', e);
         return null;
     }
 };
@@ -226,7 +227,7 @@ const getFromCache = async (venueType: 'bar' | 'club', ignoreExpiry = false): Pr
  */
 export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club', venueName?: string, clubName?: string): Promise<Event[]> => {
     try {
-        console.log(`Fetching events for ${venueType} ID: ${venueId}`);
+        log.debug(`Fetching events for ${venueType} ID: ${venueId}`);
 
         if (venueType === 'bar') {
             // For bars, use the bars endpoint
@@ -237,7 +238,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                 ? response.data.events
                 : [];
 
-            console.log(`Received ${eventsArray.length} events for bar ${venueId}`);
+            log.debug(`Received ${eventsArray.length} events for bar ${venueId}`);
 
             // Format the events
             return eventsArray.map((event: ApiEvent) => ({
@@ -257,11 +258,11 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
             // 1. Try using club_name if available (Most reliable for our API structure)
             if (clubName) {
                 try {
-                    console.log(`Attempting to fetch club events for club_name: ${clubName}`);
+                    log.debug(`Attempting to fetch club events for club_name: ${clubName}`);
                     const response = await axiosClient.get(`/api/mobile/clubs/${encodeURIComponent(clubName)}`);
 
                     if (response.data && Array.isArray(response.data)) {
-                        console.log(`Received ${response.data.length} events for club ${clubName}`);
+                        log.debug(`Received ${response.data.length} events for club ${clubName}`);
                         return response.data.map((event: ApiEvent) => ({
                             id: event.id || `event-${Math.random()}`,
                             theme_name: event.name || event.event_name || 'Event',
@@ -284,7 +285,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
             // Using /clubs/ endpoint as /events/ might be incorrect for fetching club specific events list
             
             try {
-                console.log(`Attempting to fetch club events from /api/mobile/clubs/${venueId}`);
+                log.debug(`Attempting to fetch club events from /api/mobile/clubs/${venueId}`);
                 const response = await axiosClient.get(`/api/mobile/clubs/${venueId}`);
 
                 if (response.data) {
@@ -299,7 +300,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                         eventsData = [response.data];
                     }
 
-                    console.log(`Retrieved ${eventsData.length} events for club ${venueId} from /clubs/ endpoint`);
+                    log.debug(`Retrieved ${eventsData.length} events for club ${venueId} from /clubs/ endpoint`);
 
                     if (eventsData.length > 0) {
                         return eventsData.map((event: ApiEvent) => ({
@@ -314,13 +315,13 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                             special_genres: Array.isArray(event.genres) ? event.genres : []
                         }));
                     } else {
-                         console.log('ID fetch returned empty array, falling back to other methods');
+                         log.debug('ID fetch returned empty array, falling back to other methods');
                     }
                 } else {
-                    console.log('ID fetch returned no data');
+                    log.debug('ID fetch returned no data');
                 }
             } catch (eventError) {
-                console.log(`Fetching club events by ID failed, trying by name... Error: ${eventError}`);
+                log.debug(`Fetching club events by ID failed, trying by name... Error: ${eventError}`);
             }
 
             // If we couldn't get events from the events endpoint by ID, try using the club name
@@ -329,7 +330,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
                     const response = await axiosClient.get(`/api/mobile/clubs/${encodeURIComponent(venueName)}`);
 
                     if (response.data && Array.isArray(response.data)) {
-                        console.log(`Received ${response.data.length} events for club ${venueName}`);
+                        log.debug(`Received ${response.data.length} events for club ${venueName}`);
 
                         // Format the club events
                         return response.data.map((event: ApiEvent) => ({
@@ -352,7 +353,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
 
             // If everything else failed, use the current event from the venue object if available
             if (venueId && venueType === 'club') {
-                console.log(`Using current event from club object as fallback`);
+                log.debug(`Using current event from club object as fallback`);
                 const today = new Date().toISOString().split('T')[0];
 
                 return [{
@@ -369,7 +370,7 @@ export const getVenueEvents = async (venueId: string, venueType: 'bar' | 'club',
             }
 
             // If we got here, we couldn't get any events
-            console.log(`No events found for club ${venueId}`);
+            log.debug(`No events found for club ${venueId}`);
             return [];
         }
     } catch (error) {
@@ -405,7 +406,7 @@ export const getCurrentLocation = async (): Promise<{ latitude: number, longitud
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status !== 'granted') {
-            console.log('Location permission denied');
+            log.debug('Location permission denied');
             return null;
         }
 
@@ -497,7 +498,7 @@ const processVenues = async (
     venueType: 'bar' | 'club',
     maxDistance?: number
 ): Promise<Venue[]> => {
-    console.log(`Processing ${venues.length} ${venueType}s${maxDistance ? ' with distance filter' : ''}`);
+    log.debug(`Processing ${venues.length} ${venueType}s${maxDistance ? ' with distance filter' : ''}`);
 
     // Add venue type to each venue
     const venuesWithType = venues.map(venue => ({
@@ -507,22 +508,22 @@ const processVenues = async (
 
     // If no distance filter, return venues with type only
     if (!maxDistance || maxDistance <= 0) {
-        console.log('No distance filtering applied');
+        log.debug('No distance filtering applied');
         return venuesWithType;
     }
 
     // Get user location for distance calculation
-    console.log('Getting current location for distance filtering...');
+    log.debug('Getting current location for distance filtering...');
     const userLocation = await getCurrentLocation();
     if (!userLocation) {
-        console.log('Could not get user location for distance filtering - returning all venues');
+        log.debug('Could not get user location for distance filtering - returning all venues');
         return venuesWithType;
     }
 
-    console.log(`Got user location: ${userLocation.latitude}, ${userLocation.longitude}`);
+    log.debug(`Got user location: ${userLocation.latitude}, ${userLocation.longitude}`);
 
     // Process each venue with geocoding and distance calculation
-    console.log(`Processing distances for ${venuesWithType.length} venues`);
+    log.debug(`Processing distances for ${venuesWithType.length} venues`);
     let venuesWithCoordinates = 0;
     let venuesWithDistance = 0;
     let venuesNeedingGeocoding = 0;
@@ -582,7 +583,7 @@ const processVenues = async (
                     ? `${processedVenue.address}, ${processedVenue.city || cityName(await cityForQueries())}`
                     : `${processedVenue.name}, ${processedVenue.city || cityName(await cityForQueries())}`;
 
-                console.log(`Geocoding address: ${addressToGeocode}`);
+                log.debug(`Geocoding address: ${addressToGeocode}`);
                 const coordinates = await geocodeAddress(addressToGeocode);
 
                 if (coordinates && coordinates.latitude && coordinates.longitude) {
@@ -600,9 +601,9 @@ const processVenues = async (
                     );
                     venuesWithDistance++;
 
-                    console.log(`Geocoded ${processedVenue.name}: ${coordinates.latitude}, ${coordinates.longitude}, distance: ${processedVenue.distance}m`);
+                    log.debug(`Geocoded ${processedVenue.name}: ${coordinates.latitude}, ${coordinates.longitude}, distance: ${processedVenue.distance}m`);
                 } else {
-                    console.log(`Failed to geocode address for ${processedVenue.name}`);
+                    log.debug(`Failed to geocode address for ${processedVenue.name}`);
                 }
             } catch (error) {
                 console.error(`Error geocoding address for ${venue.name}:`, error);
@@ -612,10 +613,10 @@ const processVenues = async (
         })
     );
 
-    console.log(`Venues with original coordinates: ${venuesWithCoordinates}/${venuesWithType.length}`);
-    console.log(`Venues needing geocoding: ${venuesNeedingGeocoding}`);
-    console.log(`Successful geocoding: ${geocodingSuccessful}/${venuesNeedingGeocoding}`);
-    console.log(`Total venues with distance: ${venuesWithDistance}/${venuesWithType.length}`);
+    log.debug(`Venues with original coordinates: ${venuesWithCoordinates}/${venuesWithType.length}`);
+    log.debug(`Venues needing geocoding: ${venuesNeedingGeocoding}`);
+    log.debug(`Successful geocoding: ${geocodingSuccessful}/${venuesNeedingGeocoding}`);
+    log.debug(`Total venues with distance: ${venuesWithDistance}/${venuesWithType.length}`);
 
     // Important fix: Change the filter logic
     // Instead of filtering out venues without distance, include them
@@ -629,14 +630,14 @@ const processVenues = async (
         // For venues without distance (geocoding failed), include them anyway
         // but they'll appear after the ones with distance due to sorting below
         if (venue.distance === undefined) {
-            console.log(`Including venue without distance: ${venue.name}`);
+            log.debug(`Including venue without distance: ${venue.name}`);
             return true;
         }
 
         return false;
     });
 
-    console.log(`After filtering: ${filteredVenues.length}/${processedVenues.length} venues remain`);
+    log.debug(`After filtering: ${filteredVenues.length}/${processedVenues.length} venues remain`);
 
     // Sort venues with distance first, then venues without distance
     return filteredVenues.sort((a, b) => {
@@ -662,7 +663,7 @@ export const getVenues = async (
     maxDistance?: number,
     isNearbyMode: boolean = false
 ): Promise<Venue[]> => {
-    console.log(`Fetching nearby ${venueType}s with:`, { city, date, distanceFilter: maxDistance ? true : false, isNearbyMode });
+    log.debug(`Fetching nearby ${venueType}s with:`, { city, date, distanceFilter: maxDistance ? true : false, isNearbyMode });
 
     // Log this attempt
     await logAttempt(city, venueType);
@@ -699,7 +700,7 @@ export const getVenues = async (
 
     // Attempt to fetch venues
     try {
-        console.log(`Fetching ${venueType}s from endpoint: ${endpoint}`, requestData);
+        log.debug(`Fetching ${venueType}s from endpoint: ${endpoint}`, requestData);
 
         // Use axiosClient
         const response = await axiosClient.post(endpoint, requestData);
@@ -723,7 +724,7 @@ export const getVenues = async (
     // If all network strategies failed, try expired cache
     const expiredCache = await getFromCache(venueType, true);
     if (expiredCache && expiredCache.length > 0) {
-        console.log(`Using expired ${venueType} cache as fallback`);
+        log.debug(`Using expired ${venueType} cache as fallback`);
 
         // Process expired cache with distance info
         if (maxDistance && maxDistance > 0) {
@@ -770,10 +771,10 @@ const refreshVenues = async (
 
             await saveToCache(processedVenues, venueType);
             await logSuccess(venues.length, venueType);
-            console.log(`Background refresh of ${venueType}s successful`);
+            log.debug(`Background refresh of ${venueType}s successful`);
         }
     } catch (error) {
-        console.log(`Background refresh of ${venueType}s failed:`, error);
+        log.debug(`Background refresh of ${venueType}s failed:`, error);
     }
 };
 
@@ -793,13 +794,13 @@ export const getNearbyClubs = (city: string, date?: string | null, maxDistance?:
 
 export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'bar'): Promise<Venue | null> => {
     const endpoint = venueType === 'bar' ? `/api/mobile/bars/${id}` : `/api/mobile/events/${id}`;
-    console.log(`Fetching details for ${venueType} with ID: ${id} from endpoint: ${endpoint}`);
+    log.debug(`Fetching details for ${venueType} with ID: ${id} from endpoint: ${endpoint}`);
 
     try {
         // First, try the native fetch
         try {
             const response = await axiosClient.get(endpoint);
-            console.log(`Response received for ${venueType} details, status:`,
+            log.debug(`Response received for ${venueType} details, status:`,
                 response.status || 'unknown');
 
             if (response.data && response.data.bar) {
@@ -819,7 +820,7 @@ export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'b
 
         // Fallback: Try to use the direct URL fetch instead of axios for robustness
         try {
-            console.log(`Using fallback direct fetch for ${venueType} details`);
+            log.debug(`Using fallback direct fetch for ${venueType} details`);
             const token = await AsyncStorage.getItem('authToken');
             const cacheBuster = `_t=${Date.now()}`;
 
@@ -843,7 +844,7 @@ export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'b
             }
 
             const data = await response.json();
-            console.log(`Direct fetch success for ${venueType} details`);
+            log.debug(`Direct fetch success for ${venueType} details`);
 
             // Handle the different response formats as above
             if (data && data.bar) {
@@ -858,7 +859,7 @@ export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'b
         }
 
         // If we reach here, we couldn't get the details from either approach
-        console.log(`Could not fetch ${venueType} details, trying to find in cached venues`);
+        log.debug(`Could not fetch ${venueType} details, trying to find in cached venues`);
 
         // Try to find the venue in the cache
         const cachedVenuesJson = await AsyncStorage.getItem(
@@ -870,7 +871,7 @@ export const getVenueDetails = async (id: string, venueType: 'bar' | 'club' = 'b
             const cachedVenue = cachedVenues.find(v => v.id === id);
 
             if (cachedVenue) {
-                console.log(`Found ${venueType} in cache, returning cached data`);
+                log.debug(`Found ${venueType} in cache, returning cached data`);
                 return cachedVenue;
             }
         }
@@ -929,13 +930,13 @@ export const clearVenueCache = async (venueType?: 'bar' | 'club'): Promise<void>
     if (!venueType || venueType === 'bar') {
         await AsyncStorage.removeItem(VENUE_CACHE_KEY);
         await AsyncStorage.removeItem(VENUE_CACHE_TIMESTAMP);
-        console.log('Bar cache cleared');
+        log.debug('Bar cache cleared');
     }
 
     if (!venueType || venueType === 'club') {
         await AsyncStorage.removeItem(CLUB_CACHE_KEY);
         await AsyncStorage.removeItem(CLUB_CACHE_TIMESTAMP);
-        console.log('Club cache cleared');
+        log.debug('Club cache cleared');
     }
 };
 
@@ -975,7 +976,7 @@ export const processUserGenresAndFindVenuesForDate = async (
             throw new Error('Invalid date format. Expected YYYY-MM-DD');
         }
 
-        console.log(`Finding ${venueType}s matching ${userGenres.length} genres for date: ${date}`);
+        log.debug(`Finding ${venueType}s matching ${userGenres.length} genres for date: ${date}`);
 
         // Store the genres in AsyncStorage
         await AsyncStorage.setItem('selected-genres', userGenres.join(','));
@@ -994,11 +995,11 @@ export const processUserGenresAndFindVenuesForDate = async (
             const matchingVenues = response.data;
 
             if (matchingVenues && Array.isArray(matchingVenues) && matchingVenues.length > 0) {
-                console.log(`Found ${matchingVenues.length} matching ${venueType}s for date ${date}`);
+                log.debug(`Found ${matchingVenues.length} matching ${venueType}s for date ${date}`);
                 return matchingVenues as Venue[];
             }
 
-            console.log(`No matching ${venueType}s returned from API for date ${date}`);
+            log.debug(`No matching ${venueType}s returned from API for date ${date}`);
             return [];
         } catch (apiError) {
             console.error(`API matching failed for date ${date}:`, apiError);
@@ -1016,7 +1017,7 @@ export const processUserGenresAndFindVenuesForDate = async (
                 const allVenues = response.data;
 
                 if (!allVenues || !Array.isArray(allVenues) || allVenues.length === 0) {
-                    console.log(`No ${venueType}s found for date ${date}`);
+                    log.debug(`No ${venueType}s found for date ${date}`);
                     return [];
                 }
 
@@ -1049,7 +1050,7 @@ export const getVenuesForDateRange = async (
         // Get stored genres
         const genres = await AsyncStorage.getItem('selected-genres');
         if (!genres) {
-            console.log('No genres found for venue recommendations');
+            log.debug('No genres found for venue recommendations');
             return [];
         }
 
@@ -1070,7 +1071,7 @@ export const getVenuesForDateRange = async (
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        console.log(`Fetching ${venueType}s for date range: ${startDate} to ${endDate}`);
+        log.debug(`Fetching ${venueType}s for date range: ${startDate} to ${endDate}`);
 
         // Fetch venues for each date in the range
         const venuesPromises = dateRange.map(date => {
@@ -1106,7 +1107,7 @@ export const getVenuesForDateRange = async (
             }
         });
 
-        console.log(`Found ${allVenues.length} unique ${venueType}s across date range`);
+        log.debug(`Found ${allVenues.length} unique ${venueType}s across date range`);
 
         // Sort by similarity if available
         return allVenues.sort((a, b) => {

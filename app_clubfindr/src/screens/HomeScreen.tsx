@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCityProposal } from '../hooks/useCityProposal';
 import { cityName } from '../constants/cities';
 import LoadError from '../components/LoadError';
+import { log } from '../utils/logger';
 
 type HomeScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Home'>;
 
@@ -80,7 +81,7 @@ const HomeScreen = () => {
       setLoadFailed(false);
 
             const city = await cityForQueries();
-      console.log(`Fetching ${venueType}s for city:`, city);
+      log.debug(`Fetching ${venueType}s for city:`, city);
 
       // Use the cached version of the venue fetching functions
       let venueData: discoveryService.Venue[] = [];
@@ -93,7 +94,7 @@ const HomeScreen = () => {
         venueData = await discoveryService.getNearbyClubsWithCache(city, null, distanceEnabled ? maxDistance : undefined);
       }
 
-      console.log(`Fetched ${venueData?.length || 0} ${venueType}s${distanceEnabled ? ' with distance filter' : ''}`);
+      log.debug(`Fetched ${venueData?.length || 0} ${venueType}s${distanceEnabled ? ' with distance filter' : ''}`);
 
       if (venueData && venueData.length > 0) {
         setVenues(venueData.slice(0, 5)); // Just the first 5 for preview

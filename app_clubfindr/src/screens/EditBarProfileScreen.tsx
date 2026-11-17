@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
+import { log } from '../utils/logger';
 
 // Simplified navigation type
 type EditBarProfileScreenNavigationProp = StackNavigationProp<any>;
@@ -84,12 +85,12 @@ const EditBarProfileScreen = () => {
                 return;
             }
 
-            console.log('Making API request to:', `/api/mobile/bars/${barId}`);
+            log.debug('Making API request to:', `/api/mobile/bars/${barId}`);
             const response = await axiosClient.get(`/api/mobile/bars/${barId}`);
-            console.log('API Response:', response.data);
+            log.debug('API Response:', response.data);
 
             const profileData = response.data;
-            console.log('Setting profile data:', profileData);
+            log.debug('Setting profile data:', profileData);
 
             // Map the API response fields to our profile structure
             const mappedProfile = {
@@ -105,7 +106,7 @@ const EditBarProfileScreen = () => {
                 bar_types: profileData.bar_types || []
             };
 
-            console.log('Mapped profile data:', mappedProfile);
+            log.debug('Mapped profile data:', mappedProfile);
             setProfile(mappedProfile);
         } catch (error: any) {
             console.error('Error loading bar profile:', error);

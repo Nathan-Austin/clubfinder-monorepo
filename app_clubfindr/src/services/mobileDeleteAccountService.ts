@@ -2,6 +2,7 @@ import axiosClient from '../api/axiosClient';
 import type { ApiResult } from '../types/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { purgeLegacySpotifyData } from '../utils/legacySpotify';
+import { log } from '../utils/logger';
 
 // Send confirmation code for account deletion
 export const sendConfirmationCode = async (email: string): Promise<ApiResult> => {
@@ -51,7 +52,7 @@ export const cleanupLocalData = async (): Promise<void> => {
         await AsyncStorage.removeItem('venue_cache_timestamp');
         await AsyncStorage.removeItem('club_cache_timestamp');
 
-        console.log('Local storage cleaned successfully');
+        log.debug('Local storage cleaned successfully');
     } catch (error) {
         console.error('Error cleaning local storage:', error);
     }

@@ -27,6 +27,7 @@ import { artistsFromHits, genresOfSelection, type SearchArtist } from '../utils/
 // Import genre data
 import genreData from '../constants/unified-genres.json';
 import { cityForQueries } from '../services/cityService';
+import { log } from '../utils/logger';
 
 // Artist search runs on the server-side Spotify app and the catalogue (GET /api/taste/search);
 // it used to need the user's own Spotify login, which is retired. Tracks are not searched any
@@ -95,7 +96,7 @@ const SearchScreen = () => {
 
                         const city = await cityForQueries();
 
-            console.log('Fetching venues with genres:', genres);
+            log.debug('Fetching venues with genres:', genres);
 
             // Fetch both bars and clubs simultaneously
             const [barsResponse, clubsResponse] = await Promise.all([
@@ -113,25 +114,25 @@ const SearchScreen = () => {
 
             // Process and store bars
             if (barsResponse.data && Array.isArray(barsResponse.data)) {
-                console.log(`Found ${barsResponse.data.length} matching bars`);
+                log.debug(`Found ${barsResponse.data.length} matching bars`);
                 const uniqueBars = barsResponse.data.filter((bar, index, self) =>
                     index === self.findIndex(b => b.id === bar.id)
                 );
                 await AsyncStorage.setItem('matching-bars', JSON.stringify(uniqueBars));
             } else {
-                console.log('No matching bars found or invalid response');
+                log.debug('No matching bars found or invalid response');
                 await AsyncStorage.removeItem('matching-bars');
             }
 
             // Process and store clubs
             if (clubsResponse.data && Array.isArray(clubsResponse.data)) {
-                console.log(`Found ${clubsResponse.data.length} matching clubs`);
+                log.debug(`Found ${clubsResponse.data.length} matching clubs`);
                 const uniqueClubs = clubsResponse.data.filter((club, index, self) =>
                     index === self.findIndex(c => c.id === club.id)
                 );
                 await AsyncStorage.setItem('matching-clubs', JSON.stringify(uniqueClubs));
             } else {
-                console.log('No matching clubs found or invalid response');
+                log.debug('No matching clubs found or invalid response');
                 await AsyncStorage.removeItem('matching-clubs');
             }
 

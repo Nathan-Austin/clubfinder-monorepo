@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Venue } from '../services/discoveryService';
+import { log } from './logger';
 
 // Cache keys
 const VENUE_CACHE_KEY = 'venue_data_nearby_cache';
@@ -24,7 +25,7 @@ export default class VenueCache {
 
             await AsyncStorage.setItem(cacheKey, JSON.stringify(venues));
             await AsyncStorage.setItem(timestampKey, Date.now().toString());
-            console.log(`Cached ${venues.length} ${venueType}s for nearby screen`);
+            log.debug(`Cached ${venues.length} ${venueType}s for nearby screen`);
         } catch (error) {
             console.error('Error saving venues to cache:', error);
         }
@@ -40,26 +41,26 @@ export default class VenueCache {
 
             const cachedData = await AsyncStorage.getItem(cacheKey);
             if (!cachedData) {
-                console.log(`No cached ${venueType}s found`);
+                log.debug(`No cached ${venueType}s found`);
                 return null;
             }
 
             // Check if cache is expired
             const timestamp = await AsyncStorage.getItem(timestampKey);
             if (!timestamp) {
-                console.log(`No timestamp for cached ${venueType}s`);
+                log.debug(`No timestamp for cached ${venueType}s`);
                 return null;
             }
 
             const cacheTime = parseInt(timestamp);
             const now = Date.now();
             if (now - cacheTime > CACHE_EXPIRATION) {
-                console.log(`Cached ${venueType}s are expired`);
+                log.debug(`Cached ${venueType}s are expired`);
                 return null;
             }
 
             const venues = JSON.parse(cachedData) as Venue[];
-            console.log(`Retrieved ${venues.length} ${venueType}s from cache`);
+            log.debug(`Retrieved ${venues.length} ${venueType}s from cache`);
             return venues;
         } catch (error) {
             console.error('Error getting venues from cache:', error);
@@ -75,13 +76,13 @@ export default class VenueCache {
             if (!venueType || venueType === 'bar') {
                 await AsyncStorage.removeItem(VENUE_CACHE_KEY);
                 await AsyncStorage.removeItem(VENUE_CACHE_TIMESTAMP);
-                console.log('Bar cache cleared');
+                log.debug('Bar cache cleared');
             }
 
             if (!venueType || venueType === 'club') {
                 await AsyncStorage.removeItem(CLUB_CACHE_KEY);
                 await AsyncStorage.removeItem(CLUB_CACHE_TIMESTAMP);
-                console.log('Club cache cleared');
+                log.debug('Club cache cleared');
             }
         } catch (error) {
             console.error('Error clearing venue cache:', error);

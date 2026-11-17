@@ -10,6 +10,7 @@ import VenueCache from '../utils/VenueCache';
 
 // Use the same User type that we defined in authService
 import type { LoginResponse } from '../services/authService';
+import { log } from '../utils/logger';
 
 type User = {
   isFirstTimeUser: boolean;
@@ -61,10 +62,10 @@ const setAuthHeader = async (): Promise<void> => {
   const token = await AsyncStorage.getItem('authToken');
 
   if (token) {
-    console.log('Setting auth header with token');
+    log.debug('Setting auth header with token');
     axiosClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
-    console.log('No token available, clearing auth header');
+    log.debug('No token available, clearing auth header');
     delete axiosClient.defaults.headers.common['Authorization'];
   }
 };
@@ -117,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           normalizedUser.onboarding_complete !== userData.onboarding_complete) {
           await AsyncStorage.setItem('user', JSON.stringify(normalizedUser));
           await AsyncStorage.setItem('onboarding_complete', normalizedUser.onboardingComplete.toString());
-          console.log('AuthContext: Updated inconsistent onboarding status in storage');
+          log.debug('AuthContext: Updated inconsistent onboarding status in storage');
         }
       } else {
         setUser(null);

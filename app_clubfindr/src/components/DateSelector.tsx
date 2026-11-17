@@ -8,6 +8,7 @@ import {
     ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { log } from '../utils/logger';
 
 type DateOption = {
     id: string;
@@ -127,7 +128,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({ selectedDate, onDateChange 
     }, [dateOptions, selectedDate]);
 
     const handleSelectDate = (option: DateOption) => {
-        console.log(`Date selected: ${option.label}, Date: ${option.date}, IsRange: ${option.isRange}`);
+        log.debug(`Date selected: ${option.label}, Date: ${option.date}, IsRange: ${option.isRange}`);
 
         // Call parent's onDateChange with all necessary parameters
         onDateChange(

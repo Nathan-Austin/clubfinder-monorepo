@@ -173,7 +173,7 @@ const QRScannerScreen = () => {
                 setCheckinCount(responseData.checkinCount || null);
 
                 // Show success message
-                console.log('Check-in successful:', responseData);
+                log.debug('Check-in successful:', responseData);
             } else {
                 refuse('Check-in Failed', responseData.message || 'Failed to check in. Please try again.');
             }

@@ -106,5 +106,13 @@ module.exports = [
                 process: 'readonly'
             }
         }
+    },
+    {
+        // The logger is where console.log is gated for release builds (installConsoleGuard), so it
+        // and its test call console.* themselves; everything else goes through log.*
+        files: ['src/utils/logger.ts', 'src/utils/__tests__/logger.test.ts'],
+        rules: {
+            'no-console': 'off'
+        }
     }
 ];

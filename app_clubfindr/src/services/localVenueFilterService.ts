@@ -2,13 +2,14 @@ import { Venue } from './discoveryService';
 import VenueCache from '../utils/VenueCache';
 import VenueCacheMonitor from '../utils/VenueCacheMonitor';
 import * as Location from 'expo-location';
+import { log } from '../utils/logger';
 
 // Local implementation to avoid circular dependencies
 const getCurrentLocation = async (): Promise<{ latitude: number, longitude: number } | null> => {
     try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            console.log('Location permission denied');
+            log.debug('Location permission denied');
             return null;
         }
 
@@ -31,7 +32,7 @@ const getCurrentLocation = async (): Promise<{ latitude: number, longitude: numb
                     };
                 }
             } catch { }
-            console.log('Using default location as fallback');
+            log.debug('Using default location as fallback');
             return {
                 latitude: 52.52,
                 longitude: 13.405
@@ -76,7 +77,7 @@ export default class LocalVenueFilterService {
         venueType: 'bar' | 'club'
     ): Promise<Venue[]> {
         try {
-            console.log(`Locally filtering ${venues.length} venues by distance (${maxDistance}m)`);
+            log.debug(`Locally filtering ${venues.length} venues by distance (${maxDistance}m)`);
 
             // Track performance
             const startTime = Date.now();
@@ -84,7 +85,7 @@ export default class LocalVenueFilterService {
             // Get current location
             const location = await getCurrentLocation();
             if (!location) {
-                console.log('Could not get current location for local filtering');
+                log.debug('Could not get current location for local filtering');
                 return venues;
             }
 
@@ -140,7 +141,7 @@ export default class LocalVenueFilterService {
                 const filterTime = Date.now() - startTime;
                 await VenueCacheMonitor.recordFilterTime(venueType, filterTime);
 
-                console.log(`Filtered to ${sortedVenues.length} venues (${sortedVenues.filter(v => typeof v.distance === 'number').length} with distance) within ${maxDistance}m (took ${filterTime}ms)`);
+                log.debug(`Filtered to ${sortedVenues.length} venues (${sortedVenues.filter(v => typeof v.distance === 'number').length} with distance) within ${maxDistance}m (took ${filterTime}ms)`);
                 return sortedVenues;
             }
 
@@ -175,7 +176,7 @@ export default class LocalVenueFilterService {
 
             // If no cached venues or cache is invalid, fetch new data
             if (!venues) {
-                console.log(`No valid cache found for ${venueType}s, fetching from API`);
+                log.debug(`No valid cache found for ${venueType}s, fetching from API`);
                 // Record cache miss
                 await VenueCacheMonitor.recordCacheMiss(venueType);
 
@@ -186,7 +187,7 @@ export default class LocalVenueFilterService {
                     await VenueCache.saveToCache(venues, venueType);
                 }
             } else {
-                console.log(`Using cached ${venueType}s (${venues.length} items)`);
+                log.debug(`Using cached ${venueType}s (${venues.length} items)`);
                 // Record cache hit
                 await VenueCacheMonitor.recordCacheHit(venueType);
             }

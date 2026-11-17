@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import NetworkCache from '../utils/NetworkCache';
 import { httpError, errorMessage } from '../types/api';
+import { log } from '../utils/logger';
 
 const API_URL = 'https://www.clubfindr.com';
 
@@ -86,7 +87,7 @@ const nativeFetch = {
             }
 
             // Log request (minimal)
-            console.log(`[NativeFetch] GET ${endpoint}`);
+            log.debug(`[NativeFetch] GET ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -144,7 +145,7 @@ const nativeFetch = {
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
             // Log request (minimal)
-            console.log(`[NativeFetch] POST ${endpoint}`);
+            log.debug(`[NativeFetch] POST ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -227,7 +228,7 @@ const nativeFetch = {
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
             // Log request (minimal)
-            console.log(`[NativeFetch] PUT ${endpoint}`);
+            log.debug(`[NativeFetch] PUT ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -286,7 +287,7 @@ const nativeFetch = {
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
             // Log request (minimal)
-            console.log(`[NativeFetch] PATCH ${endpoint}`);
+            log.debug(`[NativeFetch] PATCH ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');
@@ -348,7 +349,7 @@ const nativeFetch = {
             const body = typeof data === 'string' ? data : data ? JSON.stringify(data) : undefined;
 
             // Log request (minimal)
-            console.log(`[NativeFetch] DELETE ${endpoint}`);
+            log.debug(`[NativeFetch] DELETE ${endpoint}`);
 
             // DNS resolution and connection management
             performance.mark('dnsStart');

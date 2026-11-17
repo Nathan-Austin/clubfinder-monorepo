@@ -24,12 +24,13 @@ function sourceFiles(dir: string): string[] {
 }
 
 /**
- * The values each console.* call logs: its arguments with the literal text removed, but the
+ * The values each console.* or log.* (utils/logger) call logs: its arguments with the literal text removed, but the
  * expressions inside `${...}` kept, since those are values.
  */
 export function loggedValues(source: string): { args: string; line: number }[] {
   const calls: { args: string; line: number }[] = [];
-  const start = /\bconsole\.(log|info|warn|error|debug)\(/g;
+  // log.* too: the app's own calls go through utils/logger (step 10 moved 132 console.log calls there)
+  const start = /\b(?:console|log)\.(log|info|warn|error|debug)\(/g;
   for (let match; (match = start.exec(source)); ) {
     let i = start.lastIndex;
     let depth = 1;
