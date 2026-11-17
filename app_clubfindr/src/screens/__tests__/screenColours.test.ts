@@ -2,10 +2,11 @@
  * Every screen paints its own background, and every colour literal is a real colour
  * (KNOWN_ISSUES 85).
  *
- * The app's screens are styled dark (light text on #121212), but `NavigationContainer` gets no
- * theme, so React Navigation's light default sits behind any screen that does not set a
- * background. QRCodeGeneratorScreen did not: its white text was on light grey on the owner's phone
- * (2026-11-16). It also had `'#40000'`, five digits, which is no colour at all.
+ * The app's screens are styled dark (light text on #121212). `NavigationContainer` had no theme,
+ * so React Navigation's light default sat behind any screen that did not set a background.
+ * QRCodeGeneratorScreen did not: its white text was on light grey on the owner's phone
+ * (2026-11-16). It also had `'#40000'`, five digits, which is no colour at all. The navigation
+ * theme is dark now (`src/theme.ts`), but it stays the fallback: each screen paints its own.
  *
  * A source check, like textInputs.test.ts: a test renderer shows neither, only a device does.
  */
