@@ -51,7 +51,6 @@ const BarHomeScreen = () => {
     const [visitorsToday, setVisitorsToday] = useState(0);
     const [visitorsWeek, setVisitorsWeek] = useState(0);
     const [visitorsChange, setVisitorsChange] = useState(0);
-    const [matchedUsers, setMatchedUsers] = useState(0);
 
     // Load bar details on component mount
     useEffect(() => {
@@ -162,7 +161,6 @@ const BarHomeScreen = () => {
                 setVisitorsToday(stats.visitorsToday || 0);
                 setVisitorsWeek(stats.visitorsWeek || 0);
                 setVisitorsChange(stats.weekOverWeekChange || 0);
-                setMatchedUsers(stats.matchedUsers || 0);
             }
         } catch (error) {
             console.error('Error loading bar stats:', error);
@@ -272,7 +270,6 @@ const BarHomeScreen = () => {
                     visitorsToday={visitorsToday}
                     visitorsWeek={visitorsWeek}
                     compareToLastWeek={visitorsChange}
-                    matchedUsers={matchedUsers}
                     onRefresh={handleRefresh}
                 />
 

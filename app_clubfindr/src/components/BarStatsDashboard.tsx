@@ -24,7 +24,6 @@ interface BarStatsDashboardProps {
     visitorsToday?: number;
     visitorsWeek?: number;
     compareToLastWeek?: number;
-    matchedUsers?: number;
     onRefresh: () => void;
 }
 
@@ -34,7 +33,6 @@ const BarStatsDashboard: React.FC<BarStatsDashboardProps> = ({
     visitorsToday = 0,
     visitorsWeek = 0,
     compareToLastWeek = 0,
-    matchedUsers = 0,
     onRefresh
 }) => {
     const stats: BarStat[] = [
@@ -47,11 +45,10 @@ const BarStatsDashboard: React.FC<BarStatsDashboardProps> = ({
             value: visitorsWeek,
             change: `${Math.abs(compareToLastWeek)}%`,
             isPositive: compareToLastWeek >= 0
-        },
-        {
-            label: 'Genre Matches',
-            value: matchedUsers
         }
+        // No "Genre Matches" tile: it was always 0. The server has nothing to count it from (no
+        // genre_matches table) and stopped sending matchedUsers; real match counts wait for
+        // data that can back them (ROADMAP, "Venue side of the app")
     ];
 
     if (loading) {
