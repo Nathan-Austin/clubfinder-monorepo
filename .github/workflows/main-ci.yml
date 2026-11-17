@@ -28,12 +28,16 @@ jobs:
           filters: |
             clubfindr:
               - 'clubfindr/**'
+              - '.github/workflows/clubfindr-ci.yml'
             barfindr:
               - 'barfindr/**'
+              - '.github/workflows/barfindr-ci.yml'
             data_collection:
               - 'data_collection/**'
+              - '.github/workflows/data-collection-ci.yml'
             app_clubfindr:
               - 'app_clubfindr/**'
+              - '.github/workflows/app-clubfindr-ci.yml'
 
   clubfindr:
     needs: changes
