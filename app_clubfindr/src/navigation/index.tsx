@@ -28,6 +28,7 @@ import EventFormScreen from '../screens/EventFormScreen';
 import QRCodeGeneratorScreen from '../screens/QRCodeGeneratorScreen';
 import QRScannerScreen from '../screens/QRScannerScreen';
 import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPickerScreen';
+import BarProfileScreen from '../screens/BarProfileScreen';
 import { colors, headerOptions, navigationTheme, tabBarOptions } from '../theme';
 
 // Define the types for the various navigators
@@ -60,6 +61,27 @@ export type RootStackParamList = {
   ArtistPicker: ArtistPickerParams;
 };
 
+/**
+ * The venue side (KNOWN_ISSUES 86): bottom tabs like the customer side, in place of a row of four
+ * buttons across the dashboard's header that was cut off on a phone. The forms open over the tabs.
+ */
+export type BarTabParamList = {
+  /** Stats and the venue's events */
+  BarHome: undefined;
+  QRCodeGenerator: undefined;
+  VenueArtists: ArtistPickerParams;
+  /** Edit the venue profile, log out */
+  BarProfile: undefined;
+};
+export type BarStackParamList = {
+  BarTabs: NavigatorScreenParams<BarTabParamList> | undefined;
+  EditBarProfile: undefined;
+  AddEvent: undefined;
+  EditEvent: { event: unknown };
+};
+
+
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 // Create navigators
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -98,15 +120,52 @@ const MainTabNavigator = () => {
     </Tab.Navigator>
   );
 };
-const BarStack = createStackNavigator();
+const BarTab = createBottomTabNavigator<BarTabParamList>();
+const BarStack = createStackNavigator<BarStackParamList>();
 
-const BarNavigator = () => (
-  <BarStack.Navigator screenOptions={headerOptions}>
-    <BarStack.Screen
+const BAR_TAB_ICONS: Record<keyof BarTabParamList, [focused: IconName, unfocused: IconName]> = {
+  BarHome: ['stats-chart', 'stats-chart-outline'],
+  QRCodeGenerator: ['qr-code', 'qr-code-outline'],
+  VenueArtists: ['musical-notes', 'musical-notes-outline'],
+  BarProfile: ['business', 'business-outline'],
+};
+
+export const BarTabNavigator = () => (
+  <BarTab.Navigator
+    screenOptions={({ route }) => ({
+      tabBarIcon: ({ focused, color, size }) => (
+        <Ionicons name={BAR_TAB_ICONS[route.name][focused ? 0 : 1]} size={size} color={color} />
+      ),
+      ...tabBarOptions,
+    })}
+  >
+    <BarTab.Screen
       name="BarHome"
       component={BarHomeScreen}
-      options={{ title: 'Dashboard' }}
+      options={{ title: 'Dashboard', tabBarLabel: 'Dashboard' }}
     />
+    <BarTab.Screen
+      name="QRCodeGenerator"
+      component={QRCodeGeneratorScreen}
+      options={{ title: 'QR Code Management', tabBarLabel: 'QR Codes' }}
+    />
+    <BarTab.Screen
+      name="VenueArtists"
+      component={ArtistPickerScreen}
+      initialParams={{ mode: 'venue' }}
+      options={{ title: 'Artists You Play', tabBarLabel: 'Artists', tabBarButtonTestID: 'open-venue-artists' }}
+    />
+    <BarTab.Screen
+      name="BarProfile"
+      component={BarProfileScreen}
+      options={{ title: 'Venue Profile', tabBarLabel: 'Profile' }}
+    />
+  </BarTab.Navigator>
+);
+
+export const BarNavigator = () => (
+  <BarStack.Navigator screenOptions={headerOptions}>
+    <BarStack.Screen name="BarTabs" component={BarTabNavigator} options={{ headerShown: false }} />
     <BarStack.Screen
       name="EditBarProfile"
       component={EditBarProfileScreen}
@@ -121,17 +180,6 @@ const BarNavigator = () => (
       name="EditEvent"
       component={EventFormScreen}
       options={{ title: 'Edit Event' }}
-    />
-    <BarStack.Screen
-      name="QRCodeGenerator"
-      component={QRCodeGeneratorScreen}
-      options={{ title: 'QR Code Management' }}
-    />
-    <BarStack.Screen
-      name="VenueArtists"
-      component={ArtistPickerScreen}
-      initialParams={{ mode: 'venue' }}
-      options={{ title: 'Artists You Play' }}
     />
   </BarStack.Navigator>
 );

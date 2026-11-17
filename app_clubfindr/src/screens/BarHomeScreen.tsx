@@ -9,7 +9,7 @@ import {
     Alert,
     ActivityIndicator
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -56,9 +56,16 @@ const BarHomeScreen = () => {
     // Load bar details on component mount
     useEffect(() => {
         loadBarDetails();
-        loadBarEvents();
         loadBarStats();
     }, []);
+
+    // Events each time the dashboard is shown: on mount, back from Create/Edit Event, and back
+    // from another venue tab (tabs stay mounted, KNOWN_ISSUES 86)
+    useFocusEffect(
+        useCallback(() => {
+            loadBarEvents();
+        }, [])
+    );
 
     const loadBarDetails = async () => {
         try {
@@ -243,32 +250,6 @@ const BarHomeScreen = () => {
         return timeString.substring(0, 5); // Format as HH:MM
     };
 
-    // Handle edit profile
-    const handleEditProfile = () => {
-        navigation.navigate('EditBarProfile');
-    };
-
-    // Logout handler
-    const handleLogout = () => {
-        Alert.alert(
-            'Log Out',
-            'Are you sure you want to log out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Log Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await logout();
-                        // Additional cleanup specific to bar manager
-                        await AsyncStorage.removeItem('barName');
-                        await AsyncStorage.removeItem('barId');
-                    }
-                }
-            ]
-        );
-    };
-
     return (
         <View style={styles.container}>
             <ScrollView
@@ -281,32 +262,7 @@ const BarHomeScreen = () => {
                     <Text style={styles.barName}>{barName || 'My Bar'}</Text>
                     <Text style={styles.subtitle}>Manager Dashboard</Text>
 
-                    <View style={styles.buttonRow}>
-                        <TouchableOpacity
-                            style={styles.qrButton}
-                            onPress={() => navigation.navigate('QRCodeGenerator')}
-                        >
-                            <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
-                            <Text style={styles.buttonText}>QR Codes</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.qrButton}
-                            onPress={() => navigation.navigate('VenueArtists')}
-                            testID="open-venue-artists"
-                        >
-                            <Ionicons name="musical-notes-outline" size={18} color="#FFFFFF" />
-                            <Text style={styles.buttonText}>Artists</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-                            <Ionicons name="settings-outline" size={18} color="#FFFFFF" />
-                            <Text style={styles.buttonText}>Edit Profile</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                            <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
-                            <Text style={styles.buttonText}>Log Out</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {/* QR codes, artists, profile and log out are bottom tabs now (KNOWN_ISSUES 86) */}
                 </View>
 
                 {/* Stats Dashboard Section */}
@@ -416,15 +372,6 @@ const BarHomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    qrButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginHorizontal: 5,
-    },
     container: {
         flex: 1,
         backgroundColor: '#121212',
@@ -447,12 +394,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#FFFFFF',
         opacity: 0.8,
-        marginBottom: 15,
-    },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        width: '100%',
     },
     resetButton: {
         backgroundColor: '#333333',
@@ -472,29 +413,6 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#333333',
-    },
-    editButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginHorizontal: 5,
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginHorizontal: 5,
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        marginLeft: 5,
-        fontSize: 14,
     },
     sectionTitle: {
         fontSize: 18,
