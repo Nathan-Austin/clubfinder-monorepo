@@ -83,3 +83,24 @@ export function tasteApi(base: string) {
         }
     };
 }
+
+/**
+ * The genres a venue declares outright, with no artist (`GET`/`PUT /api/venues/:barId/taste/genres`,
+ * the web dashboard's "Genres you play" since 2026-11-12). `PUT` replaces the whole set and answers
+ * the stored, lower-cased list; a 400 says which genres the server does not know.
+ */
+export function venueGenresApi(barId: string) {
+    const url = `${venueTasteBase(barId)}/genres`;
+    return {
+        async list(): Promise<string[]> {
+            const response = await axiosClient.get(url);
+            const genres = (response.data as { genres?: unknown })?.genres;
+            return Array.isArray(genres) ? genres.filter((g): g is string => typeof g === 'string') : [];
+        },
+        async save(genres: string[]): Promise<string[]> {
+            const response = await axiosClient.put(url, { genres });
+            const saved = (response.data as { genres?: unknown })?.genres;
+            return Array.isArray(saved) ? saved.filter((g): g is string => typeof g === 'string') : genres;
+        }
+    };
+}
