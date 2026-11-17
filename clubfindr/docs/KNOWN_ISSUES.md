@@ -880,15 +880,15 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     - Screens over 500 lines not worked in: `discoveryService.ts` (1221), `BarRegistrationScreen`
       (901), `SearchScreen` (849), `TilkiScreen` (768), `VenueDetailsScreen` (759),
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
-    - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
-      services, mostly in screens. **Logged 2026-11-17 for a cleanup step of its own** (747, 0
-      errors, 742 after the venue tabs, 730 after step 8, 682 after step 9; `npx expo export` gives none): `react-native/no-color-literals` 515,
-      `no-console` 148, `@typescript-eslint/no-unused-vars` 31, `react-native/no-unused-styles` 27,
-      `@typescript-eslint/no-explicit-any` 22, `react-native/no-inline-styles` 2. Most are in
-      `discoveryService.ts` (59), `VenueCard` (53), `SearchScreen` (48), `VenueDetailsScreen` (47),
-      `TilkiScreen` and `BarHomeScreen` (43 each), `EventFormScreen` (35) and
-      `QRCodeGeneratorScreen` (34). The colour literals mostly go with a shared dark theme and
-      palette (planned with the venue bottom tabs, 86); `npm run lint` lists them all.
+    - _Done 2026-11-17 (`4a2c805`, `3772640`, `afe5c7e`, `6704ae6`):_ the app's lint warnings, 755
+      on 2026-11-16, are 0. console.log/info/debug go through `utils/logger` (the personal-data
+      guard checks `log.*` too); every StyleSheet colour is a `colors.*` token of the same value
+      (`theme.ts`; near-duplicates such as `dangerBright`/`danger` not folded together, which is a
+      visual change for a device run); dead code, styles and `any` are gone. Left: `npm run lint`
+      still passes with warnings, so a new one does not fail CI (`--max-warnings 0` would).
+    - `VenueCard`'s "N Events Today" and "Next Event" read `YYYY-MM-DD` with `new Date(...)`, which is
+      UTC midnight, so west of UTC an event can show a day early; `utils/localDate` reads it as a
+      local day. Seen during the lint step, left because it changes what customers see.
     - _Done 2026-11-16 (`708e6a7`):_ `BarRegistrationScreen` hard-coded its own 8 cities (with
       Rome and New York, which are not scraped); it uses `constants/cities.ts` now.
     - A personal-account password reset does not end that user's sessions (a venue reset does,

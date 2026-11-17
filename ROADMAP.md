@@ -34,7 +34,8 @@ The 2026-11-17 app round does it in three steps, each with its own commits and t
    is split into sections, QR codes and Profile go into Venue. Done 2026-11-17 (`391f8ea`,
    `58ae040`, `a0675e4`)
 
-Then 10, the lint warnings (KNOWN_ISSUES 80), and 11, the hand-over with a device checklist.
+Then 10, the lint warnings (KNOWN_ISSUES 80; done 2026-11-17, 0 left), and 11, the hand-over with a
+device checklist.
 
 ## Today's session (2026-11-16): the mobile app
 
@@ -461,7 +462,7 @@ top artists or play counts on the web).
       `PUT /api/venues/:barId/taste/genres` (the endpoint takes the app's session token
       already; the web dashboard has the section since 2026-11-12)
 - [ ] Unit tests for the services layer (started 2026-11-16: auth/bar login, city, the HTTP clients, location, logging; 25 tests → 97)
-- [x] Done 2026-11-16 for the services and the HTTP clients (`b6d6bb0`) and for logging (`5ee2f8c`); the screens still have `any` (KNOWN_ISSUES 80). Replace `any` types and gate `console.log` for production builds
+- [x] Done 2026-11-16 for the services and the HTTP clients (`b6d6bb0`) and for logging (`5ee2f8c`); and for the screens on 2026-11-17 (lint step 10, no `any` left). Replace `any` types and gate `console.log` for production builds
 - [ ] Split screen components over 500 lines (LoginScreen done 2026-11-16; the rest are listed in KNOWN_ISSUES 80)
 - [ ] **Next server round:** expand recurring venue events into dates on the server (KNOWN_ISSUES
       90). Today a recurring event counts for matching on its first date only, and then drops out
