@@ -903,10 +903,12 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     the server's message is most likely lost before the mapping (the HTTP client turning a 401 into
     an error without the body's `message`). Fix there, with a test that a 401 body reaches
     `loginErrorMessage`.
-82. **Venues cannot delete an event in the app.** `BarHomeScreen.tsx` answers every delete with a
-    hard-coded "Event deletion is currently not available. Please contact support" alert, although
-    `DELETE /api/mobile/bars/:barId/events/:eventId` has existed since 2026-11-09. Wire the button
-    to it, with a confirmation.
+82. _Fixed 2026-11-17 (`117091f`); confirm on a device._ **Venues could not delete an event in the
+    app.** `BarHomeScreen.tsx` answered every delete with a hard-coded "Event deletion is currently
+    not available. Please contact support" alert, although
+    `DELETE /api/mobile/bars/:barId/events/:eventId` has existed since 2026-11-09. The button now asks
+    first, then calls it through `mobileBarService.deleteBarEvent` (a 404 counts as already deleted,
+    a 401/403 offers a new login) and reloads the list.
 83. _Fixed 2026-11-17 (`8fb0963`), to confirm on a device._ **Sharing a QR code hung forever.**
     `QRCodeGeneratorScreen.shareQRCode` opened a modal holding only a spinner. The cause was not a
     callback that never came: Android's `react-native-svg` `toDataURL` calls back with bare base64
@@ -948,3 +950,14 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     platforms, a check of the merged Android manifest (76), and only `utils/qrShare.captureQrPng`
     and the modal's ref change. The app is meant for both iPhone and Android, so test the share
     sheet on both before relying on either way.
+88. **The web `/redirect` page sends people without the app to dead store pages.** Every code in a
+    venue's list is `https://clubfindr.com/redirect?…` (84), so a phone's own camera opens
+    `routes/redirect/+page.svelte`, which tries the `clubfindr://` deep link and after two seconds
+    falls back to a store. Its store links are placeholders and disagree with each other: the App
+    Store's `idXXXXXXXXXX` (twice), and Play's `com.clubfindr.app` in the script and `com.tikli.app`
+    on the badge, while the app is `com.clubfindr.mobile`. A scan by someone without the app
+    therefore ends on a store page that does not exist. Left out of the 2026-11-17 app round on the
+    owner's instruction (it is a server change, with its e2e run). Fix: Play's
+    `https://play.google.com/store/apps/details?id=com.clubfindr.mobile` in both places, and the App
+    Store link (or none) until the app has an App Store record (ROADMAP section 5, "iPhone / App
+    Store"); its two-second fallback also fires when the app did open, which is worth a look then.
