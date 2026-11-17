@@ -17,6 +17,7 @@ import axiosClient from '../api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
 import BarStatsDashboard from '../components/BarStatsDashboard';
 import { fromLocalIsoDate } from '../utils/localDate';
+import { deleteBarEvent } from '../services/mobileBarService';
 
 // Types for bar events
 interface BarEvent {
@@ -187,12 +188,40 @@ const BarHomeScreen = () => {
         navigation.navigate('EditEvent', { event });
     };
 
-    // Temporarily remove delete functionality until proper endpoint is available
-    const handleDeleteEvent = (eventId: string) => {
+    // KNOWN_ISSUES 82: deleting was switched off with a "not available" alert, although the
+    // server's DELETE route has existed since 2026-11-09
+    const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+
+    const deleteEvent = async (event: BarEvent) => {
+        const barId = await AsyncStorage.getItem('barId');
+        setDeletingEventId(event.id);
+        try {
+            const result = await deleteBarEvent(barId ?? '', event.id);
+            if (result.success) {
+                setEvents((current) => current.filter((e) => e.id !== event.id));
+                await loadBarEvents();
+            } else if (result.sessionEnded) {
+                Alert.alert('Session ended', result.error, [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Log in', onPress: () => logout() }
+                ]);
+            } else {
+                Alert.alert('Could not delete', result.error);
+            }
+        } finally {
+            setDeletingEventId(null);
+        }
+    };
+
+    const handleDeleteEvent = (event: BarEvent) => {
+        if (deletingEventId) return;
         Alert.alert(
-            'Feature Not Available',
-            'Event deletion is currently not available. Please contact support for assistance.',
-            [{ text: 'OK' }]
+            'Delete event?',
+            `"${event.theme_name}" on ${formatDate(event.event_date)} will be removed. This cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => void deleteEvent(event) }
+            ]
         );
     };
 
@@ -317,9 +346,16 @@ const BarHomeScreen = () => {
                                                 </TouchableOpacity>
                                                 <TouchableOpacity
                                                     style={styles.eventAction}
-                                                    onPress={() => handleDeleteEvent(event.id)}
+                                                    onPress={() => handleDeleteEvent(event)}
+                                                    disabled={deletingEventId !== null}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={`Delete ${event.theme_name}`}
                                                 >
-                                                    <Ionicons name="trash-outline" size={18} color="#f44336" />
+                                                    {deletingEventId === event.id ? (
+                                                        <ActivityIndicator size="small" color="#f44336" />
+                                                    ) : (
+                                                        <Ionicons name="trash-outline" size={18} color="#f44336" />
+                                                    )}
                                                 </TouchableOpacity>
                                             </View>
                                         </View>

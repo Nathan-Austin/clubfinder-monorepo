@@ -1,5 +1,5 @@
 import axiosClient from '../api/axiosClient';
-import { errorMessage, type ApiBarData } from '../types/api';
+import { errorMessage, errorStatus, type ApiBarData } from '../types/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -174,10 +174,46 @@ export const barLogin = async (
     }
 };
 
+/**
+ * Deletes one of the venue's events (`DELETE /api/mobile/bars/:barId/events/:eventId`, behind the
+ * venue's session since 2026-11-09). The app answered every delete with "not available" until
+ * 2026-11-17 (KNOWN_ISSUES 82). An event the server no longer has (404: deleted elsewhere, e.g. on
+ * the web dashboard) counts as deleted, since that is what the venue asked for.
+ */
+export type DeleteBarEventResult =
+    | { success: true }
+    | { success: false; error: string; sessionEnded?: boolean };
+
+export const deleteBarEvent = async (barId: string, eventId: string): Promise<DeleteBarEventResult> => {
+    if (!barId || !eventId) {
+        return { success: false, error: 'This event cannot be deleted. Pull down to refresh and try again.' };
+    }
+    try {
+        await axiosClient.delete(
+            `/api/mobile/bars/${encodeURIComponent(barId)}/events/${encodeURIComponent(eventId)}`
+        );
+        return { success: true };
+    } catch (error) {
+        const status = errorStatus(error);
+        if (status === 404) {
+            return { success: true };
+        }
+        if (status === 401 || status === 403) {
+            return {
+                success: false,
+                sessionEnded: true,
+                error: 'Your venue session has ended. Please log in again to delete events.'
+            };
+        }
+        return { success: false, error: 'Could not delete the event. Please try again.' };
+    }
+};
+
 export default {
     registerBar,
     confirmBarRegistration,
     resendConfirmationCode,
     getBarProfile,
-    barLogin
+    barLogin,
+    deleteBarEvent
 };
