@@ -119,8 +119,10 @@ request. It is not a JWT and is not refreshed: it expires on the server after 7 
 - Stack navigator for authentication flow
 - Bottom tabs for both sides, with the same tab bar (`tabBarOptions` in `theme.ts`):
   - customers: Home, Discover, Search, Tilki, Profile
-  - venues (`BarTabNavigator`): Dashboard, QR Codes, Artists, Profile (`BarProfileScreen`: edit
-    the venue profile, log out); Edit Bar Profile and Create/Edit Event open over the tabs from
+  - venues (`BarTabNavigator`): Dashboard, QR Codes, Music (`VenueMusicScreen`: the artist
+    picker in venue mode and `components/VenueGenresEditor`, "genres you play"), Profile
+    (`BarProfileScreen`: edit the venue profile, log out); the agreed layout is Overview, Events,
+    Music, Venue (ROADMAP, "Venue side of the app"); Edit Bar Profile and Create/Edit Event open over the tabs from
     the venue stack (`BarNavigator`). Tab screens stay mounted: reload on focus
     (`useFocusEffect`) what another screen can change
 - Modal stack for detail screens

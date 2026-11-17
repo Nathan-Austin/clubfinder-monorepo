@@ -25,7 +25,8 @@ Music · Venue**, so no single screen holds stats, events, taste and settings at
 - **Venue:** edit profile, QR codes, log out; where later settings go
 
 The 2026-11-17 app round does it in three steps, each with its own commits and the app's checks:
-7. Music tab: Artists becomes Music, with a "genres you play" editor (section 5)
+7. [x] Music tab: Artists becomes Music, with a "genres you play" editor (section 5). Done
+   2026-11-17 (`4ac6131`, `2192782`)
 8. Overview cleanup: no always-0 "Genre Matches" tile, a `VenueContext` for the venue's id and
    name, the event form on the shared genre list
 9. Events and Venue tabs, together for one device run: events leave the dashboard, the event form
@@ -453,7 +454,8 @@ top artists or play counts on the web).
       config plugins' options or `android.blockedPermissions`; verify with `aapt2 dump
       permissions` on a fresh build. Bluetooth overlaps the iOS owner decision below
       (KNOWN_ISSUES 48)
-- [ ] A "genres you play" editor on the bar dashboard, against
+- [x] Done 2026-11-17 (`4ac6131`, `2192782`): the venue's Music tab, Genres part. A "genres you
+      play" editor on the bar dashboard, against
       `PUT /api/venues/:barId/taste/genres` (the endpoint takes the app's session token
       already; the web dashboard has the section since 2026-11-12)
 - [ ] Unit tests for the services layer (started 2026-11-16: auth/bar login, city, the HTTP clients, location, logging; 25 tests → 97)
