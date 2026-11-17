@@ -882,7 +882,7 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
     - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
       services, mostly in screens. **Logged 2026-11-17 for a cleanup step of its own** (747, 0
-      errors, 742 after the venue tabs; `npx expo export` gives none): `react-native/no-color-literals` 515,
+      errors, 742 after the venue tabs, 730 after step 8; `npx expo export` gives none): `react-native/no-color-literals` 515,
       `no-console` 148, `@typescript-eslint/no-unused-vars` 31, `react-native/no-unused-styles` 27,
       `@typescript-eslint/no-explicit-any` 22, `react-native/no-inline-styles` 2. Most are in
       `discoveryService.ts` (59), `VenueCard` (53), `SearchScreen` (48), `VenueDetailsScreen` (47),

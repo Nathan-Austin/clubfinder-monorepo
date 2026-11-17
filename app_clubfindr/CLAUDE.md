@@ -72,6 +72,7 @@ src/
 │   ├── cities.ts            # Covered cities + centres (= data_collection/live_cities.txt)
 │   └── unified-genres.json
 ├── contexts/AuthContext.tsx # Session, user type, changeCity
+├── contexts/VenueContext.tsx # The logged-in venue's id and name (venue side only)
 ├── hooks/useCityProposal.ts # "You seem to be in Paris. Switch?"
 ├── navigation/index.tsx
 ├── screens/
@@ -125,6 +126,12 @@ request. It is not a JWT and is not refreshed: it expires on the server after 7 
     Music, Venue (ROADMAP, "Venue side of the app"); Edit Bar Profile and Create/Edit Event open over the tabs from
     the venue stack (`BarNavigator`). Tab screens stay mounted: reload on focus
     (`useFocusEffect`) what another screen can change
+  - venue screens take the venue's id and name from `useVenue()` (`VenueProvider` wraps
+    `BarNavigator`), never `AsyncStorage.getItem('barId')`; Edit Profile's save calls
+    `setBarName`. The shared `ArtistPickerScreen` is the exception (the customer side has no
+    venue provider)
+  - genres are picked with `components/GenreChipsInput`, suggesting from
+    `utils/genreVocabulary` (the web dashboard's list): "Genres you play" and the event form
 - Modal stack for detail screens
 - One dark theme (`navigationTheme` in `theme.ts`) on `NavigationContainer`; take colours from
   `colors` there rather than writing literals

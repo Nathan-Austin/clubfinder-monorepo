@@ -27,8 +27,9 @@ Music · Venue**, so no single screen holds stats, events, taste and settings at
 The 2026-11-17 app round does it in three steps, each with its own commits and the app's checks:
 7. [x] Music tab: Artists becomes Music, with a "genres you play" editor (section 5). Done
    2026-11-17 (`4ac6131`, `2192782`)
-8. Overview cleanup: no always-0 "Genre Matches" tile, a `VenueContext` for the venue's id and
-   name, the event form on the shared genre list
+8. [x] Overview cleanup: no always-0 "Genre Matches" tile, a `VenueContext` for the venue's id and
+   name, the event form on the shared genre list. Done 2026-11-17 (`ef5f1ff`, `57f6f82`,
+   `cde6383`)
 9. Events and Venue tabs, together for one device run: events leave the dashboard, the event form
    is split into sections, QR codes and Profile go into Venue
 
