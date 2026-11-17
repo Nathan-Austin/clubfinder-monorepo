@@ -1,51 +1,30 @@
+/**
+ * The venue side's Overview tab (ROADMAP "Venue side of the app", step 9): tonight at a glance.
+ * The venue's name, its visitor counts, its next event and its check-in code. The events list
+ * moved to the Events tab, the QR codes into the Venue tab; the two cards here lead to them.
+ */
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    RefreshControl,
-    Alert,
-    ActivityIndicator
-} from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { useAuth } from '../contexts/AuthContext';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
-import { Ionicons } from '@expo/vector-icons';
 import BarStatsDashboard from '../components/BarStatsDashboard';
-import { fromLocalIsoDate } from '../utils/localDate';
-import { deleteBarEvent } from '../services/mobileBarService';
-
-// Types for bar events
-interface BarEvent {
-    id: string;
-    theme_name: string;
-    description?: string;
-    event_date: string;
-    start_time: string | null;
-    end_time: string | null;
-    recurring?: boolean;
-    recurrence_pattern?: string | null;
-    special_genres: string[];
-}
-
-// Simplified navigation type
-type BarHomeScreenNavigationProp = StackNavigationProp<any>;
+import { useVenueEvents } from '../hooks/useVenueEvents';
+import { nextVenueEvent } from '../services/venueEventsService';
+import { formatEventDate, formatEventTimes } from '../utils/eventFormat';
+import { toLocalIsoDate } from '../utils/localDate';
+import { colors } from '../theme';
 
 const BarHomeScreen = () => {
-    const navigation = useNavigation<BarHomeScreenNavigationProp>();
-    const { user, logout } = useAuth();
+    const navigation = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
     // Read once by the venue side's provider; the name follows Edit Profile at once
     const { barId, barName } = useVenue();
+    const venueEvents = useVenueEvents(barId);
+    const next = nextVenueEvent(venueEvents.events, toLocalIsoDate());
 
-    // State
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [barData, setBarData] = useState<any>(null);
-    const [events, setEvents] = useState<BarEvent[]>([]);
     const [topGenres, setTopGenres] = useState<{ genre: string, count: number }[]>([]);
 
     // Stats state
@@ -53,32 +32,14 @@ const BarHomeScreen = () => {
     const [visitorsWeek, setVisitorsWeek] = useState(0);
     const [visitorsChange, setVisitorsChange] = useState(0);
 
-    // Load bar details on component mount
     useEffect(() => {
         loadBarDetails();
         loadBarStats();
     }, []);
 
-    // Events each time the dashboard is shown: on mount, back from Create/Edit Event, and back
-    // from another venue tab (tabs stay mounted, KNOWN_ISSUES 86)
-    useFocusEffect(
-        useCallback(() => {
-            loadBarEvents();
-        }, [])
-    );
-
     const loadBarDetails = async () => {
         try {
-            if (!barId) {
-                console.error('Bar ID not found');
-                return;
-            }
-
-            // Fetch bar details
-            const barResponse = await axiosClient.get(`/api/mobile/bars/${barId}`);
-            if (barResponse.data.success && barResponse.data.bar) {
-                setBarData(barResponse.data.bar);
-            }
+            if (!barId) return;
 
             // Fetch top genres
             const genresResponse = await axiosClient.get('/api/mobile/bars/genres');
@@ -103,48 +64,6 @@ const BarHomeScreen = () => {
         }
     };
 
-    const loadBarEvents = async () => {
-        try {
-            // Get bar ID from storage
-            if (!barId) {
-                console.error('Bar ID not found');
-                return;
-            }
-
-            console.log('Loading events for bar:', barId);
-
-            // Get events from the events endpoint
-            const eventsResponse = await axiosClient.get(`/api/mobile/bars/${barId}/events`);
-            console.log('Events response:', eventsResponse.data);
-
-            // Get events data from response and ensure it's an array
-            const eventsArray = eventsResponse.data?.events && Array.isArray(eventsResponse.data.events)
-                ? eventsResponse.data.events
-                : [];
-
-            console.log('Processing events array:', eventsArray);
-
-            // Format the events consistently with discoveryService
-            const formattedEvents = eventsArray.map((event: any) => ({
-                id: event.id || `event-${Math.random()}`,
-                theme_name: event.theme_name || 'Event',
-                description: event.description || '',
-                event_date: event.event_date || new Date().toISOString().split('T')[0],
-                start_time: event.start_time || null,
-                end_time: event.end_time || null,
-                recurring: !!event.recurring,
-                recurrence_pattern: event.recurrence_pattern || null,
-                special_genres: event.special_genres || []
-            }));
-
-            console.log('Setting formatted events:', formattedEvents);
-            setEvents(formattedEvents);
-        } catch (error) {
-            console.error('Error loading events:', error);
-            setEvents([]);
-        }
-    };
-
     const loadBarStats = async () => {
         try {
             const statsResponse = await axiosClient.get('/api/mobile/bars/stats');
@@ -163,378 +82,134 @@ const BarHomeScreen = () => {
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true);
-
         try {
-            await Promise.all([
-                loadBarDetails(),
-                loadBarEvents(),
-                loadBarStats()
-            ]);
-        } catch (error) {
-            console.error('Error refreshing data:', error);
+            await Promise.all([loadBarDetails(), venueEvents.reload(), loadBarStats()]);
         } finally {
             setRefreshing(false);
         }
-    }, []);
+    }, [venueEvents.reload]);
 
-    const handleAddEvent = () => {
-        navigation.navigate('AddEvent');
-    };
-
-    const handleEditEvent = (event: BarEvent) => {
-        navigation.navigate('EditEvent', { event });
-    };
-
-    // KNOWN_ISSUES 82: deleting was switched off with a "not available" alert, although the
-    // server's DELETE route has existed since 2026-11-09
-    const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
-
-    const deleteEvent = async (event: BarEvent) => {
-        setDeletingEventId(event.id);
-        try {
-            const result = await deleteBarEvent(barId ?? '', event.id);
-            if (result.success) {
-                setEvents((current) => current.filter((e) => e.id !== event.id));
-                await loadBarEvents();
-            } else if (result.sessionEnded) {
-                Alert.alert('Session ended', result.error, [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Log in', onPress: () => logout() }
-                ]);
-            } else {
-                Alert.alert('Could not delete', result.error);
-            }
-        } finally {
-            setDeletingEventId(null);
-        }
-    };
-
-    const handleDeleteEvent = (event: BarEvent) => {
-        if (deletingEventId) return;
-        Alert.alert(
-            'Delete event?',
-            `"${event.theme_name}" on ${formatDate(event.event_date)} will be removed. This cannot be undone.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => void deleteEvent(event) }
-            ]
-        );
-    };
-
-    // Format date for display
-    const formatDate = (dateString: string): string => {
-        const options: Intl.DateTimeFormatOptions = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        };
-        // A YYYY-MM-DD calendar date read as a local day, not UTC midnight
-        return fromLocalIsoDate(dateString).toLocaleDateString('en-US', options);
-    };
-
-    // Format time for display
-    const formatTime = (timeString: string | null): string => {
-        if (!timeString) return '';
-        return timeString.substring(0, 5); // Format as HH:MM
-    };
+    const nextTimes = next ? formatEventTimes(next.start_time, next.end_time) : '';
 
     return (
-        <View style={styles.container}>
-            <ScrollView
-                style={styles.scrollView}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-                }
-            >
-                <View style={styles.header}>
-                    <Text style={styles.barName}>{barName || 'My Bar'}</Text>
-                    <Text style={styles.subtitle}>Manager Dashboard</Text>
+        <ScrollView
+            style={styles.container}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+        >
+            <View style={styles.header}>
+                <Text style={styles.barName}>{barName || 'My venue'}</Text>
+                <Text style={styles.subtitle}>Tonight at a glance</Text>
+            </View>
 
-                    {/* QR codes, artists, profile and log out are bottom tabs now (KNOWN_ISSUES 86) */}
-                </View>
+            <BarStatsDashboard
+                loading={loading}
+                topGenres={topGenres}
+                visitorsToday={visitorsToday}
+                visitorsWeek={visitorsWeek}
+                compareToLastWeek={visitorsChange}
+                onRefresh={handleRefresh}
+            />
 
-                {/* Stats Dashboard Section */}
-                <BarStatsDashboard
-                    loading={loading}
-                    topGenres={topGenres}
-                    visitorsToday={visitorsToday}
-                    visitorsWeek={visitorsWeek}
-                    compareToLastWeek={visitorsChange}
-                    onRefresh={handleRefresh}
-                />
+            <View style={styles.cards}>
+                {/* Next event: leads to the Events tab */}
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate(next ? 'Events' : 'AddEvent')}
+                    accessibilityRole="button"
+                    testID="overview-next-event"
+                >
+                    <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+                    <View style={styles.cardText}>
+                        <Text style={styles.cardLabel}>Next event</Text>
+                        {venueEvents.loading ? (
+                            <Text style={styles.cardHint}>Loading…</Text>
+                        ) : venueEvents.failed ? (
+                            <Text style={styles.cardHint}>Could not load your events. Pull down to try again.</Text>
+                        ) : next ? (
+                            <>
+                                <Text style={styles.cardTitle}>{next.theme_name}</Text>
+                                <Text style={styles.cardHint}>
+                                    {formatEventDate(next.event_date)}
+                                    {nextTimes ? `, ${nextTimes}` : ''}
+                                </Text>
+                            </>
+                        ) : (
+                            <Text style={styles.cardHint}>Nothing planned yet. Tap to add an event.</Text>
+                        )}
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
 
-                {!loading && (
-                    <>
-                        {/* Events Section */}
-                        <View style={styles.eventsSection}>
-                            <View style={styles.eventsSectionHeader}>
-                                <Text style={styles.sectionTitle}>Special Events & Themes</Text>
-                                <TouchableOpacity style={styles.addEventButton} onPress={handleAddEvent}>
-                                    <Ionicons name="add" size={20} color="#FFFFFF" />
-                                    <Text style={styles.addEventButtonText}>Add Event</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {events.length > 0 ? (
-                                events.map((event) => (
-                                    <View key={event.id} style={styles.eventCard}>
-                                        <View style={styles.eventHeader}>
-                                            <Text style={styles.eventName}>{event.theme_name}</Text>
-                                            <View style={styles.eventActions}>
-                                                <TouchableOpacity
-                                                    style={styles.eventAction}
-                                                    onPress={() => handleEditEvent(event)}
-                                                >
-                                                    <Ionicons name="create-outline" size={18} color="#2196f3" />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.eventAction}
-                                                    onPress={() => handleDeleteEvent(event)}
-                                                    disabled={deletingEventId !== null}
-                                                    accessibilityRole="button"
-                                                    accessibilityLabel={`Delete ${event.theme_name}`}
-                                                >
-                                                    {deletingEventId === event.id ? (
-                                                        <ActivityIndicator size="small" color="#f44336" />
-                                                    ) : (
-                                                        <Ionicons name="trash-outline" size={18} color="#f44336" />
-                                                    )}
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-
-                                        <View style={styles.eventDate}>
-                                            <Text style={styles.eventDateText}>{formatDate(event.event_date)}</Text>
-                                            {event.recurring && (
-                                                <View style={styles.recurringBadge}>
-                                                    <Text style={styles.recurringBadgeText}>
-                                                        Recurring ({event.recurrence_pattern})
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-
-                                        {(event.start_time || event.end_time) && (
-                                            <Text style={styles.eventTime}>
-                                                {event.start_time && event.end_time
-                                                    ? `${formatTime(event.start_time)} - ${formatTime(event.end_time)}`
-                                                    : event.start_time
-                                                        ? `Starts at ${formatTime(event.start_time)}`
-                                                        : `Ends at ${formatTime(event.end_time)}`}
-                                            </Text>
-                                        )}
-
-                                        {event.description && (
-                                            <Text style={styles.eventDescription}>{event.description}</Text>
-                                        )}
-
-                                        {event.special_genres && event.special_genres.length > 0 && (
-                                            <View style={styles.eventGenres}>
-                                                {event.special_genres.map((genre, index) => (
-                                                    <View key={index} style={styles.eventGenreTag}>
-                                                        <Text style={styles.eventGenreText}>{genre}</Text>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        )}
-                                    </View>
-                                ))
-                            ) : (
-                                <View style={styles.emptyState}>
-                                    <Text style={styles.emptyStateHeader}>No Events Created Yet</Text>
-                                    <Text style={styles.emptyStateText}>
-                                        Create special themed nights, recurring events, or one-time occasions to attract customers.
-                                    </Text>
-                                    <TouchableOpacity style={styles.createFirstEventButton} onPress={handleAddEvent}>
-                                        <Text style={styles.createFirstEventButtonText}>Create Your First Event</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-                        </View>
-                    </>
-                )}
-            </ScrollView>
-        </View>
+                {/* Check-in code: what the door shows; the codes live under Venue */}
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate('QRCodeGenerator')}
+                    accessibilityRole="button"
+                    testID="overview-checkin-code"
+                >
+                    <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
+                    <View style={styles.cardText}>
+                        <Text style={styles.cardLabel}>Check-in code</Text>
+                        <Text style={styles.cardHint}>Show, share or print the code guests scan at the door</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                </TouchableOpacity>
+            </View>
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
-    },
-    scrollView: {
-        flex: 1,
+        backgroundColor: colors.background,
     },
     header: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 20,
         alignItems: 'center',
     },
     barName: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.onPrimary,
         marginBottom: 5,
     },
     subtitle: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.onPrimary,
         opacity: 0.8,
     },
-    resetButton: {
-        backgroundColor: '#333333',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 4,
+    cards: {
+        paddingHorizontal: 16,
+        paddingBottom: 16,
     },
-    resetButtonText: {
-        color: '#FF5252',
-        fontSize: 12,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-        paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#333333',
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 15,
-        paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#333333',
-    },
-    eventsSection: {
-        padding: 20,
-        backgroundColor: '#1E1E1E',
-        marginBottom: 10,
-    },
-    eventsSectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 5,
-    },
-    addEventButton: {
+    card: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1db954',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-    },
-    addEventButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        marginLeft: 5,
-    },
-    eventCard: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
-        padding: 15,
-        marginBottom: 15,
+        padding: 14,
+        marginBottom: 12,
     },
-    eventHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    eventName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
+    cardText: {
         flex: 1,
+        marginHorizontal: 12,
     },
-    eventActions: {
-        flexDirection: 'row',
-    },
-    eventAction: {
-        padding: 5,
-        marginLeft: 10,
-    },
-    eventDate: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    eventDateText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    recurringBadge: {
-        backgroundColor: '#2196f3',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 4,
-        marginLeft: 10,
-    },
-    recurringBadgeText: {
-        color: '#FFFFFF',
+    cardLabel: {
+        color: colors.textMuted,
         fontSize: 12,
+        textTransform: 'uppercase',
+        marginBottom: 2,
     },
-    eventTime: {
-        color: '#BBBBBB',
-        fontSize: 14,
-        marginBottom: 10,
-    },
-    eventDescription: {
-        color: '#CCCCCC',
-        fontSize: 14,
-        marginBottom: 15,
-        lineHeight: 20,
-    },
-    eventGenres: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    eventGenreTag: {
-        backgroundColor: 'rgba(29, 185, 84, 0.8)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-        marginRight: 8,
-        marginBottom: 8,
-    },
-    eventGenreText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-    },
-    emptyState: {
-        padding: 30,
-        alignItems: 'center',
-        backgroundColor: '#2A2A2A',
-        borderRadius: 8,
-    },
-    emptyStateHeader: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 10,
-    },
-    emptyStateText: {
-        color: '#CCCCCC',
-        textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 20,
-    },
-    createFirstEventButton: {
-        backgroundColor: '#1db954',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 25,
-    },
-    createFirstEventButtonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
+    cardTitle: {
+        color: colors.text,
         fontSize: 16,
+        fontWeight: '600',
+    },
+    cardHint: {
+        color: colors.textMuted,
+        fontSize: 14,
     },
 });
 

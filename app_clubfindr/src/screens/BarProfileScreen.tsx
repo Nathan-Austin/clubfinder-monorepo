@@ -1,7 +1,7 @@
 /**
- * The venue side's Profile tab (KNOWN_ISSUES 86): editing the venue's profile and logging out,
- * which were two of the four buttons in a row across the dashboard's header that did not fit on a
- * phone.
+ * The venue side's Venue tab: what a venue sets up once (ROADMAP "Venue side of the app", step 9).
+ * Editing its profile, its QR codes (a tab of their own until step 9; the Overview has a shortcut)
+ * and logging out. Later settings go here as rows.
  */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
@@ -48,6 +48,13 @@ const BarProfileScreen = () => {
             label: 'Edit venue profile',
             hint: 'Name, address, contact details, description, bar type',
             onPress: () => navigation.navigate('EditBarProfile'),
+        },
+        {
+            key: 'qr',
+            icon: 'qr-code-outline',
+            label: 'QR codes',
+            hint: 'Check-in codes to show, share or print',
+            onPress: () => navigation.navigate('QRCodeGenerator'),
         },
         {
             key: 'logout',

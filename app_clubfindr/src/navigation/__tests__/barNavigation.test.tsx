@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { Alert } from 'react-native';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -16,9 +16,19 @@ import 'react-native-gesture-handler/jestSetup';
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 
 const mockLogout = jest.fn().mockResolvedValue(undefined);
+// The server, by URL: the venue's events and its declared genres
+let mockEvents: unknown = [];
+const mockGet = jest.fn((url: string) => {
+  if (url === '/api/mobile/bars/bar-1/events') {
+    return mockEvents instanceof Error ? Promise.reject(mockEvents) : Promise.resolve({ data: { events: mockEvents } });
+  }
+  if (url.endsWith('/taste/genres')) return Promise.resolve({ data: { genres: ['techno'] } });
+  return Promise.resolve({ data: {} });
+});
+const mockDelete = jest.fn().mockResolvedValue({ data: { message: 'Event deleted successfully' } });
 jest.mock('../../api/axiosClient', () => ({
   __esModule: true,
-  default: { get: jest.fn().mockResolvedValue({ data: { genres: ['techno'] } }), put: jest.fn() },
+  default: { get: (url: string) => mockGet(url), put: jest.fn(), delete: (url: string) => mockDelete(url) },
 }));
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'bar-1' }, userType: 'bar', isLoading: false, logout: mockLogout }),
@@ -68,8 +78,20 @@ function renderVenueSide() {
   );
 }
 
+const FRIDAY = {
+  id: 'ev-1',
+  theme_name: 'Friday Session',
+  event_date: '2099-12-04',
+  start_time: '22:00:00',
+  end_time: null,
+  recurring: false,
+  special_genres: ['house'],
+};
+
 beforeEach(async () => {
   mockLogout.mockClear();
+  mockDelete.mockClear();
+  mockEvents = [];
   await AsyncStorage.clear();
   await AsyncStorage.multiSet([
     ['barName', 'Club Tilki'],
@@ -78,21 +100,19 @@ beforeEach(async () => {
 });
 
 describe('venue bottom tabs', () => {
-  it('opens on the dashboard with four tabs', async () => {
+  it('opens on Overview, with Overview, Events, Music and Venue', async () => {
     renderVenueSide();
     expect(await screen.findByText('screen:BarHome')).toBeTruthy();
-    for (const label of ['Dashboard', 'QR Codes', 'Music', 'Profile']) {
+    for (const label of ['Overview', 'Events', 'Music', 'Venue']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
+    // QR codes are not a tab any more: they open from Venue and the Overview
+    expect(screen.queryByText('QR Codes')).toBeNull();
   });
 
-  it('switches to QR codes, and to Music with the artist picker in venue mode', async () => {
+  it('switches to Music with the artist picker in venue mode', async () => {
     renderVenueSide();
     await screen.findByText('screen:BarHome');
-
-    fireEvent.press(screen.getByText('QR Codes'));
-    expect(await screen.findByText('screen:QRCodeGenerator')).toBeTruthy();
-
     fireEvent.press(screen.getByTestId('open-venue-music'));
     expect(await screen.findByText('screen:ArtistPicker:venue')).toBeTruthy();
   });
@@ -107,13 +127,69 @@ describe('venue bottom tabs', () => {
   });
 });
 
-describe('the Profile tab', () => {
+describe('the Events tab', () => {
+  async function openEvents() {
+    renderVenueSide();
+    await screen.findByText('screen:BarHome');
+    fireEvent.press(screen.getByTestId('open-venue-events'));
+  }
+
+  it("lists the venue's events and opens Edit over the tabs", async () => {
+    mockEvents = [FRIDAY];
+    await openEvents();
+    expect(await screen.findByText('Friday Session')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Edit Friday Session'));
+    expect(await screen.findByText('screen:EventForm')).toBeTruthy();
+  });
+
+  it('says when there are none, and opens Create', async () => {
+    await openEvents();
+    expect(await screen.findByTestId('venue-events-empty')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('add-event'));
+    expect(await screen.findByText('screen:EventForm')).toBeTruthy();
+  });
+
+  it('shows "Try again" when the events cannot be loaded, not "no events"', async () => {
+    mockEvents = new Error('Network request failed');
+    await openEvents();
+    expect(await screen.findByText("We couldn't load your events just now.")).toBeTruthy();
+    expect(screen.queryByTestId('venue-events-empty')).toBeNull();
+    mockEvents = [FRIDAY];
+    fireEvent.press(screen.getByText('Try again'));
+    expect(await screen.findByText('Friday Session')).toBeTruthy();
+  });
+
+  it('deletes an event after a confirmation', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    mockEvents = [FRIDAY];
+    await openEvents();
+    fireEvent.press(await screen.findByLabelText('Delete Friday Session'));
+    expect(mockDelete).not.toHaveBeenCalled();
+
+    mockEvents = [];
+    const buttons = alert.mock.calls[0][2] as { text: string; onPress?: () => void }[];
+    await act(async () => {
+      buttons.find((button) => button.text === 'Delete')!.onPress!();
+    });
+    expect(mockDelete).toHaveBeenCalledWith('/api/mobile/bars/bar-1/events/ev-1');
+    await waitFor(() => expect(screen.queryByText('Friday Session')).toBeNull());
+    alert.mockRestore();
+  });
+});
+
+describe('the Venue tab', () => {
   async function openProfile() {
     renderVenueSide();
     await screen.findByText('screen:BarHome');
-    fireEvent.press(screen.getByText('Profile'));
+    fireEvent.press(screen.getByTestId('open-venue-settings'));
     return screen.findByTestId('bar-profile-edit');
   }
+
+  it('opens the QR codes over the tabs', async () => {
+    await openProfile();
+    fireEvent.press(screen.getByTestId('bar-profile-qr'));
+    expect(await screen.findByText('screen:QRCodeGenerator')).toBeTruthy();
+  });
 
   it("shows the venue's name", async () => {
     await openProfile();

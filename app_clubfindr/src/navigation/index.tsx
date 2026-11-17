@@ -30,6 +30,7 @@ import QRScannerScreen from '../screens/QRScannerScreen';
 import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPickerScreen';
 import BarProfileScreen from '../screens/BarProfileScreen';
 import VenueMusicScreen from '../screens/VenueMusicScreen';
+import VenueEventsScreen from '../screens/VenueEventsScreen';
 import { colors, headerOptions, navigationTheme, tabBarOptions } from '../theme';
 import { VenueProvider } from '../contexts/VenueContext';
 
@@ -64,23 +65,27 @@ export type RootStackParamList = {
 };
 
 /**
- * The venue side (KNOWN_ISSUES 86): bottom tabs like the customer side, in place of a row of four
- * buttons across the dashboard's header that was cut off on a phone. The forms open over the tabs.
+ * The venue side (KNOWN_ISSUES 86; ROADMAP "Venue side of the app"): four bottom tabs by how often
+ * a venue uses them, Overview, Events, Music and Venue. The forms and the QR codes open over the
+ * tabs from the venue stack.
  */
 export type BarTabParamList = {
-  /** Stats and the venue's events */
-  BarHome: undefined;
-  QRCodeGenerator: undefined;
+  /** Tonight at a glance: visitors, the next event, the check-in code */
+  Overview: undefined;
+  /** The venue's upcoming events: add, edit, delete */
+  Events: undefined;
   /** Artists and genres you play; the artist picker inside reads `mode` from these params */
   VenueMusic: ArtistPickerParams;
-  /** Edit the venue profile, log out */
-  BarProfile: undefined;
+  /** Edit the venue profile, QR codes, log out */
+  Venue: undefined;
 };
 export type BarStackParamList = {
   BarTabs: NavigatorScreenParams<BarTabParamList> | undefined;
   EditBarProfile: undefined;
   AddEvent: undefined;
   EditEvent: { event: unknown };
+  /** From the Venue tab and the Overview's check-in card */
+  QRCodeGenerator: undefined;
 };
 
 
@@ -127,10 +132,10 @@ const BarTab = createBottomTabNavigator<BarTabParamList>();
 const BarStack = createStackNavigator<BarStackParamList>();
 
 const BAR_TAB_ICONS: Record<keyof BarTabParamList, [focused: IconName, unfocused: IconName]> = {
-  BarHome: ['stats-chart', 'stats-chart-outline'],
-  QRCodeGenerator: ['qr-code', 'qr-code-outline'],
+  Overview: ['stats-chart', 'stats-chart-outline'],
+  Events: ['calendar', 'calendar-outline'],
   VenueMusic: ['musical-notes', 'musical-notes-outline'],
-  BarProfile: ['business', 'business-outline'],
+  Venue: ['business', 'business-outline'],
 };
 
 export const BarTabNavigator = () => (
@@ -143,14 +148,14 @@ export const BarTabNavigator = () => (
     })}
   >
     <BarTab.Screen
-      name="BarHome"
+      name="Overview"
       component={BarHomeScreen}
-      options={{ title: 'Dashboard', tabBarLabel: 'Dashboard' }}
+      options={{ title: 'Overview', tabBarLabel: 'Overview' }}
     />
     <BarTab.Screen
-      name="QRCodeGenerator"
-      component={QRCodeGeneratorScreen}
-      options={{ title: 'QR Code Management', tabBarLabel: 'QR Codes' }}
+      name="Events"
+      component={VenueEventsScreen}
+      options={{ title: 'Events', tabBarLabel: 'Events', tabBarButtonTestID: 'open-venue-events' }}
     />
     <BarTab.Screen
       name="VenueMusic"
@@ -159,9 +164,9 @@ export const BarTabNavigator = () => (
       options={{ title: 'Your Music', tabBarLabel: 'Music', tabBarButtonTestID: 'open-venue-music' }}
     />
     <BarTab.Screen
-      name="BarProfile"
+      name="Venue"
       component={BarProfileScreen}
-      options={{ title: 'Venue Profile', tabBarLabel: 'Profile' }}
+      options={{ title: 'Venue', tabBarLabel: 'Venue', tabBarButtonTestID: 'open-venue-settings' }}
     />
   </BarTab.Navigator>
 );
@@ -185,6 +190,11 @@ export const BarNavigator = () => (
         name="EditEvent"
         component={EventFormScreen}
         options={{ title: 'Edit Event' }}
+      />
+      <BarStack.Screen
+        name="QRCodeGenerator"
+        component={QRCodeGeneratorScreen}
+        options={{ title: 'QR Codes' }}
       />
     </BarStack.Navigator>
   </VenueProvider>
