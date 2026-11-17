@@ -20,7 +20,7 @@ import { enGB, registerTranslation } from 'react-native-paper-dates';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import axiosClient from '../api/axiosClient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useVenue } from '../contexts/VenueContext';
 import { fromLocalIsoDate, toLocalIsoDate } from '../utils/localDate';
 
 // Types
@@ -52,6 +52,7 @@ registerTranslation('en', enGB);
 const EventFormScreen = () => {
     const navigation = useNavigation<EventFormScreenNavigationProp>();
     const route = useRoute<EventFormScreenRouteProp>();
+    const { barId } = useVenue();
 
     const isEditMode = route.name === 'EditEvent';
     const initialEvent = isEditMode ? route.params?.event : undefined;
@@ -174,7 +175,6 @@ const EventFormScreen = () => {
         }
 
         setSubmitting(true);
-        const barId = await AsyncStorage.getItem('barId');
 
         if (!barId) {
             Alert.alert('Error', 'Bar ID not found. Please log in again.');

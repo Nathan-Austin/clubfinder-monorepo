@@ -12,7 +12,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
 import BarStatsDashboard from '../components/BarStatsDashboard';
@@ -38,11 +38,12 @@ type BarHomeScreenNavigationProp = StackNavigationProp<any>;
 const BarHomeScreen = () => {
     const navigation = useNavigation<BarHomeScreenNavigationProp>();
     const { user, logout } = useAuth();
+    // Read once by the venue side's provider; the name follows Edit Profile at once
+    const { barId, barName } = useVenue();
 
     // State
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [barName, setBarName] = useState<string>('');
     const [barData, setBarData] = useState<any>(null);
     const [events, setEvents] = useState<BarEvent[]>([]);
     const [topGenres, setTopGenres] = useState<{ genre: string, count: number }[]>([]);
@@ -68,14 +69,6 @@ const BarHomeScreen = () => {
 
     const loadBarDetails = async () => {
         try {
-            // Load bar name from AsyncStorage
-            const storedBarName = await AsyncStorage.getItem('barName');
-            if (storedBarName) {
-                setBarName(storedBarName);
-            }
-
-            // Get bar ID from storage
-            const barId = await AsyncStorage.getItem('barId');
             if (!barId) {
                 console.error('Bar ID not found');
                 return;
@@ -113,7 +106,6 @@ const BarHomeScreen = () => {
     const loadBarEvents = async () => {
         try {
             // Get bar ID from storage
-            const barId = await AsyncStorage.getItem('barId');
             if (!barId) {
                 console.error('Bar ID not found');
                 return;
@@ -198,7 +190,6 @@ const BarHomeScreen = () => {
     const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
     const deleteEvent = async (event: BarEvent) => {
-        const barId = await AsyncStorage.getItem('barId');
         setDeletingEventId(event.id);
         try {
             const result = await deleteBarEvent(barId ?? '', event.id);

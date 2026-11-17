@@ -3,12 +3,13 @@
  * which were two of the four buttons in a row across the dashboard's header that did not fit on a
  * phone.
  */
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { useVenue } from '../contexts/VenueContext';
 import { colors } from '../theme';
 
 type Row = {
@@ -23,14 +24,8 @@ type Row = {
 const BarProfileScreen = () => {
     const navigation = useNavigation<{ navigate: (screen: string) => void }>();
     const { logout } = useAuth();
-    const [barName, setBarName] = useState('');
-
-    // The name can change on the Edit screen, so read it each time the tab is shown
-    useFocusEffect(
-        useCallback(() => {
-            AsyncStorage.getItem('barName').then((name) => setBarName(name ?? ''));
-        }, [])
-    );
+    // Follows Edit Profile's save through the venue context, without reloading on focus
+    const { barName } = useVenue();
 
     const handleLogout = () => {
         Alert.alert('Log Out', 'Are you sure you want to log out?', [

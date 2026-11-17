@@ -31,6 +31,7 @@ import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPi
 import BarProfileScreen from '../screens/BarProfileScreen';
 import VenueMusicScreen from '../screens/VenueMusicScreen';
 import { colors, headerOptions, navigationTheme, tabBarOptions } from '../theme';
+import { VenueProvider } from '../contexts/VenueContext';
 
 // Define the types for the various navigators
 export type MainTabParamList = {
@@ -165,25 +166,28 @@ export const BarTabNavigator = () => (
   </BarTab.Navigator>
 );
 
+// VenueProvider: every venue screen reads the venue's id and name from it (useVenue)
 export const BarNavigator = () => (
-  <BarStack.Navigator screenOptions={headerOptions}>
-    <BarStack.Screen name="BarTabs" component={BarTabNavigator} options={{ headerShown: false }} />
-    <BarStack.Screen
-      name="EditBarProfile"
-      component={EditBarProfileScreen}
-      options={{ title: 'Edit Bar Profile' }}
-    />
-    <BarStack.Screen
-      name="AddEvent"
-      component={EventFormScreen}
-      options={{ title: 'Create Event' }}
-    />
-    <BarStack.Screen
-      name="EditEvent"
-      component={EventFormScreen}
-      options={{ title: 'Edit Event' }}
-    />
-  </BarStack.Navigator>
+  <VenueProvider>
+    <BarStack.Navigator screenOptions={headerOptions}>
+      <BarStack.Screen name="BarTabs" component={BarTabNavigator} options={{ headerShown: false }} />
+      <BarStack.Screen
+        name="EditBarProfile"
+        component={EditBarProfileScreen}
+        options={{ title: 'Edit Bar Profile' }}
+      />
+      <BarStack.Screen
+        name="AddEvent"
+        component={EventFormScreen}
+        options={{ title: 'Create Event' }}
+      />
+      <BarStack.Screen
+        name="EditEvent"
+        component={EventFormScreen}
+        options={{ title: 'Edit Event' }}
+      />
+    </BarStack.Navigator>
+  </VenueProvider>
 );
 
 // Main App Navigator (single level, simplified structure)

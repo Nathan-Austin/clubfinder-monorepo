@@ -18,7 +18,7 @@ import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import axiosClient from '../api/axiosClient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useVenue } from '../contexts/VenueContext';
 import { captureQrPng, qrShareFilePath, type QrSvgRef } from '../utils/qrShare';
 import { log } from '../utils/logger';
 
@@ -32,6 +32,7 @@ type QRCodeData = {
 
 const QRCodeGeneratorScreen = () => {
     const svgRef = React.useRef<QrSvgRef | null>(null);
+    const { barId, barName: venueName } = useVenue();
     const [qrCodes, setQrCodes] = useState<QRCodeData[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -48,7 +49,6 @@ const QRCodeGeneratorScreen = () => {
     const loadQRCodes = async () => {
         try {
             setLoading(true);
-            const barId = await AsyncStorage.getItem('barId');
             if (!barId) {
                 Alert.alert('Error', 'Bar ID not found. Please log in again.');
                 return;
@@ -74,8 +74,7 @@ const QRCodeGeneratorScreen = () => {
 
         try {
             setCreating(true);
-            const barId = await AsyncStorage.getItem('barId');
-            const barName = await AsyncStorage.getItem('barName') || 'Your Bar';
+            const barName = venueName || 'Your Bar';
 
             const response = await axiosClient.post(`/api/mobile/bars/${barId}/qrcodes`, {
                 title: newCodeTitle,
@@ -159,8 +158,7 @@ const QRCodeGeneratorScreen = () => {
 
     const requestPromotionPackage = async (qrCode: QRCodeData) => {
         try {
-            const barId = await AsyncStorage.getItem('barId');
-            const barName = await AsyncStorage.getItem('barName') || 'Unknown Bar';
+            const barName = venueName || 'Unknown Bar';
 
             // Generate a reference number for this print request
             const referenceNumber = `PRINT-${Date.now().toString(36).toUpperCase()}`;
@@ -198,7 +196,6 @@ const QRCodeGeneratorScreen = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const barId = await AsyncStorage.getItem('barId');
                             const response = await axiosClient.delete(`/api/mobile/bars/${barId}/qrcodes/${qrCode.id}`);
 
                             if (response.data.success) {

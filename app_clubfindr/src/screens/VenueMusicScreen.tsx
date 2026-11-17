@@ -8,9 +8,9 @@
  * A switch between the two rather than one long screen: the picker scrolls on its own, and a
  * scroll view inside another one does not work on Android.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useVenue } from '../contexts/VenueContext';
 import ArtistPickerScreen from './ArtistPickerScreen';
 import VenueGenresEditor from '../components/VenueGenresEditor';
 import { colors } from '../theme';
@@ -24,12 +24,7 @@ const PARTS: { key: Part; label: string }[] = [
 
 const VenueMusicScreen = () => {
     const [part, setPart] = useState<Part>('artists');
-    const [barId, setBarId] = useState<string | null | undefined>(undefined);
-
-    // Stored at venue login (AuthContext.barLogin), like the artist picker reads it
-    useEffect(() => {
-        AsyncStorage.getItem('barId').then(setBarId);
-    }, []);
+    const { barId } = useVenue();
 
     return (
         <View style={styles.container}>
@@ -50,7 +45,7 @@ const VenueMusicScreen = () => {
 
             {part === 'artists' ? (
                 <ArtistPickerScreen />
-            ) : barId === undefined ? null : barId ? (
+            ) : barId ? (
                 <ScrollView keyboardShouldPersistTaps="handled">
                     <VenueGenresEditor barId={barId} />
                 </ScrollView>

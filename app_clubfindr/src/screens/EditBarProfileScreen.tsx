@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -49,6 +49,7 @@ const BAR_TYPES = [
 
 const EditBarProfileScreen = () => {
     const navigation = useNavigation<EditBarProfileScreenNavigationProp>();
+    const { barId, setBarName } = useVenue();
 
     // State for profile fields
     const [profile, setProfile] = useState<BarProfile>({
@@ -77,8 +78,6 @@ const EditBarProfileScreen = () => {
     const loadBarProfile = async () => {
         setLoading(true);
         try {
-            const barId = await AsyncStorage.getItem('barId');
-            console.log('Retrieved barId:', barId);
 
             if (!barId) {
                 Alert.alert('Error', 'Bar ID not found. Please log in again.');
@@ -201,8 +200,8 @@ const EditBarProfileScreen = () => {
                 bar_types: profile.bar_types
             });
 
-            // Update bar name in storage if it changed
-            await AsyncStorage.setItem('barName', profile.name);
+            // The dashboard's and Profile tab's name follow at once (VenueContext)
+            await setBarName(profile.name);
 
             Alert.alert(
                 'Success',
