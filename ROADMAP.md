@@ -14,6 +14,25 @@ password message (81); a redesign of the venue side's navigation, which is cut o
 Not tested yet, for the next device run: a personal account with no venue, the venue password
 reset by e-mail, a non-Tilki QR code, changing the city on the web, and section 9 of the checklist.
 
+## Venue side of the app: decided 2026-11-17
+
+Option C of the 2026-11-17 review: four tabs by how often a venue uses them, **Overview · Events ·
+Music · Venue**, so no single screen holds stats, events, taste and settings at once.
+- **Overview:** tonight at a glance (visitors, the next event, a "show check-in code" card)
+- **Events:** the venue's events, add, edit, delete; recurring dates once the server expands them
+- **Music:** the artists you play and the genres you play (one genre list, the one the matcher
+  accepts)
+- **Venue:** edit profile, QR codes, log out; where later settings go
+
+The 2026-11-17 app round does it in three steps, each with its own commits and the app's checks:
+7. Music tab: Artists becomes Music, with a "genres you play" editor (section 5)
+8. Overview cleanup: no always-0 "Genre Matches" tile, a `VenueContext` for the venue's id and
+   name, the event form on the shared genre list
+9. Events and Venue tabs, together for one device run: events leave the dashboard, the event form
+   is split into sections, QR codes and Profile go into Venue
+
+Then 10, the lint warnings (KNOWN_ISSUES 80), and 11, the hand-over with a device checklist.
+
 ## Today's session (2026-11-16): the mobile app
 
 **Agents: this section is the brief for today's session.** It ends in an Android build that the
@@ -440,9 +459,14 @@ top artists or play counts on the web).
 - [ ] Unit tests for the services layer (started 2026-11-16: auth/bar login, city, the HTTP clients, location, logging; 25 tests → 97)
 - [x] Done 2026-11-16 for the services and the HTTP clients (`b6d6bb0`) and for logging (`5ee2f8c`); the screens still have `any` (KNOWN_ISSUES 80). Replace `any` types and gate `console.log` for production builds
 - [ ] Split screen components over 500 lines (LoginScreen done 2026-11-16; the rest are listed in KNOWN_ISSUES 80)
-- [ ] Cancel one date of a recurring venue event instead of deleting the series (KNOWN_ISSUES 89):
-      a skipped-dates table read by the listing and both matchers, and a choice in the app's and
-      the web's delete. Server and app; its own e2e run
+- [ ] **Next server round:** expand recurring venue events into dates on the server (KNOWN_ISSUES
+      90). Today a recurring event counts for matching on its first date only, and then drops out
+      of `/barfindr` and the venue's own list. One occurrence function in `$lib` for the venue
+      list, both matchers and `/barfindr`; validate `recurrence_pattern` against daily, weekly,
+      biweekly and monthly; the app's Events tab then lists occurrences. With its e2e run
+- [ ] Then cancel one date of a recurring venue event instead of deleting the series (KNOWN_ISSUES
+      89): a skipped-dates table read by the occurrence function, and a choice in the app's and
+      the web's delete
 - [ ] Loading states and network error recovery (Home and Tilki have an error with "Try again" since 2026-11-16, KNOWN_ISSUES 72)
 - [ ] Finish the QR scanner flow to open venue details
 - [ ] Configure Sentry for production with source maps

@@ -986,3 +986,14 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     owner's instruction (2026-11-17). To fix in a later round (ROADMAP section 5): cancel one date
     (a table of skipped dates, read by the listing and both matchers) next to deleting the series,
     and say which one the venue is about to do. A server change, with its e2e run.
+90. **Recurring venue events only exist on their first date.** Found 2026-11-17. A recurring event
+    is one `bar_events` row (a start `event_date`, `recurring`, a free-text `recurrence_pattern`),
+    and nothing on the server expands it into dates: `POST /api/mobile/bars/matching` selects
+    `event_date = <the day>`, `/barfindr` and `GET /api/mobile/bars/:barId/events` select
+    `event_date >= <today>`. So a weekly night counts towards matching on its first date only, and
+    after that date it is gone from `/barfindr` and from the venue's own event list in the app,
+    though still in the database. The app's form offers daily, weekly, bi-weekly and monthly.
+    Fix in the next server round (ROADMAP section 5): one occurrence function in `$lib` used by
+    the venue list, both matchers and `/barfindr`; the pattern validated against those four values;
+    then skipped dates for "cancel this date" (89). The app then shows occurrences, not rows.
+
