@@ -4,6 +4,7 @@
  * list they came from.
  */
 import React from 'react';
+import { Alert } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 const mockEvent = {
@@ -60,4 +61,32 @@ it("keeps an event's existing genres and saves the ones added from the shared li
   expect(body.special_genres[0]).toBe('Live Music');
   expect(body.special_genres).toHaveLength(2);
   expect(body.special_genres[1].toLowerCase()).toContain('techno');
+});
+
+// The form split into sections (step 9) keeps its rules and its request body
+it('refuses to save without a name, and saves a recurring event with its pattern', async () => {
+  put.mockClear();
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  render(<EventFormScreen />);
+
+  fireEvent.changeText(screen.getByPlaceholderText('e.g., Jazz Night, Salsa Tuesday'), '  ');
+  fireEvent.press(screen.getByText('Update Event'));
+  expect(await screen.findByText('Event theme/name is required')).toBeTruthy();
+  expect(put).not.toHaveBeenCalled();
+
+  fireEvent.changeText(screen.getByPlaceholderText('e.g., Jazz Night, Salsa Tuesday'), 'Friday Session');
+  fireEvent(screen.getByTestId('event-recurring-switch'), 'valueChange', true);
+  expect(await screen.findByText(/listed and matched on its first date only/)).toBeTruthy();
+  fireEvent.press(screen.getByText('Update Event'));
+
+  await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
+  expect(put.mock.calls[0][1]).toMatchObject({
+    theme_name: 'Friday Session',
+    event_date: '2026-12-04',
+    recurring: true,
+    recurrence_pattern: 'weekly',
+    start_time: null,
+    end_time: null,
+  });
+  alert.mockRestore();
 });

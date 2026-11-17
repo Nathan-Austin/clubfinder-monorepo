@@ -9,19 +9,18 @@ import {
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
-    Switch,
     ScrollView
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { DatePickerModal, TimePickerModal } from 'react-native-paper-dates';
 import { enGB, registerTranslation } from 'react-native-paper-dates';
-import { Picker } from '@react-native-picker/picker';
-import { Ionicons } from '@expo/vector-icons';
 import axiosClient from '../api/axiosClient';
 import { useVenue } from '../contexts/VenueContext';
 import GenreChipsInput from '../components/GenreChipsInput';
-import { fromLocalIsoDate, toLocalIsoDate } from '../utils/localDate';
+import EventWhenSection from '../components/eventForm/EventWhenSection';
+import EventRecurrenceSection from '../components/eventForm/EventRecurrenceSection';
+import { fromLocalIsoDate } from '../utils/localDate';
+import { parseTimeString, toEventPayload, validateEventForm, type EventFormErrors } from '../utils/eventFormValues';
 
 // Types
 interface BarEvent {
@@ -60,8 +59,8 @@ const EventFormScreen = () => {
     // State for form fields
     const [themeName, setThemeName] = useState(initialEvent?.theme_name || '');
     const [description, setDescription] = useState(initialEvent?.description || '');
-    // Read as a local day: `new Date('2031-06-21')` is UTC midnight, and formatDateToString
-    // below uses the local parts, so editing would save the previous day west of UTC.
+    // Read as a local day: `new Date('2031-06-21')` is UTC midnight, and the payload uses the
+    // local parts (toLocalIsoDate), so editing would save the previous day west of UTC.
     const [eventDate, setEventDate] = useState(initialEvent?.event_date ? fromLocalIsoDate(initialEvent.event_date) : new Date());
     const [startTime, setStartTime] = useState(initialEvent?.start_time ? parseTimeString(initialEvent.start_time) : new Date());
     const [endTime, setEndTime] = useState(initialEvent?.end_time ? parseTimeString(initialEvent.end_time) : new Date());
@@ -70,80 +69,28 @@ const EventFormScreen = () => {
     const [isRecurring, setIsRecurring] = useState(initialEvent?.recurring || false);
     const [recurrencePattern, setRecurrencePattern] = useState(initialEvent?.recurrence_pattern || 'weekly');
     const [specialGenres, setSpecialGenres] = useState<string[]>(initialEvent?.special_genres || []);
-    const [isStartTimePickerVisible, setStartTimePickerVisible] = useState(false);
-    const [isEndTimePickerVisible, setEndTimePickerVisible] = useState(false);
 
-    // UI state
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<EventFormErrors>({});
 
-    // Parse time string (HH:MM) to Date object
-    function parseTimeString(timeString: string): Date {
-        const [hours, minutes] = timeString.split(':').map(Number);
-        const date = new Date();
-        date.setHours(hours, minutes, 0, 0);
-        return date;
-    }
-
-    // Format Date to YYYY-MM-DD (local parts, pairing with fromLocalIsoDate above)
-    const formatDateToString = toLocalIsoDate;
-
-    // Format time from Date object to HH:MM
-    function formatTimeToString(date: Date): string {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-
-    // Display formatted date
-    function getFormattedDate(): string {
-        return eventDate.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-
-    // Display formatted time
-    function getFormattedTime(date: Date): string {
-        return date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    }
-
-    // Form validation
-    const validateForm = (): boolean => {
-        const newErrors: Record<string, string> = {};
-
-        if (!themeName.trim()) {
-            newErrors.themeName = 'Event theme/name is required';
-        }
-
-        if (hasEndTime && hasStartTime) {
-            const startHour = startTime.getHours();
-            const endHour = endTime.getHours();
-
-            // If end time is between midnight and 6 AM, assume it's for the next day
-            if (endHour >= 0 && endHour < 6) {
-                // This is valid - early morning hours are considered next day
-            } else if (endTime <= startTime) {
-                newErrors.endTime = 'End time must be after start time';
-            }
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+    const values = {
+        themeName,
+        description,
+        eventDate,
+        startTime,
+        endTime,
+        hasStartTime,
+        hasEndTime,
+        isRecurring,
+        recurrencePattern,
+        specialGenres,
     };
 
     // Handle form submission
     const handleSubmit = async () => {
-        if (!validateForm()) {
+        const found = validateEventForm(values);
+        setErrors(found);
+        if (Object.keys(found).length > 0) {
             return;
         }
 
@@ -155,18 +102,7 @@ const EventFormScreen = () => {
             return;
         }
 
-        // Prepare event data
-        const eventData = {
-            bar_id: barId,
-            theme_name: themeName,
-            description: description || '',
-            event_date: formatDateToString(eventDate),
-            start_time: hasStartTime ? formatTimeToString(startTime) : null,
-            end_time: hasEndTime ? formatTimeToString(endTime) : null,
-            recurring: isRecurring || false,
-            recurrence_pattern: isRecurring ? recurrencePattern : null,
-            special_genres: specialGenres || []
-        };
+        const eventData = toEventPayload(values, barId);
 
         try {
             let response;
@@ -243,111 +179,19 @@ const EventFormScreen = () => {
                         ) : null}
                     </View>
 
-                    {/* Event Date */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Event Date *</Text>
-                        <TouchableOpacity
-                            style={styles.dateInput}
-                            onPress={() => setShowDatePicker(true)}
-                        >
-                            <Text style={styles.dateText}>{getFormattedDate()}</Text>
-                            <Ionicons name="calendar-outline" size={20} color="#CCCCCC" />
-                        </TouchableOpacity>
-                        <DatePickerModal
-                            visible={showDatePicker}
-                            mode="single"
-                            date={eventDate}
-                            locale="en"
-                            onDismiss={() => setShowDatePicker(false)}
-                            onConfirm={({ date }) => {
-                                setShowDatePicker(false);
-                                if (date) {
-                                    setEventDate(date);
-                                }
-                            }}
-                        />
-
-                    </View>
-
-                    {/* Time Selectors */}
-                    <View style={styles.timeContainer}>
-                        {/* Start Time */}
-                        <View style={styles.timeGroup}>
-                            <View style={styles.timeHeader}>
-                                <Text style={styles.label}>Start Time</Text>
-                                <Switch
-                                    value={hasStartTime}
-                                    onValueChange={setHasStartTime}
-                                    trackColor={{ false: '#444', true: '#D35400' }}
-                                    thumbColor={hasStartTime ? '#fff' : '#f4f3f4'}
-                                />
-                            </View>
-                            {hasStartTime && (
-                                <TouchableOpacity
-                                    style={styles.timeInput}
-                                    onPress={() => setShowStartTimePicker(true)}
-                                    disabled={!hasStartTime}
-                                >
-                                    <Text style={styles.timeText}>{getFormattedTime(startTime)}</Text>
-                                    <Ionicons name="time-outline" size={20} color="#CCCCCC" />
-                                </TouchableOpacity>
-                            )}
-                            <TimePickerModal
-                                visible={showStartTimePicker && hasStartTime}
-                                onDismiss={() => setShowStartTimePicker(false)}
-                                onConfirm={({ hours, minutes }) => {
-                                    const newTime = new Date(startTime);
-                                    newTime.setHours(hours);
-                                    newTime.setMinutes(minutes);
-                                    setStartTime(newTime);
-                                    setShowStartTimePicker(false);
-                                }}
-                                locale="en"
-                            />
-
-
-                        </View>
-
-                        {/* End Time */}
-                        <View style={styles.timeGroup}>
-                            <View style={styles.timeHeader}>
-                                <Text style={styles.label}>End Time</Text>
-                                <Switch
-                                    value={hasEndTime}
-                                    onValueChange={setHasEndTime}
-                                    trackColor={{ false: '#444', true: '#D35400' }}
-                                    thumbColor={hasEndTime ? '#fff' : '#f4f3f4'}
-                                />
-                            </View>
-                            {hasEndTime && (
-                                <TouchableOpacity
-                                    style={styles.timeInput}
-                                    onPress={() => setShowEndTimePicker(true)}
-                                    disabled={!hasEndTime}
-                                >
-                                    <Text style={styles.timeText}>{getFormattedTime(endTime)}</Text>
-                                    <Ionicons name="time-outline" size={20} color="#CCCCCC" />
-                                </TouchableOpacity>
-                            )}
-                            <TimePickerModal
-                                visible={showEndTimePicker && hasEndTime}
-                                onDismiss={() => setShowEndTimePicker(false)}
-                                onConfirm={({ hours, minutes }) => {
-                                    const newTime = new Date(endTime);
-                                    newTime.setHours(hours);
-                                    newTime.setMinutes(minutes);
-                                    setEndTime(newTime);
-                                    setShowEndTimePicker(false);
-                                }}
-                                locale="en"
-                            />
-
-                        </View>
-                    </View>
-
-                    {errors.endTime ? (
-                        <Text style={styles.errorText}>{errors.endTime}</Text>
-                    ) : null}
+                    <EventWhenSection
+                        eventDate={eventDate}
+                        onEventDateChange={setEventDate}
+                        startTime={startTime}
+                        onStartTimeChange={setStartTime}
+                        hasStartTime={hasStartTime}
+                        onHasStartTimeChange={setHasStartTime}
+                        endTime={endTime}
+                        onEndTimeChange={setEndTime}
+                        hasEndTime={hasEndTime}
+                        onHasEndTimeChange={setHasEndTime}
+                        endTimeError={errors.endTime}
+                    />
 
                     {/* Description */}
                     <View style={styles.formGroup}>
@@ -364,38 +208,12 @@ const EventFormScreen = () => {
                         />
                     </View>
 
-                    {/* Recurring Event */}
-                    <View style={styles.formGroup}>
-                        <View style={styles.switchContainer}>
-                            <Text style={styles.label}>Recurring Event</Text>
-                            <Switch
-                                value={isRecurring}
-                                onValueChange={setIsRecurring}
-                                trackColor={{ false: '#444', true: '#D35400' }}
-                                thumbColor={isRecurring ? '#fff' : '#f4f3f4'}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Recurrence Pattern - visible only if recurring is true */}
-                    {isRecurring && (
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Recurrence Pattern</Text>
-                            <View style={styles.pickerContainer}>
-                                <Picker
-                                    selectedValue={recurrencePattern}
-                                    onValueChange={(itemValue) => setRecurrencePattern(itemValue)}
-                                    style={styles.picker}
-                                    dropdownIconColor="#FFFFFF"
-                                >
-                                    <Picker.Item label="Daily" value="daily" color="#FFFFFF" />
-                                    <Picker.Item label="Weekly" value="weekly" color="#FFFFFF" />
-                                    <Picker.Item label="Bi-weekly" value="biweekly" color="#FFFFFF" />
-                                    <Picker.Item label="Monthly" value="monthly" color="#FFFFFF" />
-                                </Picker>
-                            </View>
-                        </View>
-                    )}
+                    <EventRecurrenceSection
+                        isRecurring={isRecurring}
+                        onIsRecurringChange={setIsRecurring}
+                        pattern={recurrencePattern}
+                        onPatternChange={setRecurrencePattern}
+                    />
 
                     {/* Genres: the shared vocabulary the venue's own genres use; any text is accepted */}
                     <View style={styles.formGroup}>
@@ -487,44 +305,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 5,
     },
-    dateInput: {
-        backgroundColor: '#2A2A2A',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 6,
-    },
-    dateText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-    },
-    timeContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    timeGroup: {
-        width: '48%',
-    },
-    timeHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    timeInput: {
-        backgroundColor: '#2A2A2A',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 12,
-        borderRadius: 6,
-    },
-    timeText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-    },
     textArea: {
         backgroundColor: '#2A2A2A',
         color: '#FFFFFF',
@@ -532,20 +312,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         fontSize: 16,
         minHeight: 100,
-    },
-    switchContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    pickerContainer: {
-        backgroundColor: '#2A2A2A',
-        borderRadius: 6,
-        overflow: 'hidden',
-    },
-    picker: {
-        color: '#FFFFFF',
-        height: 50,
     },
     buttonGroup: {
         flexDirection: 'row',
