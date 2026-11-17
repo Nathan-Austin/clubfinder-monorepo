@@ -16,16 +16,24 @@ import 'react-native-gesture-handler/jestSetup';
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 
 const mockLogout = jest.fn().mockResolvedValue(undefined);
+jest.mock('../../api/axiosClient', () => ({
+  __esModule: true,
+  default: { get: jest.fn().mockResolvedValue({ data: { genres: ['techno'] } }), put: jest.fn() },
+}));
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'bar-1' }, userType: 'bar', isLoading: false, logout: mockLogout }),
 }));
 
-// Stand-ins: each says which screen it is, and the artist picker which mode it was opened in
+// Stand-ins: each says which screen it is, and the artist picker which mode it was opened in.
+// They read the route with useRoute(), as the real picker does: inside the Music tab it is
+// rendered as a child, not as a screen, and gets its mode from the tab's route that way
 function mockScreen(name: string) {
   const { Text } = require('react-native');
-  const Screen = ({ route }: { route?: { params?: { mode?: string } } }) => (
-    <Text>{`screen:${name}${route?.params?.mode ? `:${route.params.mode}` : ''}`}</Text>
-  );
+  const { useRoute } = require('@react-navigation/native');
+  const Screen = () => {
+    const mode = (useRoute() as { params?: { mode?: string } }).params?.mode;
+    return <Text>{`screen:${name}${mode ? `:${mode}` : ''}`}</Text>;
+  };
   return { __esModule: true, default: Screen };
 }
 jest.mock('../../screens/HomeScreen', () => mockScreen('Home'));
@@ -73,20 +81,29 @@ describe('venue bottom tabs', () => {
   it('opens on the dashboard with four tabs', async () => {
     renderVenueSide();
     expect(await screen.findByText('screen:BarHome')).toBeTruthy();
-    for (const label of ['Dashboard', 'QR Codes', 'Artists', 'Profile']) {
+    for (const label of ['Dashboard', 'QR Codes', 'Music', 'Profile']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
   });
 
-  it('switches to QR codes and to the artist picker in venue mode', async () => {
+  it('switches to QR codes, and to Music with the artist picker in venue mode', async () => {
     renderVenueSide();
     await screen.findByText('screen:BarHome');
 
     fireEvent.press(screen.getByText('QR Codes'));
     expect(await screen.findByText('screen:QRCodeGenerator')).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId('open-venue-artists'));
+    fireEvent.press(screen.getByTestId('open-venue-music'));
     expect(await screen.findByText('screen:ArtistPicker:venue')).toBeTruthy();
+  });
+
+  it("Music's Genres part loads the genres the venue plays", async () => {
+    renderVenueSide();
+    await screen.findByText('screen:BarHome');
+    fireEvent.press(screen.getByTestId('open-venue-music'));
+    fireEvent.press(await screen.findByTestId('venue-music-genres'));
+    expect(await screen.findByText('techno')).toBeTruthy();
+    expect(screen.queryByText('screen:ArtistPicker:venue')).toBeNull();
   });
 });
 

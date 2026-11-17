@@ -312,7 +312,7 @@ const ArtistPickerScreen = () => {
             )}
 
             <Text style={styles.subtitle}>
-                {mode === 'venue' ? 'Genres people will find you by' : 'Your genres'}
+                {mode === 'venue' ? 'Genres from your artists' : 'Your genres'}
                 {loading ? '' : ` (${genres.length})`}
             </Text>
             {!loading &&

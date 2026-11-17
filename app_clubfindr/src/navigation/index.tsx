@@ -29,6 +29,7 @@ import QRCodeGeneratorScreen from '../screens/QRCodeGeneratorScreen';
 import QRScannerScreen from '../screens/QRScannerScreen';
 import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPickerScreen';
 import BarProfileScreen from '../screens/BarProfileScreen';
+import VenueMusicScreen from '../screens/VenueMusicScreen';
 import { colors, headerOptions, navigationTheme, tabBarOptions } from '../theme';
 
 // Define the types for the various navigators
@@ -69,7 +70,8 @@ export type BarTabParamList = {
   /** Stats and the venue's events */
   BarHome: undefined;
   QRCodeGenerator: undefined;
-  VenueArtists: ArtistPickerParams;
+  /** Artists and genres you play; the artist picker inside reads `mode` from these params */
+  VenueMusic: ArtistPickerParams;
   /** Edit the venue profile, log out */
   BarProfile: undefined;
 };
@@ -126,7 +128,7 @@ const BarStack = createStackNavigator<BarStackParamList>();
 const BAR_TAB_ICONS: Record<keyof BarTabParamList, [focused: IconName, unfocused: IconName]> = {
   BarHome: ['stats-chart', 'stats-chart-outline'],
   QRCodeGenerator: ['qr-code', 'qr-code-outline'],
-  VenueArtists: ['musical-notes', 'musical-notes-outline'],
+  VenueMusic: ['musical-notes', 'musical-notes-outline'],
   BarProfile: ['business', 'business-outline'],
 };
 
@@ -150,10 +152,10 @@ export const BarTabNavigator = () => (
       options={{ title: 'QR Code Management', tabBarLabel: 'QR Codes' }}
     />
     <BarTab.Screen
-      name="VenueArtists"
-      component={ArtistPickerScreen}
+      name="VenueMusic"
+      component={VenueMusicScreen}
       initialParams={{ mode: 'venue' }}
-      options={{ title: 'Artists You Play', tabBarLabel: 'Artists', tabBarButtonTestID: 'open-venue-artists' }}
+      options={{ title: 'Your Music', tabBarLabel: 'Music', tabBarButtonTestID: 'open-venue-music' }}
     />
     <BarTab.Screen
       name="BarProfile"
