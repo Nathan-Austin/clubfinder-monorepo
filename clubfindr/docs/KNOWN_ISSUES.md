@@ -907,13 +907,17 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     hard-coded "Event deletion is currently not available. Please contact support" alert, although
     `DELETE /api/mobile/bars/:barId/events/:eventId` has existed since 2026-11-09. Wire the button
     to it, with a confirmation.
-83. **Sharing a QR code hangs forever.** `QRCodeGeneratorScreen.shareQRCode` opens a modal holding
-    only a spinner and awaits `svgRef.current.toDataURL(callback)`; on the device the callback never
-    came, so the modal never closed. The modal has no cancel button and no `onRequestClose`
-    (Android's back button does nothing), and the try/catch does not cover the `setTimeout` body.
-    Fix: a timeout on the capture, the whole flow in one try/catch/finally that always closes the
-    modal, a cancel control and `onRequestClose`; consider `react-native-view-shot` if
-    `toDataURL` is unreliable on the new architecture.
+83. _Fixed 2026-11-17 (`8fb0963`), to confirm on a device._ **Sharing a QR code hung forever.**
+    `QRCodeGeneratorScreen.shareQRCode` opened a modal holding only a spinner. The cause was not a
+    callback that never came: Android's `react-native-svg` `toDataURL` calls back with bare base64
+    (`SvgView.toDataURL`, no `data:` prefix), so `dataURL.split(',')[1]` was `undefined` and writing
+    it threw inside a `setTimeout` the try/catch did not cover, so the modal was never closed. It had
+    no cancel button and no `onRequestClose` either. Now `utils/qrShare` (`captureQrPng`) takes bare
+    base64 or a data URL and rejects a missing ref or an empty callback (iOS calls back with nothing
+    on failure), the flow is one try/catch/finally that always closes the modal, and the modal has
+    Cancel and answers Android's back button. No timeout on the capture, by the owner's decision: a
+    capture that never calls back leaves the spinner until Cancel. If it still fails on a device,
+    see 87.
 84. **Check-in by scanning not yet confirmed on a device.** The scan did not recognise the venue's
     code in the run, but the code could only be shown from the stuck share screen (83). Retest
     once sharing works, with a code shown full-size on a second screen; non-Tilki codes not tested.
@@ -925,3 +929,13 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     and do not fit, so options are cut off on a phone. The venue screens need a navigation
     redesign (bottom tabs like the customer side, or a menu that wraps or scrolls), checked on a
     small phone.
+87. **Fallback for QR sharing, if `toDataURL` proves unreliable: `react-native-view-shot`.** Decided
+    2026-11-17 to keep `react-native-svg`'s `toDataURL` for now (83) and add no native module. If a
+    device run on either platform still cannot share (the spinner stays until Cancel, or "Could not
+    share the QR code"), capture the rendered QR view with `react-native-view-shot` (`captureRef`,
+    PNG, `tmpfile`) instead. It is in Expo SDK 54's supported set (`npx expo install
+    react-native-view-shot`), works on Android and iOS with the new architecture, and writes to the
+    cache, so no storage permission. It is a native module: it needs a new EAS build for both
+    platforms, a check of the merged Android manifest (76), and only `utils/qrShare.captureQrPng`
+    and the modal's ref change. The app is meant for both iPhone and Android, so test the share
+    sheet on both before relying on either way.
