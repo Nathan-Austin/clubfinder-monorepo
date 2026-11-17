@@ -440,6 +440,9 @@ top artists or play counts on the web).
 - [ ] Unit tests for the services layer (started 2026-11-16: auth/bar login, city, the HTTP clients, location, logging; 25 tests → 97)
 - [x] Done 2026-11-16 for the services and the HTTP clients (`b6d6bb0`) and for logging (`5ee2f8c`); the screens still have `any` (KNOWN_ISSUES 80). Replace `any` types and gate `console.log` for production builds
 - [ ] Split screen components over 500 lines (LoginScreen done 2026-11-16; the rest are listed in KNOWN_ISSUES 80)
+- [ ] Cancel one date of a recurring venue event instead of deleting the series (KNOWN_ISSUES 89):
+      a skipped-dates table read by the listing and both matchers, and a choice in the app's and
+      the web's delete. Server and app; its own e2e run
 - [ ] Loading states and network error recovery (Home and Tilki have an error with "Try again" since 2026-11-16, KNOWN_ISSUES 72)
 - [ ] Finish the QR scanner flow to open venue details
 - [ ] Configure Sentry for production with source maps

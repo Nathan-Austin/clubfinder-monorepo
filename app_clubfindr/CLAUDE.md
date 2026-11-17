@@ -167,6 +167,9 @@ Some tests read source or config rather than run code, because what they guard o
 device:
 - `screens/__tests__/textInputs.test.ts`: every `TextInput` sets `placeholderTextColor`, its
   style a `color`, and e-mail fields `autoCorrect={false}` (KNOWN_ISSUES 69)
+- `screens/__tests__/screenColours.test.ts`: every screen's `container` sets a background (the
+  navigator's theme is light and the screens are styled dark) and every hex colour is valid
+  (KNOWN_ISSUES 85)
 - `utils/__tests__/noPersonalDataInLogs.test.ts`: no console call logs an e-mail, password, token
   or code
 - `__tests__/appConfig.test.ts`: the permissions and Info.plist settings below

@@ -932,10 +932,15 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     one alert after another while it stays in front of the camera. To retest: a code from the list,
     shared (83) and shown full-size on a second screen; a non-Tilki code (a clear "Not a Tilki
     code"); a deleted code ("Code not recognised").
-85. **White text on white on the QR code screen.** `QRCodeGeneratorScreen.tsx` styles its text
-    `#FFFFFF` (six places) for a dark theme, but some of its containers are white (`#FFFFFF`
-    backgrounds, lines 450 and 561), so parts of the screen cannot be read. The TextInput test of
-    KNOWN_ISSUES 69 does not cover `Text`; check every venue screen against its backgrounds.
+85. _Fixed 2026-11-17 (`4a7d8f0`); confirm on a device._ **White text on the QR code screen could
+    not be read.** The screen is styled dark (`#FFFFFF` text), but its root and loading views set no
+    background, and `NavigationContainer` gets no theme, so React Navigation's light default
+    (light grey) showed through. The white boxes named here hold only the QR codes, which need a
+    light quiet zone, and the share card, whose text is dark since 83. The screen is `#121212` now,
+    and its Delete button's `'#40000'` (five digits, no colour) is `'#400000'`. Every other venue
+    screen was checked against its backgrounds: light text on `#121212`/`#1E1E1E`/`#2A2A2A`
+    throughout. `screens/__tests__/screenColours.test.ts` holds every screen to a background of its
+    own and every hex colour to 3, 4, 6 or 8 digits.
 86. **The venue side's navigation is cut off.** The venue menus run across the top of the screen
     and do not fit, so options are cut off on a phone. The venue screens need a navigation
     redesign (bottom tabs like the customer side, or a menu that wraps or scrolls), checked on a
@@ -961,3 +966,10 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     `https://play.google.com/store/apps/details?id=com.clubfindr.mobile` in both places, and the App
     Store link (or none) until the app has an App Store record (ROADMAP section 5, "iPhone / App
     Store"); its two-second fallback also fires when the app did open, which is worth a look then.
+89. **Deleting a recurring event deletes the whole series.** A recurring venue event is one
+    `bar_events` row (a start `event_date`, `recurring` and a free-text `recurrence_pattern`), with
+    nowhere to record a skipped date, so the app's delete (82) and the web's both remove every
+    occurrence. The app's confirmation says "This cannot be undone" and nothing more, left so on the
+    owner's instruction (2026-11-17). To fix in a later round (ROADMAP section 5): cancel one date
+    (a table of skipped dates, read by the listing and both matchers) next to deleting the series,
+    and say which one the venue is about to do. A server change, with its e2e run.
