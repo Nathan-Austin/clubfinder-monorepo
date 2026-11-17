@@ -11,8 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { colors } from '../theme';
+import type { RootStackParamList } from '../navigation';
 
-type TermsScreenNavigationProp = StackNavigationProp<any>;
+type TermsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const TermsScreen = () => {
     const navigation = useNavigation<TermsScreenNavigationProp>();

@@ -95,27 +95,22 @@ type IconName = React.ComponentProps<typeof Ionicons>['name'];
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
+const CUSTOMER_TAB_ICONS: Record<'Home' | 'Discover' | 'Search' | 'Tilki' | 'Profile', [focused: IconName, unfocused: IconName]> = {
+  Home: ['home', 'home-outline'],
+  Discover: ['musical-notes', 'musical-notes-outline'],
+  Search: ['search', 'search-outline'],
+  Tilki: ['paw', 'paw-outline'],
+  Profile: ['person', 'person-outline'],
+};
+
 // Main Tab Navigator (bottom tabs inside the app)
 const MainTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: string = '';
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Discover') {
-            iconName = focused ? 'musical-notes' : 'musical-notes-outline';
-          } else if (route.name === 'Search') {
-            iconName = focused ? 'search' : 'search-outline';
-          } else if (route.name === 'Tilki') {
-            iconName = focused ? 'paw' : 'paw-outline';
-          }
-
-          return <Ionicons name={iconName as any} size={size} color={color} />;
+          const icons = CUSTOMER_TAB_ICONS[route.name as keyof typeof CUSTOMER_TAB_ICONS];
+          return icons ? <Ionicons name={icons[focused ? 0 : 1]} size={size} color={color} /> : null;
         },
         ...tabBarOptions,
       })}

@@ -5,12 +5,20 @@ import { Venue, Event } from '../services/discoveryService';
 import { colors } from '../theme';
 
 type SafeVenueCardProps = {
-    venue: any;
+    /** Whatever the matching endpoints answered for one venue: not trusted, sanitised below */
+    venue: unknown;
     onPress: (venue: Venue) => void;
 };
 
+type Loose = Record<string, unknown>;
+const asText = (value: unknown) => (typeof value === 'string' ? value : String(value || ''));
+const sanitizeArtist = (artist: unknown) => {
+    const a = (artist ?? {}) as Loose;
+    return { id: String(a.id || ''), name: String(a.name || '') };
+};
+
 // Helper function to sanitize an event
-const sanitizeEvent = (event: Record<string, any>): Event => {
+const sanitizeEvent = (event: Loose): Event => {
     return {
         id: String(event.id || Math.random()),
         theme_name: typeof event.theme_name === 'string' ? event.theme_name : String(event.theme_name || ''),
@@ -21,27 +29,25 @@ const sanitizeEvent = (event: Record<string, any>): Event => {
         recurring: typeof event.recurring === 'boolean' ? event.recurring : false,
         recurrence_pattern: typeof event.recurrence_pattern === 'string' ? event.recurrence_pattern : undefined,
         special_genres: Array.isArray(event.special_genres)
-            ? event.special_genres.map((g: any) => typeof g === 'string' ? g : String(g || ''))
+            ? event.special_genres.map(asText)
             : [],
-        artists: Array.isArray(event.artists)
-            ? event.artists.map((a: any) => ({
-                id: String(a.id || ''),
-                name: String(a.name || '')
-            }))
-            : undefined
+        artists: Array.isArray(event.artists) ? event.artists.map(sanitizeArtist) : undefined
     };
 };
 
 // A safe wrapper for VenueCard that sanitizes malformed data
-const SafeVenueCard = ({ venue, onPress }: SafeVenueCardProps) => {
+const SafeVenueCard = ({ venue: raw, onPress }: SafeVenueCardProps) => {
     // Guard against null/undefined venue
-    if (!venue) {
+    if (!raw || typeof raw !== 'object') {
         return (
             <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Invalid venue data</Text>
             </View>
         );
     }
+
+    const venue = raw as Loose;
+    const track = (venue.currentTrack ?? null) as Loose | null;
 
     // Create a sanitized venue object with proper types for all fields
     const sanitizedVenue: Venue = {
@@ -53,10 +59,10 @@ const SafeVenueCard = ({ venue, onPress }: SafeVenueCardProps) => {
         distance: typeof venue.distance === 'number' && !isNaN(venue.distance) ? venue.distance : undefined,
         similarity: typeof venue.similarity === 'number' && !isNaN(venue.similarity) ? venue.similarity : undefined,
         genres: Array.isArray(venue.genres)
-            ? venue.genres.map((g: any) => typeof g === 'string' ? g : String(g || ''))
+            ? venue.genres.map(asText)
             : [],
         topGenres: Array.isArray(venue.topGenres)
-            ? venue.topGenres.map((g: any) => typeof g === 'string' ? g : String(g || ''))
+            ? venue.topGenres.map(asText)
             : undefined,
 
         // Club-specific fields
@@ -68,22 +74,14 @@ const SafeVenueCard = ({ venue, onPress }: SafeVenueCardProps) => {
         popularity: typeof venue.popularity === 'string' ? venue.popularity : undefined,
         
         // Artists for clubs
-        artists: Array.isArray(venue.artists)
-            ? venue.artists.map((a: any) => ({
-                id: String(a.id || ''),
-                name: String(a.name || '')
-            }))
-            : undefined,
+        artists: Array.isArray(venue.artists) ? venue.artists.map(sanitizeArtist) : undefined,
 
         // Current track for bars
-        currentTrack: venue.currentTrack ? {
-            name: typeof venue.currentTrack.name === 'string' ? venue.currentTrack.name : String(venue.currentTrack.name || ''),
-            artist: typeof venue.currentTrack.artist === 'string' ? venue.currentTrack.artist : String(venue.currentTrack.artist || '')
-        } : undefined,
+        currentTrack: track ? { name: asText(track.name), artist: asText(track.artist) } : undefined,
 
         // Events array
         events: Array.isArray(venue.events)
-            ? venue.events.map((event: Record<string, any>) => sanitizeEvent(event))
+            ? venue.events.map((event: unknown) => sanitizeEvent((event ?? {}) as Loose))
             : undefined
     };
 

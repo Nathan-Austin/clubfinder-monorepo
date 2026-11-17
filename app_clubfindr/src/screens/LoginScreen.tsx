@@ -26,9 +26,9 @@ import { API_URL } from '../config/env';
 import { loginErrorMessage } from '../utils/loginErrors';
 import { log } from '../utils/logger';
 import { colors } from '../theme';
+import type { RootStackParamList } from '../navigation';
 
-// Simplified navigation type
-type LoginScreenNavigationProp = StackNavigationProp<any>;
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();

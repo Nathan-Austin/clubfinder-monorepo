@@ -17,6 +17,7 @@ import { enGB, registerTranslation } from 'react-native-paper-dates';
 import axiosClient from '../api/axiosClient';
 import { useVenue } from '../contexts/VenueContext';
 import GenreChipsInput from '../components/GenreChipsInput';
+import type { BarStackParamList } from '../navigation';
 import EventWhenSection from '../components/eventForm/EventWhenSection';
 import EventRecurrenceSection from '../components/eventForm/EventRecurrenceSection';
 import { fromLocalIsoDate } from '../utils/localDate';
@@ -44,7 +45,7 @@ type RouteParams = {
 };
 
 type EventFormScreenRouteProp = RouteProp<RouteParams, 'EditEvent' | 'AddEvent'>;
-type EventFormScreenNavigationProp = StackNavigationProp<any>;
+type EventFormScreenNavigationProp = StackNavigationProp<BarStackParamList>;
 
 // Register the English locale
 registerTranslation('en', enGB);

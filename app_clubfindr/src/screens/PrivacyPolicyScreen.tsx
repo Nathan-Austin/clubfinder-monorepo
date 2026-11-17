@@ -11,8 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { colors } from '../theme';
+import type { RootStackParamList } from '../navigation';
 
-type PrivacyPolicyScreenNavigationProp = StackNavigationProp<any>;
+type PrivacyPolicyScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const PrivacyPolicyScreen = () => {
     const navigation = useNavigation<PrivacyPolicyScreenNavigationProp>();

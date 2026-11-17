@@ -16,6 +16,9 @@ import { formatEventDate, formatEventTimes } from '../utils/eventFormat';
 import { toLocalIsoDate } from '../utils/localDate';
 import { colors } from '../theme';
 
+/** One venue's row in GET /api/mobile/bars/genres */
+type BarGenresRow = { barId?: string; genres?: { genre: string; percentage: number }[] };
+
 const BarHomeScreen = () => {
     const navigation = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
     // Read once by the venue side's provider; the name follows Edit Profile at once
@@ -45,10 +48,11 @@ const BarHomeScreen = () => {
             const genresResponse = await axiosClient.get('/api/mobile/bars/genres');
             if (genresResponse.data.success && genresResponse.data.bars) {
                 // Find the current bar's genres from the list
-                const currentBarGenres = genresResponse.data.bars.find((b: any) => b.barId === barId);
+                const rows = genresResponse.data.bars as BarGenresRow[];
+                const currentBarGenres = rows.find((b) => b.barId === barId);
 
                 if (currentBarGenres && currentBarGenres.genres) {
-                    const barGenres = currentBarGenres.genres.map((g: any) => ({
+                    const barGenres = currentBarGenres.genres.map((g) => ({
                         genre: g.genre,
                         count: Math.round(g.percentage * 100) // Convert percentage to a 0-100 scale
                     }));

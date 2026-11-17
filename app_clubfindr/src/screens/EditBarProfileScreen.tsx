@@ -18,9 +18,10 @@ import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
 import { log } from '../utils/logger';
 import { colors } from '../theme';
+import { errorMessage } from '../types/api';
+import type { BarStackParamList } from '../navigation';
 
-// Simplified navigation type
-type EditBarProfileScreenNavigationProp = StackNavigationProp<any>;
+type EditBarProfileScreenNavigationProp = StackNavigationProp<BarStackParamList, 'EditBarProfile'>;
 
 interface BarProfile {
     id: string;
@@ -108,9 +109,9 @@ const EditBarProfileScreen = () => {
 
             log.debug('Mapped profile data:', mappedProfile);
             setProfile(mappedProfile);
-        } catch (error: any) {
-            console.error('Error loading bar profile:', error);
-            console.error('Error details:', error.response?.data);
+        } catch (error) {
+            // Not the reply's body: the profile holds the venue's e-mail
+            log.error('Error loading bar profile:', errorMessage(error, 'request failed'));
             Alert.alert('Error', 'Failed to load bar profile. Please try again.');
         } finally {
             setLoading(false);
@@ -118,7 +119,7 @@ const EditBarProfileScreen = () => {
     };
 
     // Update profile field
-    const updateField = (field: keyof BarProfile, value: any) => {
+    const updateField = <K extends keyof BarProfile>(field: K, value: BarProfile[K]) => {
         setProfile(prev => ({
             ...prev,
             [field]: value
@@ -214,10 +215,9 @@ const EditBarProfileScreen = () => {
                     }
                 ]
             );
-        } catch (error: any) {
-            console.error('Error updating profile:', error);
-            console.error('Error details:', error.response?.data);
-            Alert.alert('Error', error.response?.data?.message || 'Failed to update profile. Please try again.');
+        } catch (error) {
+            log.error('Error updating profile:', errorMessage(error, 'request failed'));
+            Alert.alert('Error', errorMessage(error, 'Failed to update profile. Please try again.'));
         } finally {
             setSubmitting(false);
         }
