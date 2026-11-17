@@ -960,6 +960,7 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     event, the check-in code), Events, Music (artists and genres you play) and Venue (Edit venue
     profile, QR codes, Log out). The forms and the QR codes open over the tabs. The dashboard reloads its events whenever it is shown. Both sides share one dark theme
     (`src/theme.ts`), passed to `NavigationContainer`.
+
 ## Found during the venue app round (17 November 2026)
 
 Steps 1-11 of the 2026-11-17 round (ROADMAP, "Venue side of the app"); 81-86 above were fixed in
@@ -970,8 +971,9 @@ here that needs the server is collected in ROADMAP, "Next server round".
     2026-11-17 to keep `react-native-svg`'s `toDataURL` for now (83) and add no native module. If a
     device run on either platform still cannot share (the spinner stays until Cancel, or "Could not
     share the QR code"), capture the rendered QR view with `react-native-view-shot` (`captureRef`,
-    PNG, `tmpfile`) instead. It is in Expo SDK 54's supported set (`npx expo install
-    react-native-view-shot`), works on Android and iOS with the new architecture, and writes to the
+    PNG, `tmpfile`) instead. It is in Expo SDK 54's supported set
+    (`npx expo install react-native-view-shot`), works on Android and iOS with the new architecture,
+    and writes to the
     cache, so no storage permission. It is a native module: it needs a new EAS build for both
     platforms, a check of the merged Android manifest (76), and only `utils/qrShare.captureQrPng`
     and the modal's ref change. The app is meant for both iPhone and Android, so test the share
