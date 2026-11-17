@@ -180,7 +180,7 @@ const nativeFetch = {
                     console.error('[NativeFetch] Non-JSON response received');
                     throw new Error('Response is not JSON');
                 }
-            } catch (parseError) {
+            } catch {
                 throw httpError('Invalid JSON response', {
                     status: response.status,
                     statusText: 'Invalid JSON response',

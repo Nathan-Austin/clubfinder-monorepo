@@ -114,5 +114,13 @@ module.exports = [
         rules: {
             'no-console': 'off'
         }
+    },
+    {
+        // Declaration files declare globals (__DEV__, global) for other files to use; the rule
+        // cannot see those uses and reports every declaration as unused
+        files: ['**/*.d.ts'],
+        rules: {
+            '@typescript-eslint/no-unused-vars': 'off'
+        }
     }
 ];

@@ -7,15 +7,13 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     SectionList,
-    RefreshControl,
-    Alert
+    RefreshControl
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainTabParamList, RootStackParamList } from '../navigation';
 
 type TilkiScreenRouteProp = RouteProp<MainTabParamList, 'Tilki'>;
-import { useAuth } from '../contexts/AuthContext';
 import * as discoveryService from '../services/discoveryService';
 import SafeVenueCard from '../components/SafeVenueCard';
 import VenueToggle from '../components/VenueToggle';
@@ -500,20 +498,8 @@ const TilkiScreen = () => {
                 </View>
             )}
 
-            {/* Debug info - remove in production */}
-            {/*
-            <TouchableOpacity 
-                style={styles.debugInfo} 
-                onPress={() => setRefreshKey(prev => prev + 1)}
-            >
-                <Text style={styles.debugText}>
-                    Date: {selectedDate} | Type: {venueType} | Key: {refreshKey}
-                </Text>
-            </TouchableOpacity>
-            */}
-
             {/* Venue list */}
-            <View style={{ flex: 1 }}>
+            <View style={styles.list}>
                 {!loading && loadFailed ? (
                     <View style={styles.loaderContainer}>
                         <LoadError onRetry={loadMatchingVenues} />
@@ -632,43 +618,12 @@ const TilkiScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    list: {
+        flex: 1,
+    },
     container: {
         flex: 1,
         backgroundColor: colors.background,
-    },
-    header: {
-        padding: 20,
-        backgroundColor: colors.primary,
-    },
-    debugInfo: {
-        backgroundColor: colors.grey800,
-        padding: 5,
-        margin: 5,
-        borderRadius: 4,
-    },
-    debugText: {
-        color: colors.text,
-        fontSize: 12,
-    },
-    logoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    logo: {
-        width: 32,
-        height: 32,
-        marginRight: 8,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: colors.text,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: colors.text,
-        opacity: 0.8,
     },
     genreContainer: {
         padding: 15,

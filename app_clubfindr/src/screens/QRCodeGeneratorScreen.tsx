@@ -8,7 +8,6 @@ import {
     TextInput,
     Modal,
     ActivityIndicator,
-    Share,
     Alert,
     ScrollView
 } from 'react-native';

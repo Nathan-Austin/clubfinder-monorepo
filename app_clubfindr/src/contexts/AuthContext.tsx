@@ -9,7 +9,6 @@ import { clearVenueCache } from '../services/discoveryService';
 import VenueCache from '../utils/VenueCache';
 
 // Use the same User type that we defined in authService
-import type { LoginResponse } from '../services/authService';
 import { log } from '../utils/logger';
 
 type User = {

@@ -16,7 +16,6 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
-import { Ionicons } from '@expo/vector-icons';
 import { log } from '../utils/logger';
 import { colors } from '../theme';
 
@@ -191,7 +190,7 @@ const EditBarProfileScreen = () => {
         setSubmitting(true);
         try {
             // Only send fields that are actually used by the API
-            const response = await axiosClient.patch(`/api/mobile/bars/${profile.id}`, {
+            await axiosClient.patch(`/api/mobile/bars/${profile.id}`, {
                 name: profile.name,
                 address: profile.address,
                 city: profile.city,

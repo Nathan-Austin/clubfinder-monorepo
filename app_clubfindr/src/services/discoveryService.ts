@@ -1022,7 +1022,7 @@ export const processUserGenresAndFindVenuesForDate = async (
                 }
 
                 // Try local matching logic as a last resort
-                return genreMatchingService.findMatchingVenues(userGenres, allVenues as Venue[], venueType);
+                return genreMatchingService.findMatchingVenues(userGenres, allVenues as Venue[]);
             } catch (fallbackError) {
                 console.error(`Fallback ${venueType} fetching failed for date ${date}:`, fallbackError);
                 return [];

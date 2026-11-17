@@ -207,8 +207,7 @@ export const getGenreClusters = async (): Promise<{ clusters: GenreCluster[] }> 
 // Main function to find matching venues based on user genres
 export const findMatchingVenues = async (
     userGenres: string[],
-    venues: Venue[],
-    venueType: 'bar' | 'club' = 'bar'
+    venues: Venue[]
 ): Promise<Venue[]> => {
     try {
         // Get genre clusters data
@@ -304,7 +303,7 @@ export const processUserGenresAndFindVenues = async (
             }
 
             // Use local matching logic
-            return findMatchingVenues(userGenres, allVenues as Venue[], venueType);
+            return findMatchingVenues(userGenres, allVenues as Venue[]);
         }
     } catch (error) {
         console.error('Error processing user genres:', error);

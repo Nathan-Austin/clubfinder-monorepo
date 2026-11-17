@@ -44,7 +44,7 @@ const QRScannerScreen = () => {
     const [matchCount, setMatchCount] = useState<number | null>(null);
     const [checkinCount, setCheckinCount] = useState<number | null>(null);
     const [venueName, setVenueName] = useState<string | null>(null);
-    const [permission, requestPermission] = useCameraPermissions();
+    const [, requestPermission] = useCameraPermissions();
     const navigation = useNavigation<QRScannerScreenNavigationProp>();
     const { user } = useAuth();
 
@@ -121,7 +121,7 @@ const QRScannerScreen = () => {
         }
     }, [success]);
 
-    const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
+    const handleBarCodeScanned = async ({ data }: BarcodeScanningResult) => {
         if (scanned || loading) return;
 
         setScanned(true);
@@ -192,12 +192,6 @@ const QRScannerScreen = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleViewVenue = () => {
-        // TODO: Navigate to venue details if we have the venue ID
-        setScanned(false);
-        setSuccess(false);
     };
 
     if (hasPermission === null) {
@@ -443,17 +437,6 @@ const styles = StyleSheet.create({
     checkinText: {
         color: colors.textSecondary,
         fontSize: 14,
-    },
-    viewVenueButton: {
-        backgroundColor: colors.primary,
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 8,
-        marginTop: 15,
-    },
-    viewVenueButtonText: {
-        color: colors.text,
-        fontWeight: 'bold',
     },
 });
 

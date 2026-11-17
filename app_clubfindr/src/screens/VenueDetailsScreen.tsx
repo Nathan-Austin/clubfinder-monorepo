@@ -13,7 +13,6 @@ type VenueDetailsScreenProps = {
 const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
     const { venue: initialVenue }: { venue: discoveryService.Venue } = route.params;
     const [venue, setVenue] = useState<discoveryService.Venue>(initialVenue);
-    const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
@@ -102,8 +101,6 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
         try {
             const location = await discoveryService.getCurrentLocation();
             if (location) {
-                setUserLocation(location);
-
                 // If venue has coordinates, calculate distance
                 if (venue.latitude && venue.longitude) {
                     const calculatedDistance = discoveryService.calculateDistance(
@@ -198,7 +195,7 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
             return date.getDate() === today.getDate() &&
                 date.getMonth() === today.getMonth() &&
                 date.getFullYear() === today.getFullYear();
-        } catch (e) {
+        } catch {
             return false;
         }
     };
@@ -221,7 +218,7 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
             }
 
             return false;
-        } catch (e) {
+        } catch {
             return false;
         }
     };

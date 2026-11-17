@@ -725,13 +725,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         color: colors.textSecondary,
     },
-    sectionHeader: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        padding: 16,
-        backgroundColor: colors.grey800,
-        color: colors.text,
-    },
     artistImage: {
         width: 50,
         height: 50,
@@ -842,10 +835,6 @@ const styles = StyleSheet.create({
         padding: 16,
         borderBottomWidth: 1,
         borderBottomColor: colors.border, // Darker border
-    },
-    resultText: {
-        fontSize: 16,
-        color: colors.text,
     },
 });
 

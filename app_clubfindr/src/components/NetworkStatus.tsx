@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { colors } from '../theme';
 

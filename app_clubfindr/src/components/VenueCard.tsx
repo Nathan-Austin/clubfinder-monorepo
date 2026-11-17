@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Venue, Event } from '../services/discoveryService';
+import { Venue } from '../services/discoveryService';
 import { colors } from '../theme';
 
 type VenueCardProps = {
@@ -13,7 +13,6 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
     const venueName = typeof venue.name === 'string' ? venue.name : '';
     const venueAddress = typeof venue.address === 'string' ? venue.address : '';
     const isClub = venue.venueType === 'club';
-    const venueGenres = Array.isArray(venue.genres) ? venue.genres : [];
 
     // Format distance in a readable way
     const formatDistance = (meters?: number): string => {
@@ -75,13 +74,6 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
         }
     };
 
-    // Check if venue has events today
-    const hasEventsToday = (): boolean => {
-        if (!venue.events || venue.events.length === 0) return false;
-        const today = new Date().toDateString();
-        return venue.events.some(event => new Date(event.event_date).toDateString() === today);
-    };
-
     // Get event badge text
     const getEventBadgeText = (): string => {
         if (!venue.events || venue.events.length === 0) return '';
@@ -113,17 +105,6 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
     const hasCurrentTrack = venue.currentTrack &&
         typeof venue.currentTrack.name === 'string' &&
         typeof venue.currentTrack.artist === 'string';
-
-    // Safely format time range
-    const formatTimeRange = (start?: string, end?: string): string => {
-        if (typeof start !== 'string') return '';
-
-        if (typeof end === 'string' && end) {
-            return `${start} - ${end}`;
-        }
-
-        return start;
-    };
 
     // Safely get similarity score
     const getSimilarityDisplay = (): string => {
@@ -209,7 +190,7 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
             {venue.events && venue.events.length > 0 && (
                 <View style={styles.eventsContainer}>
                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                        {venue.events.slice(0, 3).map((event, index) => {
+                        {venue.events.slice(0, 3).map((event) => {
                             // Use current date if event_date is invalid or missing
                             const eventDate = event.event_date || new Date().toISOString().split('T')[0];
 
@@ -452,66 +433,16 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
         fontSize: 12,
     },
-    eventInfo: {
-        backgroundColor: colors.purpleA10, // Light purple background for club events
-        padding: 10,
-        borderRadius: 4,
-        marginBottom: 10,
-    },
-    genreContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    genreBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        marginRight: 6,
-        marginBottom: 6,
-    },
     barGenreBadge: {
         backgroundColor: colors.grey800,
     },
     clubGenreBadge: {
         backgroundColor: colors.purpleDark, // Darker purple for club genres
     },
-    genreText: {
-        color: colors.text,
-        fontSize: 12,
-    },
     moreGenres: {
         color: colors.textSecondary,
         fontSize: 12,
         alignSelf: 'center',
-    },
-    popularityBadge: {
-        alignSelf: 'flex-start',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 4,
-        marginTop: 10,
-    },
-    highPopularity: {
-        backgroundColor: colors.negative, // Red
-    },
-    mediumPopularity: {
-        backgroundColor: colors.warning, // Orange
-    },
-    lowPopularity: {
-        backgroundColor: colors.positive, // Green
-    },
-    popularityText: {
-        color: colors.text,
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    eventLabel: {
-        color: colors.grey400,
-        fontSize: 12,
-    },
-    eventValue: {
-        color: colors.text,
-        fontSize: 12,
     },
 });
 

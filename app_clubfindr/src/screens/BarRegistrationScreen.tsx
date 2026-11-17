@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -758,12 +758,6 @@ const styles = StyleSheet.create({
     picker: {
         color: colors.text,
         backgroundColor: colors.grey800,
-    },
-    noteText: {
-        color: colors.textSecondary,
-        fontSize: 14,
-        fontStyle: 'italic',
-        marginTop: 10,
     },
     passwordRequirements: {
         backgroundColor: colors.grey800,
