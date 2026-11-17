@@ -882,7 +882,7 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
     - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
       services, mostly in screens. **Logged 2026-11-17 for a cleanup step of its own** (747, 0
-      errors, 742 after the venue tabs, 730 after step 8; `npx expo export` gives none): `react-native/no-color-literals` 515,
+      errors, 742 after the venue tabs, 730 after step 8, 682 after step 9; `npx expo export` gives none): `react-native/no-color-literals` 515,
       `no-console` 148, `@typescript-eslint/no-unused-vars` 31, `react-native/no-unused-styles` 27,
       `@typescript-eslint/no-explicit-any` 22, `react-native/no-inline-styles` 2. Most are in
       `discoveryService.ts` (59), `VenueCard` (53), `SearchScreen` (48), `VenueDetailsScreen` (47),
@@ -954,9 +954,9 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
 86. _Fixed 2026-11-17 (`b65c938`, theme `260f5e6`); check on a small phone._ **The venue side's
     navigation was cut off.** QR Codes, Artists, Edit Profile and Log Out were a row of four buttons
     across the dashboard's header, with no wrap. The venue side has bottom tabs now, like the
-    customer side: Dashboard (stats and events), QR Codes, Artists and Profile (a new
-    `BarProfileScreen`: Edit venue profile, Log out). The event and profile forms open over the
-    tabs. The dashboard reloads its events whenever it is shown. Both sides share one dark theme
+    customer side. Since 2026-11-17 (`58ae040`, the agreed layout): Overview (visitors, the next
+    event, the check-in code), Events, Music (artists and genres you play) and Venue (Edit venue
+    profile, QR codes, Log out). The forms and the QR codes open over the tabs. The dashboard reloads its events whenever it is shown. Both sides share one dark theme
     (`src/theme.ts`), passed to `NavigationContainer`.
 87. **Fallback for QR sharing, if `toDataURL` proves unreliable: `react-native-view-shot`.** Decided
     2026-11-17 to keep `react-native-svg`'s `toDataURL` for now (83) and add no native module. If a

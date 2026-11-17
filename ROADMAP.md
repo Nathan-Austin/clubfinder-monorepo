@@ -30,8 +30,9 @@ The 2026-11-17 app round does it in three steps, each with its own commits and t
 8. [x] Overview cleanup: no always-0 "Genre Matches" tile, a `VenueContext` for the venue's id and
    name, the event form on the shared genre list. Done 2026-11-17 (`ef5f1ff`, `57f6f82`,
    `cde6383`)
-9. Events and Venue tabs, together for one device run: events leave the dashboard, the event form
-   is split into sections, QR codes and Profile go into Venue
+9. [x] Events and Venue tabs, together for one device run: events leave the dashboard, the event form
+   is split into sections, QR codes and Profile go into Venue. Done 2026-11-17 (`391f8ea`,
+   `58ae040`, `a0675e4`)
 
 Then 10, the lint warnings (KNOWN_ISSUES 80), and 11, the hand-over with a device checklist.
 
@@ -467,6 +468,13 @@ top artists or play counts on the web).
       of `/barfindr` and the venue's own list. One occurrence function in `$lib` for the venue
       list, both matchers and `/barfindr`; validate `recurrence_pattern` against daily, weekly,
       biweekly and monthly; the app's Events tab then lists occurrences. With its e2e run
+- [ ] **Next server round, decided 2026-11-17: "live music" is a filter, not a genre.** Today a
+      venue can only say it as a free-text event genre ("Live Music", "Acoustic"), which the
+      matcher cannot place. Instead: an event attribute (live music or not; maybe a small set of
+      formats such as live, DJ, karaoke) next to its genres, set with a switch in the app's and the
+      web's event form; a filter on the customer side, live music first, with the genres
+      underneath ("live music, and of that, jazz"); existing "live music" tags moved into the
+      attribute by a migration. Goes with the strict event genres (KNOWN_ISSUES 90's round)
 - [ ] Then cancel one date of a recurring venue event instead of deleting the series (KNOWN_ISSUES
       89): a skipped-dates table read by the occurrence function, and a choice in the app's and
       the web's delete

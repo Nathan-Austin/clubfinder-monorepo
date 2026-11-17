@@ -120,12 +120,15 @@ request. It is not a JWT and is not refreshed: it expires on the server after 7 
 - Stack navigator for authentication flow
 - Bottom tabs for both sides, with the same tab bar (`tabBarOptions` in `theme.ts`):
   - customers: Home, Discover, Search, Tilki, Profile
-  - venues (`BarTabNavigator`): Dashboard, QR Codes, Music (`VenueMusicScreen`: the artist
-    picker in venue mode and `components/VenueGenresEditor`, "genres you play"), Profile
-    (`BarProfileScreen`: edit the venue profile, log out); the agreed layout is Overview, Events,
-    Music, Venue (ROADMAP, "Venue side of the app"); Edit Bar Profile and Create/Edit Event open over the tabs from
-    the venue stack (`BarNavigator`). Tab screens stay mounted: reload on focus
-    (`useFocusEffect`) what another screen can change
+  - venues (`BarTabNavigator`, ROADMAP "Venue side of the app"): Overview (`BarHomeScreen`:
+    visitors, the next event, the check-in code), Events (`VenueEventsScreen`), Music
+    (`VenueMusicScreen`: the artist picker in venue mode and `components/VenueGenresEditor`,
+    "genres you play"), Venue (`BarProfileScreen`: edit profile, QR codes, log out). Edit Bar
+    Profile, Create/Edit Event and QR Codes open over the tabs from the venue stack
+    (`BarNavigator`). Tab screens stay mounted: reload on focus (`useFocusEffect`, as
+    `hooks/useVenueEvents` does) what another screen can change
+  - venue events: `services/venueEventsService` (list, next), `components/VenueEventCard`, the
+    form's rules and body in `utils/eventFormValues`, its sections in `components/eventForm/`
   - venue screens take the venue's id and name from `useVenue()` (`VenueProvider` wraps
     `BarNavigator`), never `AsyncStorage.getItem('barId')`; Edit Profile's save calls
     `setBarName`. The shared `ArtistPickerScreen` is the exception (the customer side has no
