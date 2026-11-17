@@ -5,7 +5,6 @@ import {
     TextInput,
     StyleSheet,
     TouchableOpacity,
-    FlatList,
     Platform,
     ActivityIndicator,
     Alert,
@@ -21,6 +20,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import axiosClient from '../api/axiosClient';
 import { useVenue } from '../contexts/VenueContext';
+import GenreChipsInput from '../components/GenreChipsInput';
 import { fromLocalIsoDate, toLocalIsoDate } from '../utils/localDate';
 
 // Types
@@ -78,15 +78,7 @@ const EventFormScreen = () => {
     const [showStartTimePicker, setShowStartTimePicker] = useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [customGenre, setCustomGenre] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
-
-    // Predefined genre options
-    const genreOptions = [
-        'House', 'Techno', 'Hip-Hop', 'R&B', 'Jazz', 'Rock', 'Live Music',
-        'Indie', 'Reggae', 'Latin', 'Blues', 'Acoustic', 'Pop', 'EDM',
-        'Country', 'Folk', 'Soul', 'Funk'
-    ];
 
     // Parse time string (HH:MM) to Date object
     function parseTimeString(timeString: string): Date {
@@ -124,25 +116,6 @@ const EventFormScreen = () => {
             hour12: true
         });
     }
-
-    // Toggle genre selection
-    const toggleGenre = (genre: string) => {
-        if (specialGenres.includes(genre)) {
-            setSpecialGenres(specialGenres.filter(g => g !== genre));
-        } else {
-            setSpecialGenres([...specialGenres, genre]);
-        }
-    };
-
-    // Add custom genre
-    const addCustomGenre = () => {
-        if (customGenre.trim() && !specialGenres.includes(customGenre.trim())) {
-            setSpecialGenres([...specialGenres, customGenre.trim()]);
-            setCustomGenre('');
-        }
-    };
-
-
 
     // Form validation
     const validateForm = (): boolean => {
@@ -236,36 +209,6 @@ const EventFormScreen = () => {
             setSubmitting(false);
         }
     };
-
-    // Render genre item for the FlatList
-    const renderGenreItem = ({ item }: { item: string }) => (
-        <TouchableOpacity
-            style={[
-                styles.genreTag,
-                specialGenres.includes(item) && styles.genreTagSelected
-            ]}
-            onPress={() => toggleGenre(item)}
-        >
-            <Text
-                style={[
-                    styles.genreText,
-                    specialGenres.includes(item) && styles.genreTextSelected
-                ]}
-            >
-                {item}
-            </Text>
-        </TouchableOpacity>
-    );
-
-    // Render selected genre item
-    const renderSelectedGenreItem = ({ item }: { item: string }) => (
-        <View key={item} style={styles.selectedGenreTag}>
-            <Text style={styles.selectedGenreText}>{item}</Text>
-            <TouchableOpacity onPress={() => toggleGenre(item)}>
-                <Ionicons name="close-circle" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-        </View>
-    );
 
     return (
         <KeyboardAvoidingView
@@ -454,53 +397,20 @@ const EventFormScreen = () => {
                         </View>
                     )}
 
-                    {/* Genres */}
+                    {/* Genres: the shared vocabulary the venue's own genres use; any text is accepted */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Music Genres for this Event</Text>
-                        <FlatList
-                            data={genreOptions}
-                            renderItem={renderGenreItem}
-                            keyExtractor={(item) => item}
-                            numColumns={3}
-                            columnWrapperStyle={styles.genresGrid}
-                            scrollEnabled={false}
+                        <GenreChipsInput
+                            genres={specialGenres}
+                            onAdd={(genre) => {
+                                setSpecialGenres((current) => [...current, genre]);
+                                return true;
+                            }}
+                            onRemove={(genre) => setSpecialGenres((current) => current.filter((g) => g !== genre))}
+                            emptyText="Pick the genres of this night. People are matched against them on the event's date."
+                            testIDPrefix="event-genre"
                         />
                     </View>
-
-                    {/* Custom Genre */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Add Custom Genre</Text>
-                        <View style={styles.customGenreContainer}>
-                            <TextInput
-                                style={styles.customGenreInput}
-                                value={customGenre}
-                                onChangeText={setCustomGenre}
-                                placeholder="Enter custom genre"
-                                placeholderTextColor="#888"
-                            />
-                            <TouchableOpacity
-                                style={[styles.addButton, !customGenre.trim() && styles.addButtonDisabled]}
-                                onPress={addCustomGenre}
-                                disabled={!customGenre.trim()}
-                            >
-                                <Text style={styles.addButtonText}>Add</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Selected Genres Display */}
-                    {specialGenres.length > 0 && (
-                        <View style={styles.selectedGenresContainer}>
-                            <Text style={styles.selectedGenresTitle}>Selected Genres:</Text>
-                            <FlatList
-                                data={specialGenres}
-                                renderItem={renderSelectedGenreItem}
-                                keyExtractor={(item) => item}
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                            />
-                        </View>
-                    )}
 
                     {/* Submit and Cancel Buttons */}
                     <View style={styles.buttonGroup}>
@@ -636,80 +546,6 @@ const styles = StyleSheet.create({
     picker: {
         color: '#FFFFFF',
         height: 50,
-    },
-    genresGrid: {
-        flexWrap: 'wrap',
-        justifyContent: 'flex-start',
-    },
-    genreTag: {
-        backgroundColor: '#2A2A2A',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        margin: 4,
-    },
-    genreTagSelected: {
-        backgroundColor: '#1db954',
-    },
-    genreText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-    },
-    genreTextSelected: {
-        fontWeight: 'bold',
-    },
-    customGenreContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    customGenreInput: {
-        backgroundColor: '#2A2A2A',
-        color: '#FFFFFF',
-        padding: 12,
-        borderRadius: 6,
-        fontSize: 16,
-        flex: 1,
-        marginRight: 10,
-    },
-    addButton: {
-        backgroundColor: '#1db954',
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        borderRadius: 6,
-    },
-    addButtonDisabled: {
-        backgroundColor: '#444',
-    },
-    addButtonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-    },
-    selectedGenresContainer: {
-        marginBottom: 20,
-    },
-    selectedGenresTitle: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 8,
-    },
-    selectedGenresList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    selectedGenreTag: {
-        backgroundColor: '#1db954',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 20,
-        margin: 4,
-    },
-    selectedGenreText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        marginRight: 5,
     },
     buttonGroup: {
         flexDirection: 'row',

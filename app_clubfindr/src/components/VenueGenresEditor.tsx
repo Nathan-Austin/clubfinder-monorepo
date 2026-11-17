@@ -5,22 +5,21 @@
  * as on the web; the server refuses genres its matcher does not know and says which.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { errorMessage, venueGenresApi } from '../services/tasteService';
 import { errorStatus } from '../types/api';
-import { MAX_VENUE_GENRES, genreVocabulary, normalizeGenre, suggestGenres } from '../utils/genreVocabulary';
+import { MAX_VENUE_GENRES } from '../utils/genreVocabulary';
+import GenreChipsInput from './GenreChipsInput';
 import { colors } from '../theme';
 
 type Props = { barId: string };
 
 const VenueGenresEditor = ({ barId }: Props) => {
     const api = useMemo(() => venueGenresApi(barId), [barId]);
-    const vocabulary = useMemo(() => genreVocabulary(), []);
 
     const [genres, setGenres] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [input, setInput] = useState('');
     const [message, setMessage] = useState('');
     const [loadFailed, setLoadFailed] = useState(false);
 
@@ -42,12 +41,13 @@ const VenueGenresEditor = ({ barId }: Props) => {
         load();
     }, [load]);
 
-    const save = async (next: string[]) => {
+    /** PUT replaces the set; true when the server took it */
+    const save = async (next: string[]): Promise<boolean> => {
         setSaving(true);
         setMessage('');
         try {
             setGenres(await api.save(next));
-            setInput('');
+            return true;
         } catch (error) {
             const status = errorStatus(error);
             setMessage(
@@ -55,29 +55,11 @@ const VenueGenresEditor = ({ barId }: Props) => {
                     ? 'Your venue session has ended. Please log in again.'
                     : errorMessage(error, 'Could not save the genres. Please try again.')
             );
+            return false;
         } finally {
             setSaving(false);
         }
     };
-
-    const atMax = genres.length >= MAX_VENUE_GENRES;
-
-    const add = (genre: string) => {
-        const wanted = genre.trim();
-        if (!wanted || saving || atMax) return;
-        if (genres.some((existing) => normalizeGenre(existing) === normalizeGenre(wanted))) {
-            setInput('');
-            return;
-        }
-        save([...genres, wanted]);
-    };
-
-    const remove = (genre: string) => {
-        if (saving) return;
-        save(genres.filter((existing) => existing !== genre));
-    };
-
-    const suggestions = atMax ? [] : suggestGenres(input, genres, vocabulary);
 
     return (
         <View style={styles.container} testID="venue-genres">
@@ -89,80 +71,18 @@ const VenueGenresEditor = ({ barId }: Props) => {
 
             {loading ? (
                 <ActivityIndicator color={colors.primary} style={styles.loader} />
-            ) : loadFailed ? null : genres.length === 0 ? (
-                <Text style={styles.muted} testID="venue-genres-empty">
-                    No genres yet. Add the first one below.
-                </Text>
-            ) : (
-                <View style={styles.chips}>
-                    {genres.map((genre) => (
-                        <View key={genre} style={styles.chip} testID="venue-genre">
-                            <Text style={styles.chipText}>{genre}</Text>
-                            <TouchableOpacity
-                                onPress={() => remove(genre)}
-                                disabled={saving}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Remove ${genre}`}
-                                hitSlop={8}
-                            >
-                                <Text style={styles.chipText}> ✕</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-                </View>
-            )}
-
-            {!loading && !loadFailed && (
-                <>
-                    <View style={styles.inputRow}>
-                        <TextInput
-                            style={styles.input}
-                            value={input}
-                            onChangeText={setInput}
-                            onSubmitEditing={() => add(input)}
-                            placeholder={atMax ? `Up to ${MAX_VENUE_GENRES} genres` : 'e.g. techno, soul, uk garage…'}
-                            placeholderTextColor={colors.textMuted}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            returnKeyType="done"
-                            editable={!saving && !atMax}
-                            testID="venue-genre-input"
-                        />
-                        <TouchableOpacity
-                            style={[styles.addButton, (saving || atMax || !input.trim()) && styles.addButtonDisabled]}
-                            onPress={() => add(input)}
-                            disabled={saving || atMax || !input.trim()}
-                            accessibilityRole="button"
-                            testID="venue-genre-add"
-                        >
-                            {saving ? (
-                                <ActivityIndicator size="small" color={colors.onPrimary} />
-                            ) : (
-                                <Text style={styles.addButtonText}>Add</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-
-                    {suggestions.length > 0 && (
-                        <View style={styles.suggestions}>
-                            {suggestions.map((suggestion) => (
-                                <TouchableOpacity
-                                    key={suggestion}
-                                    style={styles.suggestion}
-                                    onPress={() => add(suggestion)}
-                                    disabled={saving}
-                                    testID="venue-genre-suggestion"
-                                >
-                                    <Text style={styles.suggestionText}>{suggestion}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
-
-                    <Text style={styles.muted}>
-                        {genres.length} of {MAX_VENUE_GENRES}
-                    </Text>
-                </>
+            ) : loadFailed ? null : (
+                <GenreChipsInput
+                    genres={genres}
+                    onAdd={(genre) => save([...genres, genre])}
+                    onRemove={(genre) => {
+                        save(genres.filter((existing) => existing !== genre));
+                    }}
+                    busy={saving}
+                    max={MAX_VENUE_GENRES}
+                    emptyText="No genres yet. Add the first one below."
+                    testIDPrefix="venue-genre"
+                />
             )}
 
             {message ? (
@@ -172,7 +92,7 @@ const VenueGenresEditor = ({ barId }: Props) => {
             ) : null}
             {loadFailed && !loading && (
                 <TouchableOpacity style={styles.retryButton} onPress={load} accessibilityRole="button" testID="venue-genres-retry">
-                    <Text style={styles.addButtonText}>Try again</Text>
+                    <Text style={styles.retryText}>Try again</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -197,70 +117,6 @@ const styles = StyleSheet.create({
     loader: {
         marginVertical: 20,
     },
-    muted: {
-        color: colors.textMuted,
-        fontSize: 13,
-        marginVertical: 8,
-    },
-    chips: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginBottom: 8,
-    },
-    chip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.primary,
-        borderRadius: 16,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        marginRight: 8,
-        marginBottom: 8,
-    },
-    chipText: {
-        color: colors.onPrimary,
-    },
-    inputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-    },
-    input: {
-        flex: 1,
-        backgroundColor: colors.card,
-        color: colors.text,
-        borderRadius: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        marginRight: 8,
-    },
-    addButton: {
-        backgroundColor: colors.primary,
-        borderRadius: 6,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-    },
-    addButtonDisabled: {
-        opacity: 0.5,
-    },
-    addButtonText: {
-        color: colors.onPrimary,
-        fontWeight: '600',
-    },
-    suggestions: {
-        backgroundColor: colors.surface,
-        borderRadius: 6,
-        marginTop: 6,
-    },
-    suggestion: {
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: colors.border,
-    },
-    suggestionText: {
-        color: colors.text,
-    },
     retryButton: {
         alignSelf: 'flex-start',
         backgroundColor: colors.primary,
@@ -268,6 +124,10 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 16,
         marginTop: 10,
+    },
+    retryText: {
+        color: colors.onPrimary,
+        fontWeight: '600',
     },
     error: {
         color: colors.danger,
