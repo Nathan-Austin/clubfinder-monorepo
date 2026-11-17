@@ -48,8 +48,7 @@ const EventRecurrenceSection = ({ isRecurring, onIsRecurringChange, pattern, onP
                     </Picker>
                 </View>
                 <Text style={styles.note}>
-                    For now the event is listed and matched on its first date only; repeating dates are on
-                    the way.
+                    Currently listed and matched on the first date only; repeating dates are coming soon.
                 </Text>
             </View>
         )}
