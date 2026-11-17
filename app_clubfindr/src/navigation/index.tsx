@@ -28,6 +28,7 @@ import EventFormScreen from '../screens/EventFormScreen';
 import QRCodeGeneratorScreen from '../screens/QRCodeGeneratorScreen';
 import QRScannerScreen from '../screens/QRScannerScreen';
 import ArtistPickerScreen, { type ArtistPickerParams } from '../screens/ArtistPickerScreen';
+import { colors, headerOptions, navigationTheme, tabBarOptions } from '../theme';
 
 // Define the types for the various navigators
 export type MainTabParamList = {
@@ -86,16 +87,7 @@ const MainTabNavigator = () => {
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#D35400',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          backgroundColor: '#121212',
-          borderTopColor: '#333333',
-        },
-        headerStyle: {
-          backgroundColor: '#D35400',
-        },
-        headerTintColor: '#FFFFFF',
+        ...tabBarOptions,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Nearby Venues' }} />
@@ -109,12 +101,7 @@ const MainTabNavigator = () => {
 const BarStack = createStackNavigator();
 
 const BarNavigator = () => (
-  <BarStack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#D35400' },
-      headerTintColor: '#FFFFFF',
-    }}
-  >
+  <BarStack.Navigator screenOptions={headerOptions}>
     <BarStack.Screen
       name="BarHome"
       component={BarHomeScreen}
@@ -157,20 +144,15 @@ const RootNavigator = () => {
   const needsArtistOnboarding = !isBarManager && user?.artistOnboarding?.required === true;
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
-        <ActivityIndicator size="large" color="#D35400" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: '#D35400' },
-          headerTintColor: '#FFFFFF',
-        }}
-      >
+    <NavigationContainer theme={navigationTheme}>
+      <Stack.Navigator screenOptions={headerOptions}>
         {!user ? (
           // Auth screens
           <>
