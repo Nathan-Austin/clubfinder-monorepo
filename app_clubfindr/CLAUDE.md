@@ -66,7 +66,8 @@ npx expo export --platform android --output-dir /tmp/expo-export   # bundles the
 ```
 src/
 ├── api/axiosClient.ts       # The HTTP client: axios over services/NativeFetchService
-├── components/              # Reusable UI (CitySection, LoadError, LoginTypeModal, VenueCard…)
+├── components/              # Reusable UI (LoadError, VenueCard, GenreChipsInput, VenueEventCard,
+│                            #   eventForm/ sections, VenueGenresEditor…)
 ├── config/env.ts            # API_URL and endpoint names
 ├── constants/
 │   ├── cities.ts            # Covered cities + centres (= data_collection/live_cities.txt)
@@ -74,6 +75,7 @@ src/
 ├── contexts/AuthContext.tsx # Session, user type, changeCity
 ├── contexts/VenueContext.tsx # The logged-in venue's id and name (venue side only)
 ├── hooks/useCityProposal.ts # "You seem to be in Paris. Switch?"
+├── hooks/useVenueEvents.ts  # The venue's events, reloaded on focus (Overview, Events)
 ├── navigation/index.tsx
 ├── screens/
 ├── theme.ts                 # Palette, dark navigation theme, header/tab bar options
@@ -81,7 +83,8 @@ src/
 │   ├── NativeFetchService.ts # fetch + auth header; keeps the status of non-JSON errors
 │   ├── discoveryService.ts   # Venues, location, caches
 │   ├── cityService.ts        # The one place that reads and saves the user's city
-│   ├── mobileBarService.ts   # Venue register/confirm/login
+│   ├── mobileBarService.ts   # Venue register/confirm/login, event delete
+│   ├── venueEventsService.ts # The venue's upcoming events
 │   └── tasteService.ts       # Taste profile (artist picker, search)
 ├── types/api.ts             # HttpError, errorMessage/errorStatus, ApiEvent, ApiBarData
 └── utils/
@@ -149,9 +152,16 @@ request. It is not a JWT and is not refreshed: it expires on the server after 7 
   `utils/legacySpotify.ts` clears tokens older builds left in AsyncStorage
 
 #### QR Code System
-- QR generation for venues (`react-native-qrcode-svg`)
-- QR scanning for check-ins (`expo-camera`)
-- Screens: `QRScannerScreen.tsx`, `QRCodeGeneratorScreen.tsx`
+- QR generation for venues (`react-native-qrcode-svg`), shared as a PNG through `utils/qrShare`:
+  Android's `toDataURL` calls back with bare base64, not a data URL (KNOWN_ISSUES 83). The share
+  modal has Cancel and answers Android's back button; there is no timeout on the capture (owner's
+  decision). Fallback if it proves unreliable: `react-native-view-shot` (KNOWN_ISSUES 87)
+- QR scanning for check-ins (`expo-camera`), read by `utils/checkinCode.parseCheckinCode`. The
+  server writes two forms and both must scan: `clubfindr://checkin?…` (a new code) and
+  `https://clubfindr.com/redirect?…` (every listed code, kept for phone cameras and printed codes;
+  KNOWN_ISSUES 84). Plain string parsing, since React Native's `URL` differs from Node's
+- Screens: `QRScannerScreen.tsx`, `QRCodeGeneratorScreen.tsx` (opened from the Venue tab and the
+  Overview's check-in card)
 
 #### Location and city
 - **Approximate location only** (`Accuracy.Low`, Android `ACCESS_COARSE_LOCATION`): Play wants a

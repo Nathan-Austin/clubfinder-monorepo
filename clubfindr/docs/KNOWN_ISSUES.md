@@ -880,6 +880,8 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     - Screens over 500 lines not worked in: `discoveryService.ts` (1221), `BarRegistrationScreen`
       (901), `SearchScreen` (849), `TilkiScreen` (768), `VenueDetailsScreen` (759),
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
+      _2026-11-17:_ `EventFormScreen` (353, in sections) and `BarHomeScreen` (Overview, 220) are
+      done in the venue round; the customer-side ones are left.
     - _Done 2026-11-17 (`4a2c805`, `3772640`, `afe5c7e`, `6704ae6`):_ the app's lint warnings, 755
       on 2026-11-16, are 0. console.log/info/debug go through `utils/logger` (the personal-data
       guard checks `log.*` too); every StyleSheet colour is a `colors.*` token of the same value
@@ -958,6 +960,12 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     event, the check-in code), Events, Music (artists and genres you play) and Venue (Edit venue
     profile, QR codes, Log out). The forms and the QR codes open over the tabs. The dashboard reloads its events whenever it is shown. Both sides share one dark theme
     (`src/theme.ts`), passed to `NavigationContainer`.
+## Found during the venue app round (17 November 2026)
+
+Steps 1-11 of the 2026-11-17 round (ROADMAP, "Venue side of the app"); 81-86 above were fixed in
+it. Device checks for all of it: `app_clubfindr/DEVICE_CHECKLIST.md` (versionCode 11). Everything
+here that needs the server is collected in ROADMAP, "Next server round".
+
 87. **Fallback for QR sharing, if `toDataURL` proves unreliable: `react-native-view-shot`.** Decided
     2026-11-17 to keep `react-native-svg`'s `toDataURL` for now (83) and add no native module. If a
     device run on either platform still cannot share (the spinner stays until Cancel, or "Could not
@@ -996,4 +1004,13 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     Fix in the next server round (ROADMAP section 5): one occurrence function in `$lib` used by
     the venue list, both matchers and `/barfindr`; the pattern validated against those four values;
     then skipped dates for "cancel this date" (89). The app then shows occurrences, not rows.
-
+91. **The genres a venue is offered and the genres the server accepts come from different places.**
+    Found 2026-11-17. The app's "Genres you play" and event genres suggest the 1,243 names of
+    `clubfindr/static/lib/unified-genres.json` (the web dashboard's list, held equal by
+    `genreVocabulary.test.ts`), but `PUT /api/venues/:barId/taste/genres` accepts what
+    `isKnownGenre` places in a cluster (`$lib/server/genreMatching`, the clusters and aliases),
+    which no JSON file lists. So a suggestion can be refused ("Not genres Clubfindr knows: ..."),
+    on the web as in the app; the message covers it, nothing breaks. A third copy,
+    `clubfindr/src/lib/data/unified-genres.json` (953 names), differs from both. Event genres are
+    not checked at all (free text). For the next server round: one list the suggestions and the
+    check share, a test that every suggestion is accepted, and strict event genres.

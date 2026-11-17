@@ -5,14 +5,49 @@ Planned work for the Clubfinder monorepo. Detailed findings live in
 [`clubfindr/docs/KNOWN_ISSUES.md`](clubfindr/docs/KNOWN_ISSUES.md); this file is the
 ordered list of what I intend to do next.
 
-## Next app round: from the 2026-11-16 device run
+## Tonight's device run (2026-11-17, versionCode 11)
 
-The owner ran `app_clubfindr/DEVICE_CHECKLIST.md` on versionCode 10 (27 passed). To fix next, in
-this order: QR sharing hangs (KNOWN_ISSUES 83), then retest check-in by scanning (84); event delete
-in the app (82); white-on-white text on the QR screen and any other venue screen (85); the wrong-
-password message (81); a redesign of the venue side's navigation, which is cut off on a phone (86).
-Not tested yet, for the next device run: a personal account with no venue, the venue password
-reset by e-mail, a non-Tilki QR code, changing the city on the web, and section 9 of the checklist.
+The 2026-11-17 app round is done (below, "Venue side of the app", steps 1-11): every failure and
+issue of the versionCode 10 run is fixed (KNOWN_ISSUES 81-86), the venue side has its agreed four
+tabs, and the app has no lint warnings. App-only, so no deploy is needed. The owner's checklist:
+[`app_clubfindr/DEVICE_CHECKLIST.md`](app_clubfindr/DEVICE_CHECKLIST.md), which also carries what
+the last run left untested (a personal account with no venue, the venue password reset, a non-Tilki
+QR code, the web city change, and the "changed in passing" items).
+
+## Next server round
+
+Found or decided during the 2026-11-17 app round and left for the server, in a suggested order.
+Each is a server change with its e2e run under the lease.
+1. **Recurring events as dates** (KNOWN_ISSUES 90): expand them on the server, one occurrence
+   function for the venue list, both matchers and `/barfindr`, the pattern validated. Today a
+   weekly night counts on its first date only and then disappears. Then **cancel one date** rather
+   than the series (89). Details in section 5
+2. **Live music as an event filter, not a genre** (owner's decision, 2026-11-17): an event
+   attribute set in the app's and the web's form, a customer filter with the genres underneath,
+   existing "Live Music" tags migrated. Details in section 5
+3. **One genre list** (KNOWN_ISSUES 91): the suggestions (app and web) and the server's check
+   (`isKnownGenre`) from the same source, a test that every suggestion is accepted, then strict
+   event genres; and a test across app and server that the two agree
+4. **The `/redirect` page's store links** (KNOWN_ISSUES 88): Play's `com.clubfindr.mobile`, the App
+   Store once the app has a record; people without the app scanning a venue code reach a dead page
+5. **Real venue insights** in place of the removed "Genre Matches" tile (always 0, no data behind
+   it): check-ins per night, matched visitors, once there is data to count
+
+Still open from earlier: a personal-account password reset that ends that user's sessions
+(KNOWN_ISSUES 80), the SoundCloud and Tidal decision and their callback logging (78), and
+`SMTP_TLS_VERIFY` in production (15).
+
+## Left on the app side (next app round)
+
+- `VenueCard`'s "Events Today" / "Next Event" read dates as UTC, a day early west of UTC
+  (KNOWN_ISSUES 80; a one-line fix with `utils/localDate`, changes what customers see)
+- Fold the palette's near-duplicates (`dangerBright`/`danger`, `grey800`/`card`, …) into the core
+  tokens, with a device run (KNOWN_ISSUES 80)
+- If QR sharing still fails on a phone: `react-native-view-shot` (KNOWN_ISSUES 87), on both
+  platforms
+- Split the customer-side screens over 500 lines (KNOWN_ISSUES 80), one device run each
+- The Expo patch upgrade with `expo-auth-session` removed (35) and the notifications decision (77);
+  R8 and Sentry (section 5)
 
 ## Venue side of the app: decided 2026-11-17
 
@@ -34,8 +69,15 @@ The 2026-11-17 app round does it in three steps, each with its own commits and t
    is split into sections, QR codes and Profile go into Venue. Done 2026-11-17 (`391f8ea`,
    `58ae040`, `a0675e4`)
 
-Then 10, the lint warnings (KNOWN_ISSUES 80; done 2026-11-17, 0 left), and 11, the hand-over with a
-device checklist.
+10. [x] The lint warnings (KNOWN_ISSUES 80): 682 to 0, and `--max-warnings 0` so CI keeps them
+    at 0. Done 2026-11-17 (`4a2c805`, `3772640`, `afe5c7e`, `6704ae6`, `63c6e24`)
+11. [x] Hand-over: the device checklist for versionCode 11 (`fac23e7`), KNOWN_ISSUES (87-91),
+    this ROADMAP and `app_clubfindr/CLAUDE.md`. Done 2026-11-17
+
+Steps 1-6 of the same day, before the venue review: QR sharing (83, `8fb0963`), check-in codes in
+both forms (84, `077d147`), event delete (82, `117091f`), the QR screen's contrast (85,
+`4a7d8f0`), the wrong-password message (81, `2ef01e3`), and the first venue bottom tabs with one
+dark theme (86, `260f5e6`, `b65c938`).
 
 ## Today's session (2026-11-16): the mobile app
 
@@ -463,7 +505,7 @@ top artists or play counts on the web).
       already; the web dashboard has the section since 2026-11-12)
 - [ ] Unit tests for the services layer (started 2026-11-16: auth/bar login, city, the HTTP clients, location, logging; 25 tests → 97)
 - [x] Done 2026-11-16 for the services and the HTTP clients (`b6d6bb0`) and for logging (`5ee2f8c`); and for the screens on 2026-11-17 (lint step 10, no `any` left). Replace `any` types and gate `console.log` for production builds
-- [ ] Split screen components over 500 lines (LoginScreen done 2026-11-16; the rest are listed in KNOWN_ISSUES 80)
+- [ ] Split screen components over 500 lines (LoginScreen done 2026-11-16; EventFormScreen and BarHomeScreen 2026-11-17; the customer-side rest are listed in KNOWN_ISSUES 80)
 - [ ] **Next server round:** expand recurring venue events into dates on the server (KNOWN_ISSUES
       90). Today a recurring event counts for matching on its first date only, and then drops out
       of `/barfindr` and the venue's own list. One occurrence function in `$lib` for the venue
