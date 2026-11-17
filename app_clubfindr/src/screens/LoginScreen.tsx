@@ -127,22 +127,14 @@ const LoginScreen = () => {
         console.log('Network check error:', networkError);
       }
 
-      let loginResponse;
-      try {
-        loginResponse = await axiosClient.post('/api/mobile/login', {
-          email,
-          password,
-          isMobileApp: true
-        });
-      } catch (error) {
-        console.log('Optimized endpoint failed, trying fallback...', error);
-        loginResponse = await axiosClient.post('/login/users', {
-          email,
-          password,
-          provider: 'local',
-          isMobileApp: true
-        });
-      }
+      // No fallback to the web's /login/users (KNOWN_ISSUES 81): it ran on every failure, a wrong
+      // password's 401 included, sent the password a second time, and replaced the server's
+      // "Invalid credentials" with whatever the second request answered
+      const loginResponse = await axiosClient.post('/api/mobile/login', {
+        email,
+        password,
+        isMobileApp: true
+      });
 
       const data = loginResponse.data as LoginResponse;
       console.log(`Login request took: ${Date.now() - loginStart}ms`);

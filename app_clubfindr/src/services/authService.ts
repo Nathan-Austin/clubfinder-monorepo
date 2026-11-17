@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosClient from '../api/axiosClient';
 import { log } from '../utils/logger';
+import { errorMessage } from '../types/api';
 
 type LoginCredentials = {
     email: string;
@@ -93,34 +94,10 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
 
         throw new Error('Invalid response format');
     } catch (error) {
-        console.error('AuthService: Login failed', error);
-
-        // Try fallback login endpoint if the mobile one fails
-        try {
-            console.log('AuthService: Trying fallback login endpoint');
-            const fallbackResponse = await axiosClient.post('/login/users', {
-                ...credentials,
-                provider: 'local',
-                isMobileApp: true
-            });
-            const fallbackData = fallbackResponse.data as LoginResponse;
-
-            if (fallbackData.success && fallbackData.token) {
-                // Normalize fallback response data as well
-                const normalizedUser = normalizeUserData(fallbackData.user);
-                const normalizedResponse = {
-                    ...fallbackData,
-                    user: normalizedUser
-                };
-                await storeAuthData(fallbackData.token, normalizedUser);
-                return normalizedResponse;
-            }
-
-            throw new Error('Fallback login failed');
-        } catch (fallbackError) {
-            console.error('AuthService: Fallback login failed', fallbackError);
-            throw error; // Throw the original error
-        }
+        console.error('AuthService: Login failed', errorMessage(error, 'login failed'));
+        // No fallback to the web's /login/users (KNOWN_ISSUES 81): it sent the password a second
+        // time on every failure, a wrong password included
+        throw error;
     }
 };
 
