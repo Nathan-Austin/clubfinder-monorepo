@@ -19,6 +19,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import axiosClient from '../api/axiosClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { captureQrPng, qrShareFilePath, type QrSvgRef } from '../utils/qrShare';
+import { log } from '../utils/logger';
 
 type QRCodeData = {
     id: string;
@@ -29,7 +31,7 @@ type QRCodeData = {
 };
 
 const QRCodeGeneratorScreen = () => {
-    const svgRef = React.useRef<any>(null);
+    const svgRef = React.useRef<QrSvgRef | null>(null);
     const [qrCodes, setQrCodes] = useState<QRCodeData[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -97,42 +99,61 @@ const QRCodeGeneratorScreen = () => {
         }
     };
 
+    // Each share gets a number; Cancel (or leaving the screen) moves it on, so a capture that
+    // finishes afterwards neither opens the share sheet nor shows an error (KNOWN_ISSUES 83)
+    const shareAttempt = React.useRef(0);
+    useEffect(() => () => {
+        shareAttempt.current += 1;
+    }, []);
+
+    const cancelShare = () => {
+        shareAttempt.current += 1;
+        setShowQRModal(false);
+    };
+
     const shareQRCode = async (qrCode: QRCodeData) => {
+        const attempt = ++shareAttempt.current;
+        const stillWanted = () => shareAttempt.current === attempt;
+
+        setSelectedQR(qrCode);
+        setShowQRModal(true);
+
         try {
-            const getDataURL = () => {
-                return new Promise((resolve, reject) => {
-                    svgRef.current?.toDataURL(callback);
-                    function callback(dataURL: string) {
-                        resolve(dataURL);
-                    }
-                });
-            };
+            // Let the modal mount and the full-size QR code render before capturing it
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            if (!stillWanted()) return;
 
-            setSelectedQR(qrCode);
-            setShowQRModal(true);
+            const base64 = await captureQrPng(svgRef.current);
+            if (!stillWanted()) return;
 
-            // Wait for modal to show and QR code to render
-            setTimeout(async () => {
-                if (svgRef.current) {
-                    const dataURL = await getDataURL();
-                    const filePath = `${FileSystem.cacheDirectory}qrcode-${qrCode.id}.png`;
-                    const data = (dataURL as string).split(',')[1];
-                    await FileSystem.writeAsStringAsync(filePath, data, {
-                        encoding: FileSystem.EncodingType.Base64,
-                    });
+            const filePath = qrShareFilePath(FileSystem.cacheDirectory, qrCode.id);
+            await FileSystem.writeAsStringAsync(filePath, base64, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+            if (!stillWanted()) return;
 
-                    if (await Sharing.isAvailableAsync()) {
-                        await Sharing.shareAsync(filePath);
-                    } else {
-                        Alert.alert('Sharing not available', 'Sharing is not available on this device');
-                    }
-                }
-                setShowQRModal(false);
-            }, 500);
-        } catch (error) {
-            console.error('Error sharing QR code:', error);
-            Alert.alert('Error', 'Failed to share QR code');
+            // Close the spinner before the share sheet: shareAsync only settles when the sheet
+            // closes, and iOS will not present the sheet over an open modal
             setShowQRModal(false);
+
+            if (!(await Sharing.isAvailableAsync())) {
+                Alert.alert('Sharing not available', 'Sharing is not available on this device');
+                return;
+            }
+            await Sharing.shareAsync(filePath, {
+                mimeType: 'image/png',
+                UTI: 'public.png',
+                dialogTitle: `Share ${qrCode.title}`,
+            });
+        } catch (error) {
+            if (stillWanted()) {
+                log.error('Error sharing QR code:', error);
+                Alert.alert('Error', 'Could not share the QR code. Please try again.');
+            }
+        } finally {
+            if (stillWanted()) {
+                setShowQRModal(false);
+            }
         }
     };
 
@@ -348,19 +369,32 @@ const QRCodeGeneratorScreen = () => {
                 visible={showQRModal}
                 transparent={true}
                 animationType="fade"
+                onRequestClose={cancelShare}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.qrModalContent}>
-                        {selectedQR && (
-                            <QRCode
-                                value={selectedQR.qrValue}
-                                size={300}
-                                color="#000000"
-                                backgroundColor="#FFFFFF"
-                                getRef={(ref) => (svgRef.current = ref)}
-                            />
-                        )}
-                        <ActivityIndicator size="large" color="#D35400" style={styles.qrModalLoader} />
+                        <View style={styles.qrModalCode}>
+                            {selectedQR && (
+                                <QRCode
+                                    value={selectedQR.qrValue}
+                                    size={300}
+                                    color="#000000"
+                                    backgroundColor="#FFFFFF"
+                                    getRef={(ref) => {
+                                        svgRef.current = ref;
+                                    }}
+                                />
+                            )}
+                            <ActivityIndicator size="large" color="#D35400" style={styles.qrModalLoader} />
+                        </View>
+                        <Text style={styles.qrModalStatus}>Preparing your QR code…</Text>
+                        <TouchableOpacity
+                            style={styles.qrModalCancel}
+                            onPress={cancelShare}
+                            accessibilityRole="button"
+                        >
+                            <Text style={styles.qrModalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -564,8 +598,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    qrModalCode: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     qrModalLoader: {
         position: 'absolute',
+    },
+    // The card is white (the QR code needs a light quiet zone), so its text is dark
+    qrModalStatus: {
+        color: '#333333',
+        fontSize: 14,
+        marginTop: 16,
+    },
+    qrModalCancel: {
+        marginTop: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 24,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: '#D35400',
+    },
+    qrModalCancelText: {
+        color: '#D35400',
+        fontWeight: 'bold',
     },
 });
 
