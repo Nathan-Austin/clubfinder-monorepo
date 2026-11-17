@@ -403,13 +403,17 @@ const QRCodeGeneratorScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    // The screen's text is light, but the navigator's theme is light too: without a dark
+    // background of its own the white text sat on light grey (KNOWN_ISSUES 85)
     container: {
         flex: 1,
+        backgroundColor: '#121212',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#121212',
     },
     loadingText: {
         color: '#CCCCCC',
@@ -504,7 +508,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     deleteButton: {
-        backgroundColor: '#40000',
+        backgroundColor: '#400000',
         borderWidth: 1,
         borderColor: '#FF5252',
     },
