@@ -918,9 +918,18 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     Cancel and answers Android's back button. No timeout on the capture, by the owner's decision: a
     capture that never calls back leaves the spinner until Cancel. If it still fails on a device,
     see 87.
-84. **Check-in by scanning not yet confirmed on a device.** The scan did not recognise the venue's
-    code in the run, but the code could only be shown from the stuck share screen (83). Retest
-    once sharing works, with a code shown full-size on a second screen; non-Tilki codes not tested.
+84. _Cause found and fixed 2026-11-17 (`077d147`); retest on a device._ **Check-in by scanning
+    refused the venue's codes.** The server writes two forms of the same code: a new one gets
+    `clubfindr://checkin?barId=…&qrId=…` (`POST /api/mobile/bars/:barId/qrcodes`), but every code in
+    the venue's list gets `https://clubfindr.com/redirect?barId=…&qrId=…` (`GET` on the same route),
+    and the scanner accepted only the first. So any code shared or shown from the list was refused as
+    "not a valid Tilki QR code", whatever 83 did. The server keeps the `https://` form (owner's
+    decision 2026-11-17: a phone's own camera opens it, and codes may already be printed with it);
+    the scanner reads both through `utils/checkinCode.parseCheckinCode`, whose test also parses the
+    route's two `qrValue` templates so they cannot drift apart again. A refused code no longer raises
+    one alert after another while it stays in front of the camera. To retest: a code from the list,
+    shared (83) and shown full-size on a second screen; a non-Tilki code (a clear "Not a Tilki
+    code"); a deleted code ("Code not recognised").
 85. **White text on white on the QR code screen.** `QRCodeGeneratorScreen.tsx` styles its text
     `#FFFFFF` (six places) for a dark theme, but some of its containers are white (`#FFFFFF`
     backgrounds, lines 450 and 561), so parts of the screen cannot be read. The TextInput test of
