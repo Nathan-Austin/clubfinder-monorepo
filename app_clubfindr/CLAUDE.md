@@ -75,6 +75,7 @@ src/
 ├── hooks/useCityProposal.ts # "You seem to be in Paris. Switch?"
 ├── navigation/index.tsx
 ├── screens/
+├── theme.ts                 # Palette, dark navigation theme, header/tab bar options
 ├── services/
 │   ├── NativeFetchService.ts # fetch + auth header; keeps the status of non-JSON errors
 │   ├── discoveryService.ts   # Venues, location, caches
@@ -116,8 +117,15 @@ request. It is not a JWT and is not refreshed: it expires on the server after 7 
 ### Navigation Structure
 - Conditional rendering based on auth state and user type
 - Stack navigator for authentication flow
-- Bottom tabs for main app (different for customers vs bar managers)
+- Bottom tabs for both sides, with the same tab bar (`tabBarOptions` in `theme.ts`):
+  - customers: Home, Discover, Search, Tilki, Profile
+  - venues (`BarTabNavigator`): Dashboard, QR Codes, Artists, Profile (`BarProfileScreen`: edit
+    the venue profile, log out); Edit Bar Profile and Create/Edit Event open over the tabs from
+    the venue stack (`BarNavigator`). Tab screens stay mounted: reload on focus
+    (`useFocusEffect`) what another screen can change
 - Modal stack for detail screens
+- One dark theme (`navigationTheme` in `theme.ts`) on `NavigationContainer`; take colours from
+  `colors` there rather than writing literals
 
 ### Key Features
 
@@ -167,8 +175,8 @@ Some tests read source or config rather than run code, because what they guard o
 device:
 - `screens/__tests__/textInputs.test.ts`: every `TextInput` sets `placeholderTextColor`, its
   style a `color`, and e-mail fields `autoCorrect={false}` (KNOWN_ISSUES 69)
-- `screens/__tests__/screenColours.test.ts`: every screen's `container` sets a background (the
-  navigator's theme is light and the screens are styled dark) and every hex colour is valid
+- `screens/__tests__/screenColours.test.ts`: every screen's `container` sets a background (each
+  screen paints its own; the navigation theme is only the fallback) and every hex colour is valid
   (KNOWN_ISSUES 85)
 - `utils/__tests__/noPersonalDataInLogs.test.ts`: no console call logs an e-mail, password, token
   or code

@@ -882,7 +882,7 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
     - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
       services, mostly in screens. **Logged 2026-11-17 for a cleanup step of its own** (747, 0
-      errors; `npx expo export` gives none): `react-native/no-color-literals` 515,
+      errors, 742 after the venue tabs; `npx expo export` gives none): `react-native/no-color-literals` 515,
       `no-console` 148, `@typescript-eslint/no-unused-vars` 31, `react-native/no-unused-styles` 27,
       `@typescript-eslint/no-explicit-any` 22, `react-native/no-inline-styles` 2. Most are in
       `discoveryService.ts` (59), `VenueCard` (53), `SearchScreen` (48), `VenueDetailsScreen` (47),
@@ -951,10 +951,13 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     screen was checked against its backgrounds: light text on `#121212`/`#1E1E1E`/`#2A2A2A`
     throughout. `screens/__tests__/screenColours.test.ts` holds every screen to a background of its
     own and every hex colour to 3, 4, 6 or 8 digits.
-86. **The venue side's navigation is cut off.** The venue menus run across the top of the screen
-    and do not fit, so options are cut off on a phone. The venue screens need a navigation
-    redesign (bottom tabs like the customer side, or a menu that wraps or scrolls), checked on a
-    small phone.
+86. _Fixed 2026-11-17 (`b65c938`, theme `260f5e6`); check on a small phone._ **The venue side's
+    navigation was cut off.** QR Codes, Artists, Edit Profile and Log Out were a row of four buttons
+    across the dashboard's header, with no wrap. The venue side has bottom tabs now, like the
+    customer side: Dashboard (stats and events), QR Codes, Artists and Profile (a new
+    `BarProfileScreen`: Edit venue profile, Log out). The event and profile forms open over the
+    tabs. The dashboard reloads its events whenever it is shown. Both sides share one dark theme
+    (`src/theme.ts`), passed to `NavigationContainer`.
 87. **Fallback for QR sharing, if `toDataURL` proves unreliable: `react-native-view-shot`.** Decided
     2026-11-17 to keep `react-native-svg`'s `toDataURL` for now (83) and add no native module. If a
     device run on either platform still cannot share (the spinner stays until Cancel, or "Could not
