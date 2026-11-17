@@ -21,6 +21,7 @@ import EventWhenSection from '../components/eventForm/EventWhenSection';
 import EventRecurrenceSection from '../components/eventForm/EventRecurrenceSection';
 import { fromLocalIsoDate } from '../utils/localDate';
 import { parseTimeString, toEventPayload, validateEventForm, type EventFormErrors } from '../utils/eventFormValues';
+import { colors } from '../theme';
 
 // Types
 interface BarEvent {
@@ -262,20 +263,20 @@ const EventFormScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     formContainer: {
         flex: 1,
     },
     header: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 20,
         alignItems: 'center',
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     form: {
         padding: 20,
@@ -284,30 +285,30 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     label: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         marginBottom: 8,
         fontWeight: '500',
     },
     input: {
-        backgroundColor: '#2A2A2A',
-        color: '#FFFFFF',
+        backgroundColor: colors.card,
+        color: colors.text,
         padding: 12,
         borderRadius: 6,
         fontSize: 16,
     },
     inputError: {
         borderWidth: 1,
-        borderColor: '#FF5252',
+        borderColor: colors.danger,
     },
     errorText: {
-        color: '#FF5252',
+        color: colors.danger,
         fontSize: 14,
         marginTop: 5,
     },
     textArea: {
-        backgroundColor: '#2A2A2A',
-        color: '#FFFFFF',
+        backgroundColor: colors.card,
+        color: colors.text,
         padding: 12,
         borderRadius: 6,
         fontSize: 16,
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     cancelButton: {
-        backgroundColor: '#444',
+        backgroundColor: colors.grey700,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 6,
@@ -328,12 +329,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: '500',
     },
     submitButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 6,
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     submitButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },

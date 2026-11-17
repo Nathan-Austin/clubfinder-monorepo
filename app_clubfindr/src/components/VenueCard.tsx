@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Venue, Event } from '../services/discoveryService';
+import { colors } from '../theme';
 
 type VenueCardProps = {
     venue: Venue;
@@ -275,10 +276,10 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginRight: 6,
         marginBottom: 4,
-        backgroundColor: 'rgba(29, 185, 84, 0.2)',
+        backgroundColor: colors.greenA20,
     },
     mainGenreText: {
-        color: '#1db954',
+        color: colors.green,
         fontSize: 12,
         fontWeight: '500',
     },
@@ -288,13 +289,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     artistsLabel: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 12,
         fontWeight: 'bold',
         marginRight: 5,
     },
     artistsList: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         flex: 1,
     },
@@ -302,14 +303,14 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 40, // Moved down to avoid overlap with match percentage
         right: 10,
-        backgroundColor: '#1db954',
+        backgroundColor: colors.green,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
         zIndex: 1,
     },
     eventBadgeText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -317,30 +318,30 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     eventCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: colors.whiteA10,
         borderRadius: 8,
         padding: 12,
         marginRight: 10,
         width: 200,
     },
     eventName: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
         fontWeight: 'bold',
         marginBottom: 4,
     },
     eventDate: {
-        color: '#1db954',
+        color: colors.green,
         fontSize: 12,
         marginBottom: 2,
     },
     eventTime: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 12,
         marginBottom: 4,
     },
     eventDescription: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 12,
         marginBottom: 6,
     },
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     eventGenreBadge: {
-        backgroundColor: 'rgba(29, 185, 84, 0.2)',
+        backgroundColor: colors.greenA20,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
@@ -358,11 +359,11 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     eventGenreText: {
-        color: '#1db954',
+        color: colors.green,
         fontSize: 10,
     },
     moreEventsCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.whiteA05,
         borderRadius: 8,
         padding: 12,
         marginRight: 10,
@@ -371,7 +372,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     moreEventsText: {
-        color: '#1db954',
+        color: colors.green,
         fontSize: 12,
         textAlign: 'center',
     },
@@ -381,12 +382,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     barContainer: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
     },
     clubContainer: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderLeftWidth: 4,
-        borderLeftColor: '#6200EA', // Purple accent for clubs
+        borderLeftColor: colors.purple, // Purple accent for clubs
     },
     header: {
         flexDirection: 'row',
@@ -397,17 +398,17 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         flex: 1,
     },
     matchBadge: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
     },
     matchText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -418,12 +419,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     address: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         flex: 1,
     },
     distanceText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 12,
         fontWeight: '500',
         marginLeft: 10,
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
     nowPlaying: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(29, 185, 84, 0.1)',
+        backgroundColor: colors.greenA10,
         padding: 10,
         borderRadius: 4,
         marginBottom: 10,
@@ -440,19 +441,19 @@ const styles = StyleSheet.create({
         width: 16,
         height: 16,
         marginRight: 10,
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         borderRadius: 8,
     },
     trackName: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
     artistName: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 12,
     },
     eventInfo: {
-        backgroundColor: 'rgba(98, 0, 234, 0.1)', // Light purple background for club events
+        backgroundColor: colors.purpleA10, // Light purple background for club events
         padding: 10,
         borderRadius: 4,
         marginBottom: 10,
@@ -469,17 +470,17 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     barGenreBadge: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
     },
     clubGenreBadge: {
-        backgroundColor: '#4A148C', // Darker purple for club genres
+        backgroundColor: colors.purpleDark, // Darker purple for club genres
     },
     genreText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
     },
     moreGenres: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 12,
         alignSelf: 'center',
     },
@@ -491,25 +492,25 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     highPopularity: {
-        backgroundColor: '#F44336', // Red
+        backgroundColor: colors.negative, // Red
     },
     mediumPopularity: {
-        backgroundColor: '#FF9800', // Orange
+        backgroundColor: colors.warning, // Orange
     },
     lowPopularity: {
-        backgroundColor: '#4CAF50', // Green
+        backgroundColor: colors.positive, // Green
     },
     popularityText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         fontWeight: 'bold',
     },
     eventLabel: {
-        color: '#999999',
+        color: colors.grey400,
         fontSize: 12,
     },
     eventValue: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
     },
 });

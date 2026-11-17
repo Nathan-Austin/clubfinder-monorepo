@@ -28,6 +28,7 @@ import { artistsFromHits, genresOfSelection, type SearchArtist } from '../utils/
 import genreData from '../constants/unified-genres.json';
 import { cityForQueries } from '../services/cityService';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 // Artist search runs on the server-side Spotify app and the catalogue (GET /api/taste/search);
 // it used to need the user's own Spotify login, which is retired. Tracks are not searched any
@@ -568,7 +569,7 @@ const styles = StyleSheet.create({
     },
     tabContainer: {
         flexDirection: 'row',
-        backgroundColor: '#222222',
+        backgroundColor: colors.surfaceAlt,
         padding: 5,
         borderRadius: 25,
         flex: 1,
@@ -581,60 +582,60 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     activeTab: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     tabText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontWeight: '500',
     },
     activeTabText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
     searchResultsList: {
         flex: 1,
     },
     selectedItem: {
-        backgroundColor: 'rgba(29, 185, 84, 0.2)',
+        backgroundColor: colors.greenA20,
         borderWidth: 1,
-        borderColor: '#D35400',
+        borderColor: colors.primary,
     },
     checkmark: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 22,
         fontWeight: 'bold',
         marginLeft: 10,
     },
     emptyText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         textAlign: 'center',
         padding: 20,
         fontSize: 16,
     },
     actionBar: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         padding: 16,
         borderTopWidth: 1,
-        borderTopColor: '#333333',
+        borderTopColor: colors.border,
     },
     actionButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 12,
         borderRadius: 8,
         alignItems: 'center',
     },
     disabledButton: {
-        backgroundColor: '#555555',
+        backgroundColor: colors.grey600,
         opacity: 0.5,
     },
     actionButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     innerContainer: {
         flex: 1,
@@ -650,42 +651,42 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     selectedGenresTitle: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
         fontWeight: 'bold',
     },
     clearButton: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 4,
     },
     clearButtonSmall: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 4,
     },
     clearButtonText: {
-        color: '#FF5252',
+        color: colors.danger,
         fontSize: 12,
         fontWeight: '500',
     },
     findVenuesButton: {
-        backgroundColor: '#1DB954',
+        backgroundColor: colors.green,
         padding: 12,
         borderRadius: 8,
         marginTop: 12,
         alignItems: 'center',
     },
     findVenuesText: {
-        color: '#fff',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
     errorContainer: {
         padding: 16,
-        backgroundColor: 'rgba(255, 82, 82, 0.2)',
+        backgroundColor: colors.dangerA20,
         marginBottom: 16,
         borderRadius: 8,
     },
@@ -693,25 +694,25 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     errorText: {
-        color: '#ff8a80',
+        color: colors.dangerLight,
         textAlign: 'center',
         marginBottom: 4,
     },
     dismissText: {
-        color: '#cccccc',
+        color: colors.textSecondary,
         fontSize: 12,
         textAlign: 'center',
         fontStyle: 'italic',
     },
     retryButton: {
-        backgroundColor: '#1DB954',
+        backgroundColor: colors.green,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 4,
         alignSelf: 'center',
     },
     retryText: {
-        color: '#fff',
+        color: colors.text,
         fontWeight: 'bold',
     },
     loadingContainer: {
@@ -722,14 +723,14 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 8,
-        color: '#cccccc',
+        color: colors.textSecondary,
     },
     sectionHeader: {
         fontSize: 18,
         fontWeight: 'bold',
         padding: 16,
-        backgroundColor: '#333333',
-        color: '#ffffff',
+        backgroundColor: colors.grey800,
+        color: colors.text,
     },
     artistImage: {
         width: 50,
@@ -743,11 +744,11 @@ const styles = StyleSheet.create({
     resultTitle: {
         fontSize: 16,
         fontWeight: '500',
-        color: '#ffffff',
+        color: colors.text,
     },
     resultSubtext: {
         fontSize: 14,
-        color: '#b3b3b3',
+        color: colors.grey300,
         marginTop: 2,
     },
     searchSection: {
@@ -758,25 +759,25 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 40,
         borderWidth: 1,
-        borderColor: '#333333',
+        borderColor: colors.border,
         borderRadius: 8,
         paddingHorizontal: 12,
         marginRight: 8,
-        backgroundColor: '#2a2a2a',
-        color: '#ffffff',
+        backgroundColor: colors.card,
+        color: colors.text,
     },
     searchButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingHorizontal: 16,
         justifyContent: 'center',
         borderRadius: 8,
     },
     buttonText: {
-        color: '#fff',
+        color: colors.text,
         fontWeight: 'bold',
     },
     selectedGenreTag: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
@@ -784,7 +785,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     selectedGenreText: {
-        color: '#fff',
+        color: colors.text,
     },
     contentContainer: {
         flex: 1,
@@ -793,14 +794,14 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     backButtonText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 16,
     },
     headerText: {
         fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 16,
-        color: '#ffffff',
+        color: colors.text,
     },
     genreItem: {
         flexDirection: 'row',
@@ -809,7 +810,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#333333', // Darker border
+        borderBottomColor: colors.border, // Darker border
     },
     genreItemLeft: {
         flex: 1,
@@ -820,31 +821,31 @@ const styles = StyleSheet.create({
         paddingLeft: 16,
         paddingVertical: 8,
         borderLeftWidth: 1,
-        borderLeftColor: '#333333',
+        borderLeftColor: colors.border,
         marginLeft: 8,
     },
     subGenreHint: {
         fontSize: 12,
-        color: '#D35400',
+        color: colors.primary,
         marginTop: 2,
     },
     selectedGenre: {
-        backgroundColor: 'rgba(29, 185, 84, 0.2)', // Transparent Spotify green
+        backgroundColor: colors.greenA20, // Transparent Spotify green
     },
     genreText: {
         fontSize: 16,
-        color: '#ffffff',
+        color: colors.text,
     },
     searchResultItem: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#333333', // Darker border
+        borderBottomColor: colors.border, // Darker border
     },
     resultText: {
         fontSize: 16,
-        color: '#ffffff',
+        color: colors.text,
     },
 });
 

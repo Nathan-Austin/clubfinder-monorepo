@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import CitySection from '../components/CitySection';
+import { colors } from '../theme';
 
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -158,24 +159,24 @@ import { Ionicons } from '@expo/vector-icons';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: colors.background,
   },
   section: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    borderBottomColor: colors.border,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.text,
     marginBottom: 15,
   },
   loader: {
     marginVertical: 20,
   },
   noDataText: {
-    color: '#CCCCCC',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginVertical: 20,
   },
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   genreBadge: {
-    backgroundColor: '#333333',
+    backgroundColor: colors.grey800,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -193,57 +194,57 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   genreText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
   },
   refreshButton: {
-    backgroundColor: '#333333',
+    backgroundColor: colors.grey800,
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
   },
   refreshButtonText: {
-    color: '#D35400',
+    color: colors.primary,
     fontWeight: 'bold',
   },
   privacyItem: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: colors.card,
     padding: 15,
     borderRadius: 5,
     marginBottom: 10,
   },
   privacyItemText: {
-    color: '#FF5252',
+    color: colors.danger,
     fontSize: 16,
     fontWeight: '500',
   },
   privacyItemWarning: {
-    color: '#CCCCCC',
+    color: colors.textSecondary,
     fontSize: 12,
     marginTop: 5,
   },
   logoutButton: {
     margin: 20,
-    backgroundColor: '#FF5252',
+    backgroundColor: colors.danger,
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
   },
   logoutButtonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontWeight: 'bold',
   },
   scannerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D35400',
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 8,
     justifyContent: 'center',
     gap: 10,
   },
   scannerButtonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },

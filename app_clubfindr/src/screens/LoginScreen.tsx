@@ -25,6 +25,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { API_URL } from '../config/env';
 import { loginErrorMessage } from '../utils/loginErrors';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 // Simplified navigation type
 type LoginScreenNavigationProp = StackNavigationProp<any>;
@@ -326,7 +327,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -345,35 +346,35 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#D35400',
+    color: colors.primary,
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: colors.text,
     opacity: 0.8,
   },
   form: {
     width: '100%',
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     // Explicit, or the Android theme picks one: white on this white field on some phones
     // (KNOWN_ISSUES 69)
-    color: '#000000',
+    color: colors.black,
     padding: 15,
     borderRadius: 5,
     marginBottom: 15,
   },
   button: {
-    backgroundColor: '#D35400',
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
     marginBottom: 15,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#FFFFFF',
+    color: colors.text,
     marginTop: 8,
     fontSize: 14,
   },
@@ -392,11 +393,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   forgotPasswordText: {
-    color: '#D35400',
+    color: colors.primary,
     fontSize: 14,
   },
   orText: {
-    color: '#FFFFFF',
+    color: colors.text,
     marginVertical: 10,
   },
   signupContainer: {
@@ -404,17 +405,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   signupButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.transparent,
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: colors.white,
     width: '100%',
     marginTop: 10,
   },
   signupButtonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -427,24 +428,24 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#555555',
+    backgroundColor: colors.grey600,
   },
   dividerText: {
-    color: '#FFFFFF',
+    color: colors.text,
     marginHorizontal: 10,
     fontSize: 14,
   },
   barRegistrationButton: {
-    backgroundColor: '#333333',
+    backgroundColor: colors.grey800,
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D35400',
+    borderColor: colors.primary,
     width: '100%',
   },
   barRegistrationButtonText: {
-    color: '#D35400',
+    color: colors.primary,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -453,12 +454,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 15,
-    backgroundColor: '#333333',
+    backgroundColor: colors.grey800,
     padding: 10,
     borderRadius: 5,
   },
   loginTypeText: {
-    color: '#FFFFFF',
+    color: colors.text,
     marginRight: 5,
   },
 });

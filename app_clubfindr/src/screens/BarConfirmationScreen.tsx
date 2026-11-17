@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import axiosClient from '../api/axiosClient';
+import { colors } from '../theme';
 
 type BarConfirmationScreenRouteProp = RouteProp<RootStackParamList, 'BarConfirmation'>;
 type BarConfirmationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BarConfirmation'>;
@@ -230,7 +231,7 @@ const BarConfirmationScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     formContainer: {
-        backgroundColor: '#222222',
+        backgroundColor: colors.surfaceAlt,
         borderRadius: 10,
         padding: 20,
         width: '100%',
@@ -246,13 +247,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 10,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 14,
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -261,36 +262,36 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#333333',
-        color: '#FFFFFF',
+        backgroundColor: colors.grey800,
+        color: colors.text,
         padding: 15,
         borderRadius: 5,
         fontSize: 16,
     },
     errorText: {
-        color: '#FF4D4F',
+        color: colors.dangerBright,
         fontSize: 14,
         marginBottom: 15,
         textAlign: 'center',
     },
     confirmButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 15,
         borderRadius: 5,
         alignItems: 'center',
         marginTop: 10,
     },
     confirmButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
     disabledButton: {
-        backgroundColor: '#555555',
+        backgroundColor: colors.grey600,
         opacity: 0.7,
     },
     resendContainer: {
@@ -298,12 +299,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     resendText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 14,
         textDecorationLine: 'underline',
     },
     cooldownText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
     },
 });

@@ -10,6 +10,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 jest.mock('@react-navigation/native', () => ({
+  // theme.ts builds the app's theme from it
+  DarkTheme: jest.requireActual('@react-navigation/native').DarkTheme,
   useNavigation: () => ({ navigate: jest.fn(), setOptions: jest.fn() }),
   useRoute: () => ({ params: {} })
 }));

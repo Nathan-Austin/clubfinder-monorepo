@@ -16,6 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import axiosClient from '../api/axiosClient';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 interface SignupResponse {
     success: boolean;
@@ -297,7 +298,7 @@ const SignupScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -306,13 +307,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 10,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginBottom: 30,
         textAlign: 'center',
     },
@@ -320,18 +321,18 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     input: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.white,
         padding: 15,
         borderRadius: 5,
         marginBottom: 15,
-        color: '#000000',
+        color: colors.black,
     },
     inputError: {
         borderWidth: 1,
-        borderColor: '#FF4D4F',
+        borderColor: colors.dangerBright,
     },
     errorText: {
-        color: '#FF4D4F',
+        color: colors.dangerBright,
         marginBottom: 15,
         marginTop: -10,
     },
@@ -352,14 +353,14 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     requirementMet: {
-        color: '#D35400', // Theme color
+        color: colors.primary, // Theme color
     },
     requirementUnmet: {
-        color: '#FFFFFF',
+        color: colors.text,
         opacity: 0.7,
     },
     button: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 15,
         borderRadius: 5,
         alignItems: 'center',
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     buttonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     loginLinkText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 14,
     },
     checkboxContainer: {
@@ -390,17 +391,17 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderWidth: 2,
-        borderColor: '#D35400',
+        borderColor: colors.primary,
         borderRadius: 4,
         marginRight: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
     checkboxChecked: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     checkmark: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -410,11 +411,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     checkboxText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
     },
     linkText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 14,
         textDecorationLine: 'underline',
     },

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { colors } from '../theme';
 
 type VenueType = 'bar' | 'club';
 
@@ -51,7 +52,7 @@ const VenueToggle: React.FC<VenueToggleProps> = ({ selectedType, onTypeChange })
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: '#222222',
+        backgroundColor: colors.surfaceAlt,
         borderRadius: 20,
         padding: 3,
         marginVertical: 10,
@@ -64,15 +65,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     selectedButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     toggleText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: '600',
         fontSize: 14,
     },
     selectedText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
 });

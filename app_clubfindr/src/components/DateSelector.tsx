@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type DateOption = {
     id: string;
@@ -217,13 +218,13 @@ const styles = StyleSheet.create({
     selector: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#333',
+        backgroundColor: colors.grey800,
         padding: 10,
         borderRadius: 20,
         justifyContent: 'space-between'
     },
     dateText: {
-        color: '#FFF',
+        color: colors.text,
         fontWeight: '600',
         marginRight: 8,
         flex: 1
@@ -231,10 +232,10 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)'
+        backgroundColor: colors.overlay
     },
     modalContent: {
-        backgroundColor: '#1A1A1A',
+        backgroundColor: colors.surfaceDark,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         maxHeight: '70%'
@@ -244,10 +245,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#333'
+        borderBottomColor: colors.border
     },
     modalHeaderText: {
-        color: '#FFF',
+        color: colors.text,
         fontSize: 18,
         fontWeight: 'bold'
     },
@@ -260,22 +261,22 @@ const styles = StyleSheet.create({
     optionItem: {
         padding: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#333',
+        borderBottomColor: colors.border,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between'
     },
     optionText: {
-        color: '#FFF',
+        color: colors.text,
         fontSize: 16,
         flex: 1
     },
     selectedOption: {
-        backgroundColor: '#444'
+        backgroundColor: colors.grey700
     },
     selectedOptionText: {
         fontWeight: 'bold',
-        color: '#D35400'
+        color: colors.primary
     },
     checkIcon: {
         marginLeft: 8

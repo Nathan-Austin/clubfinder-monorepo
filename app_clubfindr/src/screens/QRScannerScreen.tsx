@@ -21,6 +21,7 @@ import axiosClient from '../api/axiosClient';
 import { parseCheckinCode } from '../utils/checkinCode';
 import { errorStatus } from '../types/api';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type QRScannerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'QRScanner'>;
 
@@ -322,7 +323,7 @@ const QRScannerScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000000',
+        backgroundColor: colors.black,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: colors.overlaySoft,
         justifyContent: 'space-between',
     },
     header: {
@@ -356,9 +357,9 @@ const styles = StyleSheet.create({
         width: 250,
         height: 250,
         borderWidth: 2,
-        borderColor: '#D35400',
+        borderColor: colors.primary,
         borderRadius: 12,
-        backgroundColor: 'transparent',
+        backgroundColor: colors.transparent,
     },
     footer: {
         alignItems: 'center',
@@ -366,43 +367,43 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     instructions: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         textAlign: 'center',
     },
     text: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 18,
         marginTop: 20,
         textAlign: 'center',
     },
     button: {
         marginTop: 20,
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 8,
     },
     buttonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
     loadingContainer: {
         position: 'absolute',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: colors.overlay,
         padding: 20,
         borderRadius: 10,
         alignItems: 'center',
     },
     loadingText: {
-        color: '#FFFFFF',
+        color: colors.text,
         marginTop: 10,
     },
     successContainer: {
         position: 'absolute',
         width: 300,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        backgroundColor: colors.overlayStrong,
         padding: 20,
         borderRadius: 10,
         alignItems: 'center',
@@ -411,47 +412,47 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     successTitle: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 20,
         fontWeight: 'bold',
         marginTop: 15,
         marginBottom: 5,
     },
     venueName: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 10,
     },
     successText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         textAlign: 'center',
         marginBottom: 15,
     },
     matchContainer: {
-        backgroundColor: 'rgba(29, 185, 84, 0.2)',
+        backgroundColor: colors.greenA20,
         padding: 10,
         borderRadius: 8,
         marginBottom: 10,
     },
     matchText: {
-        color: '#1DB954',
+        color: colors.green,
         fontWeight: 'bold',
     },
     checkinText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
     },
     viewVenueButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
         marginTop: 15,
     },
     viewVenueButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
 });

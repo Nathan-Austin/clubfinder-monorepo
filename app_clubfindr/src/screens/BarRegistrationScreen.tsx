@@ -18,6 +18,7 @@ import { RootStackParamList } from '../navigation';
 import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
 import { LIVE_CITIES } from '../constants/cities';
+import { colors } from '../theme';
 
 type BarRegistrationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BarRegistration'>;
 
@@ -690,7 +691,7 @@ const BarRegistrationScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -708,20 +709,20 @@ const styles = StyleSheet.create({
         marginHorizontal: 5,
     },
     stepDotActive: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     stepDotInactive: {
-        backgroundColor: '#555555',
+        backgroundColor: colors.grey600,
     },
     formContainer: {
-        backgroundColor: '#222222',
+        backgroundColor: colors.surfaceAlt,
         borderRadius: 10,
         padding: 20,
     },
     stepTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -730,48 +731,48 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#333333',
-        color: '#FFFFFF',
+        backgroundColor: colors.grey800,
+        color: colors.text,
         padding: 15,
         borderRadius: 5,
         fontSize: 16,
     },
     inputError: {
         borderWidth: 1,
-        borderColor: '#FF4D4F',
+        borderColor: colors.dangerBright,
     },
     errorText: {
-        color: '#FF4D4F',
+        color: colors.dangerBright,
         fontSize: 12,
         marginTop: 5,
     },
     pickerContainer: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         borderRadius: 5,
         overflow: 'hidden',
     },
     picker: {
-        color: '#FFFFFF',
-        backgroundColor: '#333333',
+        color: colors.text,
+        backgroundColor: colors.grey800,
     },
     noteText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         fontStyle: 'italic',
         marginTop: 10,
     },
     passwordRequirements: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         padding: 15,
         borderRadius: 5,
         marginBottom: 20,
     },
     requirementsTitle: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         marginBottom: 10,
     },
@@ -781,7 +782,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     backButton: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 5,
@@ -790,12 +791,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     backButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
     nextButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 5,
@@ -804,24 +805,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     nextButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
     reviewSection: {
         marginBottom: 20,
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         padding: 15,
         borderRadius: 5,
     },
     reviewTitle: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 10,
     },
     reviewItem: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
         marginBottom: 5,
     },
@@ -839,17 +840,17 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderWidth: 2,
-        borderColor: '#D35400',
+        borderColor: colors.primary,
         borderRadius: 4,
         marginRight: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
     checkboxChecked: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     checkmark: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -857,23 +858,23 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     checkboxText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
     },
     linkText: {
-        color: '#D35400',
+        color: colors.primary,
         textDecorationLine: 'underline',
     },
     switchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         padding: 15,
         borderRadius: 5,
     },
     switchLabel: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
     },
     chipsContainer: {
@@ -885,17 +886,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         borderWidth: 1,
-        borderColor: '#555',
+        borderColor: colors.grey600,
         marginBottom: 8,
     },
     chipSelected: {
-        backgroundColor: '#D35400',
-        borderColor: '#D35400',
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     chipText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
     },
     chipTextSelected: {

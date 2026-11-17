@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { LIVE_CITIES, cityName, findLiveCity, nearestLiveCity } from '../constants/cities';
+import { colors } from '../theme';
 
 const CitySection = () => {
   const { user, changeCity } = useAuth();
@@ -103,33 +104,33 @@ const CitySection = () => {
 };
 
 const styles = StyleSheet.create({
-  section: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#333333' },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 6 },
-  current: { color: '#CCCCCC', marginBottom: 12 },
+  section: { padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
+  title: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 6 },
+  current: { color: colors.textSecondary, marginBottom: 12 },
   locate: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#D35400',
+    backgroundColor: colors.primary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 12
   },
-  locateText: { color: '#FFFFFF', fontWeight: 'bold' },
+  locateText: { color: colors.text, fontWeight: 'bold' },
   cities: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   city: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#333333',
+    backgroundColor: colors.grey800,
     minWidth: 70,
     alignItems: 'center'
   },
-  citySelected: { backgroundColor: '#D35400' },
-  cityText: { color: '#FFFFFF' },
+  citySelected: { backgroundColor: colors.primary },
+  cityText: { color: colors.text },
   cityTextSelected: { fontWeight: 'bold' },
-  note: { color: '#CCCCCC', fontSize: 12, marginTop: 10 }
+  note: { color: colors.textSecondary, fontSize: 12, marginTop: 10 }
 });
 
 export default CitySection;

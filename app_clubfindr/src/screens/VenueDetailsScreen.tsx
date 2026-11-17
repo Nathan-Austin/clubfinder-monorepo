@@ -4,6 +4,7 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation';
 import * as discoveryService from '../services/discoveryService';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type VenueDetailsScreenProps = {
     route: RouteProp<RootStackParamList, 'VenueDetails'>;
@@ -490,16 +491,16 @@ const VenueDetailsScreen = ({ route }: VenueDetailsScreenProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     header: {
         padding: 20,
     },
     barHeader: {
-        backgroundColor: '#D35400', // Theme color for bars
+        backgroundColor: colors.primary, // Theme color for bars
     },
     clubHeader: {
-        backgroundColor: '#6200EA', // Purple for clubs
+        backgroundColor: colors.purple, // Purple for clubs
     },
     headerTopRow: {
         flexDirection: 'row',
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         flex: 1,
     },
     typeBadge: {
@@ -520,13 +521,13 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     clubBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: colors.whiteA20,
     },
     barBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: colors.whiteA20,
     },
     typeBadgeText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 12,
     },
@@ -537,25 +538,25 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     attributeBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: colors.whiteA15,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 4,
     },
     attributeText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         fontWeight: '500',
     },
     address: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         opacity: 0.8,
         marginBottom: 5,
     },
     distanceText: {
         fontSize: 14,
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: '500',
         marginTop: 5,
     },
@@ -567,29 +568,29 @@ const styles = StyleSheet.create({
     },
     permissionDeniedText: {
         fontSize: 13,
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: '500',
     },
     redX: {
-        color: '#FF4444',
+        color: colors.dangerVivid,
         fontWeight: 'bold',
         fontSize: 14,
     },
     permissionSubtext: {
         fontSize: 11,
-        color: '#FFFFFF',
+        color: colors.text,
         opacity: 0.7,
         marginTop: 2,
     },
     section: {
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#333333',
+        borderBottomColor: colors.border,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 15,
     },
     eventSection: {
@@ -598,7 +599,7 @@ const styles = StyleSheet.create({
     eventSectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#D35400',
+        color: colors.primary,
         marginBottom: 10,
     },
     loadingContainer: {
@@ -606,44 +607,44 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     loadingText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginTop: 10,
     },
     emptyText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontStyle: 'italic',
         textAlign: 'center',
     },
     // Now playing styles for bars
     nowPlaying: {
-        backgroundColor: 'rgba(29, 185, 84, 0.1)',
+        backgroundColor: colors.greenA10,
         padding: 15,
         borderRadius: 8,
     },
     trackName: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
         marginBottom: 5,
     },
     artistName: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
     },
     // Event styles for clubs
     eventName: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 18,
         marginBottom: 10,
     },
     eventDetail: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         marginBottom: 5,
     },
     eventPrice: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 14,
         fontWeight: '500',
         marginTop: 5,
@@ -656,16 +657,16 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     highPopularity: {
-        backgroundColor: '#F44336', // Red
+        backgroundColor: colors.negative, // Red
     },
     mediumPopularity: {
-        backgroundColor: '#FF9800', // Orange
+        backgroundColor: colors.warning, // Orange
     },
     lowPopularity: {
-        backgroundColor: '#4CAF50', // Green
+        backgroundColor: colors.positive, // Green
     },
     popularityText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -679,13 +680,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     artistBullet: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 18,
         marginRight: 10,
         lineHeight: 20,
     },
     artistNameDetail: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: '500',
     },
@@ -702,27 +703,27 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     barGenreBadge: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
     },
     clubGenreBadge: {
-        backgroundColor: '#4A148C', // Darker purple for clubs
+        backgroundColor: colors.purpleDark, // Darker purple for clubs
     },
     genreText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
     },
     // Common styles
     descriptionText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
         lineHeight: 22,
     },
     infoText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
     },
     phoneText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 14,
         textDecorationLine: 'underline',
     },
@@ -732,24 +733,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     barButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     clubButton: {
-        backgroundColor: '#6200EA',
+        backgroundColor: colors.purple,
     },
     buttonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
     // Event card styles
     eventCard: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
         padding: 15,
         marginBottom: 15,
     },
     eventDescription: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         marginTop: 5,
         marginBottom: 10,

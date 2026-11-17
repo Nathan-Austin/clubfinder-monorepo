@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import * as mobileDeleteAccountService from '../services/mobileDeleteAccountService';
+import { colors } from '../theme';
 
 type DeleteAccountScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'DeleteAccount'>;
@@ -249,7 +250,7 @@ const DeleteAccountScreen = ({ navigation }: DeleteAccountScreenProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -261,12 +262,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#FF5252',
+        color: colors.danger,
         marginBottom: 10,
     },
     subtitle: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         opacity: 0.8,
         lineHeight: 22,
     },
@@ -275,19 +276,19 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 5,
         padding: 15,
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 16,
     },
     errorText: {
-        color: '#FF5252',
+        color: colors.danger,
         marginBottom: 16,
     },
     buttonContainer: {
@@ -298,36 +299,36 @@ const styles = StyleSheet.create({
     cancelButton: {
         flex: 1,
         padding: 15,
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         borderRadius: 5,
         alignItems: 'center',
         marginRight: 10,
     },
     cancelButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: '500',
         fontSize: 16,
     },
     actionButton: {
         flex: 1,
         padding: 15,
-        backgroundColor: '#FF5252',
+        backgroundColor: colors.danger,
         borderRadius: 5,
         alignItems: 'center',
     },
     actionButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
     infoText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 20,
         textAlign: 'center',
     },
     warningContainer: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         padding: 16,
         borderRadius: 8,
         marginBottom: 20,
@@ -335,11 +336,11 @@ const styles = StyleSheet.create({
     warningTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FF5252',
+        color: colors.danger,
         marginBottom: 10,
     },
     warningText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
         marginBottom: 8,
         lineHeight: 20,

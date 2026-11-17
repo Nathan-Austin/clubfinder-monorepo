@@ -36,6 +36,7 @@ import {
     USER_TASTE_BASE,
     venueTasteBase
 } from '../services/tasteService';
+import { colors } from '../theme';
 
 export type ArtistPickerMode = 'onboarding' | 'profile' | 'venue';
 export type ArtistPickerParams = { mode: ArtistPickerMode; barId?: string };
@@ -348,17 +349,17 @@ const ArtistPickerScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#121212', padding: 16 },
-    title: { color: '#FFFFFF', fontSize: 22, fontWeight: '600', marginBottom: 6 },
-    subtitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 20, marginBottom: 8 },
-    muted: { color: '#BBBBBB', fontSize: 14, marginBottom: 10 },
-    progress: { color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginBottom: 10 },
-    warning: { color: '#F39C12', fontSize: 13, marginTop: 6 },
-    error: { color: '#FF5252', fontSize: 13, fontWeight: '600', marginTop: 6 },
+    container: { flex: 1, backgroundColor: colors.background, padding: 16 },
+    title: { color: colors.text, fontSize: 22, fontWeight: '600', marginBottom: 6 },
+    subtitle: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 20, marginBottom: 8 },
+    muted: { color: colors.textMuted, fontSize: 14, marginBottom: 10 },
+    progress: { color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 10 },
+    warning: { color: colors.warningSoft, fontSize: 13, marginTop: 6 },
+    error: { color: colors.danger, fontSize: 13, fontWeight: '600', marginTop: 6 },
     spacer: { marginVertical: 12 },
     input: {
-        backgroundColor: '#FFFFFF',
-        color: '#000000',
+        backgroundColor: colors.white,
+        color: colors.black,
         borderRadius: 8,
         height: 48,
         paddingHorizontal: 14,
@@ -369,49 +370,49 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#333333'
+        borderBottomColor: colors.border
     },
     avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-    avatarEmpty: { backgroundColor: '#5D2E0F', alignItems: 'center', justifyContent: 'center' },
-    avatarText: { color: '#FFFFFF' },
+    avatarEmpty: { backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { color: colors.text },
     resultText: { flex: 1, minWidth: 0 },
-    resultName: { color: '#FFFFFF', fontWeight: '600' },
-    resultGenres: { color: '#AAAAAA', fontSize: 12 },
-    addButton: { backgroundColor: '#D35400', borderRadius: 6, paddingVertical: 6, paddingHorizontal: 14 },
-    buttonText: { color: '#FFFFFF', fontWeight: '600' },
+    resultName: { color: colors.text, fontWeight: '600' },
+    resultGenres: { color: colors.grey350, fontSize: 12 },
+    addButton: { backgroundColor: colors.primary, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 14 },
+    buttonText: { color: colors.text, fontWeight: '600' },
     disabled: { opacity: 0.5 },
     chips: { flexDirection: 'row', flexWrap: 'wrap' },
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         borderRadius: 999,
         paddingVertical: 6,
         paddingHorizontal: 12,
         marginRight: 8,
         marginBottom: 8
     },
-    chipText: { color: '#FFFFFF' },
+    chipText: { color: colors.text },
     genre: {
         borderWidth: 1,
-        borderColor: '#666666',
+        borderColor: colors.grey500,
         borderRadius: 999,
         paddingVertical: 4,
         paddingHorizontal: 10,
         marginRight: 8,
         marginBottom: 8
     },
-    genreText: { color: '#DDDDDD', fontSize: 13 },
+    genreText: { color: colors.grey200, fontSize: 13 },
     actions: { flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 40 },
     continueButton: {
         flex: 1,
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         borderRadius: 8,
         paddingVertical: 14,
         alignItems: 'center',
         marginRight: 16
     },
-    skip: { color: '#BBBBBB', textDecorationLine: 'underline' }
+    skip: { color: colors.textMuted, textDecorationLine: 'underline' }
 });
 
 export default ArtistPickerScreen;

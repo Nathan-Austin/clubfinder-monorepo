@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { colors } from '../theme';
 
 type TermsScreenNavigationProp = StackNavigationProp<any>;
 
@@ -369,7 +370,7 @@ const TermsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -377,20 +378,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 15,
         paddingHorizontal: 20,
-        backgroundColor: '#1A1A1A',
+        backgroundColor: colors.surfaceDark,
         borderBottomWidth: 1,
-        borderBottomColor: '#333',
+        borderBottomColor: colors.border,
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     backButton: {
         padding: 5,
     },
     backButtonText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 16,
     },
     placeholder: {
@@ -405,12 +406,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#D35400',
+        color: colors.primary,
         marginBottom: 10,
     },
     effectiveDate: {
         fontSize: 14,
-        color: '#BBBBBB',
+        color: colors.textMuted,
         fontStyle: 'italic',
         marginBottom: 20,
     },
@@ -420,19 +421,19 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 10,
     },
     subSectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#BBBBBB',
+        color: colors.textMuted,
         marginTop: 10,
         marginBottom: 8,
     },
     paragraph: {
         fontSize: 14,
-        color: '#FFFFFF',
+        color: colors.text,
         lineHeight: 20,
         marginBottom: 10,
     },
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     listItemBullet: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 16,
         marginRight: 10,
         lineHeight: 20,
@@ -449,23 +450,23 @@ const styles = StyleSheet.create({
     listItemText: {
         flex: 1,
         fontSize: 14,
-        color: '#FFFFFF',
+        color: colors.text,
         lineHeight: 20,
     },
     bold: {
         fontWeight: 'bold',
-        color: '#D35400',
+        color: colors.primary,
     },
     lastUpdated: {
         marginTop: 30,
         marginBottom: 40,
         paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: '#333',
+        borderTopColor: colors.border,
     },
     lastUpdatedText: {
         fontSize: 14,
-        color: '#999999',
+        color: colors.grey400,
         textAlign: 'center',
     },
 });

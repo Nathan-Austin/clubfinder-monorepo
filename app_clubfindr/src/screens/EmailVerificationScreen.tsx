@@ -16,6 +16,7 @@ import { RootStackParamList } from '../navigation';
 import { RouteProp } from '@react-navigation/native';
 import * as emailVerificationService from '../services/mobileEmailVerificationService';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type EmailVerificationScreenProps = {
     navigation: StackNavigationProp<RootStackParamList, 'EmailVerification'>;
@@ -188,7 +189,7 @@ const EmailVerificationScreen = ({ navigation, route }: EmailVerificationScreenP
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flexGrow: 1,
@@ -200,12 +201,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#D35400',
+        color: colors.primary,
         marginBottom: 10,
     },
     subtitle: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         opacity: 0.8,
         lineHeight: 22,
     },
@@ -214,62 +215,62 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 5,
         padding: 15,
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 16,
         textAlign: 'center',
         letterSpacing: 2,
     },
     errorText: {
-        color: '#FF5252',
+        color: colors.danger,
         marginBottom: 16,
     },
     actionButton: {
         padding: 15,
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         borderRadius: 5,
         alignItems: 'center',
         marginBottom: 16,
     },
     actionButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
     resendButton: {
         padding: 12,
-        backgroundColor: 'transparent',
+        backgroundColor: colors.transparent,
         borderWidth: 1,
-        borderColor: '#D35400',
+        borderColor: colors.primary,
         borderRadius: 5,
         alignItems: 'center',
     },
     disabledButton: {
-        borderColor: '#666666',
+        borderColor: colors.grey500,
         opacity: 0.7,
     },
     disabledText: {
-        color: '#999999',
+        color: colors.grey400,
     },
     resendButtonText: {
-        color: '#D35400',
+        color: colors.primary,
         fontWeight: '500',
     },
     infoContainer: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         padding: 16,
         borderRadius: 8,
         marginTop: 20,
     },
     infoText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 20,
         textAlign: 'center',

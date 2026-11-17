@@ -21,6 +21,7 @@ import { useCityProposal } from '../hooks/useCityProposal';
 import { cityName } from '../constants/cities';
 import LoadError from '../components/LoadError';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type HomeScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Home'>;
 
@@ -222,7 +223,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: colors.background,
   },
   section: {
     padding: 20,
@@ -236,19 +237,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.text,
   },
   loader: {
     marginVertical: 20,
   },
   placeholderCard: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 20,
     marginBottom: 10,
   },
   placeholderText: {
-    color: '#FFFFFF',
+    color: colors.text,
     opacity: 0.6,
     textAlign: 'center',
   },

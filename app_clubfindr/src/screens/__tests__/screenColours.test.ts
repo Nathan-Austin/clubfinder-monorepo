@@ -53,8 +53,9 @@ describe('screen backgrounds', () => {
 
   it('the QR code screen is dark, with a dark loading state too', () => {
     const source = screens.find((s) => s.name === 'QRCodeGeneratorScreen.tsx')!.source;
-    expect(styleBody(source, 'container')).toContain("backgroundColor: '#121212'");
-    expect(styleBody(source, 'loadingContainer')).toContain("backgroundColor: '#121212'");
+    // colors.background is #121212 (src/theme.ts)
+    expect(styleBody(source, 'container')).toContain('backgroundColor: colors.background');
+    expect(styleBody(source, 'loadingContainer')).toContain('backgroundColor: colors.background');
   });
 });
 

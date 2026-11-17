@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import VenueCard from './VenueCard';
 import { Venue, Event } from '../services/discoveryService';
+import { colors } from '../theme';
 
 type SafeVenueCardProps = {
     venue: any;
@@ -99,12 +100,12 @@ const SafeVenueCard = ({ venue, onPress }: SafeVenueCardProps) => {
 const styles = StyleSheet.create({
     errorContainer: {
         padding: 16,
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
         marginBottom: 10,
     },
     errorText: {
-        color: '#FF5252',
+        color: colors.danger,
         fontSize: 14,
     }
 });

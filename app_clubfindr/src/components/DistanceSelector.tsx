@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
+import { colors } from '../theme';
 
 type DistanceSelectorProps = {
     distance: number;
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#222222',
+        backgroundColor: colors.surfaceAlt,
         borderRadius: 8,
         padding: 10,
         marginBottom: 15,
@@ -177,57 +178,57 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     statusActive: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     statusInactive: {
-        backgroundColor: '#666666',
+        backgroundColor: colors.grey500,
     },
     statusText: {
         fontSize: 14,
     },
     textActive: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: '500',
     },
     textInactive: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
     },
     valueContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     distanceText: {
-        color: '#D35400',
+        color: colors.primary,
         fontWeight: 'bold',
         fontSize: 14,
         marginRight: 5,
     },
     changeText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
         textDecorationLine: 'underline',
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: colors.overlay,
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
         width: '80%',
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 10,
         padding: 20,
         alignItems: 'center',
     },
     modalTitle: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 20,
     },
     distanceValue: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 20,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     sliderLabelText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 12,
     },
     buttonRow: {
@@ -260,17 +261,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelButton: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
     },
     applyButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     cancelButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: '500',
     },
     applyButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
 });

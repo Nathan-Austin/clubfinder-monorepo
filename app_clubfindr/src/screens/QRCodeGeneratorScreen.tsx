@@ -21,6 +21,7 @@ import axiosClient from '../api/axiosClient';
 import { useVenue } from '../contexts/VenueContext';
 import { captureQrPng, qrShareFilePath, type QrSvgRef } from '../utils/qrShare';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type QRCodeData = {
     id: string;
@@ -404,16 +405,16 @@ const styles = StyleSheet.create({
     // background of its own the white text sat on light grey (KNOWN_ISSUES 85)
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     loadingText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginTop: 10,
     },
     header: {
@@ -422,21 +423,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#333333',
+        borderBottomColor: colors.border,
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     createButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 5,
     },
     createButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
     qrList: {
@@ -445,19 +446,19 @@ const styles = StyleSheet.create({
     },
     emptyState: {
         padding: 20,
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 20,
     },
     emptyStateText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 22,
     },
     qrItem: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
         padding: 15,
         marginBottom: 15,
@@ -471,18 +472,18 @@ const styles = StyleSheet.create({
     qrTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     qrType: {
         fontSize: 12,
-        color: '#D35400',
-        backgroundColor: 'rgba(211, 84, 0, 0.1)',
+        color: colors.primary,
+        backgroundColor: colors.primaryA10,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
     },
     qrCodePreview: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.white,
         padding: 10,
         alignItems: 'center',
         borderRadius: 8,
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
     },
     qrActionButton: {
         flex: 1,
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         paddingVertical: 8,
         paddingHorizontal: 10,
         borderRadius: 5,
@@ -502,24 +503,24 @@ const styles = StyleSheet.create({
         marginHorizontal: 5,
     },
     qrActionText: {
-        color: '#FFFFFF',
+        color: colors.text,
     },
     deleteButton: {
-        backgroundColor: '#400000',
+        backgroundColor: colors.dangerDark,
         borderWidth: 1,
-        borderColor: '#FF5252',
+        borderColor: colors.danger,
     },
     deleteButtonText: {
-        color: '#FF5252',
+        color: colors.danger,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: colors.overlay,
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
         padding: 20,
         width: '90%',
@@ -528,18 +529,18 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 20,
         textAlign: 'center',
     },
     inputLabel: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#333333',
-        color: '#FFFFFF',
+        backgroundColor: colors.grey800,
+        color: colors.text,
         padding: 12,
         borderRadius: 5,
         marginBottom: 15,
@@ -550,17 +551,17 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     typeOption: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 5,
         margin: 5,
     },
     selectedType: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     typeOptionText: {
-        color: '#FFFFFF',
+        color: colors.text,
     },
     selectedTypeText: {
         fontWeight: 'bold',
@@ -571,29 +572,29 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         flex: 1,
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         padding: 12,
         borderRadius: 5,
         alignItems: 'center',
         marginRight: 10,
     },
     cancelButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
     },
     confirmButton: {
         flex: 1,
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 12,
         borderRadius: 5,
         alignItems: 'center',
         marginLeft: 10,
     },
     confirmButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
     qrModalContent: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.white,
         padding: 20,
         borderRadius: 8,
         alignItems: 'center',
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
     },
     // The card is white (the QR code needs a light quiet zone), so its text is dark
     qrModalStatus: {
-        color: '#333333',
+        color: colors.textOnLight,
         fontSize: 14,
         marginTop: 16,
     },
@@ -618,10 +619,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 5,
         borderWidth: 1,
-        borderColor: '#D35400',
+        borderColor: colors.primary,
     },
     qrModalCancelText: {
-        color: '#D35400',
+        color: colors.primary,
         fontWeight: 'bold',
     },
 });

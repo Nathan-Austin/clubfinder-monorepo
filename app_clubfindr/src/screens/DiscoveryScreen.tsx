@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MainTabParamList, RootStackParamList } from '../navigation';
 import { errorMessage, tasteApi, USER_TASTE_BASE } from '../services/tasteService';
 import { discoverState } from '../utils/tasteSelection';
+import { colors } from '../theme';
 
 type DiscoveryScreenNavigationProp = StackNavigationProp<
     MainTabParamList & RootStackParamList,
@@ -129,32 +130,32 @@ const DiscoveryScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212'
+        backgroundColor: colors.background
     },
     content: {
         padding: 20
     },
     centered: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',
         padding: 24
     },
     title: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 22,
         fontWeight: 'bold',
         marginTop: 12,
         marginBottom: 6
     },
     subtitle: {
-        color: '#AAAAAA',
+        color: colors.grey350,
         fontSize: 14,
         marginBottom: 16
     },
     message: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 15,
         textAlign: 'center',
         marginVertical: 12
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
         marginBottom: 20
     },
     genreBadge: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 16,
         paddingHorizontal: 12,
         paddingVertical: 6,
@@ -173,14 +174,14 @@ const styles = StyleSheet.create({
         marginBottom: 8
     },
     genreText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 13
     },
     primaryButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         borderRadius: 8,
         paddingVertical: 14,
         paddingHorizontal: 20,
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
         alignSelf: 'stretch'
     },
     primaryButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: '600',
         marginLeft: 8
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
         alignSelf: 'stretch'
     },
     secondaryButtonText: {
-        color: '#D35400',
+        color: colors.primary,
         fontSize: 15
     }
 });

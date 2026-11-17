@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import { colors } from '../theme';
 
 type NetworkStatusProps = {
     showOfflineOnly?: boolean;
@@ -94,12 +95,12 @@ const styles = StyleSheet.create({
         paddingTop: 30
     },
     text: {
-        color: 'white',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 14
     },
     subText: {
-        color: 'white',
+        color: colors.text,
         fontSize: 12
     }
 });

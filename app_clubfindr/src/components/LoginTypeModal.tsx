@@ -5,6 +5,7 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme';
 
 type Props = {
   visible: boolean;
@@ -66,18 +67,18 @@ const LoginTypeModal = ({ visible, isBarLoginMode, onSelect, onClose }: Props) =
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlaySoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#222222',
+    backgroundColor: colors.surfaceAlt,
     width: '80%',
     borderRadius: 10,
     padding: 20,
   },
   modalTitle: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 20,
@@ -91,23 +92,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   selectedOption: {
-    backgroundColor: 'rgba(211, 84, 0, 0.2)',
+    backgroundColor: colors.primaryA20,
     borderRadius: 5,
   },
   loginOptionText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 16,
     marginLeft: 10,
   },
   closeModalButton: {
-    backgroundColor: '#D35400',
+    backgroundColor: colors.primary,
     padding: 12,
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 20,
   },
   closeModalText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontWeight: 'bold',
   },
 });

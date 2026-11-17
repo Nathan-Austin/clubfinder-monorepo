@@ -10,6 +10,7 @@ import {
     ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme';
 
 interface BarStat {
     label: string;
@@ -80,12 +81,12 @@ const BarStatsDashboard: React.FC<BarStatsDashboardProps> = ({
                                 <Ionicons
                                     name={stat.isPositive ? 'arrow-up' : 'arrow-down'}
                                     size={12}
-                                    color={stat.isPositive ? '#4CAF50' : '#F44336'}
+                                    color={stat.isPositive ? colors.positive : colors.negative}
                                 />
                                 <Text
                                     style={[
                                         styles.changeText,
-                                        { color: stat.isPositive ? '#4CAF50' : '#F44336' }
+                                        { color: stat.isPositive ? colors.positive : colors.negative }
                                     ]}
                                 >
                                     {stat.change}
@@ -131,13 +132,13 @@ const BarStatsDashboard: React.FC<BarStatsDashboardProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#1E1E1E',
+        backgroundColor: colors.surface,
         borderRadius: 8,
         padding: 15,
         marginBottom: 15,
     },
     loadingContainer: {
-        backgroundColor: '#1E1E1E',
+        backgroundColor: colors.surface,
         borderRadius: 8,
         padding: 15,
         marginBottom: 15,
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
         minHeight: 200,
     },
     loadingText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginTop: 10,
     },
     headerRow: {
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     refreshButton: {
         padding: 5,
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     statCard: {
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderRadius: 8,
         padding: 15,
         marginRight: 10,
@@ -178,12 +179,12 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 5,
     },
     statLabel: {
         fontSize: 14,
-        color: '#CCCCCC',
+        color: colors.textSecondary,
     },
     changeRow: {
         flexDirection: 'row',
@@ -196,13 +197,13 @@ const styles = StyleSheet.create({
     },
     genresSection: {
         borderTopWidth: 1,
-        borderTopColor: '#333333',
+        borderTopColor: colors.border,
         paddingTop: 15,
     },
     genresSectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 10,
     },
     genresContainer: {
@@ -214,31 +215,31 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     genreName: {
-        color: '#FFFFFF',
+        color: colors.text,
         width: 80,
         fontSize: 14,
     },
     genreBarContainer: {
         flex: 1,
         height: 12,
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         borderRadius: 6,
         marginHorizontal: 10,
         overflow: 'hidden',
     },
     genreBar: {
         height: '100%',
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         borderRadius: 6,
     },
     genreCount: {
-        color: '#FFFFFF',
+        color: colors.text,
         width: 30,
         textAlign: 'right',
         fontSize: 14,
     },
     noDataText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         textAlign: 'center',
         fontStyle: 'italic',
         padding: 15,

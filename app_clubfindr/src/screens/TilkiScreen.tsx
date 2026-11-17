@@ -26,6 +26,7 @@ import { cityForQueries } from '../services/cityService';
 import LoadError from '../components/LoadError';
 import { venueList } from '../utils/venueResponse';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 type TilkiScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Tilki'>;
 
@@ -633,20 +634,20 @@ const TilkiScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     header: {
         padding: 20,
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
     },
     debugInfo: {
-        backgroundColor: '#333',
+        backgroundColor: colors.grey800,
         padding: 5,
         margin: 5,
         borderRadius: 4,
     },
     debugText: {
-        color: '#fff',
+        color: colors.text,
         fontSize: 12,
     },
     logoContainer: {
@@ -662,20 +663,20 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     subtitle: {
         fontSize: 16,
-        color: '#FFFFFF',
+        color: colors.text,
         opacity: 0.8,
     },
     genreContainer: {
         padding: 15,
-        backgroundColor: '#1A1A1A',
+        backgroundColor: colors.surfaceDark,
     },
     genresTitle: {
         fontSize: 14,
-        color: '#FFFFFF',
+        color: colors.text,
         marginBottom: 10,
     },
     genresList: {
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     genreChip: {
-        backgroundColor: '#333333',
+        backgroundColor: colors.grey800,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
@@ -691,7 +692,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     genreText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 12,
     },
     loaderContainer: {
@@ -701,7 +702,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     loadingText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginTop: 10,
         fontSize: 16,
         textAlign: 'center',
@@ -715,37 +716,37 @@ const styles = StyleSheet.create({
         padding: 30,
     },
     emptyText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 18,
         textAlign: 'center',
         marginBottom: 10,
     },
     emptySubtext: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         fontSize: 14,
         textAlign: 'center',
         marginBottom: 20,
     },
     sectionHeader: {
-        backgroundColor: '#1A1A1A',
+        backgroundColor: colors.surfaceDark,
         padding: 10,
         borderRadius: 5,
         marginTop: 10,
         marginBottom: 5,
     },
     sectionHeaderText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
         fontSize: 16,
     },
     retryButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 5,
     },
     retryText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontWeight: 'bold',
     },
 });

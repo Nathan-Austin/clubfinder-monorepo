@@ -6,6 +6,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme';
 
 type Props = {
   message?: string;
@@ -34,21 +35,21 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     marginVertical: 12
   },
-  message: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 10, textAlign: 'center' },
-  hint: { color: '#CCCCCC', fontSize: 13, marginTop: 4, textAlign: 'center' },
+  message: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 10, textAlign: 'center' },
+  hint: { color: colors.textSecondary, fontSize: 13, marginTop: 4, textAlign: 'center' },
   button: {
     marginTop: 16,
-    backgroundColor: '#D35400',
+    backgroundColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 6
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontWeight: 'bold' }
+  buttonText: { color: colors.text, fontWeight: 'bold' }
 });
 
 export default LoadError;

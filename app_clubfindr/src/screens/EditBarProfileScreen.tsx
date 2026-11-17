@@ -18,6 +18,7 @@ import { useVenue } from '../contexts/VenueContext';
 import axiosClient from '../api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
 import { log } from '../utils/logger';
+import { colors } from '../theme';
 
 // Simplified navigation type
 type EditBarProfileScreenNavigationProp = StackNavigationProp<any>;
@@ -432,29 +433,29 @@ const EditBarProfileScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     scrollView: {
         flex: 1,
     },
     header: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         padding: 20,
         alignItems: 'center',
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: colors.text,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#121212',
+        backgroundColor: colors.background,
     },
     loadingText: {
-        color: '#CCCCCC',
+        color: colors.textSecondary,
         marginTop: 10,
     },
     form: {
@@ -464,30 +465,30 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     label: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         marginBottom: 8,
         fontWeight: '500',
     },
     input: {
-        backgroundColor: '#2A2A2A',
-        color: '#FFFFFF',
+        backgroundColor: colors.card,
+        color: colors.text,
         padding: 12,
         borderRadius: 6,
         fontSize: 16,
     },
     inputError: {
         borderWidth: 1,
-        borderColor: '#FF5252',
+        borderColor: colors.danger,
     },
     errorText: {
-        color: '#FF5252',
+        color: colors.danger,
         fontSize: 14,
         marginTop: 5,
     },
     textArea: {
-        backgroundColor: '#2A2A2A',
-        color: '#FFFFFF',
+        backgroundColor: colors.card,
+        color: colors.text,
         padding: 12,
         borderRadius: 6,
         fontSize: 16,
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     cancelButton: {
-        backgroundColor: '#444',
+        backgroundColor: colors.grey700,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 6,
@@ -510,12 +511,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     cancelButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: '500',
     },
     submitButton: {
-        backgroundColor: '#D35400',
+        backgroundColor: colors.primary,
         paddingVertical: 15,
         paddingHorizontal: 20,
         borderRadius: 6,
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     submitButtonText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
         fontWeight: '500',
     },
@@ -533,12 +534,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         padding: 15,
         borderRadius: 6,
     },
     switchLabel: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 16,
     },
     chipsContainer: {
@@ -550,17 +551,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: '#2A2A2A',
+        backgroundColor: colors.card,
         borderWidth: 1,
-        borderColor: '#555',
+        borderColor: colors.grey600,
         marginBottom: 8,
     },
     chipSelected: {
-        backgroundColor: '#D35400',
-        borderColor: '#D35400',
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     chipText: {
-        color: '#FFFFFF',
+        color: colors.text,
         fontSize: 14,
     },
     chipTextSelected: {
