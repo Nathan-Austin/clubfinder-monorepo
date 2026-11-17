@@ -18,6 +18,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { useAuth } from '../contexts/AuthContext';
 import axiosClient from '../api/axiosClient';
+import { parseCheckinCode } from '../utils/checkinCode';
+import { errorStatus } from '../types/api';
+import { log } from '../utils/logger';
 
 type QRScannerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'QRScanner'>;
 
@@ -122,36 +125,34 @@ const QRScannerScreen = () => {
 
         setScanned(true);
 
+        // A refused code stays in front of the camera: scan again only once the alert is
+        // dismissed, or the same code raises one alert after another
+        const refuse = (title: string, message: string) => {
+            Alert.alert(title, message, [{ text: 'OK', onPress: () => setScanned(false) }], {
+                cancelable: true,
+                onDismiss: () => setScanned(false),
+            });
+        };
+
         try {
-            // Parse the QR code data (deeplink format)
-            console.log('Scanned QR code data:', data);
-
-            // Check if it's our specific QR code format
-            if (!data.startsWith('clubfindr://checkin')) {
-                Alert.alert('Invalid QR Code', 'This is not a valid Clubfindr/Tilki QR code.');
-                setScanned(false);
+            // Both forms the server writes: clubfindr://checkin… and https://clubfindr.com/redirect…
+            // (KNOWN_ISSUES 84)
+            const parsed = parseCheckinCode(data);
+            if (parsed.kind === 'not-tilki') {
+                refuse('Not a Tilki code', 'This QR code is not a Tilki venue code. Scan the code the venue shows for check-in.');
                 return;
             }
-
-            // Parse the URL parameters
-            const url = new URL(data.replace('clubfindr://', 'https://'));
-            const barId = url.searchParams.get('barId');
-            const qrId = url.searchParams.get('qrId');
-            const qrType = url.searchParams.get('type');
-
-            if (!barId || !qrId) {
-                Alert.alert('Invalid QR Code', 'This QR code is missing required information.');
-                setScanned(false);
+            if (parsed.kind === 'incomplete') {
+                refuse('Invalid QR Code', 'This QR code is missing required information.');
                 return;
             }
+            const { barId, qrId, qrType } = parsed.code;
 
             // Process the check-in
             setLoading(true);
 
             if (!user || !user.id) {
-                Alert.alert('Authentication Required', 'Please log in to check in to venues.');
-                setScanned(false);
-                setLoading(false);
+                refuse('Authentication Required', 'Please log in to check in to venues.');
                 return;
             }
 
@@ -174,14 +175,19 @@ const QRScannerScreen = () => {
                 // Show success message
                 console.log('Check-in successful:', responseData);
             } else {
-                // Handle error
-                Alert.alert('Check-in Failed', responseData.message || 'Failed to check in. Please try again.');
-                setScanned(false);
+                refuse('Check-in Failed', responseData.message || 'Failed to check in. Please try again.');
             }
         } catch (error) {
-            console.error('Error during check-in:', error);
-            Alert.alert('Error', 'An error occurred while processing your check-in. Please try again.');
-            setScanned(false);
+            const status = errorStatus(error);
+            if (status === 404) {
+                // POST /api/mobile/checkin: the code is not (or no longer) one of this venue's
+                refuse('Code not recognised', 'This venue code is no longer valid. Ask the venue for its current code.');
+            } else if (status === 401) {
+                refuse('Please log in again', 'Your session has ended. Log in again to check in.');
+            } else {
+                log.error('Error during check-in:', error);
+                refuse('Error', 'An error occurred while processing your check-in. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
