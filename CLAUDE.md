@@ -311,7 +311,7 @@ The monorepo uses path-based workflow triggering for efficient CI:
 
 5. **app-clubfindr-ci.yml**: Mobile app CI
    - Runs on Node.js 24 (`app_clubfindr/.nvmrc`), npm
-   - Executes: lint (errors only), type check, Jest unit tests, Android bundle build
+   - Executes: lint (no errors and no warnings: `--max-warnings 0`), type check, Jest unit tests, Android bundle build
      (`npx expo export`); all must pass, and a failure blocks the deploy via Main CI.
      `expo-doctor` is report-only
 

@@ -45,7 +45,7 @@ eas submit
 CI (`.github/workflows/app-clubfindr-ci.yml`, Node 24 from `.nvmrc`) runs all four of these and
 fails on any of them; a failure blocks the web deploy too, so run them before committing:
 ```bash
-npm run lint        # ESLint; errors fail, warnings do not (there are none since 2026-11-17: keep it so)
+npm run lint        # ESLint with --max-warnings 0: a warning fails it, and CI (since 2026-11-17)
 npm run typecheck   # tsc --noEmit
 npm test            # Jest (jest-expo preset)
 npx expo export --platform android --output-dir /tmp/expo-export   # bundles the whole app
