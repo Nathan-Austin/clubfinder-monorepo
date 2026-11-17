@@ -881,7 +881,14 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       (901), `SearchScreen` (849), `TilkiScreen` (768), `VenueDetailsScreen` (759),
       `EventFormScreen` (749), `BarHomeScreen` (599). Splitting them wants a device run each.
     - 755 lint warnings in the app: `console.*` (silenced in release now) and `any` outside the
-      services, mostly in screens.
+      services, mostly in screens. **Logged 2026-11-17 for a cleanup step of its own** (747, 0
+      errors; `npx expo export` gives none): `react-native/no-color-literals` 515,
+      `no-console` 148, `@typescript-eslint/no-unused-vars` 31, `react-native/no-unused-styles` 27,
+      `@typescript-eslint/no-explicit-any` 22, `react-native/no-inline-styles` 2. Most are in
+      `discoveryService.ts` (59), `VenueCard` (53), `SearchScreen` (48), `VenueDetailsScreen` (47),
+      `TilkiScreen` and `BarHomeScreen` (43 each), `EventFormScreen` (35) and
+      `QRCodeGeneratorScreen` (34). The colour literals mostly go with a shared dark theme and
+      palette (planned with the venue bottom tabs, 86); `npm run lint` lists them all.
     - _Done 2026-11-16 (`708e6a7`):_ `BarRegistrationScreen` hard-coded its own 8 cities (with
       Rome and New York, which are not scraped); it uses `constants/cities.ts` now.
     - A personal-account password reset does not end that user's sessions (a venue reset does,
@@ -896,13 +903,16 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
     - The debug build keeps `SYSTEM_ALERT_WINDOW` (react-native's debug manifest); Play only sees
       release builds.
     - iOS internal distribution (an ad-hoc profile in `eas.json`) waits for the Apple account.
-81. **A wrong password shows the generic login error.** Device run of versionCode 10
-    (2026-11-16): customer login with a wrong password says "Could not log in. Please check your
-    credentials and try again" instead of "Email or password incorrect". `utils/loginErrors.ts`
-    maps "invalid" correctly and the server answers 401 `{"message": "Invalid credentials"}`, so
-    the server's message is most likely lost before the mapping (the HTTP client turning a 401 into
-    an error without the body's `message`). Fix there, with a test that a 401 body reaches
-    `loginErrorMessage`.
+81. _Fixed 2026-11-17 (`2ef01e3`); confirm on a device._ **A wrong password showed the generic
+    login error** ("Could not log in. Please check your credentials and try again") instead of
+    "Email or password incorrect". Two causes. The HTTP client's error says only "HTTP error 401"
+    and keeps the server's "Invalid credentials" in `response.data`, while `loginErrorMessage` read
+    only `error.message`; its tests had handed it an `Error` with the server's words, which the
+    client never produces. And `LoginScreen` retried every failed customer login, a 401 included,
+    against the web's `/login/users`, sending the password a second time and replacing the 401 with
+    that request's outcome. The message now reads both places and takes a 401 as a wrong e-mail or
+    password; the fallback is gone (also from the unused `authService.login`). The tests drive the
+    real client with a mocked 401 reply.
 82. _Fixed 2026-11-17 (`117091f`); confirm on a device._ **Venues could not delete an event in the
     app.** `BarHomeScreen.tsx` answered every delete with a hard-coded "Event deletion is currently
     not available. Please contact support" alert, although
