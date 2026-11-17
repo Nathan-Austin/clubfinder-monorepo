@@ -15,7 +15,8 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest became 26.04 on 2026-11-17 and Playwright has no chromium for it yet
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
