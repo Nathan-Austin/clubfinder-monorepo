@@ -7,12 +7,16 @@ from dotenv import load_dotenv
 from fuzzywuzzy import process
 from spotipy.oauth2 import SpotifyClientCredentials
 from utils import (
-    extract_from_database_spotify,
     commit_to_database,
     extract_from_database,
     execute_query2,
     load_genres_from_csv,
     split_and_clean_genres,
+)
+from artist_selection import (
+    ARTIST_CANDIDATES_QUERY,
+    select_artists_for_run,
+    format_selection_summary,
 )
 import datetime
 import argparse
@@ -134,6 +138,13 @@ spotify_clients = []
 REQUESTS_PER_KEY = int(os.getenv("SPOTIFY_REQUESTS_PER_KEY", "80"))
 MIN_REQUEST_INTERVAL = float(os.getenv("SPOTIFY_MIN_REQUEST_INTERVAL", "0.2"))
 API_CALL_COOLDOWN_DAYS = int(os.getenv("SPOTIFY_API_CALL_COOLDOWN_DAYS", "14"))
+# Per-run cap on how many artists are checked against Spotify (KNOWN_ISSUES 92)
+ARTISTS_PER_RUN = int(os.getenv("SPOTIFY_ARTISTS_PER_RUN", "1000"))
+
+# The root logger is at ERROR to keep the run log small; the selection summary
+# must still reach it, so it gets its own logger at INFO
+selection_logger = logging.getLogger("artistSelection")
+selection_logger.setLevel(logging.INFO)
 
 # Initialize clients for each credential
 try:
@@ -512,17 +523,6 @@ def split_and_clean_genres_with_logging(genres, valid_genres):
     return result
 
 
-# Modified to return the query string without parameters
-def get_artists_query():
-    return """
-    SELECT id, artist_name, spotify_uri 
-    FROM clubfindr.artists 
-    WHERE primary_city = %s
-    ORDER BY id 
-    LIMIT 1000;
-    """
-
-
 # Fixed function to update event genres
 def update_event_genres(artist_name, max_retries=3):
     """Update event genres with properly cleaned and normalized genres from all associated artists."""
@@ -679,44 +679,34 @@ def update_event_genres(artist_name, max_retries=3):
 
 # Main execution
 try:
-    # Fetch artist data WITH PROPER PARAMETERS
-    query = get_artists_query()
-    raw_artist_data = extract_from_database_spotify(query, (city_name,))
+    # One row per artist of the city, with what the selection needs to rank them
+    candidate_rows = execute_query2(ARTIST_CANDIDATES_QUERY, (city_name,), fetch=True)
 
-    if not raw_artist_data:
+    if not candidate_rows:
         logging.warning(f"No artists found for city: {city_name}")
         logging.info("Exiting script as no artists were found.")
         sys.exit(0)
 
-    # Add detailed debugging info
-    logging.info(f"Fetched {len(raw_artist_data)} artists from database.")
-    # Log sample size only to avoid PII in logs
-    sample_data = list(raw_artist_data.items())[:3] if raw_artist_data else []
-    logging.info("Sample artist data: %d entries", len(sample_data))
+    logging.info(f"Fetched {len(candidate_rows)} artists from database.")
 
-    # Prepare dictionaries to hold artists with and without URIs
+    # Upcoming artists first (KNOWN_ISSUES 92), the cooldown applied before the
+    # cap so the cap is spent on artists this run will actually check
+    selected_artists, selection_counts = select_artists_for_run(
+        candidate_rows, ARTISTS_PER_RUN, recently_called=has_been_called_recently
+    )
+    selection_logger.info(format_selection_summary(city_name, selection_counts))
+
+    # Split into the two processing paths, keeping the tier order within each
     artists_with_uri = {}
     artists_without_uri = {}
-
-    # Iterate over raw_artist_data to split into artists with and without URIs
-    for artist_id, (artist_name_list, spotify_uri) in raw_artist_data.items():
-        try:
-            artist_name = (
-                "".join(artist_name_list).strip() if artist_name_list else None
-            )  # Reconstructing the artist name
-
-            if not artist_name:
-                logging.warning(
-                    f"Empty artist name for artist_id={artist_id}, skipping."
-                )
-                continue
-
-            if spotify_uri is not None and not has_been_called_recently(artist_name):
-                artists_with_uri[artist_id] = (artist_name, spotify_uri)
-            elif spotify_uri is None and not has_been_called_recently(artist_name):
-                artists_without_uri[artist_id] = artist_name
-        except Exception as e:
-            logging.error(f"Error processing artist_id={artist_id}: {e}")
+    for artist in selected_artists:
+        if artist.spotify_uri is not None:
+            artists_with_uri[artist.artist_id] = (
+                artist.artist_name,
+                artist.spotify_uri,
+            )
+        else:
+            artists_without_uri[artist.artist_id] = artist.artist_name
 
     logging.info(
         f"Artists to process - With URI: {len(artists_with_uri)}, Without URI: {len(artists_without_uri)}"
@@ -1077,3 +1067,4 @@ if __name__ == "__main__":
     print(
         f"Processed {len(artists_with_uri)} artists with URIs and {len(artists_without_uri)} artists without URIs"
     )
+    print(format_selection_summary(city_name, selection_counts))
