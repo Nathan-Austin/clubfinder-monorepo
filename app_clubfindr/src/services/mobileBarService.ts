@@ -209,11 +209,45 @@ export const deleteBarEvent = async (barId: string, eventId: string): Promise<De
     }
 };
 
+/**
+ * Deleting the venue account (DELETE /api/mobile/bars/:barId): the venue and everything it
+ * owns go on the server, in one transaction (Google Play's account-deletion policy covers
+ * venue accounts too). A venue the server no longer has (404) counts as deleted. The caller
+ * logs out afterwards; the server has already ended every session.
+ */
+export type DeleteVenueAccountResult =
+    | { success: true }
+    | { success: false; error: string; sessionEnded?: boolean };
+
+export const deleteVenueAccount = async (barId: string): Promise<DeleteVenueAccountResult> => {
+    if (!barId) {
+        return { success: false, error: 'Could not delete the venue account. Please log in again and retry.' };
+    }
+    try {
+        await axiosClient.delete(`/api/mobile/bars/${encodeURIComponent(barId)}`);
+        return { success: true };
+    } catch (error) {
+        const status = errorStatus(error);
+        if (status === 404) {
+            return { success: true };
+        }
+        if (status === 401 || status === 403) {
+            return {
+                success: false,
+                sessionEnded: true,
+                error: 'Your venue session has ended. Please log in again to delete the venue.'
+            };
+        }
+        return { success: false, error: 'Could not delete the venue account. Please try again.' };
+    }
+};
+
 export default {
     registerBar,
     confirmBarRegistration,
     resendConfirmationCode,
     getBarProfile,
     barLogin,
-    deleteBarEvent
+    deleteBarEvent,
+    deleteVenueAccount
 };

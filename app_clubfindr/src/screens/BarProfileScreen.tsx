@@ -3,13 +3,14 @@
  * Editing its profile, its QR codes (a tab of their own until step 9; the Overview has a shortcut)
  * and logging out. Later settings go here as rows.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { useVenue } from '../contexts/VenueContext';
+import { deleteVenueAccount } from '../services/mobileBarService';
 import { colors } from '../theme';
 
 type Row = {
@@ -25,7 +26,8 @@ const BarProfileScreen = () => {
     const navigation = useNavigation<{ navigate: (screen: string) => void }>();
     const { logout } = useAuth();
     // Follows Edit Profile's save through the venue context, without reloading on focus
-    const { barName } = useVenue();
+    const { barId, barName } = useVenue();
+    const [deleting, setDeleting] = useState(false);
 
     const handleLogout = () => {
         Alert.alert('Log Out', 'Are you sure you want to log out?', [
@@ -39,6 +41,52 @@ const BarProfileScreen = () => {
                 },
             },
         ]);
+    };
+
+    const endSession = async () => {
+        await logout();
+        await AsyncStorage.multiRemove(['barName', 'barId']);
+    };
+
+    const runDeleteVenue = async () => {
+        if (!barId || deleting) return;
+        setDeleting(true);
+        try {
+            const result = await deleteVenueAccount(barId);
+            if (result.success) {
+                Alert.alert('Venue deleted', 'The venue account and everything it owned are gone.');
+                await endSession();
+                return;
+            }
+            if (result.sessionEnded) {
+                Alert.alert('Session ended', result.error);
+                await endSession();
+                return;
+            }
+            Alert.alert('Could not delete the venue', result.error);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // Two confirmations, because this is the one action here with no way back
+    const handleDeleteVenue = () => {
+        Alert.alert(
+            'Delete venue account',
+            `This permanently deletes ${barName || 'this venue'}: its events, QR codes, check-in history, artists and genres, and every login. This cannot be undone. Your personal account is separate and stays.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Continue',
+                    style: 'destructive',
+                    onPress: () =>
+                        Alert.alert('Are you sure?', 'There is no way back after this.', [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Delete for ever', style: 'destructive', onPress: runDeleteVenue },
+                        ]),
+                },
+            ]
+        );
     };
 
     const rows: Row[] = [
@@ -62,6 +110,14 @@ const BarProfileScreen = () => {
             label: 'Log out',
             hint: 'You can log back in with the venue or your own account',
             onPress: handleLogout,
+            danger: true,
+        },
+        {
+            key: 'delete',
+            icon: 'trash-outline',
+            label: deleting ? 'Deleting venue…' : 'Delete venue account',
+            hint: 'Permanently removes the venue, its events, QR codes and check-in history',
+            onPress: handleDeleteVenue,
             danger: true,
         },
     ];
