@@ -11,5 +11,7 @@ export interface EventDetails {
 	end_time: string | null;
 	recurring: boolean;
 	recurrence_pattern: string | null;
+	/** Live music is an attribute of the night, not a genre (ROADMAP section 5) */
+	live_music?: boolean;
 	special_genres: string[];
 }

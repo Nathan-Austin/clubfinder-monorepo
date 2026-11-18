@@ -177,7 +177,10 @@ const expandGenreGroups = (genres: string[]): string[] => {
  */
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
-		const { city, date: requestedDate, genres } = await request.json();
+		const { city, date: requestedDate, genres, liveMusic } = await request.json();
+		// Live music is an attribute of the night, not a genre (ROADMAP section 5): with it on,
+		// only venues with a live night on the date come back, ranked by taste as always
+		const liveMusicOnly = liveMusic === true;
 
 		if (!city) {
 			return json(
@@ -296,6 +299,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					end_time,
 					recurring,
 					recurrence_pattern,
+					live_music,
 					COALESCE(special_genres, ARRAY[]::text[]) as special_genres
 				FROM 
 					clubfindr.bar_events 
@@ -449,6 +453,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					event_date: string;
 					start_time: string;
 					end_time: string;
+					live_music?: boolean;
 					special_genres: string[];
 				}) => ({
 					id: event.id,
@@ -459,6 +464,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					date: event.event_date,
 					startTime: event.start_time,
 					endTime: event.end_time,
+					liveMusic: event.live_music === true,
 					genres: event.special_genres || []
 				})
 			);
@@ -478,8 +484,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			};
 		});
 
+		// Live music first, with the genres underneath: the filter keeps only venues with a live
+		// night on the date, and the ranking by taste is unchanged (ROADMAP section 5)
+		const liveFiltered = liveMusicOnly
+			? matchingBars.filter((bar) =>
+					(bar.events as { liveMusic?: boolean }[]).some((event) => event.liveMusic === true)
+				)
+			: matchingBars;
+
 		// Return all bars, sorted by similarity
-		const filteredBars = matchingBars.sort((a, b) => b.similarity - a.similarity);
+		const filteredBars = liveFiltered.sort((a, b) => b.similarity - a.similarity);
 
 		console.log(
 			`Returning all ${filteredBars.length} bars, sorted by similarity (removed similarity threshold)`

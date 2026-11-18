@@ -28,6 +28,8 @@ export type VenueEvent = {
     end_time: string | null;
     recurring: boolean;
     recurrence_pattern: string | null;
+    /** Live music is an attribute of the night, not a genre (ROADMAP section 5) */
+    live_music: boolean;
     special_genres: string[];
 };
 
@@ -53,6 +55,7 @@ export function toVenueEvent(raw: unknown): VenueEvent | null {
         end_time: text(row.end_time),
         recurring: row.recurring === true,
         recurrence_pattern: text(row.recurrence_pattern),
+        live_music: row.live_music === true,
         special_genres: Array.isArray(row.special_genres)
             ? row.special_genres.filter((g): g is string => typeof g === 'string' && g.trim().length > 0)
             : [],

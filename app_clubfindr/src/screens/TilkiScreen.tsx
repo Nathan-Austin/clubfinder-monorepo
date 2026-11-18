@@ -24,6 +24,7 @@ import { cityForQueries } from '../services/cityService';
 import LoadError from '../components/LoadError';
 import { venueList } from '../utils/venueResponse';
 import { log } from '../utils/logger';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme';
 
 type TilkiScreenNavigationProp = StackNavigationProp<MainTabParamList & RootStackParamList, 'Tilki'>;
@@ -43,6 +44,9 @@ const TilkiScreen = () => {
     const [venues, setVenues] = useState<discoveryService.Venue[]>([]);
     const [venueSections, setVenueSections] = useState<VenueSection[]>([]);
     const [venueType, setVenueType] = useState<'bar' | 'club'>('bar');
+    // Live music is an attribute of the night, not a genre (ROADMAP section 5): with it on, only
+    // venues with a live act that day come back, the taste profile still deciding the order
+    const [liveMusicOnly, setLiveMusicOnly] = useState(false);
 
     // Loading states
     const [loading, setLoading] = useState(true);
@@ -99,7 +103,8 @@ const TilkiScreen = () => {
     // Load venues when component mounts
     useEffect(() => {
         loadMatchingVenues();
-    }, [venueType, selectedDate, isDateRange, dateRangeStart, dateRangeEnd, refreshKey]);
+        // liveMusicOnly too: turning the filter on or off asks the server again
+    }, [venueType, selectedDate, isDateRange, dateRangeStart, dateRangeEnd, refreshKey, liveMusicOnly]);
 
     // Format display date
     const formatDisplayDate = (dateStr: string): string => {
@@ -243,7 +248,8 @@ const TilkiScreen = () => {
                         axiosClient.post('/api/mobile/bars/matching', {
                             city,
                             date,
-                            genres: genresList
+                            genres: genresList,
+                            liveMusic: liveMusicOnly
                         }).then(response => ({
                             date,
                             venues: venueList(response.data, 'bar')
@@ -331,7 +337,8 @@ const TilkiScreen = () => {
                     axiosClient.post('/api/mobile/bars/matching', {
                         city,
                         date: selectedDate, // Use selected date now that bars have events
-                        genres: genresList
+                        genres: genresList,
+                        liveMusic: liveMusicOnly
                     }),
                     axiosClient.post('/api/mobile/events/matching', {
                         city,
@@ -479,6 +486,29 @@ const TilkiScreen = () => {
                 onDateChange={handleDateChange}
             />
 
+            {/* Live music first, with the genres underneath (ROADMAP section 5). Venues only:
+                scraped club events have no such attribute. */}
+            {venueType === 'bar' && (
+                <View style={styles.liveRow}>
+                    <TouchableOpacity
+                        style={[styles.liveChip, liveMusicOnly && styles.liveChipOn]}
+                        onPress={() => setLiveMusicOnly((on) => !on)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: liveMusicOnly }}
+                        testID="live-music-filter"
+                    >
+                        <Ionicons
+                            name="musical-notes-outline"
+                            size={16}
+                            color={liveMusicOnly ? colors.text : colors.textMuted}
+                        />
+                        <Text style={[styles.liveChipText, liveMusicOnly && styles.liveChipTextOn]}>
+                            Live music only
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
             {/* Genres chips/tags */}
             {genres.length > 0 && (
                 <View style={styles.genreContainer}>
@@ -624,6 +654,32 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    liveRow: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+    },
+    liveChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        borderWidth: 1,
+        borderColor: colors.green,
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    liveChipOn: {
+        backgroundColor: colors.green,
+    },
+    liveChipText: {
+        color: colors.textMuted,
+        fontSize: 13,
+    },
+    liveChipTextOn: {
+        color: colors.text,
+        fontWeight: '600',
     },
     genreContainer: {
         padding: 15,

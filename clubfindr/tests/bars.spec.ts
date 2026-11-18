@@ -60,8 +60,17 @@ test.describe('bar dashboard modals', () => {
 		await form.locator('.selected-genre', { hasText: 'smoketest' }).locator('button').click();
 		await expect(form.locator('.selected-genre', { hasText: 'smoketest' })).toHaveCount(0);
 
+		// live music is an attribute of the night, not a genre (ROADMAP section 5)
+		const liveMusic = form.getByTestId('event-live-music');
+		await expect(liveMusic).not.toBeChecked();
+		await liveMusic.check();
+		await expect(liveMusic).toBeChecked();
+
 		// recurring toggle reveals the pattern select
-		await form.locator('label.checkbox-label input[type="checkbox"]').check();
+		await form
+			.locator('label.checkbox-label', { hasText: 'Is this a recurring event?' })
+			.locator('input[type="checkbox"]')
+			.check();
 		await expect(form.locator('#recurrencePattern')).toBeVisible();
 
 		await form.locator('button', { hasText: 'Cancel' }).click();

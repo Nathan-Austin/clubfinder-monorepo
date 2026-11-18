@@ -14,6 +14,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   end_time: '04:00:00',
   recurring: true,
   recurrence_pattern: 'weekly',
+  live_music: true,
   special_genres: ['house', '', 3],
   ...overrides,
 });
@@ -30,6 +31,7 @@ describe('toVenueEvent', () => {
       end_time: '04:00:00',
       recurring: true,
       recurrence_pattern: 'weekly',
+      live_music: true,
       special_genres: ['house'],
     });
   });
@@ -73,6 +75,7 @@ describe('toVenueEvent', () => {
       end_time: null,
       recurring: false,
       recurrence_pattern: null,
+      live_music: false,
       special_genres: [],
     });
   });

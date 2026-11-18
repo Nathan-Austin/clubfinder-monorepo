@@ -14,6 +14,8 @@ export type EventFormValues = {
     hasEndTime: boolean;
     isRecurring: boolean;
     recurrencePattern: string;
+    /** Live music is an attribute of the night, not a genre (ROADMAP section 5) */
+    liveMusic: boolean;
     specialGenres: string[];
 };
 
@@ -71,6 +73,7 @@ export function toEventPayload(values: EventFormValues, barId: string) {
         end_time: values.hasEndTime ? formatTimeToString(values.endTime) : null,
         recurring: values.isRecurring,
         recurrence_pattern: values.isRecurring ? values.recurrencePattern : null,
+        live_music: values.liveMusic,
         special_genres: values.specialGenres,
     };
 }

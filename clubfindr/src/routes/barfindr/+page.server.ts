@@ -137,6 +137,9 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 
 	// "Change Date" reloads with ?date=. The cookie is refreshed so the new date survives into
 	// the other pages ("Change the vibe", /clubs) instead of silently reverting (KNOWN_ISSUES 24)
+	// Live music is an attribute of the night, not a genre (ROADMAP section 5): ?live=1 keeps
+	// only venues with a live night, the genres still deciding the order
+	const liveMusicOnly = url.searchParams.get('live') === '1';
 	const updatedDate = url.searchParams.get('date');
 	if (updatedDate && /^\d{4}-\d{2}-\d{2}$/.test(updatedDate)) {
 		date = updatedDate;
@@ -347,6 +350,7 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
         end_time,
         recurring,
         recurrence_pattern,
+        live_music,
         COALESCE(special_genres, ARRAY[]::text[]) as special_genres
       FROM 
         clubfindr.bar_events 
@@ -474,6 +478,13 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		// a broad listener's real matches: a wide profile scores low against everything, so the
 		// figure measured breadth rather than disagreement.
 		const filteredBars = processedBars
+			.filter(
+				(bar) =>
+					!liveMusicOnly ||
+					((bar.events ?? []) as { live_music?: boolean; event_date?: string }[]).some(
+						(event) => event.live_music === true && event.event_date === date
+					)
+			)
 			.filter((bar) => isSimilarityMatch(bar.similarity))
 			.sort((a, b) => b.similarity - a.similarity)
 			.slice(0, MAX_RESULTS);
@@ -485,7 +496,8 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 			date,
 			city,
 			address,
-			isLoggedIn
+			isLoggedIn,
+			liveMusicOnly
 		};
 	} catch (error) {
 		console.error('Error fetching bar data:', (error as Error).message);

@@ -74,8 +74,14 @@ CREATE TABLE clubfindr.bar_events (
     recurrence_pattern character varying(50),
     special_genres text[],
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    -- Live music is an attribute of the night, not a genre (migrations/20261119_bar_events_live_music.sql)
+    live_music boolean DEFAULT false NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_bar_events_live_music
+  ON clubfindr.bar_events USING btree (live_music)
+  WHERE live_music;
 
 
 --

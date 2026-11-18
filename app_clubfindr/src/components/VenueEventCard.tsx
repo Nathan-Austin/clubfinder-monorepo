@@ -57,6 +57,12 @@ const VenueEventCard = ({ event, onEdit, onDelete, deleting = false, disabled = 
                         <Text style={styles.badgeText}>{formatRecurrence(event.recurrence_pattern)}</Text>
                     </View>
                 )}
+                {/* Live music is an attribute of the night, not a genre (ROADMAP section 5) */}
+                {event.live_music && (
+                    <View style={[styles.badge, styles.liveBadge]}>
+                        <Text style={styles.badgeText}>Live music</Text>
+                    </View>
+                )}
             </View>
 
             {times ? <Text style={styles.times}>{times}</Text> : null}
@@ -116,6 +122,9 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         paddingHorizontal: 8,
         paddingVertical: 2,
+    },
+    liveBadge: {
+        backgroundColor: colors.green,
     },
     badgeText: {
         color: colors.text,

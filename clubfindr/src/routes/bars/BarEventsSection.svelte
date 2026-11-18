@@ -24,6 +24,7 @@
 		end_time: null,
 		recurring: false,
 		recurrence_pattern: null,
+		live_music: false,
 		special_genres: []
 	});
 	let modalSuccess = $state('');
@@ -306,6 +307,9 @@
 								Recurring ({event.recurrence_pattern})
 							</span>
 						{/if}
+						{#if event.live_music}
+							<span class="live-badge" data-testid="live-badge">Live music</span>
+						{/if}
 					</div>
 					{#if event.start_time || event.end_time}
 						<div class="event-time">
@@ -486,6 +490,14 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 0.5rem;
+	}
+
+	.live-badge {
+		background-color: #1db954;
+		color: white;
+		border-radius: 12px;
+		padding: 0.1rem 0.6rem;
+		font-size: 0.75rem;
 	}
 
 	.recurring-badge {

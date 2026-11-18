@@ -29,6 +29,8 @@
 			address?: string;
 			isLoggedIn: boolean;
 			serverSimilarityResults: SimilarityResult[];
+			/** Live music is a filter of its own, not a genre (ROADMAP section 5) */
+			liveMusicOnly?: boolean;
 		};
 	}
 
@@ -37,6 +39,7 @@
 	const city = $derived(data.city || 'Unknown City');
 	const capitalizedCity = $derived(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
 	const newdate = $derived(data.date);
+	const liveMusicOnly = $derived(data.liveMusicOnly === true);
 	const address = $derived(data.address);
 	const isLoggedIn = $derived(data.isLoggedIn);
 	let showMoreMap: { [key: string]: boolean } = $state({}); // Track each bar's expanded state separately
@@ -282,6 +285,20 @@
 			</div>
 			<button type="submit" class="ml-2">Change Date</button>
 		</form>
+	</div>
+
+	<!-- Live music first, with the genres underneath: the filter keeps venues with a live night
+	     on this date, and the taste profile still decides the order -->
+	<div class="flex items-center justify-center mt-4">
+		<a
+			href={liveMusicOnly ? `?date=${newdate}` : `?date=${newdate}&live=1`}
+			data-sveltekit-reload
+			class="live-filter"
+			class:live-filter-on={liveMusicOnly}
+			data-testid="live-music-filter"
+		>
+			{liveMusicOnly ? '♪ Live music only' : 'Live music only'}
+		</a>
 	</div>
 </div>
 
@@ -684,6 +701,22 @@
 
 	button[type='submit']:hover {
 		background-color: #18a64b;
+	}
+
+	.live-filter {
+		display: inline-flex;
+		align-items: center;
+		border: 1px solid #1db954;
+		color: #1db954;
+		border-radius: 20px;
+		padding: 0.35rem 1rem;
+		font-size: 0.9rem;
+		cursor: pointer;
+	}
+
+	.live-filter-on {
+		background-color: #1db954;
+		color: white;
 	}
 
 	.back-button {

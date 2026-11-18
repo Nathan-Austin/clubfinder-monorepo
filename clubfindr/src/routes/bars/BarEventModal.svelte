@@ -25,6 +25,7 @@
 			end_time: null,
 			recurring: false,
 			recurrence_pattern: null,
+			live_music: false,
 			special_genres: []
 		}),
 		isLoading = false,
@@ -116,6 +117,7 @@
 			// Ensure boolean and array fields are properly formatted
 			recurring: Boolean(eventDetails.recurring),
 			recurrence_pattern: eventDetails.recurring ? eventDetails.recurrence_pattern : null,
+			live_music: Boolean(eventDetails.live_music),
 			special_genres: selectedGenres
 		};
 
@@ -200,6 +202,19 @@
 					bind:value={eventDetails.description}
 					placeholder="Describe your event, special offers, featured performers, etc."
 					rows="4"></textarea>
+			</div>
+
+			<div class="form-group checkbox-group">
+				<!-- Live music is an attribute of the night, not a genre: the matcher cannot place
+				     "Live Music" as a genre, so it used to describe the night to nobody -->
+				<label class="checkbox-label">
+					<input
+						type="checkbox"
+						bind:checked={eventDetails.live_music}
+						data-testid="event-live-music"
+					/>
+					Live music (a band or a live act, not only a DJ)
+				</label>
 			</div>
 
 			<div class="form-group checkbox-group">

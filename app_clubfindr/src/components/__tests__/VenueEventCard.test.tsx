@@ -13,8 +13,20 @@ const event: VenueEvent = {
   end_time: '04:00:00',
   recurring: true,
   recurrence_pattern: 'weekly',
+  live_music: false,
   special_genres: ['house', 'disco'],
 };
+
+// Live music is an attribute of the night, not a genre (ROADMAP section 5)
+it('shows a live music badge when the night has one', () => {
+  render(<VenueEventCard event={{ ...event, live_music: true }} onEdit={jest.fn()} onDelete={jest.fn()} />);
+  expect(screen.getByText('Live music')).toBeTruthy();
+});
+
+it('shows no live badge otherwise', () => {
+  render(<VenueEventCard event={event} onEdit={jest.fn()} onDelete={jest.fn()} />);
+  expect(screen.queryByText('Live music')).toBeNull();
+});
 
 it('shows the event and hands it to edit and delete', () => {
   const onEdit = jest.fn();

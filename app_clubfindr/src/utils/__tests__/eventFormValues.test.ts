@@ -22,6 +22,7 @@ const values = (overrides: Partial<EventFormValues> = {}): EventFormValues => ({
   hasEndTime: true,
   isRecurring: false,
   recurrencePattern: 'weekly',
+  liveMusic: false,
   specialGenres: ['house'],
   ...overrides,
 });
@@ -76,8 +77,14 @@ describe('toEventPayload', () => {
       end_time: '23:30',
       recurring: true,
       recurrence_pattern: 'biweekly',
+      live_music: false,
       special_genres: ['house'],
     });
+  });
+
+  // Live music is an attribute of the night, not a genre (ROADMAP section 5)
+  it('sends live music as an attribute', () => {
+    expect(toEventPayload(values({ liveMusic: true }), 'bar-1')).toMatchObject({ live_music: true });
   });
 
   it('sends no times that are off, and no pattern for a one-off', () => {

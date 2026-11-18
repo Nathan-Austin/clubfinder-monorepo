@@ -9,7 +9,8 @@ import {
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
-    ScrollView
+    ScrollView,
+    Switch
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -20,6 +21,7 @@ import GenreChipsInput from '../components/GenreChipsInput';
 import type { BarStackParamList } from '../navigation';
 import EventWhenSection from '../components/eventForm/EventWhenSection';
 import EventRecurrenceSection from '../components/eventForm/EventRecurrenceSection';
+import { switchColours } from '../components/eventForm/formStyles';
 import { fromLocalIsoDate } from '../utils/localDate';
 import { parseTimeString, toEventPayload, validateEventForm, type EventFormErrors } from '../utils/eventFormValues';
 import { colors } from '../theme';
@@ -34,6 +36,8 @@ interface BarEvent {
     end_time: string | null;
     recurring: boolean;
     recurrence_pattern: string | null;
+    /** Live music is an attribute of the night, not a genre (ROADMAP section 5) */
+    live_music?: boolean;
     special_genres: string[];
 }
 
@@ -68,6 +72,7 @@ const EventFormScreen = () => {
     const [endTime, setEndTime] = useState(initialEvent?.end_time ? parseTimeString(initialEvent.end_time) : new Date());
     const [hasStartTime, setHasStartTime] = useState(!!initialEvent?.start_time);
     const [hasEndTime, setHasEndTime] = useState(!!initialEvent?.end_time);
+    const [liveMusic, setLiveMusic] = useState(initialEvent?.live_music === true);
     const [isRecurring, setIsRecurring] = useState(initialEvent?.recurring || false);
     const [recurrencePattern, setRecurrencePattern] = useState(initialEvent?.recurrence_pattern || 'weekly');
     const [specialGenres, setSpecialGenres] = useState<string[]>(initialEvent?.special_genres || []);
@@ -85,6 +90,7 @@ const EventFormScreen = () => {
         hasEndTime,
         isRecurring,
         recurrencePattern,
+        liveMusic,
         specialGenres,
     };
 
@@ -210,6 +216,24 @@ const EventFormScreen = () => {
                         />
                     </View>
 
+                    {/* Live music is an attribute of the night, not a genre: the matcher cannot
+                        place "Live Music" as a genre, and customers filter on this (ROADMAP
+                        section 5) */}
+                    <View style={styles.formGroup}>
+                        <View style={styles.switchRow}>
+                            <View style={styles.switchText}>
+                                <Text style={styles.label}>Live music</Text>
+                                <Text style={styles.hint}>A band or a live act, not only a DJ</Text>
+                            </View>
+                            <Switch
+                                value={liveMusic}
+                                onValueChange={setLiveMusic}
+                                {...switchColours(liveMusic)}
+                                testID="event-live-music-switch"
+                            />
+                        </View>
+                    </View>
+
                     <EventRecurrenceSection
                         isRecurring={isRecurring}
                         onIsRecurringChange={setIsRecurring}
@@ -265,6 +289,20 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    switchRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    switchText: {
+        flex: 1,
+        paddingRight: 12,
+    },
+    hint: {
+        color: colors.textMuted,
+        fontSize: 13,
+        marginTop: 2,
     },
     formContainer: {
         flex: 1,

@@ -91,6 +91,8 @@ export const POST: RequestHandler = async ({ request, params, cookies }) => {
 
 		// A recurring event must say how it repeats, in one of the patterns occurrences are
 		// worked out from (KNOWN_ISSUES 90); free text used to be stored and then ignored
+		// Live music is an attribute of the night, not a genre (ROADMAP section 5)
+		const liveMusic = data.live_music === true;
 		const recurring = data.recurring === true;
 		const pattern = recurring ? normalizeRecurrencePattern(data.recurrence_pattern) : null;
 		if (recurring && !pattern) {
@@ -116,8 +118,9 @@ export const POST: RequestHandler = async ({ request, params, cookies }) => {
         end_time,
         recurring,
         recurrence_pattern,
-        special_genres
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        special_genres,
+        live_music
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
 			[
 				barId,
@@ -128,7 +131,8 @@ export const POST: RequestHandler = async ({ request, params, cookies }) => {
 				data.end_time || null,
 				recurring,
 				pattern,
-				genres
+				genres,
+				liveMusic
 			]
 		);
 
