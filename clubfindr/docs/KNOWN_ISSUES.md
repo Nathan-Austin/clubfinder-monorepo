@@ -1026,8 +1026,12 @@ here that needs the server is collected in ROADMAP, "Next server round".
     artists: London had about 9,600 artists stored and 331 upcoming artists without a Spotify
     match, and only 11 of those were checked that day. The Spotify API itself works (searches
     match, about half the artists have genres). Upcoming events whose artists stay unmatched get
-    no genres, so they match nobody's taste. Fix (ROADMAP, "From the 2026-11-18 device run"):
-    upcoming artists without a `spotify_uri` first, soonest event first, then upcoming artists
-    without genres, then the rest within the per-run cap, with counts logged; unit tests with fake
-    rows, no live API or database calls (21). SoundCloud's step takes every artist with a link and
-    is not affected.
+    no genres, so they match nobody's taste. SoundCloud's step takes every artist with a link and
+    is not affected. _Fixed in the repo 2026-11-18_: the selection
+    (`data_collection/artist_selection.py`, unit tests in `data_collection/tests/`, fake rows
+    only) fills the per-run cap (`SPOTIFY_ARTISTS_PER_RUN`, still 1,000) in tiers — upcoming
+    artists without a `spotify_uri` soonest event first, then upcoming artists without genres,
+    then the rest by id — with the 14-day cooldown applied before the cap and the per-tier counts
+    logged and printed. To verify after the next 02:00 run (server instance): the printed
+    "Artist selection for <city>" summary, and that London's unmatched upcoming artists drop from
+    ~331 instead of 11 being checked.

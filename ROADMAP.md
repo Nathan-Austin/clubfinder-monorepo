@@ -51,20 +51,13 @@ The server instance fixed the fetcher and re-enabled the cron at 02:00; check Ti
 the first run.
 
 **Data: the scrape is back (`1c98caa`, daily at 02:00), but the Spotify step checks the wrong
-artists** (KNOWN_ISSUES 92). `spotipy_search.py` `get_artists_query()` takes a city's first 1,000
-artists by id, not the ones playing upcoming events (London: 11 of 331 unmatched upcoming artists
-checked). For the oak/elm agents, no API access needed:
-- Select upcoming artists without a `spotify_uri` first (`event_artists` / `events`,
-  `event_date >= today`, soonest first), then upcoming artists without genres (check how
-  `update_event_genres` and the loop around line 683 fill them), then the rest within the cap
-- Keep a per-run cap for the rate limit (`spotify_rate_limiter`, `has_been_called_recently`)
-  and log how many of each group were checked
-- Unit tests on the selection with fake rows or a fake cursor: no live Spotify or database calls
-  (KNOWN_ISSUES 21), never open `data_collection/.env`. `data_collection` has no tests yet: add a
-  folder, and run it in `data-collection-ci.yml` if cheap. Pinned black/isort/flake8/bandit,
-  Python 3.10 and 3.11. Leave `old_spotipy.py` and `simple_spotipy.py` (not run)
-- The summary says what the server instance checks after the next 02:00 run: upcoming artists
-  checked, and how many are still unmatched
+artists** (KNOWN_ISSUES 92). **Fixed in the repo 2026-11-18**: the selection is a pure function
+(`data_collection/artist_selection.py`) filling the per-run cap in tiers — upcoming artists
+without a `spotify_uri` soonest event first, then upcoming artists without genres, then the rest —
+with the cooldown applied before the cap and per-tier counts logged; unit tests over fake rows in
+`data_collection/tests/` (no live API or database calls; CI left as-is, owner's decision).
+After the next 02:00 run the server instance checks: the printed "Artist selection for <city>"
+summary (tier counts), and how many upcoming artists per city are still without a `spotify_uri`.
 
 **Venue accounts cannot be deleted** (found 2026-11-18): nothing in the app or on the web removes a
 venue (customers have Delete Account). Google Play's account-deletion policy covers every account
