@@ -80,7 +80,20 @@ Use a fresh e-mail address.
       "Acoustic" (the matcher refuses both; live music becomes its own attribute later), and
       typing in "Add another genre" suggests from the shared list.
 
-## 8. Carried over, still untested from v11
+## 8. Recurring events as dates (KNOWN_ISSUES 90)
+- [ ] Events tab: a **weekly** event created with a date in the past (or a few weeks ago) is
+      listed on its **upcoming dates**, not gone — several cards of the same night, each with its
+      own date and the Weekly badge, up to two months ahead.
+- [ ] The form's note under Recurrence now reads "Every date is listed and matched, for the next
+      two months".
+- [ ] Editing one of those cards edits the series (the same event opens whichever date you tap);
+      deleting removes the whole series — expected until "cancel this date" exists
+      (KNOWN_ISSUES 89). Note anything confusing.
+- [ ] A one-off far in the future (say next summer) is still listed.
+- [ ] Tilki/Discover on a date the weekly night falls on: the venue shows up with that night's
+      genres; on the day after, it does not.
+
+## 9. Carried over, still untested from v11
 - [ ] The four venue tabs on a **small phone**: all labels readable.
 - [ ] Edit an older event that has "Live Music": the chip is still there in the list, but the
       save now refuses it ("Not genres Clubfindr knows: live music") — expected until live music

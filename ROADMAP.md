@@ -94,10 +94,10 @@ the versionCode 12 device run.
 
 Found or decided during the 2026-11-17 app round and left for the server, in a suggested order.
 Each is a server change with its e2e run under the lease.
-1. **Recurring events as dates** (KNOWN_ISSUES 90): expand them on the server, one occurrence
-   function for the venue list, both matchers and `/barfindr`, the pattern validated. Today a
-   weekly night counts on its first date only and then disappears. Then **cancel one date** rather
-   than the series (89). Details in section 5
+1. [x] **Recurring events as dates** (KNOWN_ISSUES 90), done 2026-11-19: `$lib/events/recurrence`
+   expands a series for the venue lists, both matchers and `/barfindr`, and the four patterns are
+   validated on write. The app's Events tab lists the dates (`occurrence_id`). Left: **cancel one
+   date** rather than the series (89)
 2. **Live music as an event filter, not a genre** (owner's decision, 2026-11-17): an event
    attribute set in the app's and the web's form, a customer filter with the genres underneath,
    existing "Live Music" tags migrated. Details in section 5

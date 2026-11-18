@@ -1003,9 +1003,14 @@ here that needs the server is collected in ROADMAP, "Next server round".
     `event_date >= <today>`. So a weekly night counts towards matching on its first date only, and
     after that date it is gone from `/barfindr` and from the venue's own event list in the app,
     though still in the database. The app's form offers daily, weekly, bi-weekly and monthly.
-    Fix in the next server round (ROADMAP section 5): one occurrence function in `$lib` used by
-    the venue list, both matchers and `/barfindr`; the pattern validated against those four values;
-    then skipped dates for "cancel this date" (89). The app then shows occurrences, not rows.
+    _Fixed 2026-11-19._ `$lib/events/recurrence` is the one place that says which days a series
+    falls on (daily, weekly, biweekly, monthly; UTC date parts, so no server time zone moves a
+    night; monthly keeps the day of the month and skips months without it). Both venue event
+    lists, `POST /api/mobile/bars/matching` and `/barfindr` read it, the lists send one entry per
+    date with an `occurrence_id` to key on (repeating series bounded by 60 days, one-offs listed
+    however far ahead), and the write paths validate the pattern, storing it normalised.
+    `tests/recurring-events.spec.ts`, `src/lib/events/recurrence.test.ts`. Still open: cancelling
+    one date rather than the series (89).
 91. **The genres a venue is offered and the genres the server accepts come from different places.**
     Found 2026-11-17. The app's "Genres you play" and event genres suggest the 1,243 names of
     `clubfindr/static/lib/unified-genres.json` (the web dashboard's list, held equal by
