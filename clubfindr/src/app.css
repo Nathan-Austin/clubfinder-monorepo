@@ -18,14 +18,43 @@
 	--color-secondary: rgb(var(--rgb-secondary));
 	--color-light: rgb(var(--rgb-light));
 	--color-spotify: rgb(var(--rgb-spotify));
+	/* The Tailwind 3 palette values the components were written against. `--color-*: initial`
+	   above resets the palette, so every numbered colour used anywhere in src must be listed
+	   here or its utility silently generates nothing (the /update-info picker was white on
+	   white that way). src/lib/themeTokens.test.ts fails when a used colour is missing. */
+	--color-orange-100: #ffedd5;
+	--color-orange-400: #fb923c;
 	--color-orange-500: #f97316;
 	--color-orange-600: #ea580c;
+	--color-orange-800: #9a3412;
 	--color-red-100: #fee2e2;
 	--color-red-400: #f87171;
+	--color-red-500: #ef4444;
+	--color-red-600: #dc2626;
 	--color-red-700: #b91c1c;
+	--color-gray-50: #f9fafb;
+	--color-gray-100: #f3f4f6;
 	--color-gray-200: #e5e7eb;
+	--color-gray-300: #d1d5db;
+	--color-gray-400: #9ca3af;
+	--color-gray-500: #6b7280;
+	--color-gray-600: #4b5563;
+	--color-gray-700: #374151;
+	--color-gray-800: #1f2937;
 	--color-gray-900: #111827;
+	--color-green-100: #dcfce7;
 	--color-green-500: #22c55e;
+	--color-green-600: #16a34a;
+	--color-green-800: #166534;
+	--color-blue-50: #eff6ff;
+	--color-blue-100: #dbeafe;
+	--color-blue-500: #3b82f6;
+	--color-blue-600: #2563eb;
+	--color-blue-800: #1e40af;
+	--color-purple-100: #f3e8ff;
+	--color-purple-400: #c084fc;
+	--color-purple-500: #a855f7;
+	--color-purple-800: #6b21a8;
 
 	/* Tailwind 3's default sans stack (4.3 switched to -apple-system/Segoe UI/Roboto/Arial) */
 	--font-sans:
