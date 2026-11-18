@@ -13,6 +13,8 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
+import { isKnownGenre } from '$lib/taste/genreClassifier';
+import { EventGenresError, validateEventGenres } from '$lib/taste/eventGenres';
 
 /** The event must belong to this venue; a stranger's id reads as "not found", never as theirs. */
 async function findEvent(eventId: string, barId: string) {
@@ -40,6 +42,21 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 			return json({ error: 'Validation failed', validationErrors }, { status: 400 });
 		}
 
+		// Strict event genres (KNOWN_ISSUES 91): only genres the matcher knows, so a night
+		// cannot be described with something that reaches nobody
+		let genres: string[];
+		try {
+			genres = validateEventGenres(data.special_genres, isKnownGenre);
+		} catch (error) {
+			if (error instanceof EventGenresError) {
+				return json(
+					{ error: 'Validation failed', validationErrors: [error.message], genres: error.genres },
+					{ status: 400 }
+				);
+			}
+			throw error;
+		}
+
 		if (!(await findEvent(eventId, barId))) {
 			return json({ error: 'Event not found' }, { status: 404 });
 		}
@@ -65,7 +82,7 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 				data.end_time || null,
 				data.recurring || false,
 				data.recurrence_pattern || null,
-				data.special_genres || [],
+				genres,
 				eventId,
 				barId
 			]

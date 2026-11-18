@@ -3,6 +3,8 @@ import { json } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
+import { isKnownGenre } from '$lib/taste/genreClassifier';
+import { EventGenresError, validateEventGenres } from '$lib/taste/eventGenres';
 
 // GET handler to retrieve a specific event
 export const GET: RequestHandler = async ({ params, cookies, request }) => {
@@ -54,6 +56,21 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 			);
 		}
 
+		// Strict event genres (KNOWN_ISSUES 91): only genres the matcher knows, so a night
+		// cannot be described with something that reaches nobody
+		let genres: string[];
+		try {
+			genres = validateEventGenres(data.special_genres, isKnownGenre);
+		} catch (error) {
+			if (error instanceof EventGenresError) {
+				return json(
+					{ error: 'Validation failed', validationErrors: [error.message], genres: error.genres },
+					{ status: 400 }
+				);
+			}
+			throw error;
+		}
+
 		// Check if event exists
 		const checkResult = await query(
 			`SELECT id FROM clubfindr.bar_events 
@@ -87,7 +104,7 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 				data.end_time || null,
 				data.recurring || false,
 				data.recurrence_pattern || null,
-				data.special_genres || [],
+				genres,
 				eventId,
 				barId
 			]

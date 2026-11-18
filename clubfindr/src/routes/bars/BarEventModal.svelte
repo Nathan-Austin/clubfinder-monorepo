@@ -36,20 +36,24 @@
 		onsubmit
 	}: Props = $props();
 
-	// For genre selection
-	let availableGenres = [
+	let selectedGenres: string[] = $state(eventDetails.special_genres || []);
+	let newGenre = $state('');
+
+	// The quick picks, in the order a venue is most likely to want them. They are offered only
+	// when the shared list has them (KNOWN_ISSUES 91): event genres are checked against the
+	// matcher now, and this hard-coded grid used to offer "Live Music" and "Acoustic", which it
+	// refuses. ("Live music" becomes an event attribute of its own, ROADMAP section 5.)
+	const QUICK_PICKS = [
 		'House',
 		'Techno',
-		'Hip-Hop',
+		'Hip Hop',
 		'R&B',
 		'Jazz',
 		'Rock',
-		'Live Music',
 		'Indie',
 		'Reggae',
 		'Latin',
 		'Blues',
-		'Acoustic',
 		'Pop',
 		'EDM',
 		'Country',
@@ -57,8 +61,38 @@
 		'Soul',
 		'Funk'
 	];
-	let selectedGenres: string[] = $state(eventDetails.special_genres || []);
-	let newGenre = $state('');
+
+	// The one genre list, shared with the dashboard's "Genres you play" and the app
+	let allGenres = $state<string[]>([]);
+	let availableGenres = $derived(
+		allGenres.length === 0
+			? []
+			: QUICK_PICKS.filter((pick) =>
+					allGenres.some((genre) => genre.toLowerCase() === pick.toLowerCase())
+				)
+	);
+	let genreSuggestions = $derived(
+		newGenre.trim().length === 0
+			? []
+			: allGenres
+					.filter((genre) => genre.toLowerCase().includes(newGenre.trim().toLowerCase()))
+					.filter(
+						(genre) =>
+							!selectedGenres.some((chosen) => chosen.toLowerCase() === genre.toLowerCase())
+					)
+					.slice(0, 8)
+	);
+
+	$effect(() => {
+		fetch('/lib/genre-suggestions.json')
+			.then((response) => (response.ok ? response.json() : null))
+			.then((list) => {
+				if (Array.isArray(list?.genres)) allGenres = list.genres;
+			})
+			.catch(() => {
+				// Suggestions only; typing still works and the server has the final say
+			});
+	});
 
 	function closeModal() {
 		onclose();
@@ -90,11 +124,13 @@
 	}
 
 	// Function to add a custom genre
-	function addCustomGenre() {
-		if (newGenre && !selectedGenres.includes(newGenre)) {
-			selectedGenres = [...selectedGenres, newGenre];
-			newGenre = '';
+	function addCustomGenre(genre: string = newGenre) {
+		const value = genre.trim();
+		if (!value) return;
+		if (!selectedGenres.some((chosen) => chosen.toLowerCase() === value.toLowerCase())) {
+			selectedGenres = [...selectedGenres, value];
 		}
+		newGenre = '';
 	}
 
 	// Function to toggle a genre selection
@@ -203,23 +239,38 @@
 			</div>
 
 			<div class="form-group">
-				<label for="customGenre">Add Custom Genre</label>
+				<label for="customGenre">Add another genre</label>
 				<div class="add-genre-row">
 					<input
 						type="text"
 						id="customGenre"
 						bind:value={newGenre}
-						placeholder="Enter custom genre"
+						placeholder="Type a genre"
+						autocomplete="off"
 					/>
 					<button
 						type="button"
 						class="add-genre-button"
-						onclick={addCustomGenre}
+						onclick={() => addCustomGenre()}
 						disabled={!newGenre}
 					>
 						Add
 					</button>
 				</div>
+				{#if genreSuggestions.length > 0}
+					<!-- From the one genre list, so what is offered is what the server accepts -->
+					<div class="genre-suggestions" data-testid="event-genre-suggestions">
+						{#each genreSuggestions as suggestion (suggestion)}
+							<button
+								type="button"
+								class="genre-suggestion"
+								onclick={() => addCustomGenre(suggestion)}
+							>
+								{suggestion}
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</div>
 
 			{#if selectedGenres.length > 0}
@@ -389,6 +440,27 @@
 	.add-genre-row {
 		display: flex;
 		gap: 0.5rem;
+	}
+
+	.genre-suggestions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin-top: 0.5rem;
+	}
+
+	.genre-suggestion {
+		background-color: #2a2a2a;
+		color: #eee;
+		border: 1px solid #444;
+		border-radius: 12px;
+		padding: 0.25rem 0.75rem;
+		font-size: 0.8rem;
+		cursor: pointer;
+	}
+
+	.genre-suggestion:hover {
+		background-color: #3a3a3a;
 	}
 
 	.add-genre-button {
