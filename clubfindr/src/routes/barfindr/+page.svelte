@@ -346,7 +346,7 @@
 							<div class="item events-container">
 								<div class="label">Events:</div>
 								<div class="events-list">
-									{#each result.events.slice(0, 3) as event, i (event.id ?? i)}
+									{#each result.events.slice(0, 3) as event, i (event.occurrence_id ?? event.id ?? i)}
 										<div class="event-item">
 											<div class="event-header">
 												<span class="event-name">{event.theme_name}</span>

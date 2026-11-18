@@ -1,5 +1,9 @@
 export interface EventDetails {
+	/** The row: one recurring series arrives once per date (KNOWN_ISSUES 90) */
 	id: string;
+	/** `<id>:<date>`, unique per occurrence — what lists key on */
+	occurrence_id?: string;
+	series_id?: string;
 	theme_name: string;
 	description: string;
 	event_date: string;

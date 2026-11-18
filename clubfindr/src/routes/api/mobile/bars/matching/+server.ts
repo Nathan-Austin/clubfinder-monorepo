@@ -6,6 +6,7 @@ import { pool } from '$lib/db';
 import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/cityName';
 import { toLocalIsoDate } from '$lib/localDate';
+import { occursOn } from '$lib/events/recurrence';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
 import { listDeclaredGenresForOwners, mergeGenresByOwner } from '$lib/taste/venueGenres';
 import { getProfileGenreWeightsForRequest } from '$lib/taste/profileGenres';
@@ -300,18 +301,21 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 					clubfindr.bar_events 
 				WHERE 
 					bar_id = ANY($1) 
-					AND event_date = $2
+					AND (event_date = $2 OR (recurring = true AND event_date <= $2))
 				ORDER BY 
 					start_time ASC
 			`;
 
 		const barIds = Array.from(barsMap.keys());
 		const eventsResult = await pool.query(eventsQuery, [barIds, date]);
+		// A recurring row is a series, so the day it falls on is worked out rather than compared
+		// (KNOWN_ISSUES 90): a weekly night used to count on its first date only
+		const eventsOnDate = eventsResult.rows.filter((event) => occursOn(event, date));
 
 		// Process events and their genres if any exist for the requested date
-		if (eventsResult.rows.length > 0) {
-			console.log(`Found ${eventsResult.rows.length} events for ${date}`);
-			eventsResult.rows.forEach(
+		if (eventsOnDate.length > 0) {
+			console.log(`Found ${eventsOnDate.length} events for ${date}`);
+			eventsOnDate.forEach(
 				(event: {
 					id: string;
 					bar_id: string;

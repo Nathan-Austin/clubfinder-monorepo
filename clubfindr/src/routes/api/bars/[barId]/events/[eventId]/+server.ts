@@ -5,6 +5,7 @@ import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { isKnownGenre } from '$lib/taste/genreClassifier';
 import { EventGenresError, validateEventGenres } from '$lib/taste/eventGenres';
+import { RECURRENCE_PATTERNS, normalizeRecurrencePattern } from '$lib/events/recurrence';
 
 // GET handler to retrieve a specific event
 export const GET: RequestHandler = async ({ params, cookies, request }) => {
@@ -71,6 +72,22 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 			throw error;
 		}
 
+		// A recurring event must say how it repeats, in one of the patterns occurrences are
+		// worked out from (KNOWN_ISSUES 90); free text used to be stored and then ignored
+		const recurring = data.recurring === true;
+		const pattern = recurring ? normalizeRecurrencePattern(data.recurrence_pattern) : null;
+		if (recurring && !pattern) {
+			return json(
+				{
+					error: 'Validation failed',
+					validationErrors: [
+						`A repeating event needs one of these patterns: ${RECURRENCE_PATTERNS.join(', ')}`
+					]
+				},
+				{ status: 400 }
+			);
+		}
+
 		// Check if event exists
 		const checkResult = await query(
 			`SELECT id FROM clubfindr.bar_events 
@@ -102,8 +119,8 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 				data.event_date,
 				data.start_time || null,
 				data.end_time || null,
-				data.recurring || false,
-				data.recurrence_pattern || null,
+				recurring,
+				pattern,
 				genres,
 				eventId,
 				barId

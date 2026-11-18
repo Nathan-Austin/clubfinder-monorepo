@@ -250,7 +250,7 @@
 		</div>
 	{:else}
 		<div class="events-grid">
-			{#each events as event (event.id)}
+			{#each events as event (event.occurrence_id ?? event.id)}
 				<div class="event-card">
 					<div class="event-header">
 						<h3>{event.theme_name}</h3>

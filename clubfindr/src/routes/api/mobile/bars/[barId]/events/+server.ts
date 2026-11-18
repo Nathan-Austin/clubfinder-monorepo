@@ -5,21 +5,43 @@ import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { isKnownGenre } from '$lib/taste/genreClassifier';
 import { EventGenresError, validateEventGenres } from '$lib/taste/eventGenres';
+import {
+	RECURRENCE_PATTERNS,
+	addDays,
+	expandOccurrences,
+	normalizeRecurrencePattern,
+	toIsoDate
+} from '$lib/events/recurrence';
+import { toLocalIsoDate } from '$lib/localDate';
+
+/** How far ahead a venue's own list looks, and how many dates one series may fill it with. */
+const LIST_WINDOW_DAYS = 60;
+const LIST_PER_SERIES = 4;
 
 // GET handler to retrieve all events for a specific bar
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
 	const barId = params.barId;
 
 	try {
+		// A recurring row is a series: its upcoming dates are worked out here, not stored
+		// (KNOWN_ISSUES 90). Candidates are the upcoming one-offs plus every series, whose
+		// start may be long past.
 		const result = await query(
-			`SELECT * FROM clubfindr.bar_events 
+			`SELECT * FROM clubfindr.bar_events
        WHERE bar_id = $1
-	   AND event_date >= CURRENT_DATE
+       AND (event_date >= CURRENT_DATE OR recurring = true)
        ORDER BY event_date ASC`,
 			[barId]
 		);
 
-		return json({ events: result.rows });
+		const from = toIsoDate(url.searchParams.get('date')) ?? toLocalIsoDate(new Date());
+		const events = expandOccurrences(result.rows, {
+			from,
+			to: addDays(from, LIST_WINDOW_DAYS),
+			perSeries: LIST_PER_SERIES
+		});
+
+		return json({ events });
 	} catch (error) {
 		console.error('Error fetching bar events:', error);
 		return json({ error: 'Failed to fetch events' }, { status: 500 });
@@ -67,6 +89,22 @@ export const POST: RequestHandler = async ({ request, params, cookies }) => {
 			throw error;
 		}
 
+		// A recurring event must say how it repeats, in one of the patterns occurrences are
+		// worked out from (KNOWN_ISSUES 90); free text used to be stored and then ignored
+		const recurring = data.recurring === true;
+		const pattern = recurring ? normalizeRecurrencePattern(data.recurrence_pattern) : null;
+		if (recurring && !pattern) {
+			return json(
+				{
+					error: 'Validation failed',
+					validationErrors: [
+						`A repeating event needs one of these patterns: ${RECURRENCE_PATTERNS.join(', ')}`
+					]
+				},
+				{ status: 400 }
+			);
+		}
+
 		// Insert new event
 		const result = await query(
 			`INSERT INTO clubfindr.bar_events (
@@ -88,8 +126,8 @@ export const POST: RequestHandler = async ({ request, params, cookies }) => {
 				data.event_date,
 				data.start_time || null,
 				data.end_time || null,
-				data.recurring || false,
-				data.recurrence_pattern || null,
+				recurring,
+				pattern,
 				genres
 			]
 		);
