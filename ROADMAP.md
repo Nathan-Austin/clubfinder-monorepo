@@ -22,18 +22,15 @@ results, causes and file references are in
 2026-11-18 run" and the FAIL notes).
 
 **Web: `/users-home` is where a logged-in user searches, from their saved city** (owner's
-decision, 2026-11-18). Fixes the city FAIL (section 10 of the checklist): today `/users-home` and
-`/` guess the city from the browser's location and never read `users.city`, and a search posts
-the guess to `/storestate`, which overwrites the `city` cookie, so a city saved on `/update-info`
-lasts until the next search.
-- "Current City" on `/users-home` starts from the account's city (`users.city`); location only
-  when the account has none, and then offered as "save this as your city?"
-- "Change City" saves to the account through `PUT /api/account/city`, as `/update-info` does: one
-  city per user across `/users-home`, `/clubs`, `/barfindr` and the app
-- A clear search action there: date + city + taste profile → `/clubs`, without `/storestate`
-  writing a city other than the one shown
-- `/` keeps location guessing for visitors who are not logged in
-- e2e: save Amsterdam, search from `/users-home`, `/clubs` is Amsterdam; reload, still Amsterdam
+decision, 2026-11-18; **done in the repo the same day**). Fixes the city FAIL (section 10 of the
+checklist): the page used to guess the city from the browser's location, never read `users.city`,
+and a search posted the guess to `/storestate`, which overwrote the `city` cookie, so a city saved
+on `/update-info` lasted until the next search. Now "Current City" starts from the account's city
+(location is only a proposal for an account with none, offered as "Save <city> as your city");
+"Change City" saves through `PUT /api/account/city` (one city per user across `/users-home`,
+`/clubs`, `/barfindr` and the app); and the page's "Find events" search posts exactly the shown
+city — date + city + taste profile → `/clubs`. `/` keeps location guessing for visitors.
+`tests/users-home-city.spec.ts` covers the ROADMAP's Amsterdam journey.
 
 Also on the web, from the same run:
 - `/update-info`'s city picker is white on white: `CityPicker.svelte` uses colours the `@theme`
