@@ -4,6 +4,7 @@
 	import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
 	import { DatePicker } from 'date-picker-svelte';
 	import { toLocalIsoDate, fromLocalIsoDate } from '$lib/localDate';
+	import { findLiveCity } from '$lib/cities';
 	import { Loader } from '@googlemaps/js-api-loader';
 	import { getDistance } from 'geolib';
 	import LastfmImport from '$lib/components/LastfmImport.svelte';
@@ -36,6 +37,10 @@
 					max: number;
 					favouriteCount: number;
 				};
+				/** The account's city (users.city) as a covered-city slug; null when unset */
+				savedCity?: string | null;
+				/** The covered cities, from $lib/cities */
+				cities?: { name: string; slug: string }[];
 			};
 		};
 	}
@@ -68,6 +73,75 @@
 
 	// Date picker functionality
 	let formattedDate: Date = $state(new Date());
+
+	// The account's city (users.city) is where this page's search starts from (owner's
+	// decision, 2026-11-18): one city per user across /users-home, /clubs, /barfindr and the
+	// app. Location is only a proposal for accounts that have none, offered as "save this as
+	// your city?" — it never overwrites a saved city.
+	// svelte-ignore state_referenced_locally
+	let citySlug = $state<string | null>(data.props.savedCity ?? null);
+	const liveCities = $derived(data.props.cities ?? []);
+	const savedCityName = $derived(
+		liveCities.find((option) => option.slug === citySlug)?.name ?? citySlug ?? ''
+	);
+	let cityStatus = $state<'idle' | 'saving' | 'saved' | 'error'>('idle');
+	let cityMessage = $state('');
+
+	async function saveCity(value: string) {
+		cityStatus = 'saving';
+		cityMessage = '';
+		try {
+			const response = await fetch('/api/account/city', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ city: value })
+			});
+			const result = await response.json();
+			if (!response.ok || !result.success) {
+				throw new Error(result.message || 'Could not save your city');
+			}
+			citySlug = result.city;
+			cityStatus = 'saved';
+			cityMessage = `Your city is now ${
+				liveCities.find((option) => option.slug === result.city)?.name ?? result.city
+			}.`;
+			showCityDropdown = false;
+		} catch (error) {
+			cityStatus = 'error';
+			cityMessage = error instanceof Error ? error.message : 'Could not save your city';
+		}
+	}
+
+	// The search this page is for: date + city + taste profile -> /clubs. The city posted is
+	// exactly the one shown (the account's, or the proposed one), so /storestate can no longer
+	// overwrite a saved city with a location guess.
+	async function findEvents() {
+		const slug = citySlug ?? findLiveCity(city1)?.slug;
+		if (!slug) {
+			isCitySelectionInvalid = true;
+			showCityDropdown = true;
+			return;
+		}
+		isCitySelectionInvalid = false;
+		try {
+			await fetch('/storestate', {
+				method: 'POST',
+				body: JSON.stringify({
+					key: Date.now().toString(),
+					state: JSON.stringify({
+						city: slug,
+						formattedDate: toLocalIsoDate(formattedDate),
+						source: 'users-home'
+					})
+				}),
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include'
+			});
+			window.location.href = '/clubs';
+		} catch (error) {
+			console.error('Could not start the search:', error);
+		}
+	}
 
 	// Location and city selection functionality
 	let geocoder: google.maps.Geocoder;
@@ -202,9 +276,9 @@
 		const target = event.target as HTMLSelectElement;
 		const selectedCity = target.value;
 		if (selectedCity) {
-			city1 = selectedCity;
 			isCitySelectionInvalid = false;
-			console.log(`User selected city: ${selectedCity}`);
+			// Saving to the account is what makes it the one city everywhere
+			saveCity(selectedCity);
 		}
 	}
 
@@ -265,7 +339,8 @@
 		event.preventDefault();
 		try {
 			const stateKey = Date.now().toString();
-			const cityValue = city1;
+			// The shown city: the account's, else the location's proposal
+			const cityValue = citySlug ?? findLiveCity(city1)?.slug ?? city1;
 
 			const formData = {
 				city: cityValue || 'berlin',
@@ -292,7 +367,8 @@
 		event.preventDefault();
 		try {
 			const stateKey = Date.now().toString();
-			const cityValue = city1;
+			// The shown city: the account's, else the location's proposal
+			const cityValue = citySlug ?? findLiveCity(city1)?.slug ?? city1;
 
 			const formData = {
 				city: cityValue || 'berlin',
@@ -339,8 +415,10 @@
 	};
 
 	onMount(() => {
-		// Initialize Google Maps Geocoding API and fetch cities
+		// Location is only a proposal for an account without a saved city; with one, nothing
+		// here runs and the shown city is the account's
 		(async () => {
+			if (citySlug) return;
 			try {
 				// Fetch cities data
 				await fetchCities();
@@ -482,14 +560,6 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
-<!-- Hidden form to store data -->
-<form id="city-location" action="/storestate" method="POST">
-	<input type="hidden" bind:value={city1} name="city" />
-	<input type="hidden" bind:value={address} name="address" />
-	<input type="hidden" value={toLocalIsoDate(formattedDate)} name="formattedDate" />
-	<button type="button" id="form-submit-button" class="hidden">Submit</button>
-</form>
-
 <h1
 	class="text-4xl md:text-8xl font-bold text-transparent bg-clip-text bg-linear-to-br from-light via-light to-secondary"
 >
@@ -571,26 +641,47 @@
 	<div class="city-display">
 		<h3>Current City</h3>
 		<div class="city-info">
-			<p class="current-city">{city1 || 'Detecting your location...'}</p>
-			<button class="change-city-btn" onclick={() => (showCityDropdown = !showCityDropdown)}>
+			{#if citySlug}
+				<p class="current-city" data-testid="current-city">{savedCityName}</p>
+			{:else if city1}
+				<p class="current-city" data-testid="current-city">{city1}</p>
+			{:else}
+				<p class="current-city" data-testid="current-city">Choose your city</p>
+			{/if}
+			<button
+				class="change-city-btn"
+				data-testid="change-city"
+				onclick={() => (showCityDropdown = !showCityDropdown)}
+			>
 				Change City
 			</button>
 		</div>
+
+		{#if !citySlug && city1 && findLiveCity(city1)}
+			<!-- The location's proposal, for an account without a saved city -->
+			<button
+				class="change-city-btn save-city-btn"
+				data-testid="save-guessed-city"
+				onclick={() => saveCity(city1)}
+			>
+				Save {city1} as your city
+			</button>
+		{:else if !citySlug && city1}
+			<p class="city-hint">We don't cover {city1} yet — choose a city we do.</p>
+		{/if}
 
 		{#if showCityDropdown}
 			<div class="city-dropdown">
 				<select
 					id="city-select"
+					data-testid="city-select"
 					class:isInvalid={isCitySelectionInvalid}
-					onchange={(e) => {
-						handleCitySelection(e);
-						showCityDropdown = false;
-					}}
+					onchange={handleCitySelection}
 					style="color: black;"
 				>
 					<option value="" selected disabled>Select a city</option>
-					{#each cities as city (city.name)}
-						<option value={city.name} style="color: black;">{city.name}</option>
+					{#each liveCities as option (option.slug)}
+						<option value={option.slug} style="color: black;">{option.name}</option>
 					{/each}
 				</select>
 				{#if isCitySelectionInvalid}
@@ -598,6 +689,25 @@
 				{/if}
 			</div>
 		{/if}
+
+		{#if cityStatus === 'saved' || cityStatus === 'error'}
+			<p
+				class={cityStatus === 'error' ? 'city-hint city-error' : 'city-hint'}
+				data-testid="city-message"
+			>
+				{cityMessage}
+			</p>
+		{/if}
+	</div>
+
+	<div class="find-events-container">
+		<button class="button find-events-btn" data-testid="find-events" onclick={findEvents}>
+			Find events
+		</button>
+		<p class="city-hint">
+			Clubs matching your taste, {#if citySlug}in {savedCityName}{:else}once a city is chosen{/if}
+			on the chosen date.
+		</p>
 	</div>
 </div>
 
@@ -771,6 +881,7 @@
 	/* Date and Location Section */
 	.date-location-section {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: flex-start;
 		background-color: rgba(30, 30, 30, 0.5);
@@ -817,6 +928,36 @@
 	.city-dropdown {
 		margin-top: 0.5rem;
 		transition: all 0.3s ease;
+	}
+
+	.save-city-btn {
+		margin-bottom: 0.5rem;
+		background-color: #27ae60;
+	}
+
+	.save-city-btn:hover {
+		background-color: #1e8449;
+	}
+
+	.city-hint {
+		margin-top: 0.5rem;
+		font-size: 0.9rem;
+		color: #b9c2cc;
+	}
+
+	.city-error {
+		color: #e74c3c;
+	}
+
+	.find-events-container {
+		flex-basis: 100%;
+		text-align: center;
+		margin-top: 1rem;
+	}
+
+	.find-events-btn {
+		font-size: 1.1rem;
+		padding: 0.6rem 2.5rem;
 	}
 
 	.selected-date,

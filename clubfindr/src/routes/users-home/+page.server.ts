@@ -4,6 +4,10 @@ import type { PageServerLoad } from '../$types';
 import { cookieManager } from '$lib/cookieManager';
 import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
 import { artistOnboardingStatus } from '$lib/taste/onboarding';
+import { LIVE_CITIES, findLiveCity } from '$lib/cities';
+
+// The covered cities, for the page's city picker (one source with /api/account/city)
+const cityList = () => LIVE_CITIES.map(({ name, slug }) => ({ name, slug }));
 // Define interfaces for our data structures
 interface Preference {
 	genre: string;
@@ -86,7 +90,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
 	// Fetch user data from the database
 	const result = await query(
-		`SELECT name, preferences, interested_events
+		`SELECT name, preferences, interested_events, city
 		FROM clubfindr.users
 		WHERE id = $1`,
 		[userId]
@@ -171,7 +175,11 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			topPreferences,
 			interestedEvents,
 			connectedServices,
-			artistOnboarding
+			artistOnboarding,
+			// The account's city (users.city), where this page's search starts from (owner's
+			// decision 2026-11-18); null for accounts from before the city was saved
+			savedCity: findLiveCity(user.city)?.slug ?? null,
+			cities: cityList()
 		}
 	};
 };
