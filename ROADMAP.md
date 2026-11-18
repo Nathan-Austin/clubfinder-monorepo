@@ -44,8 +44,9 @@ Also on the web, from the same run:
 - **Also 2026-11-19 (owner's decision):** new accounts no longer default to Berlin — `users.city`
   starts empty and `/users-home` proposes the nearest covered city on the first visit; the logins
   tolerate an account without a city
-- Plain "House" (and "Rock", "Hip Hop") are not in the genre suggestions, app or web, though the
-  server accepts them: part of **One genre list** below (KNOWN_ISSUES 91)
+- **Fixed in the repo 2026-11-19.** Plain "House" (and "Rock", "Hip Hop") were in no picker
+  though the server accepts them: the suggestions now come from one generated list (see **One
+  genre list** below, KNOWN_ISSUES 91)
 - A venue password reset mail lists the personal account's link first; started from the venue
   login (`?from=bars`), put the venue link first or alone
 
@@ -100,9 +101,12 @@ Each is a server change with its e2e run under the lease.
 2. **Live music as an event filter, not a genre** (owner's decision, 2026-11-17): an event
    attribute set in the app's and the web's form, a customer filter with the genres underneath,
    existing "Live Music" tags migrated. Details in section 5
-3. **One genre list** (KNOWN_ISSUES 91): the suggestions (app and web) and the server's check
-   (`isKnownGenre`) from the same source, a test that every suggestion is accepted, then strict
-   event genres; and a test across app and server that the two agree
+3. [x] **One genre list** (KNOWN_ISSUES 91), done 2026-11-19: `pnpm convert-genres` writes a flat
+   `genre-suggestions.json` from the cluster tree and the umbrella terms to both the web's
+   `static/lib` and the app's `constants`; every picker reads it (including the dashboard event
+   modal's old hard-coded grid), `genreSuggestions.test.ts` holds it to `isKnownGenre` entry by
+   entry, the app's own test holds its copy to the web's, and event genres are now checked on
+   write (`$lib/taste/eventGenres`, `tests/event-genres.spec.ts`)
 4. **The `/redirect` page's store links** (KNOWN_ISSUES 88): Play's `com.clubfindr.mobile`, the App
    Store once the app has a record; people without the app scanning a venue code reach a dead page
 5. **Real venue insights** in place of the removed "Genre Matches" tile (always 0, no data behind

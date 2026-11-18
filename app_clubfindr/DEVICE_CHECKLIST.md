@@ -70,9 +70,21 @@ Use a fresh e-mail address.
 - [ ] `/bars` (a venue you can destroy): "Delete this venue" asks for the venue's name typed,
       deletes, and lands on `/`; logging in again is refused.
 
-## 7. Carried over, still untested from v11
+## 7. Genres: one list (KNOWN_ISSUES 91)
+- [ ] Music tab → Genres: type "hou" → **House** itself is suggested now (it never was), and
+      saving it is accepted. Same for "rock" and "hip hop".
+- [ ] Event form → Genres: the suggestions are the same list. Add a made-up genre
+      ("polka-step") and save: the server refuses it by name ("Not genres Clubfindr knows:
+      polka-step") and the event is not saved. Remove it and the save goes through.
+- [ ] Web `/bars` → add or edit an event: the quick-pick grid no longer offers "Live Music" or
+      "Acoustic" (the matcher refuses both; live music becomes its own attribute later), and
+      typing in "Add another genre" suggests from the shared list.
+
+## 8. Carried over, still untested from v11
 - [ ] The four venue tabs on a **small phone**: all labels readable.
-- [ ] Edit an older event that has "Live Music": the chip is still there after saving.
+- [ ] Edit an older event that has "Live Music": the chip is still there in the list, but the
+      save now refuses it ("Not genres Clubfindr knows: live music") — expected until live music
+      becomes an event attribute (ROADMAP section 5). Note what you saw.
 
 ## Report back
 For anything that fails: the section, what you did, the message shown, and the phone (small or

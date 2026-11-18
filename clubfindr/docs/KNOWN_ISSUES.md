@@ -1014,8 +1014,15 @@ here that needs the server is collected in ROADMAP, "Next server round".
     which no JSON file lists. So a suggestion can be refused ("Not genres Clubfindr knows: ..."),
     on the web as in the app; the message covers it, nothing breaks. A third copy,
     `clubfindr/src/lib/data/unified-genres.json` (953 names), differs from both. Event genres are
-    not checked at all (free text). For the next server round: one list the suggestions and the
-    check share, a test that every suggestion is accepted, and strict event genres.
+    not checked at all (free text). _Fixed 2026-11-19._ `pnpm convert-genres` now also writes a
+    flat `genre-suggestions.json` (1,238 names: every leaf, every sub-cluster name that holds
+    leaves, every `UMBRELLA_FAMILIES` term, minus `UNSCORED_GENRES`) to `static/lib/` and the
+    app's `constants/`, and every picker reads it — the dashboard's "Genres you play", the app's
+    `genreVocabulary` and the dashboard's event modal, which had a fourth hard-coded list.
+    `src/lib/taste/genreSuggestions.test.ts` holds the list to `isKnownGenre` entry by entry, so
+    the two cannot drift apart, and plain "house", "rock" and "hip hop" are offered at last.
+    Event genres are strict too (`$lib/taste/eventGenres`, all four write paths,
+    `tests/event-genres.spec.ts`). The dead third copy under `src/lib/data` is gone.
 
 ## Found during the device run (18 November 2026)
 
