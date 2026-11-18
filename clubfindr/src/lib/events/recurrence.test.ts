@@ -132,6 +132,42 @@ describe('occurrencesBetween', () => {
 	});
 });
 
+// KNOWN_ISSUES 89: a venue closing on one date of a series had to delete the whole series
+describe('cancelled dates', () => {
+	const weeklyWithSkip = { ...weekly, skip_dates: ['2026-11-20'] };
+
+	it('leaves a cancelled date out of the series', () => {
+		expect(occursOn(weeklyWithSkip, '2026-11-13')).toBe(true);
+		expect(occursOn(weeklyWithSkip, '2026-11-20')).toBe(false);
+		expect(occursOn(weeklyWithSkip, '2026-11-27')).toBe(true);
+	});
+
+	it('leaves it out of the listing, keeping the rest', () => {
+		expect(occurrencesBetween(weeklyWithSkip, '2026-11-10', '2026-12-05')).toEqual([
+			'2026-11-13',
+			'2026-11-27',
+			'2026-12-04'
+		]);
+	});
+
+	it('can cancel a one-off too', () => {
+		expect(
+			occurrencesBetween({ ...oneOff, skip_dates: ['2026-11-06'] }, '2026-11-01', '2026-11-30')
+		).toEqual([]);
+	});
+
+	it('moves on to the next date', () => {
+		expect(nextOccurrence(weeklyWithSkip, '2026-11-14')).toBe('2026-11-27');
+	});
+
+	it('leaves a cancelled date out of the expanded list', () => {
+		const rows = [{ id: 'a', ...weeklyWithSkip }];
+		expect(
+			expandOccurrences(rows, { from: '2026-11-10', to: '2026-11-30' }).map((e) => e.event_date)
+		).toEqual(['2026-11-13', '2026-11-27']);
+	});
+});
+
 describe('nextOccurrence', () => {
 	it('finds the next date of a series that started in the past', () => {
 		expect(nextOccurrence(weekly, '2026-11-18')).toBe('2026-11-20');

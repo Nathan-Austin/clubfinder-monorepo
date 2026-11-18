@@ -83,6 +83,21 @@ CREATE INDEX IF NOT EXISTS idx_bar_events_live_music
   ON clubfindr.bar_events USING btree (live_music)
   WHERE live_music;
 
+--
+-- Name: bar_event_skips; Type: TABLE; Schema: clubfindr; Owner: -
+-- (migrations/20261119_bar_event_skips.sql: one cancelled date of a recurring event)
+--
+
+CREATE TABLE IF NOT EXISTS clubfindr.bar_event_skips (
+  event_id uuid NOT NULL REFERENCES clubfindr.bar_events (id) ON DELETE CASCADE,
+  skip_date date NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  PRIMARY KEY (event_id, skip_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bar_event_skips_event_id
+  ON clubfindr.bar_event_skips USING btree (event_id);
+
 
 --
 -- Name: bar_genre_aggregates; Type: TABLE; Schema: clubfindr; Owner: -

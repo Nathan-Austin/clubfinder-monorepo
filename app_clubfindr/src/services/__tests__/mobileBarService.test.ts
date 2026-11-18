@@ -52,6 +52,15 @@ describe('deleteBarEvent', () => {
     expect(del).toHaveBeenCalledWith(`/api/mobile/bars/${BAR}/events/${EVENT}`);
   });
 
+  // One date of a repeating night rather than the series (KNOWN_ISSUES 89)
+  it('cancels one date when given one', async () => {
+    del.mockResolvedValue({ data: { message: 'That date has been cancelled' } });
+    await deleteBarEvent(BAR, EVENT, '2026-12-11');
+    expect(del).toHaveBeenCalledWith(
+      `/api/mobile/bars/${BAR}/events/${EVENT}?date=2026-12-11`
+    );
+  });
+
   it('encodes the ids into the path', async () => {
     del.mockResolvedValue({ data: {} });
     await deleteBarEvent(BAR, 'a/b?c');

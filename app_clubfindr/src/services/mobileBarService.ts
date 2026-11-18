@@ -184,14 +184,18 @@ export type DeleteBarEventResult =
     | { success: true }
     | { success: false; error: string; sessionEnded?: boolean };
 
-export const deleteBarEvent = async (barId: string, eventId: string): Promise<DeleteBarEventResult> => {
+export const deleteBarEvent = async (
+    barId: string,
+    eventId: string,
+    /** One date of a recurring series to cancel; without it the whole series goes (KNOWN_ISSUES 89) */
+    cancelDate?: string
+): Promise<DeleteBarEventResult> => {
     if (!barId || !eventId) {
         return { success: false, error: 'This event cannot be deleted. Pull down to refresh and try again.' };
     }
     try {
-        await axiosClient.delete(
-            `/api/mobile/bars/${encodeURIComponent(barId)}/events/${encodeURIComponent(eventId)}`
-        );
+        const path = `/api/mobile/bars/${encodeURIComponent(barId)}/events/${encodeURIComponent(eventId)}`;
+        await axiosClient.delete(cancelDate ? `${path}?date=${encodeURIComponent(cancelDate)}` : path);
         return { success: true };
     } catch (error) {
         const status = errorStatus(error);

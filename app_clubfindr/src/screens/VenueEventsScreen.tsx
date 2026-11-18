@@ -37,13 +37,14 @@ const VenueEventsScreen = () => {
     const addEvent = () => navigation.navigate('AddEvent');
     const editEvent = (event: VenueEvent) => navigation.navigate('EditEvent', { event });
 
-    // KNOWN_ISSUES 82: the delete the dashboard had, asking first
-    const deleteEvent = async (event: VenueEvent) => {
+    // KNOWN_ISSUES 82: the delete the dashboard had, asking first.
+    // `cancelDate` cancels that one date of a series instead (KNOWN_ISSUES 89).
+    const deleteEvent = async (event: VenueEvent, cancelDate?: string) => {
         setDeletingEventId(event.id);
         try {
-            const result = await deleteBarEvent(barId ?? '', event.id);
+            const result = await deleteBarEvent(barId ?? '', event.id, cancelDate);
             if (result.success) {
-                drop(event.id);
+                if (!cancelDate) drop(event.id);
                 await reload();
             } else if (result.sessionEnded) {
                 Alert.alert('Session ended', result.error, [
@@ -60,6 +61,27 @@ const VenueEventsScreen = () => {
 
     const confirmDelete = (event: VenueEvent) => {
         if (deletingEventId) return;
+        // A repeating night is one event on many dates (KNOWN_ISSUES 90), so the venue chooses
+        // between this date and the whole series (KNOWN_ISSUES 89)
+        if (event.recurring) {
+            Alert.alert(
+                'Delete which?',
+                `"${event.theme_name}" repeats. Cancel only ${formatEventDate(event.event_date)}, or delete every date?`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'This date only',
+                        onPress: () => void deleteEvent(event, event.event_date),
+                    },
+                    {
+                        text: 'Every date',
+                        style: 'destructive',
+                        onPress: () => void deleteEvent(event),
+                    },
+                ]
+            );
+            return;
+        }
         Alert.alert(
             'Delete event?',
             `"${event.theme_name}" on ${formatEventDate(event.event_date)} will be removed. This cannot be undone.`,

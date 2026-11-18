@@ -34,6 +34,12 @@ export type RecurringEvent = {
 	event_date: string | Date | null | undefined;
 	recurring?: boolean | null;
 	recurrence_pattern?: string | null;
+	/**
+	 * Dates of this series the venue has cancelled (clubfindr.bar_event_skips,
+	 * KNOWN_ISSUES 89). A skipped date is not an occurrence anywhere: not in the venue's list,
+	 * not in either matcher, not on /barfindr.
+	 */
+	skip_dates?: readonly string[] | null;
 };
 
 /**
@@ -95,12 +101,23 @@ function seriesOf(
 	return { start, pattern };
 }
 
+/** The dates the venue has cancelled, as `YYYY-MM-DD` (KNOWN_ISSUES 89). */
+function skipsOf(event: RecurringEvent): Set<string> {
+	const skips = new Set<string>();
+	for (const skip of event.skip_dates ?? []) {
+		const date = toIsoDate(skip);
+		if (date) skips.add(date);
+	}
+	return skips;
+}
+
 /** Whether the event happens on `day` (`YYYY-MM-DD`). */
 export function occursOn(event: RecurringEvent, day: string): boolean {
 	const series = seriesOf(event);
 	if (!series || !ISO_DATE.test(day)) return false;
 	const { start, pattern } = series;
 	if (day < start) return false;
+	if (skipsOf(event).has(day)) return false;
 	if (!pattern) return day === start;
 
 	if (pattern === 'monthly') {
@@ -123,8 +140,11 @@ export function occurrencesBetween(
 	const series = seriesOf(event);
 	if (!series || !ISO_DATE.test(from) || !ISO_DATE.test(to) || to < from || limit <= 0) return [];
 	const { start, pattern } = series;
+	const skips = skipsOf(event);
 
-	if (!pattern) return start >= from && start <= to ? [start] : [];
+	if (!pattern) {
+		return start >= from && start <= to && !skips.has(start) ? [start] : [];
+	}
 
 	const dates: string[] = [];
 	if (pattern === 'monthly') {
@@ -141,7 +161,8 @@ export function occurrencesBetween(
 			// simply has no occurrence
 			const landedInSameMonth = Number(candidate.slice(5, 7)) - 1 === month;
 			if (candidate > to) break;
-			if (landedInSameMonth && candidate >= from && candidate >= start) dates.push(candidate);
+			if (landedInSameMonth && candidate >= from && candidate >= start && !skips.has(candidate))
+				dates.push(candidate);
 			month += 1;
 			if (month > 11) {
 				month = 0;
@@ -160,7 +181,7 @@ export function occurrencesBetween(
 		current = addDays(start, Math.ceil(elapsed / interval) * interval);
 	}
 	while (current <= to && dates.length < limit) {
-		dates.push(current);
+		if (!skips.has(current)) dates.push(current);
 		current = addDays(current, interval);
 	}
 	return dates;
@@ -201,7 +222,7 @@ export function expandOccurrences<
 		if (!series) return [];
 		const dates = series.pattern
 			? occurrencesBetween(event, from, to, perSeries)
-			: series.start >= from
+			: series.start >= from && !skipsOf(event).has(series.start)
 				? [series.start]
 				: [];
 		return dates.map((date) => ({

@@ -20,6 +20,7 @@ import {
 } from '$lib/server/genreMatching';
 import type { EventDetails } from '$lib/types/events';
 import { addDays, expandOccurrences } from '$lib/events/recurrence';
+import { withEventSkips } from '$lib/events/skips';
 
 type BarData = {
 	bar_id: string;
@@ -364,7 +365,8 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		const eventsResult = await pool.query(eventsQuery, [barIds, selectedDate]);
 		// Recurring rows are series: their dates from the chosen day on are worked out here
 		// (KNOWN_ISSUES 90), so a weekly night still counts weeks after it started
-		const upcomingEvents = expandOccurrences(eventsResult.rows, {
+		const eventRows = await withEventSkips(pool, eventsResult.rows);
+		const upcomingEvents = expandOccurrences(eventRows, {
 			from: selectedDate,
 			to: addDays(selectedDate, EVENT_WINDOW_DAYS),
 			perSeries: EVENT_DATES_PER_SERIES

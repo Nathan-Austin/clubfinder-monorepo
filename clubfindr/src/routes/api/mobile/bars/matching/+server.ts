@@ -7,6 +7,7 @@ import genreClusters from '$lib/data/genreClusters.json';
 import { normalizeCityName } from '$lib/cityName';
 import { toLocalIsoDate } from '$lib/localDate';
 import { occursOn } from '$lib/events/recurrence';
+import { withEventSkips } from '$lib/events/skips';
 import { listFavouriteGenresForOwners } from '$lib/taste/favouriteArtists';
 import { listDeclaredGenresForOwners, mergeGenresByOwner } from '$lib/taste/venueGenres';
 import { getProfileGenreWeightsForRequest } from '$lib/taste/profileGenres';
@@ -314,7 +315,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const eventsResult = await pool.query(eventsQuery, [barIds, date]);
 		// A recurring row is a series, so the day it falls on is worked out rather than compared
 		// (KNOWN_ISSUES 90): a weekly night used to count on its first date only
-		const eventsOnDate = eventsResult.rows.filter((event) => occursOn(event, date));
+		const eventRows = await withEventSkips(pool, eventsResult.rows);
+		const eventsOnDate = eventRows.filter((event) => occursOn(event, date));
 
 		// Process events and their genres if any exist for the requested date
 		if (eventsOnDate.length > 0) {

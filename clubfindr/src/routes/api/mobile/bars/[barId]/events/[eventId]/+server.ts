@@ -15,7 +15,7 @@ import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { isKnownGenre } from '$lib/taste/genreClassifier';
 import { EventGenresError, validateEventGenres } from '$lib/taste/eventGenres';
-import { RECURRENCE_PATTERNS, normalizeRecurrencePattern } from '$lib/events/recurrence';
+import { RECURRENCE_PATTERNS, normalizeRecurrencePattern, toIsoDate } from '$lib/events/recurrence';
 
 /** The event must belong to this venue; a stranger's id reads as "not found", never as theirs. */
 async function findEvent(eventId: string, barId: string) {
@@ -116,7 +116,7 @@ export const PUT: RequestHandler = async ({ request, params, cookies }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ request, params, cookies }) => {
+export const DELETE: RequestHandler = async ({ request, params, cookies, url }) => {
 	const denied = await denyUnlessBarManager({ params, cookies, request });
 	if (denied) return denied;
 
@@ -125,6 +125,22 @@ export const DELETE: RequestHandler = async ({ request, params, cookies }) => {
 	try {
 		if (!(await findEvent(eventId, barId))) {
 			return json({ error: 'Event not found' }, { status: 404 });
+		}
+
+		// Cancelling one date of a series rather than deleting it (KNOWN_ISSUES 89): ?date=
+		// records a skipped date, which the occurrence function leaves out everywhere
+		const cancelDate = toIsoDate(url.searchParams.get('date'));
+		if (url.searchParams.get('date') && !cancelDate) {
+			return json({ error: 'date must be YYYY-MM-DD' }, { status: 400 });
+		}
+		if (cancelDate) {
+			await query(
+				`INSERT INTO clubfindr.bar_event_skips (event_id, skip_date)
+				 VALUES ($1, $2)
+				 ON CONFLICT (event_id, skip_date) DO NOTHING`,
+				[eventId, cancelDate]
+			);
+			return json({ message: 'That date has been cancelled', cancelledDate: cancelDate });
 		}
 
 		await query(`DELETE FROM clubfindr.bar_events WHERE id = $1 AND bar_id = $2`, [eventId, barId]);

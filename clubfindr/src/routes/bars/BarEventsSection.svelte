@@ -173,9 +173,20 @@
 		}
 	}
 
-	// Delete an event
-	async function deleteEvent(eventId: string) {
-		if (!confirm('Are you sure you want to delete this event?')) {
+	// Delete an event, or cancel one date of a repeating one (KNOWN_ISSUES 89): a repeating
+	// night is one event on many dates (KNOWN_ISSUES 90), so the venue is asked which it means
+	async function deleteEvent(event: EventDetails) {
+		let cancelDate: string | null = null;
+		if (event.recurring) {
+			const thisDateOnly = confirm(
+				`"${event.theme_name}" repeats.\n\nOK cancels only ${event.event_date}.\nCancel then asks whether to delete every date.`
+			);
+			if (thisDateOnly) {
+				cancelDate = event.event_date;
+			} else if (!confirm('Delete every date of this event? This cannot be undone.')) {
+				return;
+			}
+		} else if (!confirm('Are you sure you want to delete this event?')) {
 			return;
 		}
 
@@ -183,9 +194,14 @@
 		error = '';
 
 		try {
-			const response = await fetch(`/api/bars/${barId}/events/${eventId}`, {
-				method: 'DELETE'
-			});
+			const response = await fetch(
+				cancelDate
+					? `/api/bars/${barId}/events/${event.id}?date=${encodeURIComponent(cancelDate)}`
+					: `/api/bars/${barId}/events/${event.id}`,
+				{
+					method: 'DELETE'
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(`Error deleting event: ${response.statusText}`);
@@ -279,7 +295,7 @@
 							<button
 								class="delete-button"
 								aria-label="Delete {event.theme_name}"
-								onclick={() => deleteEvent(event.id)}
+								onclick={() => deleteEvent(event)}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"

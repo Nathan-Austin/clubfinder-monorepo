@@ -1,6 +1,6 @@
 // File: src/routes/api/mobile/bars/[barId]/events/+server.ts
 import { json } from '@sveltejs/kit';
-import { query } from '$lib/db';
+import { pool, query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { isKnownGenre } from '$lib/taste/genreClassifier';
@@ -13,6 +13,7 @@ import {
 	toIsoDate
 } from '$lib/events/recurrence';
 import { toLocalIsoDate } from '$lib/localDate';
+import { withEventSkips } from '$lib/events/skips';
 
 /** How far ahead a venue's own list looks, and how many dates one series may fill it with. */
 const LIST_WINDOW_DAYS = 60;
@@ -34,8 +35,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			[barId]
 		);
 
+		// Dates the venue has cancelled are not occurrences (KNOWN_ISSUES 89)
+		const rows = await withEventSkips(pool, result.rows);
 		const from = toIsoDate(url.searchParams.get('date')) ?? toLocalIsoDate(new Date());
-		const events = expandOccurrences(result.rows, {
+		const events = expandOccurrences(rows, {
 			from,
 			to: addDays(from, LIST_WINDOW_DAYS),
 			perSeries: LIST_PER_SERIES
