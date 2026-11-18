@@ -3,7 +3,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { query } from '$lib/db';
 import { hashPassword } from '$lib/server/passwordUtils';
-import { normalizeCityName } from '$lib/cityName';
 import { generateConfirmationCode } from '$lib/codegen';
 import { sendVerificationEmail } from '$lib/email';
 
@@ -62,9 +61,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Hash password
 		const hashedPassword = await hashPassword(password);
 
-		// Default city for new users
-		const city = 'berlin';
-		const normalizedCityName = normalizeCityName(city);
+		// No default city (owner's decision 2026-11-18): the app proposes the nearest covered
+		// city after sign-in (useCityProposal) and saves it via PUT /api/account/city
+		const normalizedCityName = '';
 
 		// Create new user
 		const newUserResult = await query(

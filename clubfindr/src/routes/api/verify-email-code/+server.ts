@@ -1,6 +1,9 @@
 import { json } from '@sveltejs/kit';
 import { pool, query } from '$lib/db';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
+import { normalizeCityName } from '$lib/cityName';
+import { countFavouriteArtists } from '$lib/taste/favouriteArtists';
+import { artistOnboardingStatus } from '$lib/taste/onboarding';
 import {
 	SAY,
 	confirmationCode as codeCheck,
@@ -47,13 +50,49 @@ export async function POST({ request }) {
 		}
 
 		// Clear the confirmation code and mark email as confirmed
-		await query(
+		const confirmed = await query(
 			`UPDATE clubfindr.users SET confirmation_code = NULL, confirmed = TRUE, confirmation_attempts = 0
-			 WHERE LOWER(general_email) = LOWER($1)`,
+			 WHERE LOWER(general_email) = LOWER($1)
+			 RETURNING id, name, city, is_first_time, onboarding_complete`,
 			[email]
 		);
 
-		return json({ success: true, message: 'Email verified successfully!' });
+		// Signed in straight away (owner's request, 2026-11-18): the code just proved the
+		// mailbox, which is the same proof a password login gives a moment later. The session
+		// is the same user_sessions row /api/mobile/login writes, and the response carries the
+		// same token and user shape, so the app lands in the artist picker without a second
+		// login. Older app builds ignore the extra fields and show "You can now log in".
+		const user = confirmed.rows[0];
+		let session: Record<string, unknown> = {};
+		if (user) {
+			const sessionId = crypto.randomUUID();
+			const normalizedCityName = user.city ? normalizeCityName(user.city) : '';
+			await query(
+				`INSERT INTO clubfindr.user_sessions (session_id, user_id, user_city, last_accessed)
+				 VALUES ($1, $2, $3, $4)
+				 ON CONFLICT (user_id) DO UPDATE SET
+				     session_id = EXCLUDED.session_id,
+				     user_city = EXCLUDED.user_city,
+				     last_accessed = EXCLUDED.last_accessed,
+				     genres = NULL,
+				     created_at = CURRENT_TIMESTAMP`,
+				[sessionId, user.id, normalizedCityName, new Date().toISOString()]
+			);
+			session = {
+				token: sessionId,
+				user: {
+					id: user.id,
+					email,
+					name: user.name,
+					city: normalizedCityName,
+					isFirstTimeUser: user.is_first_time,
+					onboardingComplete: user.onboarding_complete,
+					artistOnboarding: artistOnboardingStatus(await countFavouriteArtists(pool, user.id))
+				}
+			};
+		}
+
+		return json({ success: true, message: 'Email verified successfully!', ...session });
 	} catch (error) {
 		console.error('Error verifying email:', error);
 		return json({ success: false, message: 'An unexpected error occurred' }, { status: 500 });

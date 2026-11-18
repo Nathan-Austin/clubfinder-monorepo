@@ -36,6 +36,9 @@ export const verifyEmailWithCode = async (email: string, confirmationCode: strin
             return {
                 success: response.data.success,
                 message: response.data.message,
+                // Since 2026-11-19 the server also answers with a session (token + user, the
+                // same shape as a login), so a verified user goes straight in. An older server
+                // sends neither, and the screen falls back to "You can now log in".
                 data: response.data
             };
         } else {

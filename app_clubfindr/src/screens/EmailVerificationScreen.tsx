@@ -15,6 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation';
 import { RouteProp } from '@react-navigation/native';
 import * as emailVerificationService from '../services/mobileEmailVerificationService';
+import { useAuth } from '../contexts/AuthContext';
 import { log } from '../utils/logger';
 import { colors } from '../theme';
 
@@ -25,6 +26,7 @@ type EmailVerificationScreenProps = {
 
 const EmailVerificationScreen = ({ navigation, route }: EmailVerificationScreenProps) => {
     const { email } = route.params;
+    const { loginWithCredentials } = useAuth();
     const [confirmationCode, setConfirmationCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -66,6 +68,28 @@ const EmailVerificationScreen = ({ navigation, route }: EmailVerificationScreenP
             log.debug('Verification response:', response);
 
             if (response.success) {
+                // Straight in after verifying (owner's request, 2026-11-18): the server answers
+                // with a session, so the navigator switches to the signed-in stack (the artist
+                // picker first) without a second login
+                const { token, user } = response.data as {
+                    token?: string;
+                    user?: {
+                        id: string;
+                        email: string;
+                        name?: string;
+                        city?: string;
+                        isFirstTimeUser?: boolean;
+                        onboardingComplete?: boolean;
+                    };
+                };
+                if (token && user?.id) {
+                    await loginWithCredentials(
+                        { ...user, isFirstTimeUser: user.isFirstTimeUser ?? true },
+                        token
+                    );
+                    return;
+                }
+                // An older server verifies without a session: log in by hand as before
                 Alert.alert(
                     'Email Verified',
                     'Your email has been successfully verified! You can now log in.',
