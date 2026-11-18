@@ -72,19 +72,22 @@ tab (DELETE `/api/mobile/bars/:barId`, in versionCode 12, needs its device run).
 `tests/venue-delete.spec.ts`. The test venue "New test bar" is removed on the server by the owner
 (or now from the app/dashboard once deployed).
 
-**Sign-up: straight in after verifying** (owner's request, 2026-11-18): after the e-mail code the
-app says "You can now log in" and goes back to the login screen. The verify step should return a
-session, so the user lands in the artist picker without logging in again.
+**Sign-up: straight in after verifying** (owner's request, 2026-11-18; **done in the repo
+2026-11-19**): `/api/verify-email-code` answers a successful verification with a session (the
+same token/user shape as `/api/mobile/login`) and the app signs in with it, landing in the artist
+picker with no second login; an older server falls back to "You can now log in". Mobile sign-up
+also lost its Berlin default (`tests/signup-verify-session.spec.ts`). Needs the web deploy before
+the versionCode 12 device run.
 
-**App** (needs a new build, versionCode 12):
-- **QR sharing fails for every code** (FAIL): `qrShareFilePath` calls `.replace` on the code's
-  `id`, which the server sends as a number; the app types it as a string. Type it as a number
-  (or `String()` it), and a unit test with a numeric id. Then retest Cancel and Android's back
-  during "Preparing…", which were blocked
-- Bar Registration refuses international phone numbers (a +49 mobile): the app's check is
-  US-shaped, max 12 digits; use the server's rule (7-15 digits, `barValidators.isValidTelephone`)
-- The network banner never hides after coming back online (`NetworkStatus.tsx`, stale
-  `isVisible` in a listener registered once); since January
+**App** (**all fixed in the repo 2026-11-19**; needs a new build, versionCode 12, checklist in
+[`app_clubfindr/DEVICE_CHECKLIST.md`](app_clubfindr/DEVICE_CHECKLIST.md)):
+- QR sharing failed for every code: the id is a number from the server; typed as one now and
+  `qrShareFilePath` takes both (unit test with a numeric id). Cancel and Android's back during
+  "Preparing…" go back on the device checklist
+- Bar Registration refused international phone numbers: `utils/telephone` now mirrors the
+  server's rule (7-15 digits, formatting ignored)
+- The network banner never hid after coming back online: visibility is derived from state now
+  instead of being decided in the once-registered listener's closure (component test)
 
 ## Next server round
 
