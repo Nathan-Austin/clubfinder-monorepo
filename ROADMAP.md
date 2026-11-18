@@ -33,10 +33,17 @@ city — date + city + taste profile → `/clubs`. `/` keeps location guessing f
 `tests/users-home-city.spec.ts` covers the ROADMAP's Amsterdam journey.
 
 Also on the web, from the same run:
-- `/update-info`'s city picker is white on white: `CityPicker.svelte` uses colours the `@theme`
-  in `src/app.css` does not define (gray-700/600, blue-500/600, green-600, red-500)
-- `/clubs` shows "Unknown City" when a city has no events that day (the empty and error returns
-  in `clubs/+page.server.ts` drop `city`); name the city and say there are no events
+- **Fixed in the repo 2026-11-19.** `/update-info`'s city picker was white on white: the `@theme`
+  in `src/app.css` reset the palette and defined only eight numbered colours, so forty-odd
+  utilities across the site generated no CSS. Every used colour is now defined at the Tailwind 3
+  defaults, and `src/lib/themeTokens.test.ts` fails when a used colour has no token
+  (the semantic-token move stays KNOWN_ISSUES 7)
+- **Fixed in the repo 2026-11-19.** `/clubs` said "Unknown City" when a city had no events that
+  day: the empty and error returns carry `city` now, and the page says "There are no events in
+  <city> on <date> yet", distinct from "events, but none match your taste"
+- **Also 2026-11-19 (owner's decision):** new accounts no longer default to Berlin — `users.city`
+  starts empty and `/users-home` proposes the nearest covered city on the first visit; the logins
+  tolerate an account without a city
 - Plain "House" (and "Rock", "Hip Hop") are not in the genre suggestions, app or web, though the
   server accepts them: part of **One genre list** below (KNOWN_ISSUES 91)
 - A venue password reset mail lists the personal account's link first; started from the venue
