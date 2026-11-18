@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_bar_events_live_music
 --
 
 CREATE TABLE IF NOT EXISTS clubfindr.bar_event_skips (
-  event_id uuid NOT NULL REFERENCES clubfindr.bar_events (id) ON DELETE CASCADE,
+  event_id uuid NOT NULL,
   skip_date date NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   PRIMARY KEY (event_id, skip_date)
@@ -1155,6 +1155,15 @@ ALTER TABLE ONLY clubfindr.user_favourite_artists
 
 ALTER TABLE ONLY clubfindr.user_sessions
     ADD CONSTRAINT user_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES clubfindr.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bar_event_skips bar_event_skips_event_id_fkey; Type: FK CONSTRAINT; Schema: clubfindr; Owner: -
+-- (migrations/20261119_bar_event_skips.sql; here, after bar_events_pkey exists)
+--
+
+ALTER TABLE ONLY clubfindr.bar_event_skips
+    ADD CONSTRAINT bar_event_skips_event_id_fkey FOREIGN KEY (event_id) REFERENCES clubfindr.bar_events(id) ON DELETE CASCADE;
 
 
 --
