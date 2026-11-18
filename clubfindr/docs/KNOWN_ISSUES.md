@@ -992,10 +992,12 @@ here that needs the server is collected in ROADMAP, "Next server round".
 89. **Deleting a recurring event deletes the whole series.** A recurring venue event is one
     `bar_events` row (a start `event_date`, `recurring` and a free-text `recurrence_pattern`), with
     nowhere to record a skipped date, so the app's delete (82) and the web's both remove every
-    occurrence. The app's confirmation says "This cannot be undone" and nothing more, left so on the
-    owner's instruction (2026-11-17). To fix in a later round (ROADMAP section 5): cancel one date
-    (a table of skipped dates, read by the listing and both matchers) next to deleting the series,
-    and say which one the venue is about to do. A server change, with its e2e run.
+    occurrence. _Fixed 2026-11-19._ `clubfindr.bar_event_skips` holds the cancelled dates,
+    `$lib/events/recurrence` leaves them out and every reader attaches them before expanding, so
+    the night goes from the venue's list, from both matchers and from `/barfindr` while the series
+    goes on. `DELETE …?date=YYYY-MM-DD` cancels one date (idempotent; a malformed date is refused
+    rather than deleting the series), and both the app and the dashboard ask "this date only" or
+    "every date" for a repeating night. `tests/cancel-one-date.spec.ts`.
 90. **Recurring venue events only exist on their first date.** Found 2026-11-17. A recurring event
     is one `bar_events` row (a start `event_date`, `recurring`, a free-text `recurrence_pattern`),
     and nothing on the server expands it into dates: `POST /api/mobile/bars/matching` selects

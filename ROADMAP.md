@@ -97,10 +97,12 @@ Each is a server change with its e2e run under the lease.
 1. [x] **Recurring events as dates** (KNOWN_ISSUES 90), done 2026-11-19: `$lib/events/recurrence`
    expands a series for the venue lists, both matchers and `/barfindr`, and the four patterns are
    validated on write. The app's Events tab lists the dates (`occurrence_id`). Left: **cancel one
-   date** rather than the series (89)
-2. **Live music as an event filter, not a genre** (owner's decision, 2026-11-17): an event
-   attribute set in the app's and the web's form, a customer filter with the genres underneath,
-   existing "Live Music" tags migrated. Details in section 5
+   date** rather than the series (89), also done 2026-11-19
+2. [x] **Live music as an event filter, not a genre** (owner's decision 2026-11-17), done
+   2026-11-19: `bar_events.live_music` with a switch in both event forms and a badge in both
+   lists, `liveMusic: true` on `POST /api/mobile/bars/matching` and `?live=1` on `/barfindr`
+   (the app's Tilki tab has the toggle), and migration 20261119 moves the old
+   "live music"/"acoustic" tags out of the genres into the attribute
 3. [x] **One genre list** (KNOWN_ISSUES 91), done 2026-11-19: `pnpm convert-genres` writes a flat
    `genre-suggestions.json` from the cluster tree and the umbrella terms to both the web's
    `static/lib` and the app's `constants`; every picker reads it (including the dashboard event
@@ -590,16 +592,15 @@ top artists or play counts on the web).
       of `/barfindr` and the venue's own list. One occurrence function in `$lib` for the venue
       list, both matchers and `/barfindr`; validate `recurrence_pattern` against daily, weekly,
       biweekly and monthly; the app's Events tab then lists occurrences. With its e2e run
-- [ ] **Next server round, decided 2026-11-17: "live music" is a filter, not a genre.** Today a
-      venue can only say it as a free-text event genre ("Live Music", "Acoustic"), which the
-      matcher cannot place. Instead: an event attribute (live music or not; maybe a small set of
-      formats such as live, DJ, karaoke) next to its genres, set with a switch in the app's and the
-      web's event form; a filter on the customer side, live music first, with the genres
-      underneath ("live music, and of that, jazz"); existing "live music" tags moved into the
-      attribute by a migration. Goes with the strict event genres (KNOWN_ISSUES 90's round)
-- [ ] Then cancel one date of a recurring venue event instead of deleting the series (KNOWN_ISSUES
-      89): a skipped-dates table read by the occurrence function, and a choice in the app's and
-      the web's delete
+- [x] **Done 2026-11-19: "live music" is a filter, not a genre** (decided 2026-11-17).
+      `bar_events.live_music` is set with a switch in both event forms and shown as a badge in
+      both lists; customers filter with `liveMusic: true` on `POST /api/mobile/bars/matching`
+      (the app's Tilki tab) and `?live=1` on `/barfindr`, the genres still deciding the order;
+      migration 20261119 moves the old "live music"/"acoustic" tags out of the genres into the
+      attribute. A small set of formats (karaoke, DJ) is still open if it is ever wanted
+- [x] Done 2026-11-19: cancel one date of a recurring venue event instead of deleting the series
+      (KNOWN_ISSUES 89). `bar_event_skips` is read by the occurrence function, `DELETE …?date=`
+      cancels one night, and the app and the dashboard both ask "this date only" or "every date"
 - [ ] Loading states and network error recovery (Home and Tilki have an error with "Try again" since 2026-11-16, KNOWN_ISSUES 72)
 - [ ] Finish the QR scanner flow to open venue details
 - [ ] Configure Sentry for production with source maps

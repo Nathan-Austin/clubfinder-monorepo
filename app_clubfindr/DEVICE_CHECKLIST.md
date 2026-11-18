@@ -93,7 +93,20 @@ Use a fresh e-mail address.
 - [ ] Tilki/Discover on a date the weekly night falls on: the venue shows up with that night's
       genres; on the day after, it does not.
 
-## 9. Carried over, still untested from v11
+## 9. Live music, and cancelling one date
+- [ ] Event form: the **Live music** switch ("A band or a live act, not only a DJ"). Save with it
+      on: the Events list shows a green **Live music** badge, and editing keeps it on.
+- [ ] "Live Music" as a *genre* is still refused ("Not genres Clubfindr knows: live music") —
+      that is what the switch is for.
+- [ ] Tilki → Bars: the **Live music only** chip. On: only venues with a live night that day;
+      off: all of them again. The order still follows your taste.
+- [ ] Web `/barfindr`: the same "Live music only" filter under the date.
+- [ ] Events tab, a repeating night: delete asks **"This date only"** or **"Every date"**.
+      This date only → that card goes, the other dates stay, and the venue does not show up for
+      that night in Tilki. Every date → the whole series goes.
+- [ ] A one-off event still deletes with the plain "Delete event?" question.
+
+## 10. Carried over, still untested from v11
 - [ ] The four venue tabs on a **small phone**: all labels readable.
 - [ ] Edit an older event that has "Live Music": the chip is still there in the list, but the
       save now refuses it ("Not genres Clubfindr knows: live music") — expected until live music
