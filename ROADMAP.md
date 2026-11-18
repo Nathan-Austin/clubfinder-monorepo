@@ -14,6 +14,64 @@ tabs, and the app has no lint warnings. App-only, so no deploy is needed. The ow
 the last run left untested (a personal account with no venue, the venue password reset, a non-Tilki
 QR code, the web city change, and the "changed in passing" items).
 
+## From the 2026-11-18 device run (in progress)
+
+The owner is running the checklist on an emulator (dev build of versionCode 11) and a phone;
+results, causes and file references are in
+[`app_clubfindr/DEVICE_CHECKLIST.md`](app_clubfindr/DEVICE_CHECKLIST.md) ("Found during the
+2026-11-18 run" and the FAIL notes).
+
+**Web: `/users-home` is where a logged-in user searches, from their saved city** (owner's
+decision, 2026-11-18). Fixes the city FAIL (section 10 of the checklist): today `/users-home` and
+`/` guess the city from the browser's location and never read `users.city`, and a search posts
+the guess to `/storestate`, which overwrites the `city` cookie, so a city saved on `/update-info`
+lasts until the next search.
+- "Current City" on `/users-home` starts from the account's city (`users.city`); location only
+  when the account has none, and then offered as "save this as your city?"
+- "Change City" saves to the account through `PUT /api/account/city`, as `/update-info` does: one
+  city per user across `/users-home`, `/clubs`, `/barfindr` and the app
+- A clear search action there: date + city + taste profile → `/clubs`, without `/storestate`
+  writing a city other than the one shown
+- `/` keeps location guessing for visitors who are not logged in
+- e2e: save Amsterdam, search from `/users-home`, `/clubs` is Amsterdam; reload, still Amsterdam
+
+Also on the web, from the same run:
+- `/update-info`'s city picker is white on white: `CityPicker.svelte` uses colours the `@theme`
+  in `src/app.css` does not define (gray-700/600, blue-500/600, green-600, red-500)
+- `/clubs` shows "Unknown City" when a city has no events that day (the empty and error returns
+  in `clubs/+page.server.ts` drop `city`); name the city and say there are no events
+- Plain "House" (and "Rock", "Hip Hop") are not in the genre suggestions, app or web, though the
+  server accepts them: part of **One genre list** below (KNOWN_ISSUES 91)
+- A venue password reset mail lists the personal account's link first; started from the venue
+  login (`?from=bars`), put the venue link first or alone
+
+**Data: no club events at all** (found 2026-11-18). Bars come back in the app, clubs never do,
+for any taste or date, and `/clubs` on the web shows "Unknown City": the event scrape has been
+disabled since Aug 2025 (the event fetcher is broken; `deploy/cron/clubfinder.crontab`), so
+production holds no upcoming scraped events. Before the closed test grows and before production
+review, testers and Google's reviewer will find the Clubs side empty. Fix the fetcher
+(section 6), re-enable the cron, or decide what the app shows meanwhile.
+
+**Venue accounts cannot be deleted** (found 2026-11-18): nothing in the app or on the web removes a
+venue (customers have Delete Account). Google Play's account-deletion policy covers every account
+an app lets people create, venues included, so add venue deletion (in the app and on the web)
+before production review. Meanwhile the test venue "New test bar" (registered in the app during
+this run, fake phone number) has to be removed on the server.
+
+**Sign-up: straight in after verifying** (owner's request, 2026-11-18): after the e-mail code the
+app says "You can now log in" and goes back to the login screen. The verify step should return a
+session, so the user lands in the artist picker without logging in again.
+
+**App** (needs a new build, versionCode 12):
+- **QR sharing fails for every code** (FAIL): `qrShareFilePath` calls `.replace` on the code's
+  `id`, which the server sends as a number; the app types it as a string. Type it as a number
+  (or `String()` it), and a unit test with a numeric id. Then retest Cancel and Android's back
+  during "Preparing…", which were blocked
+- Bar Registration refuses international phone numbers (a +49 mobile): the app's check is
+  US-shaped, max 12 digits; use the server's rule (7-15 digits, `barValidators.isValidTelephone`)
+- The network banner never hides after coming back online (`NetworkStatus.tsx`, stale
+  `isVisible` in a listener registered once); since January
+
 ## Next server round
 
 Found or decided during the 2026-11-17 app round and left for the server, in a suggested order.
