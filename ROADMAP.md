@@ -45,12 +45,26 @@ Also on the web, from the same run:
 - A venue password reset mail lists the personal account's link first; started from the venue
   login (`?from=bars`), put the venue link first or alone
 
-**Data: no club events at all** (found 2026-11-18). Bars come back in the app, clubs never do,
-for any taste or date, and `/clubs` on the web shows "Unknown City": the event scrape has been
-disabled since Aug 2025 (the event fetcher is broken; `deploy/cron/clubfinder.crontab`), so
-production holds no upcoming scraped events. Before the closed test grows and before production
-review, testers and Google's reviewer will find the Clubs side empty. Fix the fetcher
-(section 6), re-enable the cron, or decide what the app shows meanwhile.
+**Data: no club events at all** (found 2026-11-18; **fixed the same day** in `1c98caa`). The
+event scrape had been disabled since Aug 2025, so the app's Clubs side and `/clubs` were empty.
+The server instance fixed the fetcher and re-enabled the cron at 02:00; check Tilki → Clubs after
+the first run.
+
+**Data: the scrape is back (`1c98caa`, daily at 02:00), but the Spotify step checks the wrong
+artists** (KNOWN_ISSUES 92). `spotipy_search.py` `get_artists_query()` takes a city's first 1,000
+artists by id, not the ones playing upcoming events (London: 11 of 331 unmatched upcoming artists
+checked). For the oak/elm agents, no API access needed:
+- Select upcoming artists without a `spotify_uri` first (`event_artists` / `events`,
+  `event_date >= today`, soonest first), then upcoming artists without genres (check how
+  `update_event_genres` and the loop around line 683 fill them), then the rest within the cap
+- Keep a per-run cap for the rate limit (`spotify_rate_limiter`, `has_been_called_recently`)
+  and log how many of each group were checked
+- Unit tests on the selection with fake rows or a fake cursor: no live Spotify or database calls
+  (KNOWN_ISSUES 21), never open `data_collection/.env`. `data_collection` has no tests yet: add a
+  folder, and run it in `data-collection-ci.yml` if cheap. Pinned black/isort/flake8/bandit,
+  Python 3.10 and 3.11. Leave `old_spotipy.py` and `simple_spotipy.py` (not run)
+- The summary says what the server instance checks after the next 02:00 run: upcoming artists
+  checked, and how many are still unmatched
 
 **Venue accounts cannot be deleted** (found 2026-11-18): nothing in the app or on the web removes a
 venue (customers have Delete Account). Google Play's account-deletion policy covers every account

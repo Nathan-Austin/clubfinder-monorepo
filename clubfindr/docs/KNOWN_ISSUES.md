@@ -1016,3 +1016,18 @@ here that needs the server is collected in ROADMAP, "Next server round".
     `clubfindr/src/lib/data/unified-genres.json` (953 names), differs from both. Event genres are
     not checked at all (free text). For the next server round: one list the suggestions and the
     check share, a test that every suggestion is accepted, and strict event genres.
+
+## Found during the device run (18 November 2026)
+
+92. **The Spotify step checks arbitrary artists, not the ones playing upcoming events.** Found
+    2026-11-18 by the server instance, after the daily scrape was restored (`1c98caa`).
+    `data_collection/spotipy_search.py` `get_artists_query()` selects
+    `primary_city = %s ORDER BY id LIMIT 1000`, so in a big city each run spends its lookups on old
+    artists: London had about 9,600 artists stored and 331 upcoming artists without a Spotify
+    match, and only 11 of those were checked that day. The Spotify API itself works (searches
+    match, about half the artists have genres). Upcoming events whose artists stay unmatched get
+    no genres, so they match nobody's taste. Fix (ROADMAP, "From the 2026-11-18 device run"):
+    upcoming artists without a `spotify_uri` first, soonest event first, then upcoming artists
+    without genres, then the rest within the per-run cap, with counts logged; unit tests with fake
+    rows, no live API or database calls (21). SoundCloud's step takes every artist with a link and
+    is not affected.
