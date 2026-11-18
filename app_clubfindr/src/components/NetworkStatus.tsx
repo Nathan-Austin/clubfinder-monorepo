@@ -16,7 +16,14 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({ showOfflineOnly = true })
     const translateY = useState(new Animated.Value(-50))[0];
 
     useEffect(() => {
-        // Subscribe to network state changes
+        // The listener only records the state; what to show is derived below. It used to
+        // decide visibility itself, but it is registered once and its closure kept the first
+        // render's isVisible for ever, so the banner never hid again after coming back online
+        // (DEVICE_CHECKLIST 2026-11-18; the logic dated from January).
+        const handleNetworkChange = (state: NetInfoState) => {
+            setIsConnected(state.isConnected);
+            setNetworkType(state.type);
+        };
         const unsubscribe = NetInfo.addEventListener(handleNetworkChange);
 
         // Initial check
@@ -27,21 +34,16 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({ showOfflineOnly = true })
         };
     }, []);
 
-    const handleNetworkChange = (state: NetInfoState) => {
-        setIsConnected(state.isConnected);
-        setNetworkType(state.type);
-
-        // If connection status changed, show banner
-        const shouldBeVisible = showOfflineOnly ? !state.isConnected : true;
-        if (shouldBeVisible !== isVisible) {
-            setIsVisible(shouldBeVisible);
-            Animated.timing(translateY, {
-                toValue: shouldBeVisible ? 0 : -50,
-                duration: 300,
-                useNativeDriver: true
-            }).start();
-        }
-    };
+    useEffect(() => {
+        // Only a definite "offline" shows the banner; null means "not known yet"
+        const shouldBeVisible = showOfflineOnly ? isConnected === false : true;
+        setIsVisible(shouldBeVisible);
+        Animated.timing(translateY, {
+            toValue: shouldBeVisible ? 0 : -50,
+            duration: 300,
+            useNativeDriver: true
+        }).start();
+    }, [isConnected, showOfflineOnly, translateY]);
 
     // Don't render anything if not visible
     if (!isVisible) {

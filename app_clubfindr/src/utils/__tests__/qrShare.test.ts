@@ -70,6 +70,12 @@ describe('qrShareFilePath', () => {
     expect(qrShareFilePath('file:///cache/', '../../x')).toBe('file:///cache/qrcode-______x.png');
   });
 
+  // The server sends the id as a number (bar_qr_codes.id is a serial); calling .replace on it
+  // made every share fail (DEVICE_CHECKLIST 2026-11-18, section 8)
+  it('takes the numeric id the server actually sends', () => {
+    expect(qrShareFilePath('file:///cache/', 7)).toBe('file:///cache/qrcode-7.png');
+  });
+
   it('refuses a missing cache directory', () => {
     expect(() => qrShareFilePath(null, 'abc')).toThrow('No cache directory');
   });

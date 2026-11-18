@@ -57,12 +57,14 @@ export function captureQrPng(ref: QrSvgRef | null | undefined): Promise<string> 
   });
 }
 
-/** The file the share sheet gets: in the app's cache, so no storage permission is involved. */
-export function qrShareFilePath(cacheDirectory: string | null, qrId: string): string {
+/** The file the share sheet gets: in the app's cache, so no storage permission is involved.
+ * The id is a number from the server (bar_qr_codes.id is a serial): typing it as a string made
+ * every share throw `qrId.replace is not a function` (DEVICE_CHECKLIST 2026-11-18, section 8). */
+export function qrShareFilePath(cacheDirectory: string | null, qrId: string | number): string {
   if (!cacheDirectory) {
     throw new Error('No cache directory to write the QR code to');
   }
-  const safeId = qrId.replace(/[^A-Za-z0-9_-]/g, '_');
+  const safeId = String(qrId).replace(/[^A-Za-z0-9_-]/g, '_');
   const dir = cacheDirectory.endsWith('/') ? cacheDirectory : `${cacheDirectory}/`;
   return `${dir}qrcode-${safeId}.png`;
 }

@@ -23,7 +23,8 @@ import { log } from '../utils/logger';
 import { colors } from '../theme';
 
 type QRCodeData = {
-    id: string;
+    // A serial from the server, not a uuid string (DEVICE_CHECKLIST 2026-11-18, section 8)
+    id: number;
     title: string;
     type: 'entrance' | 'table' | 'event' | 'promotion';
     qrValue: string;

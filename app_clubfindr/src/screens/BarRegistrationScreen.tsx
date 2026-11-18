@@ -18,6 +18,7 @@ import { RootStackParamList } from '../navigation';
 import { Picker } from '@react-native-picker/picker';
 import axiosClient from '../api/axiosClient';
 import { LIVE_CITIES } from '../constants/cities';
+import { isValidTelephone } from '../utils/telephone';
 import { colors } from '../theme';
 
 type BarRegistrationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BarRegistration'>;
@@ -103,10 +104,10 @@ const BarRegistrationScreen = () => {
     };
 
     const validatePhone = (phone: string): boolean => {
-        // Allow +, spaces, and numbers
-        const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
-        const isValid = phoneRegex.test(phone);
-        setPhoneError(isValid ? '' : 'Please enter a valid phone number');
+        // The server's rule (utils/telephone): 7-15 digits, formatting ignored. The old
+        // US-shaped pattern refused international numbers (DEVICE_CHECKLIST 2026-11-18)
+        const isValid = isValidTelephone(phone);
+        setPhoneError(isValid ? '' : 'Please enter a valid phone number (7 to 15 digits)');
         return isValid;
     };
 
