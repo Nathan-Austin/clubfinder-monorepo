@@ -70,20 +70,20 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				// Create new user
 				try {
 					const hashedPassword = await hashPassword(password);
-					const city = 'Berlin'; // Default city
-
+					// No default city (owner's decision 2026-11-18): a new account starts without
+					// one, and /users-home proposes the nearest covered city on the first visit
 					const newUserResult = await query(
 						`INSERT INTO clubfindr.users 
 						(general_email, password_hash, name, city)
-						VALUES ($1, $2, $3, $4)
+						VALUES ($1, $2, $3, '')
 						RETURNING id`,
-						[email, hashedPassword, fullName, city]
+						[email, hashedPassword, fullName]
 					);
 
 					user_id = newUserResult.rows[0].id;
 					newAccount = true;
 					userName = fullName;
-					normalizedCityName = normalizeCityName(city);
+					normalizedCityName = '';
 				} catch (error) {
 					// Provide a better error message
 					return new Response(
@@ -146,7 +146,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 				user_id = result.rows[0].id;
 				userName = result.rows[0].name;
-				normalizedCityName = normalizeCityName(result.rows[0].city);
+				// An account may have no city yet; /users-home proposes one
+				normalizedCityName = result.rows[0].city ? normalizeCityName(result.rows[0].city) : '';
 			}
 		} else if (provider === 'google') {
 			// Existing Google login logic
@@ -187,15 +188,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			);
 
 			if (!result.rows || result.rows.length === 0) {
-				const city = 'Berlin';
+				// No default city (owner's decision 2026-11-18); /users-home proposes one
 				const newResult = await query(
-					'INSERT INTO clubfindr.users (google_id, general_email, city, name) VALUES ($1, $2, $3, $4) RETURNING id',
-					[googleId, googleEmail, city, googleName || 'Google User']
+					"INSERT INTO clubfindr.users (google_id, general_email, city, name) VALUES ($1, $2, '', $3) RETURNING id",
+					[googleId, googleEmail, googleName || 'Google User']
 				);
 				user_id = newResult.rows[0].id;
 				newAccount = true;
 				userName = googleName || 'Google User';
-				normalizedCityName = normalizeCityName(city);
+				normalizedCityName = '';
 			} else {
 				const user = result.rows[0];
 				await query('UPDATE clubfindr.users SET google_id = $1 WHERE general_email = $2', [
@@ -204,7 +205,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				]);
 				user_id = user.id;
 				userName = user.name;
-				normalizedCityName = normalizeCityName(user.city);
+				normalizedCityName = user.city ? normalizeCityName(user.city) : '';
 			}
 		} else if (provider === 'facebook') {
 			// Existing Facebook login logic preserved exactly as is
@@ -234,15 +235,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			);
 
 			if (!result.rows || result.rows.length === 0) {
-				const city = 'Berlin';
+				// No default city (owner's decision 2026-11-18); /users-home proposes one
 				const newResult = await query(
-					'INSERT INTO clubfindr.users (facebook_id, general_email, city, name) VALUES ($1, $2, $3, $4) RETURNING id',
-					[facebookId, facebookEmail, city, facebookName || 'Facebook User']
+					"INSERT INTO clubfindr.users (facebook_id, general_email, city, name) VALUES ($1, $2, '', $3) RETURNING id",
+					[facebookId, facebookEmail, facebookName || 'Facebook User']
 				);
 				user_id = newResult.rows[0].id;
 				newAccount = true;
 				userName = facebookName || 'Facebook User';
-				normalizedCityName = normalizeCityName(city);
+				normalizedCityName = '';
 			} else {
 				const user = result.rows[0];
 				await query('UPDATE clubfindr.users SET facebook_id = $1 WHERE general_email = $2', [
@@ -251,7 +252,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				]);
 				user_id = user.id;
 				userName = user.name;
-				normalizedCityName = normalizeCityName(user.city);
+				normalizedCityName = user.city ? normalizeCityName(user.city) : '';
 			}
 		} else {
 			return new Response(JSON.stringify({ success: false, message: 'Invalid provider' }), {

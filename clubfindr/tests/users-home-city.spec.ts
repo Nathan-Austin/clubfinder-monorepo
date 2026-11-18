@@ -70,9 +70,9 @@ test('an account without a city picks one, and Change City saves to the account'
 }) => {
 	const email = unique();
 	try {
+		// A new account starts without a city (owner's decision 2026-11-18); the page is where
+		// one is proposed and chosen
 		await signUp(page, email);
-		// Like an account from before the city was saved at sign-up
-		await devQuery(`UPDATE clubfindr.users SET city = '' WHERE general_email = $1`, [email]);
 
 		await page.goto('/users-home');
 		await acceptCookies(page);

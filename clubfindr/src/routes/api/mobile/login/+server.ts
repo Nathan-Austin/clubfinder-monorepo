@@ -78,7 +78,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		const user_id = result.rows[0].id;
 		const userName = result.rows[0].name;
 		const city = result.rows[0].city;
-		const normalizedCityName = normalizeCityName(city);
+		// An account may have no city yet (web signups since 2026-11-18 start without one);
+		// the app proposes the nearest covered city and saves it via PUT /api/account/city
+		const normalizedCityName = city ? normalizeCityName(city) : '';
 		const sessionId = uuidv4();
 		const isFirstTimeUser = result.rows[0].is_first_time;
 		const onboardingComplete = result.rows[0].onboarding_complete;

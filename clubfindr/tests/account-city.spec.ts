@@ -42,7 +42,8 @@ test('the app reads and changes the account city with its token', async ({
 		const before = await api.get('/api/account/city', auth);
 		expect(before.status()).toBe(200);
 		const listed = await before.json();
-		expect(listed.city).toBe('berlin');
+		// A new account starts without a city (owner's decision 2026-11-18)
+		expect(listed.city).toBeNull();
 		expect(listed.cities.map((c: { slug: string }) => c.slug)).toContain('stockholm');
 
 		const changed = await api.put('/api/account/city', { ...auth, data: { city: 'London' } });
@@ -87,7 +88,7 @@ test('only covered cities are accepted, and only for a logged-in user', async ({
 			'SELECT city FROM clubfindr.users WHERE general_email = $1',
 			[email]
 		);
-		expect(user.city.toLowerCase()).toBe('berlin');
+		expect(user.city, 'refused PUTs must not set a city').toBe('');
 	} finally {
 		await removeUser(email);
 		await api.dispose();
@@ -106,7 +107,7 @@ test('/update-info changes the city, and the city cookie /clubs reads follows wi
 
 		await page.goto('/update-info');
 		const picker = page.getByTestId('city-picker');
-		await expect(picker.locator('select')).toHaveValue('berlin');
+		await expect(picker.locator('select')).toHaveValue('');
 		await picker.locator('select').selectOption('paris');
 		await picker.getByRole('button', { name: 'Save city' }).click();
 		await expect(picker.getByRole('status')).toContainText('Your city is now Paris');
