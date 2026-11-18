@@ -59,11 +59,14 @@ with the cooldown applied before the cap and per-tier counts logged; unit tests 
 After the next 02:00 run the server instance checks: the printed "Artist selection for <city>"
 summary (tier counts), and how many upcoming artists per city are still without a `spotify_uri`.
 
-**Venue accounts cannot be deleted** (found 2026-11-18): nothing in the app or on the web removes a
-venue (customers have Delete Account). Google Play's account-deletion policy covers every account
-an app lets people create, venues included, so add venue deletion (in the app and on the web)
-before production review. Meanwhile the test venue "New test bar" (registered in the app during
-this run, fake phone number) has to be removed on the server.
+**Venue accounts cannot be deleted** (found 2026-11-18; **fixed in the repo the same day**):
+Google Play's account-deletion policy covers venue accounts too. `$lib/server/deleteVenue` hard
+deletes the venue and everything it owns in one transaction (sessions included; the registering
+personal account stays), behind `denyUnlessBarManager`: on the web a "Delete this venue" section
+on `/bars` (DELETE `/api/bars/:barId`, live with the next deploy), in the app a row on the Venue
+tab (DELETE `/api/mobile/bars/:barId`, in versionCode 12, needs its device run).
+`tests/venue-delete.spec.ts`. The test venue "New test bar" is removed on the server by the owner
+(or now from the app/dashboard once deployed).
 
 **Sign-up: straight in after verifying** (owner's request, 2026-11-18): after the e-mail code the
 app says "You can now log in" and goes back to the login screen. The verify step should return a
