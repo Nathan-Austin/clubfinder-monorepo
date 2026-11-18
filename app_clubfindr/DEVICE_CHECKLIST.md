@@ -18,8 +18,9 @@ and the message.
      old `live music` / `live-music` / `livemusic` / `live` / `acoustic` genre tags become the
      attribute and leave `special_genres`. Idempotent; only rows carrying those tags change.
    - `20261119_bar_event_skips.sql` — the cancelled-dates table.
-3. **Then build the app**: bump `versionCode` 11 → 12 (`npm run build:android` or
-   `scripts/bump-version.js`), build with `EAS_NO_VCS=1` as `CLAUDE.md` says.
+3. **Then build the app**: `versionCode` is already 12 in `app.json` (`75ead8d`), so build with
+   `EAS_NO_VCS=1 eas build --platform android --profile release --local`, not
+   `npm run build:android`, which bumps it again (to 13).
 4. **Data:** the 02:00 scrape now spends its Spotify lookups on artists playing upcoming events.
    After the first run, check that the Clubs side of the app and `/clubs` have events, and that
    London's unmatched upcoming artists are falling.
