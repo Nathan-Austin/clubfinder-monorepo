@@ -4,6 +4,9 @@ import { query } from '$lib/db';
 import type { RequestHandler } from './$types';
 import { validateBarUpdate } from '$lib/validators/barValidators';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
+import { deleteVenue } from '$lib/server/deleteVenue';
+import { cookieManager } from '$lib/cookieManager';
+import { BAR_SESSION_COOKIE } from '$lib/taste/barSession';
 /**
  * GET handler to fetch bar details
  */
@@ -201,5 +204,32 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 			},
 			{ status: 500 }
 		);
+	}
+};
+
+/**
+ * DELETE handler: the venue deletes its own account and everything it owns
+ * ($lib/server/deleteVenue), from the dashboard's "Delete this venue" section. The venue
+ * cookies are cleared afterwards; the bar_sessions rows are already gone with the venue.
+ */
+export const DELETE: RequestHandler = async ({ params, cookies, request }) => {
+	// Only the venue itself, by its session
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
+	try {
+		const deleted = await deleteVenue(params.barId);
+		if (!deleted) {
+			return json({ message: 'Bar not found' }, { status: 404 });
+		}
+
+		cookieManager.delete(cookies, BAR_SESSION_COOKIE, { path: '/' });
+		for (const name of ['barId', 'barsName', 'bar_city']) {
+			cookies.delete(name, { path: '/' });
+		}
+		return json({ message: 'The venue account has been deleted' });
+	} catch (error: unknown) {
+		console.error('Error deleting venue:', error);
+		return json({ message: 'Could not delete the venue account' }, { status: 500 });
 	}
 };

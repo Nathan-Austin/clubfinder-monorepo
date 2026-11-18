@@ -3,6 +3,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
+import { deleteVenue } from '$lib/server/deleteVenue';
 import { pool } from '$lib/db';
 import { validateBarUpdate } from '$lib/validators/barValidators';
 
@@ -243,5 +244,27 @@ export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
 			},
 			{ status: 500 }
 		);
+	}
+};
+
+/**
+ * Delete the venue account and everything it owns ($lib/server/deleteVenue), for the app's
+ * Venue tab. Google Play's account-deletion policy covers venue accounts too.
+ * Endpoint: DELETE /api/mobile/bars/:id
+ */
+export const DELETE: RequestHandler = async ({ params, cookies, request }) => {
+	// Only the venue itself, by its session
+	const denied = await denyUnlessBarManager({ params, cookies, request });
+	if (denied) return denied;
+
+	try {
+		const deleted = await deleteVenue(params.barId);
+		if (!deleted) {
+			return json({ success: false, message: 'Bar not found' }, { status: 404 });
+		}
+		return json({ success: true, message: 'The venue account has been deleted' });
+	} catch (error) {
+		console.error('Error deleting venue:', error);
+		return json({ success: false, message: 'Could not delete the venue account' }, { status: 500 });
 	}
 };

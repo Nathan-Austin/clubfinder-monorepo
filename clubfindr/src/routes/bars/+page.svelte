@@ -10,6 +10,7 @@
 	import BarEventsSection from './BarEventsSection.svelte';
 	import VenueArtistsSection from './VenueArtistsSection.svelte';
 	import VenueGenresSection from './VenueGenresSection.svelte';
+	import DeleteVenueSection from './DeleteVenueSection.svelte';
 	interface Props {
 		data: PageData;
 	}
@@ -245,6 +246,7 @@
 	/>
 	<VenueGenresSection {barId} initialGenres={data.declaredGenres ?? []} />
 	<BarEventsSection {barId} />
+	<DeleteVenueSection {barId} barName={barName || barDetails.name} />
 </main>
 
 <style>
