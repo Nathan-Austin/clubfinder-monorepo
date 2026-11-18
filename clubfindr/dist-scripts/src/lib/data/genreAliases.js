@@ -1,0 +1,453 @@
+// The genre alias layer (KNOWN_ISSUES 18).
+//
+// `genreClusters.json` is a tree of ~1000 leaf genres, but the tags that actually arrive from
+// Spotify, Last.fm, MusicBrainz and the scrapers are mostly *umbrella* terms — "house", "rock",
+// "hip hop", "metal", "trance" — which are sub-cluster names rather than leaves, or are spelling
+// variants of a leaf ("dnb", "rnb", "hip-hop"). Before this layer existed they fell through the
+// exact pass into the fuzzy pass, which produced false friends (funk → punk, hip hop → trip hop,
+// dnb → dub, country → Hip-Hop/Rap "Latin and Regional Variants"), or landed in Uncategorized,
+// which scoring ignores.
+//
+// Four tables, applied in `$lib/server/genreMatching` before any fuzzy guessing:
+//
+//   GENRE_ALIASES    spelling variants and synonyms → another genre string (a leaf, an umbrella
+//                    key, or another alias; chains are resolved).
+//   UMBRELLA_FAMILIES a broad genre → every sub-cluster of the family it names.
+//   CANONICAL_HOMES  a leaf that `genreClusters.json` lists under several sub-clusters → the one
+//                    home it resolves to, so the answer does not depend on JSON order.
+//   UNSCORED_GENRES  genres that are real but have nowhere sensible to go, or are too broad to
+//                    mean anything. These resolve straight to Uncategorized instead of being
+//                    guessed at. See the note at the bottom.
+//
+// Every key is in `normalizeGenre` form: lower case, `&` spelled "and", no apostrophes, single
+// spaces, ` / ` around slashes. `genreAliases.test.ts` enforces that, and that every target
+// names something real.
+/** Spelling variants and synonyms. Values may themselves be aliases; chains are resolved. */
+export const GENRE_ALIASES = {
+    // Drum & bass. The leaf is "Drum & Bass", which normalises to "drum and bass".
+    dnb: 'drum and bass',
+    'd and b': 'drum and bass',
+    dandb: 'drum and bass',
+    'drum n bass': 'drum and bass',
+    drumnbass: 'drum and bass',
+    breakbeat: 'drum and bass',
+    breaks: 'drum and bass',
+    // R&B. The leaf is "R&B" → "r and b".
+    rnb: 'r and b',
+    'r n b': 'r and b',
+    'rhythm and blues': 'r and b',
+    // Hip hop.
+    'hip-hop': 'hip hop',
+    hiphop: 'hip hop',
+    rap: 'hip hop',
+    'rap music': 'hip hop',
+    triphop: 'trip hop',
+    'trip-hop': 'trip hop',
+    'boom-bap': 'boom bap',
+    // House and techno spelling variants.
+    'house music': 'house',
+    'tech-house': 'tech house',
+    'deep-house': 'deep house',
+    'afro-house': 'afro house',
+    afrohouse: 'afro house',
+    'acid-house': 'acid house',
+    'progressive-house': 'progressive house',
+    'minimal-techno': 'minimal techno',
+    'hard-techno': 'hard techno',
+    'detroit-techno': 'detroit techno',
+    // Trance.
+    'psy trance': 'psytrance',
+    'psy-trance': 'psytrance',
+    'goa-trance': 'goa trance',
+    // Garage: in a club context this is UK garage, not garage rock. Garage rock arrives spelled
+    // out ("garage rock", "garage rock revival") and keeps its own leaf.
+    garage: 'uk garage',
+    'uk-garage': 'uk garage',
+    ukg: 'uk garage',
+    // Bass and dubstep.
+    'dub-step': 'dubstep',
+    // Hard dance.
+    'happy-hardcore': 'happy hardcore',
+    // Rock, metal and punk variants.
+    'nu-metal': 'nu metal',
+    'heavy-metal': 'metal',
+    'heavy metal': 'metal',
+    'rock and roll': 'rock n roll',
+    rocknroll: 'rock n roll',
+    'synth pop': 'synthpop',
+    'synth-pop': 'synthpop',
+    'post punk': 'post-punk',
+    'new-wave': 'new wave',
+    // Reggae and Caribbean.
+    'roots reggae': 'reggae',
+    'reggae music': 'reggae',
+    // Latin.
+    'rock en espanol': 'rock en español',
+    reggaetón: 'reggaeton',
+    'latin-house': 'latin house',
+    // World.
+    'world music': 'world',
+    worldbeat: 'world beat',
+    // Pop, soul, funk, disco, jazz, African pop, classical and folk — all leaves of their own
+    // clusters since 2026-11-10, so these are ordinary spelling variants now.
+    'afro beats': 'afrobeats',
+    'afro-beats': 'afrobeats',
+    'afro beat': 'afrobeat',
+    'k pop': 'k-pop',
+    kpop: 'k-pop',
+    'j pop': 'j-pop',
+    jpop: 'j-pop',
+    'c pop': 'c-pop',
+    cpop: 'c-pop',
+    'nu-disco': 'nu disco',
+    nudisco: 'nu disco',
+    'italo-disco': 'italo disco',
+    'neo-soul': 'neo soul',
+    neosoul: 'neo soul',
+    'soul music': 'soul',
+    'jazz music': 'jazz',
+    'pop music': 'pop',
+    'classical music': 'classical',
+    'folk music': 'folk',
+    'gospel music': 'gospel',
+    'p funk': 'p-funk',
+    pfunk: 'p-funk',
+    'nu-jazz': 'nu jazz',
+    'jazz funk': 'jazz-funk',
+    'coupé-décalé': 'coupe-decale',
+    'coupe decale': 'coupe-decale',
+    'singer songwriter': 'singer-songwriter'
+};
+/**
+ * Broad genres and the *family* of sub-clusters each one covers. These are the most common tags
+ * the providers return: "house" means house, not one kind of house, so it matches a venue in any
+ * of the four house sub-clusters (KNOWN_ISSUES 18, umbrella breadth).
+ *
+ * The matcher scores a family by what it actually matched — an umbrella counts in the
+ * similarity denominator for the amount it matched on the other side, never less than its own
+ * weight — so naming "house" against a pure acid-house venue still scores 1, and spreading a
+ * family wide carries no penalty for either side (see calculateClusterSimilarity).
+ *
+ * A key here takes precedence over a leaf of the same name on purpose: "techno" the leaf lives
+ * in Minimal and Techno, but a person who says techno means the whole family. The leaf stays in
+ * genreClusters.json as a fuzzy target for typos, and the validation test requires the leaf's
+ * own home to be one of the family members so the two never point apart.
+ */
+export const UMBRELLA_FAMILIES = {
+    // Electronic.
+    house: {
+        cluster: 'Electronic/Dance (EDM)',
+        subClusters: ['Classic House', 'Modern House', 'Cultural House', 'Deep/Tech House']
+    },
+    techno: {
+        cluster: 'Electronic/Dance (EDM)',
+        subClusters: ['Minimal and Techno', 'Dark and Industrial Techno', 'Regional Techno Styles']
+    },
+    trance: { cluster: 'Electronic/Dance (EDM)', subClusters: ['Trance Variants'] },
+    edm: { cluster: 'Electronic/Dance (EDM)', subClusters: ['Modern House'] },
+    bass: {
+        cluster: 'Electronic/Dance (EDM)',
+        subClusters: ['Dubstep and Bass', 'Future Bass and Beats', 'Experimental Bass']
+    },
+    // Rock family. "Rock Music" is the one rock cluster since 2026-11-10. "rock" covers the
+    // rock-proper sub-clusters; metal, punk and goth have umbrellas of their own.
+    rock: {
+        cluster: 'Rock Music',
+        subClusters: [
+            'Early Rock and Roll',
+            'Classic Rock',
+            'Art and Progressive',
+            'Alternative Rock',
+            'Contemporary Rock',
+            'Experimental and Post-Rock'
+        ]
+    },
+    metal: { cluster: 'Rock Music', subClusters: ['Heavy Metal', 'Modern Hard and Heavy'] },
+    punk: { cluster: 'Rock Music', subClusters: ['Punk and Hardcore'] },
+    indie: { cluster: 'Rock Music', subClusters: ['Alternative Rock'] },
+    goth: { cluster: 'Rock Music', subClusters: ['Gothic and Wave'] },
+    // "Indie Pop" names a cluster rather than a style.
+    'indie pop': {
+        cluster: 'Indie Pop',
+        subClusters: [
+            'Dream Pop and Bedroom Pop',
+            'Indie Folk Pop',
+            'Synth-Based Indie Pop',
+            'Lo-Fi Indie Pop',
+            'Chamber Pop'
+        ]
+    },
+    // Hip hop: the whole cluster.
+    'hip hop': {
+        cluster: 'Hip-Hop/Rap',
+        subClusters: [
+            'East Coast, West Coast, and Midwest',
+            'Modern Trap and Drill',
+            'Cloud Rap and SoundCloud Rap',
+            'Abstract/Experimental Hip-Hop',
+            'Pop Rap and Melodic Rap',
+            'Alternative and Conscious',
+            'Latin and Regional Variants'
+        ]
+    },
+    // Roots.
+    reggae: {
+        cluster: 'Reggae and Roots',
+        subClusters: [
+            'Roots Reggae Foundations',
+            'Reggae Fusion and Modern Variations',
+            'Rhythmic Transformations',
+            'Cultural and Regional Reggae'
+        ]
+    },
+    soca: { cluster: 'Reggae and Roots', subClusters: ['Caribbean Roots Music'] },
+    blues: {
+        cluster: 'Blues',
+        subClusters: [
+            'Pre-War Blues',
+            'Post-War Blues',
+            'Contemporary Blues',
+            'Regional and Specialty Blues'
+        ]
+    },
+    country: {
+        cluster: 'Country',
+        subClusters: [
+            'Traditional and Classic Country',
+            'Progressive Country',
+            'Modern Commercial Country',
+            'Country Trap/Hick Hop',
+            'Alt-Country and Insurgent Country',
+            'Bluegrass and Related'
+        ]
+    },
+    world: {
+        cluster: 'Electronic Folk Fusion',
+        subClusters: ['World Music Fusion', 'Traditional-Electronic Fusion']
+    },
+    // Latin: the whole cluster. A person who says "latin" is open to all of it.
+    latin: {
+        cluster: 'Latin/Latino Music',
+        subClusters: [
+            'Classic Latin',
+            'Mariachi and Traditional Mexican',
+            'Andean and South American Folk',
+            'Banda and Sinaloan Styles',
+            'Norteño and Conjunto',
+            'Corridos and Narrative',
+            'Duranguense and Contemporary Regional',
+            'Salsa Styles',
+            'Bachata Variations',
+            'Merengue and Dominican Styles',
+            'Cumbia Variants',
+            'Other Tropical Styles',
+            'Reggaeton',
+            'Trap Latino and Urban',
+            'Dembow and Caribbean Urban',
+            'Urbano Latino Fusion',
+            'Latin Pop',
+            'Rock en Español',
+            'Alternative and Indie Latino',
+            'Electronic Cumbia and Tropical',
+            'Latin House and Club',
+            'Experimental Latin Electronic',
+            'Latin Jazz',
+            'Afro-Latin Rhythms'
+        ]
+    },
+    // The 2026-11-10 clusters: their generic names are also leaves, kept as fuzzy targets, but a
+    // person naming the genre means the family.
+    pop: {
+        cluster: 'Pop',
+        subClusters: ['Mainstream Pop', 'Electronic Pop', 'Global Pop', 'European Pop']
+    },
+    jazz: {
+        cluster: 'Jazz',
+        subClusters: [
+            'Traditional Jazz',
+            'Bebop and Modern Jazz',
+            'Free and Spiritual Jazz',
+            'Contemporary Jazz'
+        ]
+    },
+    soul: { cluster: 'Soul, Funk and Disco', subClusters: ['Classic Soul', 'Contemporary R&B'] },
+    classical: {
+        cluster: 'Classical',
+        subClusters: ['Orchestral and Chamber', 'Modern Classical']
+    }
+};
+/**
+ * Leaves that `genreClusters.json` lists under more than one sub-cluster. Without an entry here
+ * the winner is whichever the JSON happens to list first, so `deep house` counted as Classic
+ * House and `reggaeton` as Reggae rather than Urban Latino.
+ *
+ * There were 92 of these. Folding "Alternative Rock and Punk" into "Rock Music" retired 36 of
+ * them outright — they were only ever contested because the two rock clusters described the same
+ * music — so the table is now the remaining 56.
+ *
+ * The rules used, in order:
+ *   - The more specific cluster wins over the more general one: Industrial over Rock,
+ *     Latin/Latino over Electronic, Country and Blues over Reggae-and-Roots' folk sub-cluster,
+ *     Experimental/Avant-Garde over Electronic.
+ *   - Within one cluster, the more specific sub-cluster wins (`tech house` → Deep/Tech House
+ *     rather than Minimal and Techno).
+ */
+export const CANONICAL_HOMES = {
+    // --- Contested between Rock Music's own sub-clusters ---
+    'experimental rock': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
+    'instrumental rock': { cluster: 'Rock Music', subCluster: 'Experimental and Post-Rock' },
+    'math rock': { cluster: 'Rock Music', subCluster: 'Alternative Rock' },
+    'progressive rock': { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
+    'space rock': { cluster: 'Rock Music', subCluster: 'Art and Progressive' },
+    'blues rock': { cluster: 'Rock Music', subCluster: 'Classic Rock' },
+    // --- Industrial wins over rock ---
+    'industrial metal': { cluster: 'Industrial', subCluster: 'Industrial Rock and Metal' },
+    noise: { cluster: 'Industrial', subCluster: 'Traditional Industrial' },
+    // --- Goth stays with the goth leaves, which are rock's "Gothic and Wave" now ---
+    darkwave: { cluster: 'Rock Music', subCluster: 'Gothic and Wave' },
+    // --- Latin/Latino wins over Electronic and Reggae ---
+    reggaeton: { cluster: 'Latin/Latino Music', subCluster: 'Reggaeton' },
+    'latin house': { cluster: 'Latin/Latino Music', subCluster: 'Latin House and Club' },
+    'brazilian bass': { cluster: 'Latin/Latino Music', subCluster: 'Latin House and Club' },
+    'tropical bass': {
+        cluster: 'Latin/Latino Music',
+        subCluster: 'Electronic Cumbia and Tropical'
+    },
+    // --- Country and Blues win over Reggae-and-Roots' folk sub-cluster ---
+    americana: { cluster: 'Country', subCluster: 'Progressive Country' },
+    bluegrass: { cluster: 'Country', subCluster: 'Bluegrass and Related' },
+    'traditional country': { cluster: 'Country', subCluster: 'Traditional and Classic Country' },
+    'delta blues': { cluster: 'Blues', subCluster: 'Pre-War Blues' },
+    // --- Experimental/Avant-Garde wins over Electronic for sound-art leaves ---
+    'sound art': { cluster: 'Experimental/Avant-Garde', subCluster: 'Sound Art' },
+    electroacoustic: { cluster: 'Experimental/Avant-Garde', subCluster: 'Sound Art' },
+    'field recordings': { cluster: 'Experimental/Avant-Garde', subCluster: 'Sound Art' },
+    // --- Indie Pop keeps the pop leaves ---
+    'dream pop': { cluster: 'Indie Pop', subCluster: 'Dream Pop and Bedroom Pop' },
+    'noise pop': { cluster: 'Indie Pop', subCluster: 'Lo-Fi Indie Pop' },
+    'modern folk': { cluster: 'Indie Pop', subCluster: 'Indie Folk Pop' },
+    // --- Psychedelia ---
+    'psychedelic folk': { cluster: 'Neo-Psychedelia', subCluster: 'Modern Psychedelic' },
+    psytrance: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Trance Variants' },
+    // --- Electronic internal contests, and the electronic/other contests that stay electronic ---
+    'ambient dub': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Pure Ambient' },
+    'dark ambient': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Pure Ambient' },
+    drone: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Pure Ambient' },
+    'glitch hop': {
+        cluster: 'Electronic/Dance (EDM)',
+        subCluster: 'IDM and Experimental Rhythmic Music'
+    },
+    'experimental techno': {
+        cluster: 'Electronic/Dance (EDM)',
+        subCluster: 'IDM and Experimental Rhythmic Music'
+    },
+    'industrial techno': {
+        cluster: 'Electronic/Dance (EDM)',
+        subCluster: 'Dark and Industrial Techno'
+    },
+    'deep house': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Deep/Tech House' },
+    'tech house': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Deep/Tech House' },
+    microhouse: { cluster: 'Electronic/Dance (EDM)', subCluster: 'Deep/Tech House' },
+    'bass house': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Modern House' },
+    'bass music': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Dubstep and Bass' },
+    'future bass': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Future Bass and Beats' },
+    'night bass': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Experimental Bass' },
+    'uk bass': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Experimental Bass' },
+    'detroit techno': { cluster: 'Electronic/Dance (EDM)', subCluster: 'Regional Techno Styles' },
+    // --- Fusion clusters ---
+    'broken beat': { cluster: 'Modern Fusion', subCluster: 'Jazz-Electronic Fusion' },
+    'global bass': { cluster: 'Electronic Folk Fusion', subCluster: 'World Music Fusion' },
+    'world beat': { cluster: 'Electronic Folk Fusion', subCluster: 'World Music Fusion' },
+    // --- Industrial internal contests ---
+    aggrotech: { cluster: 'Industrial', subCluster: 'Aggrotech and Dark Electro' },
+    'dark electro': { cluster: 'Industrial', subCluster: 'Aggrotech and Dark Electro' },
+    'harsh ebm': { cluster: 'Industrial', subCluster: 'Aggrotech and Dark Electro' },
+    'industrial dance': { cluster: 'Industrial', subCluster: 'Industrial Dance' },
+    // --- Indie Pop internal contests ---
+    'art pop': { cluster: 'Indie Pop', subCluster: 'Chamber Pop' },
+    'baroque pop': { cluster: 'Indie Pop', subCluster: 'Chamber Pop' },
+    'chamber pop': { cluster: 'Indie Pop', subCluster: 'Chamber Pop' },
+    'diy pop': { cluster: 'Indie Pop', subCluster: 'Lo-Fi Indie Pop' },
+    'lo-fi pop': { cluster: 'Indie Pop', subCluster: 'Lo-Fi Indie Pop' },
+    // --- Remaining internal contests ---
+    'melodic trap': { cluster: 'Hip-Hop/Rap', subCluster: 'Modern Trap and Drill' },
+    'modern blues': { cluster: 'Blues', subCluster: 'Contemporary Blues' },
+    // --- Leaves the new clusters took over from an older home (2026-11-10) ---
+    // R&B sat in Hip-Hop/Rap "Pop Rap and Melodic Rap" because that was the only sub-cluster
+    // naming it. It belongs with soul.
+    'r and b': { cluster: 'Soul, Funk and Disco', subCluster: 'Contemporary R&B' },
+    // Electropop reads as mainstream pop far more often than as the indie synth-pop of
+    // "Synth-Based Indie Pop", which keeps its own, more specific leaves.
+    electropop: { cluster: 'Pop', subCluster: 'Electronic Pop' },
+    'cumbia norteña': { cluster: 'Latin/Latino Music', subCluster: 'Cumbia Variants' },
+    mambo: { cluster: 'Latin/Latino Music', subCluster: 'Merengue and Dominican Styles' }
+};
+/**
+ * Genres that resolve straight to Uncategorized, skipping the fuzzy and word-boundary passes.
+ *
+ * Two kinds, and both are better off carrying no weight than being guessed at, because
+ * `calculateClusterSimilarity` drops Uncategorized from both sides — a genre here neither
+ * matches anything nor dilutes a score, whereas a wrong cluster actively misranks venues.
+ *
+ * `noHome`: real, common genres that `genreClusters.json` has no cluster for at all. This list is
+ * empty: pop, soul, funk, disco, jazz, afrobeats, classical, gospel, k-pop, schlager and folk
+ * were all on it until the Pop, "Soul, Funk and Disco", Jazz, "African Popular Music", Classical
+ * and "Folk and Singer-Songwriter" clusters were added on 2026-11-10, and they are leaves now.
+ * The mechanism stays for the next genre that turns out to have nowhere to go: put it here and it
+ * carries no weight instead of being guessed at, and it is still written to missing-genres.txt so
+ * the genre-maintenance script keeps reporting it.
+ *
+ * `tooBroad`: tags that name no style at all. Placing them anywhere invents a preference the
+ * user never expressed.
+ */
+export const UNSCORED_GENRES = {
+    noHome: [],
+    tooBroad: [
+        'electronic',
+        'dance',
+        'dance music',
+        'music',
+        'club',
+        'club music',
+        'party',
+        'various',
+        'other',
+        'mixed',
+        'live',
+        'dj',
+        'dj set',
+        'alternative',
+        'underground',
+        'experimental',
+        'instrumental',
+        'acoustic',
+        'vocal',
+        'remix',
+        'edit',
+        'bootleg'
+    ]
+};
+export const UNSCORED_GENRE_SET = new Set([
+    ...UNSCORED_GENRES.noHome,
+    ...UNSCORED_GENRES.tooBroad
+]);
+/** Whether an unscored genre should still be reported to missing-genres.txt. */
+export const NO_HOME_GENRE_SET = new Set(UNSCORED_GENRES.noHome);
+/**
+ * Follow `GENRE_ALIASES` to a final genre string. Chains are resolved up to a small depth and a
+ * cycle simply stops, returning the last value reached.
+ */
+export function resolveAlias(normalizedGenre) {
+    let current = normalizedGenre;
+    const seen = new Set([current]);
+    for (let i = 0; i < 8; i += 1) {
+        const next = GENRE_ALIASES[current];
+        if (next === undefined || next === current || seen.has(next)) {
+            return current;
+        }
+        seen.add(next);
+        current = next;
+    }
+    return current;
+}
+//# sourceMappingURL=genreAliases.js.map

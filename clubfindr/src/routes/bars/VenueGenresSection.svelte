@@ -24,25 +24,14 @@
 	let message = $state('');
 	let suggestions = $state<string[]>([]);
 
-	// The picker's own vocabulary, flattened: sub-cluster names and leaf genres. Loaded lazily;
-	// the input works as free text until (and in case) it arrives.
+	// The one genre list (KNOWN_ISSUES 91): generated from the cluster tree and the umbrella
+	// terms, so everything offered here is something the server accepts. Loaded lazily; the
+	// input works as free text until (and in case) it arrives.
 	$effect(() => {
-		fetch('/lib/unified-genres.json')
+		fetch('/lib/genre-suggestions.json')
 			.then((response) => (response.ok ? response.json() : null))
-			.then((unified) => {
-				if (!unified?.categories) return;
-				const names = new Set<string>();
-				for (const category of unified.categories) {
-					for (const sub of category.subgenres ?? []) {
-						if (sub.name) names.add(sub.name);
-						for (const genre of sub.genres ?? []) names.add(genre);
-						for (const subsub of sub.subsubgenres ?? []) {
-							if (subsub.name) names.add(subsub.name);
-							for (const genre of subsub.genres ?? []) names.add(genre);
-						}
-					}
-				}
-				suggestions = [...names].sort((a, b) => a.localeCompare(b));
+			.then((list) => {
+				if (Array.isArray(list?.genres)) suggestions = list.genres;
 			})
 			.catch(() => {
 				// Suggestions only; typing still works

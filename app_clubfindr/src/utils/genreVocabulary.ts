@@ -1,39 +1,22 @@
 /**
- * The genres a venue can pick from: the same vocabulary the web dashboard's "Genres you play"
- * suggests (`clubfindr/static/lib/unified-genres.json`, flattened to sub-cluster names and leaf
- * genres). The app's `constants/unified-genres.json` holds the same names; a test keeps them so.
+ * The genres a venue can pick from: the one genre list (KNOWN_ISSUES 91), generated from the
+ * server's own cluster tree and umbrella terms by `pnpm convert-genres` and shipped to both
+ * sides (`clubfindr/static/lib/genre-suggestions.json` and the copy next door). Everything in
+ * it is something the server accepts, so a suggestion can no longer be refused with "Not genres
+ * Clubfindr knows"; plain "House", "Rock" and "Hip Hop" are in it too, which the old list
+ * (flattened from unified-genres.json) left out.
  *
- * The server only accepts genres its cluster matcher knows and stores them lower-cased
- * (`PUT /api/venues/:barId/taste/genres`), so this list is for suggestions; the server decides.
+ * The server stores genres lower-cased and has the final say
+ * (`PUT /api/venues/:barId/taste/genres`).
  */
-import unified from '../constants/unified-genres.json';
+import suggestions from '../constants/genre-suggestions.json';
 
 /** The server's limit on a venue's declared genres (`MAX_DECLARED_GENRES`) */
 export const MAX_VENUE_GENRES = 15;
 
-type GenreTree = {
-  categories?: {
-    subgenres?: {
-      name?: string;
-      genres?: string[];
-      subsubgenres?: { name?: string; genres?: string[] }[];
-    }[];
-  }[];
-};
-
-/** Every name the web's picker suggests, sorted, without duplicates. */
-export function genreVocabulary(tree: GenreTree = unified as GenreTree): string[] {
-  const names = new Set<string>();
-  for (const category of tree.categories ?? []) {
-    for (const sub of category.subgenres ?? []) {
-      if (sub.name) names.add(sub.name);
-      for (const genre of sub.genres ?? []) names.add(genre);
-      for (const subsub of sub.subsubgenres ?? []) {
-        if (subsub.name) names.add(subsub.name);
-        for (const genre of subsub.genres ?? []) names.add(genre);
-      }
-    }
-  }
+/** Every name a picker may suggest, sorted, without duplicates. */
+export function genreVocabulary(list: { genres?: string[] } = suggestions): string[] {
+  const names = new Set<string>(list.genres ?? []);
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 

@@ -44,6 +44,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+// Pure data modules (no $lib imports), so a plain tsc build can pull them in
+import { UMBRELLA_FAMILIES, UNSCORED_GENRE_SET } from '../src/lib/data/genreAliases.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Resolve APP_ROOT from the script location, accounting for build output in dist-scripts
@@ -53,6 +55,10 @@ const APP_ROOT = __dirname.includes('dist-scripts')
 const GENRE_CLUSTERS_PATH = path.resolve(APP_ROOT, './src/lib/data/genreClusters.json');
 const UNIFIED_GENRES_WEB_PATH = path.resolve(APP_ROOT, './static/lib/unified-genres.json');
 const UNIFIED_GENRES_MOBILE_PATH = path.resolve(APP_ROOT, '../app_clubfindr/src/constants/unified-genres.json');
+// The one list of genres anything may suggest (KNOWN_ISSUES 91): flat, and exactly what the
+// server's isKnownGenre accepts. src/lib/taste/genreSuggestions.test.ts holds the two together.
+const SUGGESTIONS_WEB_PATH = path.resolve(APP_ROOT, './static/lib/genre-suggestions.json');
+const SUGGESTIONS_MOBILE_PATH = path.resolve(APP_ROOT, '../app_clubfindr/src/constants/genre-suggestions.json');
 const convertToUnifiedFormat = (clustersData) => {
     const categories = clustersData.clusters.map((cluster) => {
         const subgenres = cluster.sub_clusters.map((subCluster) => {
@@ -98,6 +104,56 @@ const convertToUnifiedFormat = (clustersData) => {
     });
     return { categories };
 };
+/**
+ * The flat suggestion list (KNOWN_ISSUES 91): every genre a picker may offer, and nothing the
+ * server would refuse.
+ *
+ * What goes in:
+ *   - every leaf genre of the tree;
+ *   - every sub-cluster name that actually holds leaves (the matcher indexes those as genres,
+ *     e.g. "Minimal and Techno"), but not the mid-level grouping names that only organise the
+ *     tree ("Ambient and Atmospheric Electronic Music"), which the matcher cannot place and
+ *     which were being offered and then refused;
+ *   - the umbrella terms (`UMBRELLA_FAMILIES`): "house", "rock", "hip hop" and friends are what
+ *     people actually type, the matcher has always accepted them, and until now no picker
+ *     offered them (found on the 2026-11-18 device run).
+ *
+ * What stays out: `UNSCORED_GENRES`, which resolve to Uncategorized on purpose.
+ */
+const buildSuggestions = (clustersData) => {
+    const suggestions = new Map(); // normalised -> display form
+    const add = (name) => {
+        if (!name)
+            return;
+        const normalised = normalizeForComparison(name);
+        if (!normalised || UNSCORED_GENRE_SET.has(normalised))
+            return;
+        // First writer wins, so a leaf's own spelling beats a later duplicate
+        if (!suggestions.has(normalised))
+            suggestions.set(normalised, name.trim());
+    };
+    const walk = (subCluster) => {
+        const nested = subCluster.sub_clusters ?? [];
+        const leaves = subCluster.genres ?? [];
+        // A sub-cluster name is only a genre to the matcher when it holds leaves itself
+        if (leaves.length > 0)
+            add(subCluster.name);
+        leaves.forEach(add);
+        nested.forEach(walk);
+    };
+    clustersData.clusters.forEach((cluster) => cluster.sub_clusters.forEach(walk));
+    Object.keys(UMBRELLA_FAMILIES).forEach((umbrella) => add(titleCase(umbrella)));
+    return [...suggestions.values()].sort((a, b) => a.localeCompare(b));
+};
+/** `normalizeGenre` from $lib/server/genreMatching, which scripts cannot import ($lib alias). */
+const normalizeForComparison = (genre) => genre
+    .toLowerCase()
+    .trim()
+    .replace(/\s*&\s*/g, ' and ')
+    .replace(/\s*\/\s*/g, ' / ')
+    .replace(/'/g, '')
+    .replace(/\s+/g, ' ');
+const titleCase = (value) => value.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 const main = () => {
     console.log('Converting genreClusters.json to unified-genres.json format...\n');
     // Load genreClusters.json
@@ -122,6 +178,15 @@ const main = () => {
     }
     else {
         console.log(`⚠ Mobile app directory not found, skipping ${UNIFIED_GENRES_MOBILE_PATH}`);
+    }
+    // The flat suggestion list, for every picker on the web and in the app
+    const suggestions = buildSuggestions(clustersData);
+    const suggestionsContent = JSON.stringify({ genres: suggestions }, null, '\t');
+    fs.writeFileSync(SUGGESTIONS_WEB_PATH, suggestionsContent, 'utf8');
+    console.log(`✓ Written ${suggestions.length} suggestions to ${SUGGESTIONS_WEB_PATH}`);
+    if (fs.existsSync(path.dirname(SUGGESTIONS_MOBILE_PATH))) {
+        fs.writeFileSync(SUGGESTIONS_MOBILE_PATH, suggestionsContent, 'utf8');
+        console.log(`✓ Written to ${SUGGESTIONS_MOBILE_PATH}`);
     }
     console.log('\n✓ Conversion complete!');
     console.log('\nGenre categories:');

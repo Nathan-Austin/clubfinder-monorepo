@@ -5,33 +5,31 @@ import { MAX_VENUE_GENRES, genreVocabulary, normalizeGenre, suggestGenres } from
 const vocabulary = genreVocabulary();
 
 describe('genreVocabulary', () => {
-  it('flattens the genre tree into sorted, unique names', () => {
+  it('offers sorted, unique names', () => {
     expect(vocabulary.length).toBeGreaterThan(1000);
     expect(new Set(vocabulary).size).toBe(vocabulary.length);
     expect([...vocabulary].sort((a, b) => a.localeCompare(b))).toEqual(vocabulary);
   });
 
-  it('takes sub-cluster names, leaf genres and the deeper level', () => {
-    const tree = {
-      categories: [
-        {
-          subgenres: [
-            { name: 'Minimal and Techno', genres: ['techno', 'minimal techno'] },
-            { name: 'Bass', subsubgenres: [{ name: 'UK Bass', genres: ['uk garage'] }] },
-          ],
-        },
-      ],
-    };
-    expect(genreVocabulary(tree)).toEqual(['Bass', 'Minimal and Techno', 'minimal techno', 'techno', 'UK Bass', 'uk garage']);
+  it('sorts and de-duplicates whatever list it is given', () => {
+    expect(genreVocabulary({ genres: ['techno', 'Bass', 'techno'] })).toEqual(['Bass', 'techno']);
   });
 
-  // The web dashboard suggests from clubfindr/static/lib/unified-genres.json; a venue should be
-  // offered the same names on both
+  // The web dashboard and the app suggest from the same generated list (KNOWN_ISSUES 91), and
+  // the server's own test (clubfindr src/lib/taste/genreSuggestions.test.ts) holds that list to
+  // what the matcher accepts
   it("offers exactly the names the web dashboard's picker offers", () => {
     const web = JSON.parse(
-      readFileSync(path.resolve('..', 'clubfindr', 'static', 'lib', 'unified-genres.json'), 'utf8')
+      readFileSync(path.resolve('..', 'clubfindr', 'static', 'lib', 'genre-suggestions.json'), 'utf8')
     );
     expect(genreVocabulary(web)).toEqual(vocabulary);
+  });
+
+  // The device run found these missing: the server accepts them, no picker offered them
+  it('offers the plain umbrella terms', () => {
+    for (const umbrella of ['House', 'Rock', 'Hip Hop', 'Techno']) {
+      expect(vocabulary).toContain(umbrella);
+    }
   });
 
   it("matches the server's limit of 15 declared genres", () => {
