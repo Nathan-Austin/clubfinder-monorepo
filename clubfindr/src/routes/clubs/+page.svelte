@@ -135,11 +135,20 @@
 
 <div class="body">
 	{#if SimilarityResults.length === 0}
-		<div class="no-results">
-			<p>
-				Sorry, we couldn't find any matches for your choice, try something else by clicking Change
-				The Vibe
-			</p>
+		<div class="no-results" data-testid="no-results">
+			{#if data.props.noEvents}
+				<!-- The city has no events that day at all; say so by name (the empty return used
+				     to drop the city, and the heading said "Unknown City") -->
+				<p>
+					There are no events in {capitalizedCity} on {formattedDate} yet. Try another date, or
+					change the vibe.
+				</p>
+			{:else}
+				<p>
+					Sorry, we couldn't find any matches for your choice, try something else by clicking
+					Change The Vibe
+				</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="poster-container">

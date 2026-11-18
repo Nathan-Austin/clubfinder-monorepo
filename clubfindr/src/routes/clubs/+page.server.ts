@@ -226,10 +226,17 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		const result = await pool.query(query, [city, date]);
 
 		if (result.rowCount === 0) {
-			console.log('No data found in the database.');
+			// No events in that city on that day. The page still needs the city and date, so it
+			// can say so by name instead of "Unknown City" (DEVICE_CHECKLIST 2026-11-18), and
+			// noEvents tells it apart from "events, but none match your taste".
 			return {
 				props: {
-					dbData: []
+					serverSimilarityResults: [],
+					noEvents: true,
+					date,
+					city,
+					address,
+					isLoggedIn
 				}
 			};
 		}
@@ -341,9 +348,12 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 		};
 	} catch (error) {
 		console.error('Error fetching data:', (error as Error).message);
+		// The error return keeps the city too, so the heading never says "Unknown City"
 		return {
 			props: {
 				date,
+				city,
+				isLoggedIn,
 				error: (error as Error).message
 			}
 		};

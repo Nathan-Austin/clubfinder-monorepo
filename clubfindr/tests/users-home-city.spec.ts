@@ -51,8 +51,11 @@ test('the saved city drives the page and the search, and survives a reload', asy
 
 		await page.getByTestId('find-events').click();
 		await page.waitForURL('**/clubs');
-		// The search went out with the saved city, not a location guess
+		// The search went out with the saved city, not a location guess, and the page names it
+		// even when the city has no events that day (the empty return used to say "Unknown City")
 		expect(await cityCookie(page)).toBe('amsterdam');
+		await expect(page.locator('h1')).toContainText('Amsterdam');
+		await expect(page.locator('h1')).not.toContainText('Unknown City');
 
 		// Reload the profile page: still Amsterdam (from the account, not a cookie)
 		await page.goto('/users-home');
