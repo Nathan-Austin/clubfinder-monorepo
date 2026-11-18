@@ -1,7 +1,7 @@
 /**
- * The event form's recurrence: a switch, then the pattern. The server stores it but does not
- * expand it into dates yet, so a recurring event counts on its first date only (KNOWN_ISSUES 90);
- * the note says so rather than promise every week.
+ * The event form's recurrence: a switch, then the pattern. Since 2026-11-19 the server expands
+ * a series into its dates (KNOWN_ISSUES 90), so the note says what actually happens; the four
+ * patterns here are the ones it knows, and it refuses anything else.
  */
 import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
@@ -48,7 +48,7 @@ const EventRecurrenceSection = ({ isRecurring, onIsRecurringChange, pattern, onP
                     </Picker>
                 </View>
                 <Text style={styles.note}>
-                    Currently listed and matched on the first date only; repeating dates are coming soon.
+                    Every date is listed and matched, for the next two months.
                 </Text>
             </View>
         )}

@@ -76,7 +76,8 @@ it('refuses to save without a name, and saves a recurring event with its pattern
 
   fireEvent.changeText(screen.getByPlaceholderText('e.g., Jazz Night, Salsa Tuesday'), 'Friday Session');
   fireEvent(screen.getByTestId('event-recurring-switch'), 'valueChange', true);
-  expect(await screen.findByText('Currently listed and matched on the first date only; repeating dates are coming soon.')).toBeTruthy();
+  // The server expands a series into its dates now (KNOWN_ISSUES 90)
+  expect(await screen.findByText('Every date is listed and matched, for the next two months.')).toBeTruthy();
   fireEvent.press(screen.getByText('Update Event'));
 
   await waitFor(() => expect(put).toHaveBeenCalledTimes(1));

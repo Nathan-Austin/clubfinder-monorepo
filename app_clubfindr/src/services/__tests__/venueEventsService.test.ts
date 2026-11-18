@@ -22,6 +22,7 @@ describe('toVenueEvent', () => {
   it('reads a server row, dropping blank and non-text genres', () => {
     expect(toVenueEvent(row())).toEqual({
       id: 'ev-1',
+      occurrence_id: 'ev-1:2026-12-04',
       theme_name: 'Friday Session',
       description: 'Deep cuts',
       event_date: '2026-12-04',
@@ -30,6 +31,15 @@ describe('toVenueEvent', () => {
       recurring: true,
       recurrence_pattern: 'weekly',
       special_genres: ['house'],
+    });
+  });
+
+  // One series arrives once per date since the server expands it (KNOWN_ISSUES 90); the
+  // occurrence id tells those entries apart, and a server that does not send one is fine
+  it('keeps the occurrence id the server sends', () => {
+    expect(toVenueEvent(row({ occurrence_id: 'ev-1:2026-12-11', event_date: '2026-12-11' }))).toMatchObject({
+      id: 'ev-1',
+      occurrence_id: 'ev-1:2026-12-11',
     });
   });
 
@@ -55,6 +65,7 @@ describe('toVenueEvent', () => {
       toVenueEvent({ id: 'e', event_date: '2026-12-04' })
     ).toEqual({
       id: 'e',
+      occurrence_id: 'e:2026-12-04',
       theme_name: 'Event',
       description: '',
       event_date: '2026-12-04',

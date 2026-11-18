@@ -100,7 +100,7 @@ const VenueEventsScreen = () => {
             ) : (
                 events.map((event) => (
                     <VenueEventCard
-                        key={event.id}
+                        key={event.occurrence_id}
                         event={event}
                         onEdit={editEvent}
                         onDelete={confirmDelete}

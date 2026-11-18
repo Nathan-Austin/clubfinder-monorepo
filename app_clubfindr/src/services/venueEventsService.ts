@@ -6,14 +6,20 @@
  * could not be deleted) and one without a date today's date (so it showed as tonight's). Such
  * rows are left out now.
  *
- * Recurring events are one row with their first date: the server does not expand them into
- * dates yet (KNOWN_ISSUES 90), so after that date they are not listed at all.
+ * Recurring events are one row with a start date and a pattern; since 2026-11-19 the server
+ * expands them into their upcoming dates (KNOWN_ISSUES 90), so the same series arrives several
+ * times with different `event_date`s. `occurrence_id` tells those entries apart (lists key on
+ * it); `id` stays the row, which is what edit and delete act on - deleting still removes the
+ * whole series (cancelling one date is KNOWN_ISSUES 89).
  */
 import axiosClient from '../api/axiosClient';
 import { log } from '../utils/logger';
 
 export type VenueEvent = {
+    /** The row: what edit and delete act on */
     id: string;
+    /** This date of the series, unique in the list (`<id>:<date>`) */
+    occurrence_id: string;
     theme_name: string;
     description: string;
     /** YYYY-MM-DD, a local calendar day */
@@ -39,6 +45,7 @@ export function toVenueEvent(raw: unknown): VenueEvent | null {
     if (!id || !date || !ISO_DATE.test(date)) return null;
     return {
         id,
+        occurrence_id: text(row.occurrence_id) ?? `${id}:${date}`,
         theme_name: text(row.theme_name) ?? 'Event',
         description: text(row.description) ?? '',
         event_date: date,

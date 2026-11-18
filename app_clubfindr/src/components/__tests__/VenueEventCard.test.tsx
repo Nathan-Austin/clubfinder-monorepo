@@ -5,6 +5,7 @@ import type { VenueEvent } from '../../services/venueEventsService';
 
 const event: VenueEvent = {
   id: 'ev-1',
+  occurrence_id: 'ev-1:2026-12-04',
   theme_name: 'Friday Session',
   description: 'Deep cuts all night',
   event_date: '2026-12-04',
