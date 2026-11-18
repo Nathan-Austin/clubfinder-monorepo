@@ -147,6 +147,15 @@ Test locally with `DRY_RUN=1 deploy/deploy.sh <sha>`.
 
 ## Scheduled jobs
 
-- `data_collection/run_data_collection.sh`: daily 04:00, **currently disabled**
-  (commented out) because the event fetcher has been broken since Aug 2025.
+- `data_collection/run_data_collection.sh`: daily 02:00, done before 08:00
+  (up to ~30 min per city: timeouts of 5, 10 and 15 min for the event fetch,
+  Spotify and SoundCloud). Scrapes the next 15 days of events per city, so if
+  it stops, the app and /clubs run out of events about two weeks later. Its
+  database login is `PG_*` in `clubfindr/.env` (`config()` in
+  `data_collection/utils.py`; `database.ini` is no longer read). Runs from
+  `$HOME`, so `~/event_fetcher.log` and the SoundCloud progress file
+  `~/api_call_log.json` live there. It was disabled from 2026-10-03 to
+  2026-11-18: RA dropped the `venueSearch` GraphQL query (Aug 2025), which only
+  lost venue coordinates and filled `~/event_fetcher.log`; the fetcher now
+  takes them from the event listing.
 - `data_collection/cleanup_logs.sh`: Sundays 00:00.

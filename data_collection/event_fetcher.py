@@ -108,127 +108,52 @@ class EventFetcher:
 
         return events
 
-    def get_venue_coordinates(self, venue_name):
-        """Get coordinates for a venue from the venues table or fetch them from RA."""
-        # Check if coordinates are in the cache
+    @staticmethod
+    def _valid_location(location):
+        """Return {latitude, longitude} from an RA location, or None when missing or 0,0."""
+        if not isinstance(location, dict):
+            return None
+        lat, lng = location.get("latitude"), location.get("longitude")
+        if lat is None or lng is None or (lat == 0 and lng == 0):
+            return None
+        return {"latitude": lat, "longitude": lng}
+
+    def get_venue_coordinates(self, venue):
+        """Coordinates for an event's venue.
+
+        The event listing already carries venue.location, so that is used first and
+        saved to the venues table. RA removed the venueSearch query (Aug 2025), so a
+        venue without a location falls back to the venues table, else no coordinates.
+        """
+        venue_name = venue.get("name", "Unknown Venue")
         if venue_name in self.venue_cache:
             return self.venue_cache[venue_name]
 
-        # Check if coordinates are in the venues table
-        query = """
-        SELECT latitude, longitude
-        FROM clubfindr.venues
-        WHERE name = %s AND city = %s;
-        """
-
-        result = execute_query(query, params=(venue_name, self.city_name), fetch=True)
-
-        if result and result[0][0] is not None and result[0][1] is not None:
-            # Coordinates found in venues table
-            coordinates = {"latitude": result[0][0], "longitude": result[0][1]}
-            self.venue_cache[venue_name] = coordinates
-            return coordinates
-
-        # If not in the database, fetch from RA
-        return self.fetch_venue_coordinates(venue_name)
-
-    def fetch_venue_coordinates(self, venue_name):
-        """Fetch venue coordinates from RA Search API."""
-        payload = {
-            "operationName": "SearchVenues",
-            "variables": {"searchQuery": venue_name, "areaId": self.area_code},
-            "query": """
-            query SearchVenues($searchQuery: String!, $areaId: Int) {
-              venueSearch(searchQuery: $searchQuery, areaId: $areaId) {
-                data {
-                  id
-                  name
-                  address
-                  location {
-                    latitude
-                    longitude
-                  }
-                }
-              }
-            }
-            """,
-        }
-
-        try:
-            response = requests.post(URL, headers=self.headers, json=payload)
-            response.raise_for_status()
-            try:
-                data = response.json()
-            except ValueError:
-                logging.error("Failed to parse JSON response for venue search")
-                return {"latitude": None, "longitude": None}
-
-            venues = parse_graphql_response(
-                data,
-                ["venueSearch", "data"],
-                context="Venue search response",
-                logger=logging,
-                expected_type=list,
+        coordinates = self._valid_location(venue.get("location"))
+        if coordinates:
+            self.save_venue_to_database(
+                venue.get("id", ""),
+                venue_name,
+                venue.get("address", ""),
+                coordinates["latitude"],
+                coordinates["longitude"],
             )
-            if venues is None:
-                return {"latitude": None, "longitude": None}
-
-                if venues:
-                    # Find the best match for the venue
-                    best_match = None
-                    for venue in venues:
-                        if (
-                            venue_name.lower() in venue["name"].lower()
-                            or venue["name"].lower() in venue_name.lower()
-                        ):
-                            best_match = venue
-                            break
-
-                    # If no direct match, use the first venue
-                    if not best_match and venues:
-                        best_match = venues[0]
-
-                    if best_match:
-                        location = best_match.get("location", {})
-                        if (
-                            location
-                            and "latitude" in location
-                            and "longitude" in location
-                        ):
-                            coordinates = {
-                                "latitude": location["latitude"],
-                                "longitude": location["longitude"],
-                            }
-
-                            # Save to venues table for future use
-                            self.save_venue_to_database(
-                                best_match.get("id", ""),
-                                best_match["name"],
-                                best_match.get("address", ""),
-                                coordinates["latitude"],
-                                coordinates["longitude"],
-                            )
-
-                            # Cache the coordinates
-                            self.venue_cache[venue_name] = coordinates
-                            return coordinates
-
-            # If we get here, we couldn't find coordinates
-            logging.warning(
-                "Could not find coordinates for venue: %s",
-                redact_identifier(venue_name, "venue"),
+        else:
+            query = """
+            SELECT latitude, longitude
+            FROM clubfindr.venues
+            WHERE name = %s AND city = %s;
+            """
+            result = execute_query(
+                query, params=(venue_name, self.city_name), fetch=True
             )
-            self.venue_cache[venue_name] = {"latitude": None, "longitude": None}
-            return {"latitude": None, "longitude": None}
+            if result and result[0][0] is not None and result[0][1] is not None:
+                coordinates = {"latitude": result[0][0], "longitude": result[0][1]}
+            else:
+                coordinates = {"latitude": None, "longitude": None}
 
-        except Exception as e:
-            logging.error(
-                "Error fetching coordinates for venue %s: %s",
-                redact_identifier(venue_name, "venue"),
-                e,
-            )
-            self.venue_cache[venue_name] = {"latitude": None, "longitude": None}
-            return {"latitude": None, "longitude": None}
+        self.venue_cache[venue_name] = coordinates
+        return coordinates
 
     def save_venue_to_database(self, venue_id, name, address, latitude, longitude):
         """Save venue information to the venues table."""
@@ -318,7 +243,7 @@ class EventFetcher:
                 club_address = venue.get("address", "Unknown Address")
 
                 # Get coordinates for this venue
-                coordinates = self.get_venue_coordinates(club_name)
+                coordinates = self.get_venue_coordinates(venue)
                 latitude = coordinates["latitude"]
                 longitude = coordinates["longitude"]
 

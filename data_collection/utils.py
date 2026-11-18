@@ -1,5 +1,5 @@
 import re
-from configparser import ConfigParser
+from dotenv import dotenv_values
 import requests
 from bs4 import BeautifulSoup
 import psycopg2
@@ -129,22 +129,34 @@ def update_primary_keys():
 ############################## DATABASE CONNECTION FUNCTIONS #################################
 
 
-def config(
-    filename="/home/nathan/clubfinder/data_collection/database.ini",
-    section="postgresql",
-):
-    """Takes secret login info from database.ini to connect to PostgreSQL."""
-    parser = ConfigParser()
-    parser.read(filename)
+CLUBFINDR_ENV_FILE = "/home/nathan/clubfinder/clubfindr/.env"
 
-    if not parser.read(filename):
-        raise FileNotFoundError(f"Could not find file: {filename}")
 
-    if parser.has_section(section):
-        logging.debug(f"Configuration section '{section}' found.")
-        return {param[0]: param[1] for param in parser.items(section)}
-    else:
-        raise Exception(f"Section {section} not found in the {filename} file")
+def config(filename=None):
+    """PostgreSQL connection parameters, read from the web app's clubfindr/.env.
+
+    One credential source for the site and the scrapers, so a password change
+    cannot leave data_collection behind (it used database.ini until 2026-11-18).
+    DATA_COLLECTION_ENV_FILE overrides the path.
+    """
+    path = filename or os.getenv("DATA_COLLECTION_ENV_FILE", CLUBFINDR_ENV_FILE)
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"Could not find database settings file: {path}")
+    values = dotenv_values(path)
+    keys = ("PG_HOST", "PG_PORT", "PG_DB", "PG_USERNAME", "PG_PASSWORD")
+    missing = [key for key in keys if not values.get(key)]
+    if missing:
+        raise KeyError(f"{path} is missing {', '.join(missing)}")
+    if values["PG_PORT"] == "54329":
+        # dev/setup.sh --force rewrites clubfindr/.env for the dev seed database
+        raise RuntimeError(f"{path} points at the dev database (port 54329)")
+    return {
+        "host": values["PG_HOST"],
+        "port": values["PG_PORT"],
+        "database": values["PG_DB"],
+        "user": values["PG_USERNAME"],
+        "password": values["PG_PASSWORD"],
+    }
 
 
 _DB_POOL = None

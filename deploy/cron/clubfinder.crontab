@@ -1,8 +1,10 @@
 # Clubfinder entries from user nathan's crontab (crontab -e).
 # Install by merging these lines into the user crontab; do not replace it wholesale.
 
-# Event scraping. DISABLED: the event fetcher has been broken since Aug 2025.
-# 0 4 * * * /home/nathan/clubfinder/data_collection/run_data_collection.sh >> /home/nathan/cron.log 2>&1
+# Event scraping (RA events for live_cities.txt, then Spotify and SoundCloud). Up to ~30 min
+# per city (timeouts 5/10/15 min), so 02:00 leaves it done before 08:00.
+# Runs from $HOME, so event_fetcher.log and api_call_log.json land in /home/nathan.
+0 2 * * * /home/nathan/clubfinder/data_collection/run_data_collection.sh >> /home/nathan/cron.log 2>&1
 
 # Weekly log cleanup (Sunday 00:00). cleanup_logs.sh is a Python script despite the name.
 0 0 * * 0  /home/nathan/clubfinder/data_collection/cleanup_logs.sh

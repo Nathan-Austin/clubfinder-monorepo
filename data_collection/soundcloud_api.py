@@ -689,8 +689,11 @@ def call_api(
         api_call_log_serializable = {
             name: timestamp.isoformat() for name, timestamp in api_call_log.items()
         }
-        with open("api_call_log.json", "w") as f:
+        # Write to a temp file and swap it in, so a crash mid-write cannot leave
+        # a truncated api_call_log.json that fails every later run.
+        with open("api_call_log.json.tmp", "w") as f:
             json.dump(api_call_log_serializable, f, indent=2)
+        os.replace("api_call_log.json.tmp", "api_call_log.json")
 
         time.sleep(DELAY_BETWEEN_CALLS)  # Throttle API calls
 
@@ -728,13 +731,18 @@ if __name__ == "__main__":
     api_call_log = {}
 
     if os.path.exists("api_call_log.json"):
-        with open("api_call_log.json", "r") as f:
-            api_call_log_raw = json.load(f)
+        try:
+            with open("api_call_log.json", "r") as f:
+                api_call_log_raw = json.load(f)
             # Convert ISO format strings back to datetime objects
             api_call_log = {
                 name: datetime.datetime.fromisoformat(timestamp)
                 for name, timestamp in api_call_log_raw.items()
             }
+        except (ValueError, AttributeError) as e:
+            # A damaged log only means artists get re-checked; don't fail the run.
+            logging.warning("Ignoring unreadable api_call_log.json: %s", e)
+            api_call_log = {}
 
     # Process artists in batches
     BATCH_SIZE = 50
