@@ -571,7 +571,7 @@ export function isSimilarityMatch(similarity: number): boolean {
 export function calculateClusterSimilarity(
 	userClusters: ClusterEntry[],
 	clubClusters: ClusterEntry[]
-): { similarity: number; matchingGenres: string[] } {
+): { similarity: number; matchingGenres: string[]; matchingClubGenres: string[] } {
 	const user = aggregateSide(userClusters);
 	const club = aggregateSide(clubClusters);
 
@@ -629,5 +629,26 @@ export function calculateClusterSimilarity(
 		)
 	];
 
-	return { similarity: similarityScore, matchingGenres };
+	// The club side's own names for the same matches: what the card can show as "you matched on
+	// deep house, tech house" out of the night's whole list (KNOWN_ISSUES 94). matchingGenres
+	// above are the user's names, which need not appear in the event's list at all (a picked
+	// "Minimal and Techno" matches an event's "dub techno" without sharing a word).
+	const matchingClubGenres = [
+		...new Set(
+			clubClusters
+				.filter((cc) => {
+					if (cc.familySubClusters && cc.familySubClusters.length > 0) {
+						const familyId = JSON.stringify(
+							cc.familySubClusters.map((sc) => makeClusterId(cc.cluster, sc)).sort()
+						);
+						return matchedFamilyIds.has(familyId);
+					}
+					const clusterId = makeClusterId(cc.cluster, cc.subCluster);
+					return matchingClusterIds.has(clusterId) || consumedClub.has(clusterId);
+				})
+				.map((cc) => cc.genre)
+		)
+	];
+
+	return { similarity: similarityScore, matchingGenres, matchingClubGenres };
 }

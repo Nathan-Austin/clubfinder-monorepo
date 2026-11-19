@@ -40,6 +40,8 @@ type SimilarityResult = {
 	club_address: string;
 	event_id: number;
 	matchingGenres: string[];
+	/** The event's own genres that matched (the card shows these first, KNOWN_ISSUES 94) */
+	matchedEventGenres: string[];
 };
 
 process.on('SIGINT', async () => {
@@ -301,15 +303,18 @@ export const load: PageServerLoad = async ({ cookies, url, depends }) => {
 			const clubClusters = findClusters(club.genres);
 
 			// Calculate similarity between userClusters and clubClusters
-			const { similarity: similarityScore, matchingGenres } = calculateClusterSimilarity(
-				userClusters,
-				clubClusters
-			);
+			const {
+				similarity: similarityScore,
+				matchingGenres,
+				matchingClubGenres
+			} = calculateClusterSimilarity(userClusters, clubClusters);
 
 			return {
 				...club,
 				similarity: similarityScore,
-				matchingGenres
+				matchingGenres,
+				// The event's own genres that matched: what the card shows first (KNOWN_ISSUES 94)
+				matchedEventGenres: matchingClubGenres
 			};
 		});
 

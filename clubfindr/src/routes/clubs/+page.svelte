@@ -8,7 +8,29 @@
 	const newdate = $derived(data.props.date);
 	const address: string | undefined = $derived(data.props.address);
 	const isLoggedIn: boolean = $derived(data.props.isLoggedIn ?? false);
-	let showMore = $state(false);
+	// Which cards show the event's whole genre list rather than the genres that matched
+	// (per card: one switch used to open every card at once)
+	let expanded = $state<Record<number, boolean>>({});
+	function toggleGenres(eventId: number) {
+		expanded[eventId] = !expanded[eventId];
+	}
+	/**
+	 * The card's genre view (KNOWN_ISSUES 94, personas.md rule 1): the genres the person matched
+	 * on come first and are all that shows by default, the match is a percentage, and the whole
+	 * list is one tap away, so a night that is twenty genres of techno with two of yours reads as
+	 * the low match it is, and the two are named.
+	 */
+	function genreView(result: SimilarityResult) {
+		const all = [...new Set(result.genres.map((genre) => genre.trim().toLowerCase()))].filter(
+			(genre) => genre && genre !== 'none'
+		);
+		const matchedSet = new Set(
+			(result.matchedEventGenres ?? []).map((genre) => genre.trim().toLowerCase())
+		);
+		const matched = all.filter((genre) => matchedSet.has(genre));
+		const rest = all.filter((genre) => !matchedSet.has(genre)).sort();
+		return { all: [...matched, ...rest], matched, total: all.length, matchedSet };
+	}
 	let options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
 	let formattedDate = $derived(
 		new Intl.DateTimeFormat('en-US', options).format(
@@ -153,6 +175,8 @@
 	{:else}
 		<div class="poster-container">
 			{#each visibleResults as result (result.event_id)}
+				{@const view = genreView(result)}
+				{@const open = expanded[result.event_id] === true}
 				<div class="poster">
 					<div class="flyer-container">
 						{#if result.event_image && result.event_image.trim() !== '' && result.event_image !== 'Event flyerfront image not available'}
@@ -230,15 +254,27 @@
 
 						<div class="item">
 							<div class="value genres-container">
-								<div class="genres-header">Matching Genres:</div>
+								<div class="genres-header">
+									Matching Genres:
+									<span class="match-score" data-testid="match-score">
+										{`${Math.round(result.similarity * 100)}% match · ${view.matched.length} of ${view.total} ${view.total === 1 ? 'genre' : 'genres'}`}
+									</span>
+								</div>
 								<div class="genres-columns">
-									{#each result.genres.slice(0, showMore ? result.genres.length : 5) as genre, i (i)}
-										<div class="genre-item">{genre}</div>
+									{#each open || view.matched.length === 0 ? view.all : view.matched as genre (genre)}
+										<div class="genre-item" class:matching={view.matchedSet.has(genre)}>
+											{genre}{#if view.matchedSet.has(genre)}<span class="match-indicator">✓</span
+												>{/if}
+										</div>
 									{/each}
 								</div>
-								{#if result.genres.length > 5}
-									<button onclick={() => (showMore = !showMore)} class="show-more-button">
-										{showMore ? 'Show Less' : 'Show More'}
+								{#if view.total > view.matched.length && view.matched.length > 0}
+									<button
+										onclick={() => toggleGenres(result.event_id)}
+										class="show-more-button"
+										data-testid="toggle-genres"
+									>
+										{open ? 'Show matched only' : `Show all ${view.total} genres`}
 									</button>
 								{/if}
 							</div>
@@ -424,6 +460,24 @@
 		padding: 0.5em;
 		border-radius: 4px;
 		text-align: center; /* Center text within genre items */
+	}
+
+	/* A genre the person matched on: the same green as /barfindr's */
+	.genre-item.matching {
+		background-color: #1db954;
+		color: white;
+	}
+
+	.match-indicator {
+		margin-left: 4px;
+		font-size: 0.7rem;
+	}
+
+	.match-score {
+		font-weight: normal;
+		font-size: 0.9em;
+		margin-left: 0.5em;
+		white-space: nowrap;
 	}
 
 	.show-more-button {

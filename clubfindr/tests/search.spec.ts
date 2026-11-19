@@ -11,6 +11,11 @@ test.describe('home page search', () => {
 		// Seeded Berlin techno events with their matching genres
 		await expect(page.locator('body')).toContainText('Club:');
 		await expect(page.locator('body')).toContainText('Matching Genres:');
+		// Every card says how good the match is, and shows only the genres it matched on until
+		// asked for the whole list (KNOWN_ISSUES 94; the pinned nights below check the counts)
+		const first = page.locator('.poster').first();
+		await expect(first.getByTestId('match-score')).toContainText(/\d+% match · \d+ of \d+\s+genre/);
+		expect(await first.locator('.genre-item:not(.matching)').count()).toBe(0);
 		expect(pageErrors).toEqual([]);
 	});
 
@@ -56,6 +61,20 @@ test.describe('home page search', () => {
 		await page.waitForURL('**/clubs?date=2031-06-21');
 		await expect(page.locator('.header')).toContainText('June 21');
 		await expect(page.locator('body')).toContainText('Matching Genres:');
+
+		// The pinned Velour night (deep house, tech house, minimal) against "Minimal and Techno":
+		// the card names the genres it matched on out of three, and the whole list is one tap
+		// away (KNOWN_ISSUES 94)
+		const velour = page.locator('.poster', { hasText: 'Velour' }).first();
+		await expect(velour.getByTestId('match-score')).toContainText(
+			/\d+% match · [12] of 3\s+genres/
+		);
+		const matched = await velour.locator('.genre-item.matching').count();
+		expect(matched).toBeGreaterThan(0);
+		expect(await velour.locator('.genre-item').count()).toBe(matched);
+		await velour.getByTestId('toggle-genres').click();
+		await expect(velour.locator('.genre-item')).toHaveCount(3);
+		await expect(velour.getByTestId('toggle-genres')).toHaveText('Show matched only');
 
 		// /barfindr searches by the cookies alone: the genres and the changed date both arrive
 		await page.goto('/barfindr');

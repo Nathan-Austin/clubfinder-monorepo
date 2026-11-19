@@ -82,12 +82,43 @@ describe('umbrella genres', () => {
 	});
 
 	it('works the other way round: a specific user at a venue that just says "house"', () => {
-		const { similarity, matchingGenres } = calculateClusterSimilarity(
+		const { similarity, matchingGenres, matchingClubGenres } = calculateClusterSimilarity(
 			findClusters(['deep house']),
 			findClusters(['house'])
 		);
 		expect(similarity).toBe(1);
 		expect(matchingGenres).toEqual(['deep house']);
+		expect(matchingClubGenres).toEqual(['house']);
+	});
+
+	it("names the club side's own genres that matched, out of its whole list", () => {
+		// The owner's 2026-11-19 case (KNOWN_ISSUES 94): a punk profile against a techno night
+		// carrying four odd punk genres. The card shows the two it matched on, not the twenty.
+		const { similarity, matchingGenres, matchingClubGenres } = calculateClusterSimilarity(
+			findClusters(['hardcore punk', 'post-punk']),
+			findClusters([
+				'techno',
+				'minimal techno',
+				'deep house',
+				'tech house',
+				'hardcore punk',
+				'screamo'
+			])
+		);
+		expect(similarity).toBeGreaterThan(0);
+		expect(similarity).toBeLessThan(0.5);
+		// Both picks sit in the sub-cluster the night's "hardcore punk" reached; "screamo" lives
+		// elsewhere, so the night's own matched list is the one genre
+		expect(matchingGenres).toEqual(['hardcore punk', 'post-punk']);
+		expect(matchingClubGenres).toEqual(['hardcore punk']);
+	});
+
+	it("names the member genres an umbrella pick reached, in the club list's own words", () => {
+		const { matchingClubGenres } = calculateClusterSimilarity(
+			findClusters(['house']),
+			findClusters(['deep house', 'hard techno', 'afro house'])
+		);
+		expect(matchingClubGenres).toEqual(['deep house', 'afro house']);
 	});
 
 	it('does not reach outside its family', () => {

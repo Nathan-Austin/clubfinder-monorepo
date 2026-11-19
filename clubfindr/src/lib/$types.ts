@@ -8,7 +8,10 @@ export type SimilarityResult = {
 	event_name: string;
 	club_address: string;
 	event_id: number;
+	/** The user's genres that matched (their own names) */
 	matchingGenres: string[];
+	/** The event's genres that matched, out of `genres` (what the card shows first) */
+	matchedEventGenres: string[];
 };
 export type BarData = {
 	bar_name: string;
