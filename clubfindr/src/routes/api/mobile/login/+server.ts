@@ -1,6 +1,7 @@
 // api/mobile/login/+server.ts
 // Handle mobile app user authentication and session management
 import type { RequestHandler } from '@sveltejs/kit';
+import { openUserSession } from '$lib/server/userSessions';
 import { query } from '$lib/db';
 import { comparePassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
@@ -134,21 +135,8 @@ export const POST: RequestHandler = async ({ request }) => {
 // Background function to create session without blocking the response
 async function createSession(sessionId: string, userId: string, city: string) {
 	try {
-		// One statement, not DELETE then INSERT: see the note in /login/users. Two logins by the
-		// same user at once raced on the UNIQUE user_id, and the loser answered 500.
-		await query(
-			`
-            INSERT INTO clubfindr.user_sessions (session_id, user_id, user_city, last_accessed)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id) DO UPDATE SET
-                session_id = EXCLUDED.session_id,
-                user_city = EXCLUDED.user_city,
-                last_accessed = EXCLUDED.last_accessed,
-                genres = NULL,
-                created_at = CURRENT_TIMESTAMP
-        `,
-			[sessionId, userId, city, new Date().toISOString()]
-		);
+		// A session of its own for this login, beside the browser's (KNOWN_ISSUES 95)
+		await openUserSession(pool, sessionId, userId, city);
 	} catch (error) {
 		console.error('Session creation error:', error);
 	}

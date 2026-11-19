@@ -746,14 +746,6 @@ ALTER TABLE ONLY clubfindr.user_favourite_artists
 
 
 --
--- Name: user_sessions unique_user_id; Type: CONSTRAINT; Schema: clubfindr; Owner: -
---
-
-ALTER TABLE ONLY clubfindr.user_sessions
-    ADD CONSTRAINT unique_user_id UNIQUE (user_id);
-
-
---
 -- Name: user_checkins user_checkins_pkey; Type: CONSTRAINT; Schema: clubfindr; Owner: -
 --
 
@@ -767,6 +759,21 @@ ALTER TABLE ONLY clubfindr.user_checkins
 
 ALTER TABLE ONLY clubfindr.user_sessions
     ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_sessions_session_id_key; Type: INDEX; Schema: clubfindr; Owner: -
+-- (migrations/20261119_user_sessions_many_per_user.sql: one session per device, KNOWN_ISSUES 95)
+--
+
+CREATE UNIQUE INDEX user_sessions_session_id_key ON clubfindr.user_sessions USING btree (session_id);
+
+
+--
+-- Name: idx_user_sessions_user_id; Type: INDEX; Schema: clubfindr; Owner: -
+--
+
+CREATE INDEX idx_user_sessions_user_id ON clubfindr.user_sessions USING btree (user_id);
 
 
 --

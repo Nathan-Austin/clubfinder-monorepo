@@ -14,6 +14,7 @@
 import { error, type Cookies } from '@sveltejs/kit';
 import { cookieManager } from '$lib/cookieManager';
 import { isUuid, type Queryable } from '$lib/taste/favouriteArtists';
+import { openUserSession } from '$lib/server/userSessions';
 
 /** The one session cookie, shared with /login/users (resolved by hooks.server.ts too). */
 export const USER_SESSION_COOKIE = 'sessionId';
@@ -34,41 +35,17 @@ function msSince(value: unknown, now: number): number {
 /**
  * The session for a promoter who has just proved their password; returns its id.
  *
- * user_sessions holds one row per user (unique_user_id), so a new row would replace the one the
- * same person may hold in the app or on the web. The dashboard login reuses a live session
- * instead, so logging in to the dashboard does not log the app out; only a missing or expired
- * session is replaced, in one statement, so two logins at the same moment cannot collide on the
- * constraint (as /login/users already does).
+ * A row of its own (KNOWN_ISSUES 95): until 2026-11-19 user_sessions held one row per user, so
+ * this reused the live session the same person held in the app rather than replace it. Now the
+ * dashboard and the app each keep theirs.
  */
 export async function createPromoterSession(
 	db: Queryable,
 	userId: string,
 	now: () => number = Date.now
 ): Promise<string> {
-	const existing = await db.query(
-		'SELECT session_id, last_accessed FROM clubfindr.user_sessions WHERE user_id = $1',
-		[userId]
-	);
-	const row = existing.rows[0];
-	if (row && isUuid(row.session_id) && msSince(row.last_accessed, now()) <= MAX_AGE_MS) {
-		await db.query('UPDATE clubfindr.user_sessions SET last_accessed = $1 WHERE session_id = $2', [
-			new Date(now()).toISOString(),
-			row.session_id
-		]);
-		return row.session_id;
-	}
-
 	const sessionId = crypto.randomUUID();
-	await db.query(
-		`INSERT INTO clubfindr.user_sessions (session_id, user_id, last_accessed)
-		 VALUES ($1, $2, $3)
-		 ON CONFLICT (user_id) DO UPDATE SET
-		     session_id = EXCLUDED.session_id,
-		     last_accessed = EXCLUDED.last_accessed,
-		     genres = NULL,
-		     created_at = CURRENT_TIMESTAMP`,
-		[sessionId, userId, new Date(now()).toISOString()]
-	);
+	await openUserSession(db, sessionId, userId, null, new Date(now()));
 	return sessionId;
 }
 

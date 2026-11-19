@@ -33,11 +33,11 @@ export function testPassword() {
  *   (60 requests/minute in hooks.server.ts) keys on; without it a parallel run is throttled.
  * - Uncaught page errors fail the test. Console errors from blocked third-party scripts are
  *   expected offline and are not counted.
- * - One session per user: /login/users deletes the user's other sessions, so two tests that
- *   log in as the same user in parallel invalidate each other's session cookie. Page loads
- *   mostly survive this (they also read the usersId cookie), API calls do not. Tests that call
- *   the API as a given user must live in one file with `test.describe.configure({ mode:
- *   'default' })`, and no other file may log in as that user (see tests/taste.spec.ts).
+ * - Sessions: since 2026-11-19 a login opens a session of its own (KNOWN_ISSUES 95; before,
+ *   user_sessions held one row per user and a login elsewhere invalidated it). A logout, a
+ *   password reset or an account deletion still ends sessions, so tests that do those to a
+ *   seeded user would still trip tests running as that user in parallel: keep such tests on
+ *   accounts of their own (tests/venue.ts, or a sign-up in the test).
  */
 
 export const USERS = {

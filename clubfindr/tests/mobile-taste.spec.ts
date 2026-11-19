@@ -102,8 +102,9 @@ test('the login token drives the taste API; three artists complete the step', as
 	const again = await mobileLogin(api, email);
 	expect(again.user.artistOnboarding).toMatchObject({ required: false, favouriteCount: 3 });
 
-	// That login replaced the session, so the first token no longer works
-	expect((await api.get('/api/taste/artists', { headers: bearer(token) })).status()).toBe(401);
+	// That login opened a session of its own; the first token still works (KNOWN_ISSUES 95:
+	// until 2026-11-19 a login replaced the account's one session)
+	expect((await api.get('/api/taste/artists', { headers: bearer(token) })).status()).toBe(200);
 
 	// Removing one with the new token drops back under the step's minimum
 	const removed = await api.delete(`/api/taste/artists/${added[0]}`, {

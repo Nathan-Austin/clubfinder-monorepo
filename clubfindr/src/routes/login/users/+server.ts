@@ -1,4 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
+import { openUserSession } from '$lib/server/userSessions';
 import { query } from '$lib/db';
 import { comparePassword, hashPassword } from '$lib/server/passwordUtils';
 import { normalizeCityName } from '$lib/cityName';
@@ -259,27 +260,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				status: 400
 			});
 		}
-		// One session row per user (user_sessions.user_id is UNIQUE), replaced in a single
-		// statement rather than DELETE then INSERT: two logins by the same user at the same
-		// moment (two devices, or a double submit) used to race, and whichever INSERT came
-		// second failed on the constraint, answering 500 to a perfectly good login.
-		// The columns a new session must not inherit from the old one are reset explicitly,
-		// which is what the DELETE used to take care of: the previous session's genres must not
-		// survive a fresh login.
+		// A session of its own for this login: the phone's and the browser's live side by side
+		// (KNOWN_ISSUES 95; one row per account until 2026-11-19)
 		const sessionId = uuidv4();
-		await query(
-			`
-            INSERT INTO clubfindr.user_sessions (session_id, user_id, user_city, last_accessed)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id) DO UPDATE SET
-                session_id = EXCLUDED.session_id,
-                user_city = EXCLUDED.user_city,
-                last_accessed = EXCLUDED.last_accessed,
-                genres = NULL,
-                created_at = CURRENT_TIMESTAMP
-        `,
-			[sessionId, user_id, normalizedCityName, new Date()]
-		);
+		await openUserSession(pool, sessionId, user_id, normalizedCityName);
 
 		// Check if this is a mobile app request
 		if (isMobileApp) {

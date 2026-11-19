@@ -194,8 +194,8 @@ test("a regular user's session does not pass the promoter guard", async ({
 	}
 });
 
-// user_sessions holds one row per user, so a dashboard login that always wrote a new row would
-// log the same person out of the app. It reuses a live session instead.
+// A dashboard login opens a session of its own beside the app's (KNOWN_ISSUES 95; until
+// 2026-11-19 user_sessions held one row per user and the dashboard reused the app's session)
 test("logging in to the dashboard keeps the promoter's app session alive", async ({
 	playwright,
 	baseURL
@@ -214,13 +214,13 @@ test("logging in to the dashboard keeps the promoter's app session alive", async
 		await loginPromoter(web, account.email);
 		expect((await web.get('/promoter-home/events')).status()).toBe(200);
 
-		// The app's token is still the promoter's session
+		// The app's token is still a session of the promoter's, beside the dashboard's
 		expect((await app.get('/api/taste/artists', { headers: bearer(token) })).status()).toBe(200);
 		const rows = await devQuery<{ n: string }>(
 			'SELECT count(*) AS n FROM clubfindr.user_sessions WHERE user_id = $1',
 			[account.userId]
 		);
-		expect(rows).toEqual([{ n: '1' }]);
+		expect(rows).toEqual([{ n: '2' }]);
 	} finally {
 		await removePromoter(account);
 		await app.dispose();

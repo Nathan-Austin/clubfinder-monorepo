@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { openUserSession } from '$lib/server/userSessions';
 import { pool, query } from '$lib/db';
 import { CODE_ATTEMPTS_EXHAUSTED, spendCodeAttempt } from '$lib/server/codeAttempts';
 import { normalizeCityName } from '$lib/cityName';
@@ -67,17 +68,7 @@ export async function POST({ request }) {
 		if (user) {
 			const sessionId = crypto.randomUUID();
 			const normalizedCityName = user.city ? normalizeCityName(user.city) : '';
-			await query(
-				`INSERT INTO clubfindr.user_sessions (session_id, user_id, user_city, last_accessed)
-				 VALUES ($1, $2, $3, $4)
-				 ON CONFLICT (user_id) DO UPDATE SET
-				     session_id = EXCLUDED.session_id,
-				     user_city = EXCLUDED.user_city,
-				     last_accessed = EXCLUDED.last_accessed,
-				     genres = NULL,
-				     created_at = CURRENT_TIMESTAMP`,
-				[sessionId, user.id, normalizedCityName, new Date().toISOString()]
-			);
+			await openUserSession(pool, sessionId, user.id, normalizedCityName);
 			session = {
 				token: sessionId,
 				user: {

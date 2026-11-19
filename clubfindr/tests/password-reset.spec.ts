@@ -5,7 +5,8 @@ import { waitForMail } from './mail';
 
 // A personal-account password reset ends every session of that account, web and app, as a
 // venue's has since 2026-11-16 (KNOWN_ISSUES 80): a reset is usually the answer to a password
-// someone else knows, and their logins must stop working with it.
+// someone else knows, and their logins must stop working with it. Since the same day an account
+// holds one session per device (KNOWN_ISSUES 95), so "every" means something here.
 
 const PASSWORD = testPassword();
 const NEW_PASSWORD = `${testPassword()}x9!`;
@@ -25,14 +26,17 @@ async function signUp(api: APIRequestContext, email: string) {
 	expect(response.status(), await response.text()).toBe(200);
 }
 
-test('resetting a personal password ends its session', async ({ page, playwright, baseURL }) => {
+test('resetting a personal password ends every session of the account', async ({
+	page,
+	playwright,
+	baseURL
+}) => {
 	const api = await mobileApi(playwright, baseURL);
 	const email = unique();
 	try {
 		await signUp(api, email);
-		// An account has one session at a time (user_sessions.unique_user_id: a login replaces
-		// the previous one), so the live session here is the app's Bearer token; the web login
-		// before it is what the owner's browser would hold until then
+		// One session on the web (the page's cookies) and one in the app (a Bearer token), both
+		// alive at once: a login no longer logs the other device out (KNOWN_ISSUES 95)
 		const webLogin = await page.request.post('/login/users', {
 			data: { provider: 'local', isNewUser: false, isMobileApp: false, email, password: PASSWORD }
 		});
@@ -41,6 +45,14 @@ test('resetting a personal password ends its session', async ({ page, playwright
 		expect(appLogin.status()).toBe(200);
 		const token = (await appLogin.json()).token as string;
 		expect((await api.get('/api/taste/artists', { headers: bearer(token) })).status()).toBe(200);
+		expect((await page.request.get('/api/taste/artists')).status()).toBe(200);
+		const live = await devQuery(
+			`SELECT 1 FROM clubfindr.user_sessions s JOIN clubfindr.users u ON u.id = s.user_id
+			  WHERE u.general_email = $1`,
+			[email]
+		);
+		// The sign-up's own session, the web one and the app one
+		expect(live, 'a session per device').toHaveLength(3);
 
 		const startedAt = Date.now();
 		expect((await api.post('/api/request-password-reset', { data: { email } })).status()).toBe(200);
@@ -56,7 +68,7 @@ test('resetting a personal password ends its session', async ({ page, playwright
 		expect(reset.status(), await reset.text()).toBe(200);
 		expect((await reset.json()).account).toBe('user');
 
-		// The session is gone, in the database and in the hooks cache
+		// Both sessions are gone, in the database and in the hooks cache
 		expect((await api.get('/api/taste/artists', { headers: bearer(token) })).status()).toBe(401);
 		expect((await page.request.get('/api/taste/artists')).status()).toBe(401);
 		const left = await devQuery(
