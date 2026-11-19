@@ -989,6 +989,10 @@ here that needs the server is collected in ROADMAP, "Next server round".
     `https://play.google.com/store/apps/details?id=com.clubfindr.mobile` in both places, and the App
     Store link (or none) until the app has an App Store record (ROADMAP section 5, "iPhone / App
     Store"); its two-second fallback also fires when the app did open, which is worth a look then.
+    _Fixed 2026-11-19._ `$lib/storeLinks` names the app (`com.clubfindr.mobile`, held to
+    `app_clubfindr/app.json` by `storeLinks.test.ts`), the App Store link is `null` until there is
+    a record (an iPhone sees a note instead), only an Android phone is sent to Play by itself and
+    only while the page is still visible, and `tests/redirect.spec.ts` covers the three cases.
 89. **Deleting a recurring event deletes the whole series.** A recurring venue event is one
     `bar_events` row (a start `event_date`, `recurring` and a free-text `recurrence_pattern`), with
     nowhere to record a skipped date, so the app's delete (82) and the web's both remove every

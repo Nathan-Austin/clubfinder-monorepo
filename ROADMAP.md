@@ -132,8 +132,9 @@ Each is a server change with its e2e run under the lease.
    modal's old hard-coded grid), `genreSuggestions.test.ts` holds it to `isKnownGenre` entry by
    entry, the app's own test holds its copy to the web's, and event genres are now checked on
    write (`$lib/taste/eventGenres`, `tests/event-genres.spec.ts`)
-4. **The `/redirect` page's store links** (KNOWN_ISSUES 88): Play's `com.clubfindr.mobile`, the App
-   Store once the app has a record; people without the app scanning a venue code reach a dead page
+4. [x] **The `/redirect` page's store links** (KNOWN_ISSUES 88), done 2026-11-19: Play's
+   `com.clubfindr.mobile` from `$lib/storeLinks` (held to `app.json`), no App Store link until
+   the app has a record, and the fallback only when the app did not open
 5. **Real venue insights** in place of the removed "Genre Matches" tile (always 0, no data behind
    it): check-ins per night, matched visitors, once there is data to count
 
