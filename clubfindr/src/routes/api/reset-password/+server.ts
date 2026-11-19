@@ -3,6 +3,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { query, withTransaction } from '$lib/db';
 import { hashPassword } from '$lib/server/passwordUtils';
 import { hashToken } from '$lib/encryptionUtils';
+import { evictSessions } from '$lib/server/sessionCache';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { token, newPassword } = await request.json();
@@ -58,15 +59,26 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: true, account: 'venue' });
 		}
 
-		await query(
-			`UPDATE clubfindr.users
-			 SET password_hash = $1, updated_at = NOW()
-			 WHERE id = $2`,
-			[hashedPassword, reset.id]
-		);
-
-		// Delete the used reset token
-		await query(`DELETE FROM clubfindr.password_resets WHERE user_id = $1`, [reset.id]);
+		// As for a venue: the new password, the token spent, and every session of the account
+		// ended (web and app alike, user_sessions), since a reset is often the answer to a
+		// password someone else knows (KNOWN_ISSUES 80; a venue reset has done this since
+		// 2026-11-16). The hooks.server.ts cache may still hold them for up to five minutes
+		// (KNOWN_ISSUES 41), so they are evicted too.
+		const ended = await withTransaction(async (client) => {
+			await client.query(
+				`UPDATE clubfindr.users
+				 SET password_hash = $1, updated_at = NOW()
+				 WHERE id = $2`,
+				[hashedPassword, reset.id]
+			);
+			await client.query(`DELETE FROM clubfindr.password_resets WHERE user_id = $1`, [reset.id]);
+			const sessions = await client.query<{ session_id: string }>(
+				`DELETE FROM clubfindr.user_sessions WHERE user_id = $1 RETURNING session_id`,
+				[reset.id]
+			);
+			return sessions.rows.map((row) => row.session_id);
+		});
+		evictSessions(ended);
 
 		return json({ success: true, account: 'user' });
 	} catch (error) {
