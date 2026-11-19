@@ -10,9 +10,8 @@ from utils import (
     commit_to_database,
     extract_from_database,
     execute_query2,
-    load_genres_from_csv,
-    split_and_clean_genres,
 )
+from known_genres import clean_genres, fits_line_up
 from artist_selection import (
     ARTIST_CANDIDATES_QUERY,
     select_artists_for_run,
@@ -24,7 +23,6 @@ import time
 import json
 import requests
 import sys
-import re
 from spotify_rate_limiter import ApiKeyRateLimiter
 from log_utils import redact_identifier, redact_list
 
@@ -145,6 +143,12 @@ ARTISTS_PER_RUN = int(os.getenv("SPOTIFY_ARTISTS_PER_RUN", "1000"))
 # must still reach it, so it gets its own logger at INFO
 selection_logger = logging.getLogger("artistSelection")
 selection_logger.setLevel(logging.INFO)
+
+# Every Spotify match the line-up check refuses (KNOWN_ISSUES 94) is worth reading for a
+# while: a DJ sharing a name with a punk band is the case it exists for, a genuinely eclectic
+# line-up is the case it gets wrong
+rejection_logger = logging.getLogger("lineUpFit")
+rejection_logger.setLevel(logging.INFO)
 
 # Initialize clients for each credential
 try:
@@ -312,41 +316,12 @@ def safe_spotify_search(artist_name, retries=3):
                         redact_list(raw_genres, "genres"),
                     )
 
-                    # Load valid genres from CSV for comparison
-                    valid_genres = load_genres_from_csv(
-                        "/home/nathan/clubfinder/data_collection/full_genre_list.csv"
+                    # Which of them the matcher knows (KNOWN_GENRES, KNOWN_ISSUES 94)
+                    known_here = clean_genres(raw_genres)
+                    logging.info(
+                        "Known genres among them: %s",
+                        redact_list(known_here, "genres"),
                     )
-                    if valid_genres:
-                        logging.info(
-                            "Loaded %d valid genres from CSV", len(valid_genres)
-                        )
-
-                        # Log which raw genres are in the valid genres list
-                        valid_matches = [
-                            genre for genre in raw_genres if genre in valid_genres
-                        ]
-                        invalid_genres = [
-                            genre for genre in raw_genres if genre not in valid_genres
-                        ]
-
-                        if valid_matches:
-                            logging.info(
-                                "Valid genres found: %s",
-                                redact_list(valid_matches, "genres"),
-                            )
-                        else:
-                            logging.info(
-                                "No valid genres found among: %s",
-                                redact_list(raw_genres, "genres"),
-                            )
-
-                        if invalid_genres:
-                            logging.info(
-                                "Invalid/Unknown genres: %s",
-                                redact_list(invalid_genres, "genres"),
-                            )
-                    else:
-                        logging.error("Failed to load valid genres from CSV")
                 else:
                     logging.info(
                         "No artist results found for %s",
@@ -434,107 +409,101 @@ def safe_spotify_search(artist_name, retries=3):
     return None
 
 
-def split_and_clean_genres_with_logging(genres, valid_genres):
-    """Splits and cleans genres based on valid genres with detailed logging."""
-    logging.info("Input genres for cleaning: %s", redact_list(genres, "genres"))
+LINE_UP_REFERENCE_QUERY = """
+    SELECT
+        ARRAY(
+            SELECT DISTINCT g
+            FROM clubfindr.event_artists ea
+            JOIN clubfindr.event_artists other ON other.event_id = ea.event_id
+            JOIN clubfindr.artists oa ON oa.id = other.artist_id
+            CROSS JOIN LATERAL unnest(oa.genres) AS g
+            WHERE ea.artist_id = a.id AND other.artist_id <> a.id
+        ) AS co_artist_genres,
+        ARRAY(
+            SELECT DISTINCT g
+            FROM clubfindr.event_artists ea
+            JOIN clubfindr.events e ON e.id = ea.event_id
+            CROSS JOIN LATERAL unnest(e.event_genres) AS g
+            WHERE ea.artist_id = a.id
+        ) AS event_genres,
+        COALESCE(a.genres, ARRAY[]::text[]) AS own_genres
+    FROM clubfindr.artists a
+    WHERE a.artist_name = %s;
+"""
 
-    if not genres:
-        logging.info("No genres provided for cleaning")
+
+def line_up_reference_genres(artist_name):
+    """What is known about the nights an artist plays, apart from the artist itself.
+
+    The other artists' genres, and the events' tags minus the artist's own stored genres
+    (an event's list is the union of its artists', so the artist's own would otherwise vouch
+    for themselves). Empty when nothing is known, which `fits_line_up` accepts.
+    """
+    rows = execute_query2(LINE_UP_REFERENCE_QUERY, (artist_name,), fetch=True)
+    if not rows:
         return []
+    co_artist_genres, event_genres, own_genres = rows[0]
+    own = {str(g).lower() for g in (own_genres or [])}
+    reference = set(co_artist_genres or [])
+    reference.update(g for g in (event_genres or []) if str(g).lower() not in own)
+    return sorted(reference)
 
-    # Convert valid_genres to set for O(1) lookup and normalize to lowercase
-    valid_genres_set = {genre.strip().lower() for genre in valid_genres if genre}
-    logging.info("Using %d valid genres for comparison", len(valid_genres_set))
 
-    # Handle list or string input
-    if isinstance(genres, list):
-        genre_list = genres
-    else:
-        # Split on common delimiters and handle edge cases
-        genre_list = re.split(r"\s*[,|/]\s*", str(genres))
+def accept_or_reject_match(artist_name, cleaned_genres):
+    """True when the Spotify match fits the artist's line-ups (KNOWN_ISSUES 94).
 
-    logging.info(
-        "Split into %d genres: %s", len(genre_list), redact_list(genre_list, "genres")
-    )
-
-    cleaned_genres = set()  # Use set to automatically deduplicate
-    skipped_genres = []
-
-    for genre in genre_list:
-        if not genre or genre.lower() == "none":
-            continue
-
-        # Normalize the genre
-        normalized = genre.strip().lower()
-
-        # Remove quotes and special characters
-        normalized = re.sub(r'["\']', "", normalized)
-        normalized = re.sub(r"[^\w\s-]", " ", normalized)
-
-        # Prefer exact matches before fuzzy compound matching.
-        if normalized in valid_genres_set:
-            cleaned_genres.add(normalized)
-            logging.info(
-                "Exact match found for %s", redact_identifier(normalized, "genre")
-            )
-            continue
-
-        # Handle compound genres (e.g., "TechHouse" -> "Tech House")
-        normalized_compact = re.sub(r"[\s-]+", "", normalized)
-        compound_matches = []
-        for valid_genre in valid_genres_set:
-            valid_compact = re.sub(r"[\s-]+", "", valid_genre)
-            if not valid_compact:
-                continue
-            if (
-                valid_compact in normalized_compact
-                or normalized_compact in valid_compact
-            ):
-                compound_matches.append(valid_genre)
-
-        if compound_matches:
-            # Sort by length descending to prefer longer matches
-            compound_matches.sort(key=len, reverse=True)
-            best_match = compound_matches[0]
-            cleaned_genres.add(best_match)
-            logging.info(
-                "Matched %s to compound genre %s",
-                redact_identifier(normalized, "genre"),
-                redact_identifier(best_match, "genre"),
-            )
-        else:
-            skipped_genres.append(normalized)
-            logging.info(
-                "No match found for %s, skipping",
-                redact_identifier(normalized, "genre"),
-            )
-
-    if skipped_genres:
-        logging.info(
-            "Skipped %d invalid genres: %s",
-            len(skipped_genres),
-            redact_list(skipped_genres, "genres"),
+    When it does not, the match is taken for the wrong artist (owner's decision 2026-11-19):
+    nothing of it is stored, and whatever an earlier run stored for the artist (genres and URI,
+    possibly the same wrong act's) is dropped so its events lose the stray genres.
+    """
+    try:
+        reference = line_up_reference_genres(artist_name)
+    except Exception as e:  # a lookup failure must not block the run
+        logging.error(
+            "Line-up lookup failed for %s: %s",
+            redact_identifier(artist_name, "artist"),
+            e,
         )
-
-    result = list(cleaned_genres)
-    logging.info(
-        "Final cleaned genres (%d): %s", len(result), redact_list(result, "genres")
+        return True
+    fits, why = fits_line_up(cleaned_genres, reference)
+    if fits:
+        rejection_logger.debug(
+            "Line-up check accepted %s: %s",
+            redact_identifier(artist_name, "artist"),
+            why,
+        )
+        return True
+    rejection_logger.info(
+        "Line-up check refused the Spotify match for %s (%s): %s",
+        redact_identifier(artist_name, "artist"),
+        redact_list(cleaned_genres, "genres"),
+        why,
     )
-    return result
+    try:
+        dropped = execute_query2(
+            """
+            UPDATE clubfindr.artists
+            SET genres = NULL, spotify_uri = NULL
+            WHERE artist_name = %s AND (genres IS NOT NULL OR spotify_uri IS NOT NULL)
+            RETURNING id;
+            """,
+            (artist_name,),
+            return_results=True,
+        )
+        if dropped:
+            update_event_genres(artist_name)
+    except Exception as e:
+        logging.error(
+            "Could not drop the refused match for %s: %s",
+            redact_identifier(artist_name, "artist"),
+            e,
+        )
+    return False
 
 
-# Fixed function to update event genres
 def update_event_genres(artist_name, max_retries=3):
     """Update event genres with properly cleaned and normalized genres from all associated artists."""
     try:
-        # Load valid genres from CSV
-        valid_genres = load_genres_from_csv(
-            "/home/nathan/clubfinder/data_collection/full_genre_list.csv"
-        )
-        if not valid_genres:
-            logging.error("Failed to load valid genres from CSV")
-            return
-
         # Get all event IDs associated with the artist
         event_ids_query = """
             SELECT DISTINCT ea.event_id
@@ -626,11 +595,9 @@ def update_event_genres(artist_name, max_retries=3):
                 logging.warning(f"No genres found for event {event_id}")
                 continue
 
-            # Extract and clean genres
+            # Only genres the matcher knows reach the event (KNOWN_ISSUES 94)
             raw_genres = [g[0] for g in genres_result if g[0]]
-            cleaned_genres = split_and_clean_genres_with_logging(
-                raw_genres, valid_genres
-            )
+            cleaned_genres = clean_genres(raw_genres)
 
             if not cleaned_genres:
                 logging.warning(f"No valid genres found for event {event_id}")
@@ -737,14 +704,6 @@ try:
                 if result is None:
                     continue
 
-                # Load valid genres from CSV
-                valid_genres = load_genres_from_csv(
-                    "/home/nathan/clubfinder/data_collection/full_genre_list.csv"
-                )
-                if not valid_genres:
-                    logging.error("Failed to load valid genres from CSV")
-                    continue
-
                 # Get raw genres from Spotify
                 raw_genres = []
                 if (
@@ -763,16 +722,19 @@ try:
                     update_api_call_log(artist_name)  # Still mark as processed
                     continue
 
-                # Clean and normalize genres
-                cleaned_genres = split_and_clean_genres_with_logging(
-                    raw_genres, valid_genres
-                )
+                # Only genres the matcher knows (KNOWN_ISSUES 94)
+                cleaned_genres = clean_genres(raw_genres)
                 if not cleaned_genres:
                     logging.warning(
                         "No valid genres found for artist %s",
                         redact_identifier(artist_name, "artist"),
                     )
                     update_api_call_log(artist_name)  # Still mark as processed
+                    continue
+
+                # The match must fit the nights it plays, or it is the wrong artist
+                if not accept_or_reject_match(artist_name, cleaned_genres):
+                    update_api_call_log(artist_name)
                     continue
 
                 # Update artist genres with improved query
@@ -918,28 +880,24 @@ try:
                     continue
 
                 if best_match[0][1] >= 95:
-                    # Load valid genres from CSV
-                    valid_genres = load_genres_from_csv(
-                        "/home/nathan/clubfinder/data_collection/full_genre_list.csv"
-                    )
-                    if not valid_genres:
-                        logging.error("Failed to load valid genres from CSV")
-                        continue
-
                     matched_artist_name = best_match[0][0]
                     raw_genres = names_genres[matched_artist_name]
                     uri = names_uri[matched_artist_name]
 
-                    # Clean and normalize genres
-                    cleaned_genres = split_and_clean_genres_with_logging(
-                        raw_genres, valid_genres
-                    )
+                    # Only genres the matcher knows (KNOWN_ISSUES 94)
+                    cleaned_genres = clean_genres(raw_genres)
                     if not cleaned_genres:
                         logging.warning(
                             "No valid genres found for artist %s",
                             redact_identifier(artist_name, "artist"),
                         )
                         update_api_call_log(artist_name)  # Mark as processed
+                        continue
+
+                    # A name match is not an identity: the genres must fit the nights the
+                    # artist plays, or the URI and genres of the wrong act would be stored
+                    if not accept_or_reject_match(artist_name, cleaned_genres):
+                        update_api_call_log(artist_name)
                         continue
 
                     # Update the artist's Spotify URI in the database

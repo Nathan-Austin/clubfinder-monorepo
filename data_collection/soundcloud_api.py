@@ -16,8 +16,8 @@ from utils import (
     commit_to_database,
     extract_event_id_from_database,
     execute_query2,
-    load_genres_from_csv,
 )
+from known_genres import clean_genres
 
 load_dotenv()
 logging.basicConfig(
@@ -343,15 +343,8 @@ def update_database_new_genres(
     """Update artist and event genres with properly cleaned and normalized genres."""
     try:
         # Load valid genres from CSV
-        valid_genres = load_genres_from_csv(
-            "/home/nathan/clubfinder/data_collection/full_genre_list.csv"
-        )
-        if not valid_genres:
-            logging.error("Failed to load valid genres from CSV")
-            return
-
-        # Clean and normalize genres using the improved split_and_clean_genres function
-        cleaned_genres = split_and_clean_genres(genres, valid_genres)
+        # Only genres the matcher knows reach the data (KNOWN_ISSUES 94)
+        cleaned_genres = clean_genres(genres)
         if not cleaned_genres:
             logging.warning(
                 "No valid genres found for artist %s",
