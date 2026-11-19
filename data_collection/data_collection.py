@@ -3,6 +3,7 @@
 from subprocess import Popen, PIPE, TimeoutExpired
 import datetime
 from utils import execute_query, commit_to_database
+from live_cities import load_live_cities
 import time
 import logging
 import sys
@@ -150,21 +151,11 @@ def mark_city_state(state, city_name, updates):
 
 # Step 1: Read the cities from live_cities.txt
 def load_cities_from_file(file_path):
-    cities = []
+    # One parser with event_fetcher's city/area guard (live_cities.py), so the two cannot
+    # read the file differently
     logging.info(f"Loading cities from {file_path}")
     try:
-        with open(file_path, "r") as file:
-            for line in file:
-                parts = line.strip().split(" - ")
-                if len(parts) == 3:
-                    name, code, country = parts
-                    cities.append(
-                        {
-                            "name": name.strip().lower(),
-                            "code": int(code.strip()),
-                            "country": country.strip().lower(),
-                        }
-                    )
+        cities = load_live_cities(file_path)
         logging.info(f"Loaded {len(cities)} cities from file")
         return cities
     except Exception as e:

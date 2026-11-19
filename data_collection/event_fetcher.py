@@ -14,6 +14,7 @@ import uuid
 import os
 from graphql_utils import load_graphql_query_template, parse_graphql_response
 from log_utils import redact_identifier
+from live_cities import CityAreaMismatch, check_city_area, load_live_cities
 
 # Configure logging
 logging.basicConfig(
@@ -283,6 +284,7 @@ class EventFetcher:
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     ON CONFLICT (event_id, event_date) DO UPDATE SET
+                        city = EXCLUDED.city,
                         event_name = EXCLUDED.event_name,
                         club_name = EXCLUDED.club_name,
                         club_address = EXCLUDED.club_address,
@@ -424,6 +426,19 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Every event of this run is saved under args.city_name and fetched for args.areas: the
+    # pair must be a line of live_cities.txt, or the whole run is stored under the wrong city
+    # (KNOWN_ISSUES 93). data_collection.py always passes a listed pair; this holds a run by
+    # hand to the same list.
+    try:
+        check_city_area(
+            args.city_name, args.areas, args.country_code, load_live_cities()
+        )
+    except CityAreaMismatch as mismatch:
+        logging.error("Refusing to fetch: %s", mismatch)
+        print(f"Refusing to fetch: {mismatch}", file=sys.stderr)
+        sys.exit(2)
 
     # Format start and end dates as required by the API
     listing_date_gte = f"{args.start_date}T00:00:00.000Z"
