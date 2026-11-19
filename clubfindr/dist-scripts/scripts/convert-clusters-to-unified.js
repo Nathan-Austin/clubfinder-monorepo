@@ -45,7 +45,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 // Pure data modules (no $lib imports), so a plain tsc build can pull them in
-import { UMBRELLA_FAMILIES, UNSCORED_GENRE_SET } from '../src/lib/data/genreAliases.js';
+import { CANONICAL_HOMES, GENRE_ALIASES, UMBRELLA_FAMILIES, UNSCORED_GENRE_SET, resolveAlias } from '../src/lib/data/genreAliases.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Resolve APP_ROOT from the script location, accounting for build output in dist-scripts
@@ -59,6 +59,11 @@ const UNIFIED_GENRES_MOBILE_PATH = path.resolve(APP_ROOT, '../app_clubfindr/src/
 // server's isKnownGenre accepts. src/lib/taste/genreSuggestions.test.ts holds the two together.
 const SUGGESTIONS_WEB_PATH = path.resolve(APP_ROOT, './static/lib/genre-suggestions.json');
 const SUGGESTIONS_MOBILE_PATH = path.resolve(APP_ROOT, '../app_clubfindr/src/constants/genre-suggestions.json');
+// Every genre the matcher places by name, with its top-level cluster, for the scrape
+// (KNOWN_ISSUES 94): data_collection keeps only these on artists and events, and checks a
+// Spotify match against the rest of a line-up by cluster. src/lib/taste/knownGenres.test.ts
+// holds it to findClusters.
+const KNOWN_GENRES_SCRAPE_PATH = path.resolve(APP_ROOT, '../data_collection/known_genres.json');
 const convertToUnifiedFormat = (clustersData) => {
     const categories = clustersData.clusters.map((cluster) => {
         const subgenres = cluster.sub_clusters.map((subCluster) => {
@@ -145,6 +150,39 @@ const buildSuggestions = (clustersData) => {
     Object.keys(UMBRELLA_FAMILIES).forEach((umbrella) => add(titleCase(umbrella)));
     return [...suggestions.values()].sort((a, b) => a.localeCompare(b));
 };
+/**
+ * Every name the matcher resolves without guessing, mapped to its top-level cluster: the
+ * leaves (their CANONICAL_HOMES entry when contested, else the first sub-cluster in file
+ * order, as the matcher's index does), the sub-cluster names that hold leaves, the umbrella
+ * terms, and every alias, mapped to what it resolves to. UNSCORED genres stay out.
+ */
+const buildKnownGenres = (clustersData) => {
+    const known = new Map(); // normalised -> top-level cluster
+    const add = (name, cluster) => {
+        if (!name)
+            return;
+        const normalised = normalizeForComparison(name);
+        if (!normalised || UNSCORED_GENRE_SET.has(normalised) || known.has(normalised))
+            return;
+        known.set(normalised, CANONICAL_HOMES[normalised]?.cluster ?? cluster);
+    };
+    const walk = (cluster, subCluster) => {
+        const leaves = subCluster.genres ?? [];
+        if (leaves.length > 0)
+            add(subCluster.name, cluster);
+        leaves.forEach((leaf) => add(leaf, cluster));
+        (subCluster.sub_clusters ?? []).forEach((nested) => walk(cluster, nested));
+    };
+    // Umbrellas first: a key here shadows a leaf of the same name on purpose (genreAliases.ts)
+    Object.entries(UMBRELLA_FAMILIES).forEach(([umbrella, family]) => add(umbrella, family.cluster));
+    clustersData.clusters.forEach((cluster) => cluster.sub_clusters.forEach((subCluster) => walk(cluster.name, subCluster)));
+    Object.keys(GENRE_ALIASES).forEach((alias) => {
+        const target = known.get(normalizeForComparison(resolveAlias(normalizeForComparison(alias))));
+        if (target)
+            add(alias, target);
+    });
+    return Object.fromEntries([...known.entries()].sort(([a], [b]) => a.localeCompare(b)));
+};
 /** `normalizeGenre` from $lib/server/genreMatching, which scripts cannot import ($lib alias). */
 const normalizeForComparison = (genre) => genre
     .toLowerCase()
@@ -187,6 +225,12 @@ const main = () => {
     if (fs.existsSync(path.dirname(SUGGESTIONS_MOBILE_PATH))) {
         fs.writeFileSync(SUGGESTIONS_MOBILE_PATH, suggestionsContent, 'utf8');
         console.log(`✓ Written to ${SUGGESTIONS_MOBILE_PATH}`);
+    }
+    // The scrape's copy: name -> top-level cluster (KNOWN_ISSUES 94)
+    const knownGenres = buildKnownGenres(clustersData);
+    if (fs.existsSync(path.dirname(KNOWN_GENRES_SCRAPE_PATH))) {
+        fs.writeFileSync(KNOWN_GENRES_SCRAPE_PATH, JSON.stringify({ genres: knownGenres }, null, '\t') + '\n', 'utf8');
+        console.log(`✓ Written ${Object.keys(knownGenres).length} known genres to ${KNOWN_GENRES_SCRAPE_PATH}`);
     }
     console.log('\n✓ Conversion complete!');
     console.log('\nGenre categories:');
