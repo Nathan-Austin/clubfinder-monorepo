@@ -107,6 +107,11 @@ the versionCode 12 device run.
   server's rule (7-15 digits, formatting ignored)
 - The network banner never hid after coming back online: visibility is derived from state now
   instead of being decided in the once-registered listener's closure (component test)
+- **From the versionCode 12 run, fixed in the repo 2026-11-19 (next build):** a wrong sign-up
+  code showed "HTTP error 400" (the service now relays the server's words); and a genre the
+  server would refuse is shown in amber with the reason while it is on the form, the event
+  form's Save waiting until it is removed, instead of a refusal after Save (owner's decision:
+  inline). `VenueCard`'s UTC dates (step 7 of the session) ride the same build
 
 ## Next server round
 
