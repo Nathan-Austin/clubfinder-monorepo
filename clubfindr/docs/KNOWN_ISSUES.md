@@ -888,9 +888,10 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       (`theme.ts`; near-duplicates such as `dangerBright`/`danger` not folded together, which is a
       visual change for a device run); dead code, styles and `any` are gone. Left: `npm run lint`
       still passes with warnings, so a new one does not fail CI (`--max-warnings 0` would).
-    - `VenueCard`'s "N Events Today" and "Next Event" read `YYYY-MM-DD` with `new Date(...)`, which is
-      UTC midnight, so west of UTC an event can show a day early; `utils/localDate` reads it as a
-      local day. Seen during the lint step, left because it changes what customers see.
+    - _Done 2026-11-19 (next build):_ `VenueCard`'s "N Events Today" and "Next Event" read
+      `YYYY-MM-DD` with `new Date(...)`, which is UTC midnight, so west of UTC an event could show
+      a day early. `utils/venueEventDates` does the wording over `utils/localDate`, with tests
+      run in a west-of-UTC zone too.
     - _Done 2026-11-16 (`708e6a7`):_ `BarRegistrationScreen` hard-coded its own 8 cities (with
       Rome and New York, which are not scraped); it uses `constants/cities.ts` now.
     - A personal-account password reset does not end that user's sessions (a venue reset does,

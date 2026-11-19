@@ -144,8 +144,8 @@ Still open from earlier: a personal-account password reset that ends that user's
 
 ## Left on the app side (next app round)
 
-- `VenueCard`'s "Events Today" / "Next Event" read dates as UTC, a day early west of UTC
-  (KNOWN_ISSUES 80; a one-line fix with `utils/localDate`, changes what customers see)
+- [x] `VenueCard`'s "Events Today" / "Next Event" read dates as UTC, a day early west of UTC
+  (KNOWN_ISSUES 80), done 2026-11-19 with `utils/venueEventDates`; in the versionCode 13 build
 - Fold the palette's near-duplicates (`dangerBright`/`danger`, `grey800`/`card`, …) into the core
   tokens, with a device run (KNOWN_ISSUES 80)
 - If QR sharing still fails on a phone: `react-native-view-shot` (KNOWN_ISSUES 87), on both
