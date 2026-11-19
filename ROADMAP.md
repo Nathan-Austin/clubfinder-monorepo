@@ -48,8 +48,14 @@ Also on the web, from the same run:
 - **Fixed in the repo 2026-11-19.** Plain "House" (and "Rock", "Hip Hop") were in no picker
   though the server accepts them: the suggestions now come from one generated list (see **One
   genre list** below, KNOWN_ISSUES 91)
-- A venue password reset mail lists the personal account's link first; started from the venue
-  login (`?from=bars`), put the venue link first or alone
+- **Fixed in the repo 2026-11-19.** A venue password reset mail listed the personal account's
+  link first; started from the venue login (`?from=bars`) it now puts the venue link first
+  (`tests/venue-login.spec.ts`)
+- **Also from the 2026-11-19 run, fixed in the repo the same day:** the `/barfindr` Live music
+  chip was unreadable on the header (dark on white now); `/register` asks "Smoking allowed
+  inside?" as Yes / No; `/users-home` searches bars as well as clubs (one block, the date once,
+  "Find clubs" and "Find bars"); and the `/clubs` card shows the genres it matched on, the match
+  as a percentage and the whole list on request (KNOWN_ISSUES 94, the card part)
 - **From the 2026-11-19 run (versionCode 12 checklist, section 1), hardened in the repo the
   same day:** `/clubs` with Berlin in the heading and Amsterdam's clubs on the cards. Not the
   page (the heading and cards share one city; `tests/users-home-city.spec.ts` walks the path
