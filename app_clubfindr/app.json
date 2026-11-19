@@ -25,7 +25,7 @@
       "buildNumber": "1"
     },
     "android": {
-      "versionCode": 12,
+      "versionCode": 13,
       "adaptiveIcon": {
         "foregroundImage": "./assets/tilki-fox-logo.png",
         "backgroundColor": "#ffffff"
