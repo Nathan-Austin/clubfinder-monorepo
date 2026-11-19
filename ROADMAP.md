@@ -113,6 +113,30 @@ the versionCode 12 device run.
   form's Save waiting until it is removed, instead of a refusal after Save (owner's decision:
   inline). `VenueCard`'s UTC dates (step 7 of the session) ride the same build
 
+## The 2026-11-19 session (done; versionCode 13 build and a web deploy to come)
+
+Eight steps, each with its commits and checks, in [`app_clubfindr/DEVICE_CHECKLIST.md`](app_clubfindr/DEVICE_CHECKLIST.md)
+for the owner's run. In order: the personas ([`clubfindr/docs/personas.md`](clubfindr/docs/personas.md));
+the Berlin/Amsterdam `/clubs` report (not reproduced, fetcher hardened, KNOWN_ISSUES 93); a full
+logout after deleting a venue; five web fixes (the `/clubs` card shows the genres that matched
+with the match as a percentage, the `/barfindr` live chip, Yes/No smoking on `/register`, "Find
+clubs" and "Find bars" on `/users-home`, the venue reset mail's link order); the app's two
+messages (the sign-up code error in the server's words, unknown genres as amber chips) and the
+`VenueCard` dates; the `/redirect` store links (88); the personal reset ending the account's
+sessions (80) and, found on the way, one session per device instead of one per account (95,
+migration `20261119_user_sessions_many_per_user.sql`); and odd-ball genres on scraped events
+(94): only genres the matcher knows reach the data, and a Spotify match that does not fit its
+line-up is dropped as the wrong artist (owner's decisions: options 2 and 3, drop when nothing
+fits, let the 14-day cooldown clear the old pollution rather than a re-clean by hand).
+
+Left from the day, for the owner or the server instance: the `lineUpFit` log for a week (94); the
+`/redirect` App Store link once the app has a record (one constant in `$lib/storeLinks`); the
+shared dev database now lacks the `user_sessions` constraint, so a checkout without this
+session's code cannot log in there until it has the migration; and the open items that were
+not today's: SoundCloud and Tidal (78), `SMTP_TLS_VERIFY` (15), real venue insights (5 below).
+A note from the personas for later: the matcher has no way to say *no* (a disliked sub-cluster),
+and events have no rooms or floors; both are listed as open product questions there.
+
 ## Next server round
 
 Found or decided during the 2026-11-17 app round and left for the server, in a suggested order.

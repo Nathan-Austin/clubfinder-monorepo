@@ -1,133 +1,123 @@
-# Device checklist: versionCode 12 (2026-11-19 round)
+# Device checklist: versionCode 13 (2026-11-19 round)
 
-One consolidated list for this round. It covers everything built since the versionCode 11 device
-run (2026-11-18): the three app FAILs from that run, venue account deletion, the city work, one
-genre list with strict event genres, recurring events as dates, live music as an attribute and a
-filter, and cancelling one date of a series.
+One consolidated list for this round: everything built on 2026-11-19 after the versionCode 12
+run (its notes are all answered here), plus what that run left untested. Web items first, since
+most of the day's work is on the server; the app has three changes.
 
 Mark each item `[x]`, or write **FAIL** / **Issue** / **Not tested** with what you saw, the screen
 and the message.
 
 ## 0. Order of work — read first
 
-1. **Deploy the web side before building the app.** Four of the app's features talk to endpoints
-   that only exist after the deploy (sign-up straight in, venue deletion, live music, cancelling
-   one date). Against the old server the app falls back or reports a plain failure.
-2. **Two new migrations go with that deploy** (`deploy.sh` applies them itself):
-   - `20261119_bar_events_live_music.sql` — adds `bar_events.live_music` **and moves data**: the
-     old `live music` / `live-music` / `livemusic` / `live` / `acoustic` genre tags become the
-     attribute and leave `special_genres`. Idempotent; only rows carrying those tags change.
-   - `20261119_bar_event_skips.sql` — the cancelled-dates table.
-3. **Then build the app**: `versionCode` is already 12 in `app.json` (`75ead8d`), so build with
-   `EAS_NO_VCS=1 eas build --platform android --profile release --local`, not
-   `npm run build:android`, which bumps it again (to 13).
-4. **Data:** the 02:00 scrape now spends its Spotify lookups on artists playing upcoming events.
-   After the first run, check that the Clubs side of the app and `/clubs` have events, and that
-   London's unmatched upcoming artists are falling.
+1. **Deploy the web side first.** One new migration goes with it (`deploy.sh` applies it):
+   `20261119_user_sessions_many_per_user.sql` — drops the one-session-per-account constraint on
+   `user_sessions` and indexes `session_id` and `user_id`. Additive apart from the dropped
+   constraint; no rows change. From then on an account can be logged in on the website and in
+   the app at the same time (KNOWN_ISSUES 95).
+2. **Then build the app**: bump `versionCode` to 13 in `app.json` yourself (the repo still says
+   12), then `EAS_NO_VCS=1 eas build --platform android --profile release --local`.
+3. **Data:** the 02:00 run now keeps only genres the matcher knows and refuses a Spotify match
+   that does not fit its line-up (KNOWN_ISSUES 94). Nothing to do on a device; see section 7.
 
-Have to hand: a venue login, a **second phone or screen** for QR codes, a customer login, a
-**venue you can destroy** (section 7 deletes it — do that section last), and ideally a small phone.
+Have to hand: a customer login, a venue login, a second phone or screen for QR codes, a venue you
+can destroy (section 8), a fresh e-mail address, and ideally a small phone. The web items want a
+desktop browser and a phone-width browser.
 
-## 1. Web, straight after the deploy (browser)
+## 1. Web: the 2026-11-19 fixes (browser, after the deploy)
 
-- [x ] `/users-home` shows **Current City** from the account (not "Detecting your location…").
-      **Change City** saves to the account; reload and it is still there.
-- [x] **Find events** on `/users-home` → `/clubs` for that city, named in the heading. On a day
-      with no events it says "There are no events in <city> on <date> yet" — never "Unknown City".
-- [x ] `/update-info`: the city picker and the inputs are **readable** (dark select, visible Save
-      button). The whole page was white-on-white before.
-- [x] A brand-new web sign-up starts **with no city** and is offered the nearest covered city on
-      `/users-home`; saving it sticks. (Existing accounts keep Berlin — expected.) - I noticed in user home there is only the option for Find events and it takes the user to /clubs, there is not /bars option
-- [x] `/bars` (a venue you can destroy, see section 7): "Delete this venue" asks for the venue's
-      name typed in, then deletes and lands on `/`; logging in again is refused. -  doesnt seem to be logged out? ( log out optionn available in header )
-- [x ] `/barfindr`: the **Live music only** filter under the date — on, only venues with a live
-      night that day; off, all of them. ( button colour is light green on blue and unreadable)
-      -- after changing city in the user profile from amsterdam to berlin, /clubs showed clubs in berlin  in the header, but amsterdam clubs cards were shown.
-      on web bar sign up , there is a check box for is smoking allowed inside, this should be a yes or no 
+- [ ] `/users-home`: one search block — the date once, then **Find clubs** and **Find bars**.
+      Find bars → `/barfindr` for the account's city; Find clubs → `/clubs`. On a phone-width
+      browser the two buttons wrap and stay readable.
+- [ ] `/clubs`: every card's "Matching Genres" line says **"NN% match · M of T genres"** and lists
+      only the genres you matched on (green, with a tick). **Show all T genres** opens that one
+      card's whole list; the button then reads "Show matched only". A night with few matches
+      reads as a low percentage.
+- [ ] `/barfindr`: the **Live music only** chip is readable in both states (dark on white when
+      off, white on green when on).
+- [ ] `/register` (venue sign-up): **"Smoking allowed inside?"** is Yes / No, No preselected.
+- [ ] `/bars` on a venue you can destroy (section 8): after **Delete this venue**, the header
+      offers **Login**, not Log Out — also when you had logged in as a customer in the same
+      browser beforehand.
+- [ ] Password reset from `/login/bars` → Forgot Password: the mail puts **the venue's link
+      first**; from `/login/users` the personal account's link is first.
+- [ ] Password reset of a **personal** account: while logged in on the web *and* in the app,
+      reset the password from the mail link → both are logged out (the app shows the login
+      screen on its next request; the web header offers Login after a reload).
+- [ ] **Two devices at once** (the migration): log in on the website, then in the app → the
+      website is still logged in. Log out on one → the other stays.
+- [ ] `/redirect?barId=x&qrId=1&type=checkin` (a venue QR code opened in the phone's camera, or
+      typed): on an **Android phone without the app**, Google Play's page for
+      `com.clubfindr.mobile` after two seconds; on an **iPhone**, the page stays with the note
+      that the iPhone app is on its way; on a **desktop**, the page stays with the Play badge.
+      With the app installed, the app opens and the browser does **not** go on to Play.
 
-## 2. App: QR sharing (versionCode 11 FAIL)
+## 2. App: sign-up code message (v12 note)
 
-Venue login → Venue tab → QR codes.
+- [ ] Sign up with a fresh address, enter a **wrong code**: the message is "Invalid confirmation
+      code" (or "Confirmation code has expired"), never "HTTP error 400".
+- [ ] Five wrong codes: the attempts message, then a new code is needed.
+- [ ] The right code: straight into the artist picker, as before.
 
-- [x ] Create a code, **Share**: "Preparing your QR code…" with Cancel, then the share sheet with a
-      PNG. Send it to yourself and check the image.
-- [x ] Share again and press **Cancel** while it prepares: the card closes, no share sheet later.
-- [x ] Share again and press Android's **back** while it prepares: same as Cancel.
-- [ ] Scan the **shared PNG** from the other screen with the customer login → check-in success.
-- [ ] If sharing never gets past the spinner, note it (fallback: `react-native-view-shot`,
-      KNOWN_ISSUES 87).
+## 3. App: unknown genres, inline (v12 note)
 
-## 3. App: Bar Registration, international phone numbers (v11 issue)
+Venue login → Events → add or edit an event.
 
-- [x ] Step 2 accepts a **+49 German mobile** (13 digits) and reaches step 3 (City).
-- [x ] A 6-digit number still shows "Please enter a valid phone number (7 to 15 digits)".
+- [ ] Type a made-up genre ("polka-step"): before adding, the line **No genre called
+      "polka-step"…** shows under the field. Add it anyway → an **amber chip with a question
+      mark**, a line beneath saying it is not a genre Clubfindr knows, and the **Save button is
+      greyed out**.
+- [ ] Remove the amber chip → Save is live again; the event saves.
+- [ ] Music tab → Genres: the same amber marker on an unknown name (the server refuses it as
+      before; the marker is the explanation).
+- [ ] An old event still carrying **"Live Music" as a genre**: on edit it shows amber and must be
+      removed before saving (live music is the switch now).
 
-## 4. App: the network banner (v11 issue, dated from January)
+## 4. App: venue card dates (KNOWN_ISSUES 80)
 
-- [x ] Airplane mode on → red **Offline** banner.
-- [x ] Airplane mode off → the banner **goes away** (no green "WiFi" strip staying).
-- [x ] Repeat once: on → banner, off → gone. No restart needed.
+Customer login, Tilki → Bars or Discover, a venue with events.
 
-## 5. App: sign-up straight in, and the city proposal
+- [ ] A venue with an event **today** says "1 Event Today" (or "N Events Today"); one with its
+      next event **tomorrow** says "Next Event: Tomorrow"; further out, the weekday or "Dec 4".
+- [ ] If you can set the emulator to a west-of-UTC zone (e.g. America/Los_Angeles) in the
+      evening: the badges still name the right day (they used to be a day early).
 
-Use a fresh e-mail address.
+## 5. Carried over, still untested from versionCode 11 and 12
 
-- [x] Sign up, enter the e-mailed code → the app goes **straight into the artist picker**, signed
-      in. No "You can now log in", no login screen. -  note entering the wrong code gives non human error meassage ( HTTP error 400 =
-- [x] Kill and reopen the app: still signed in.
-- [x] The new account has **no city**: the app proposes the nearest covered city; accept it and
-      Profile shows it. Discover and Tilki work from it.
-- [x] A wrong code still shows the error and does not sign in.
+- [ ] Venue tab → QR codes → Share: scan the **shared PNG** from the other screen with the
+      customer login → check-in success.
+- [ ] After deleting a venue (section 8): your customer **check-ins at other venues** are
+      untouched.
+- [ ] The four venue tabs on a **small phone**: all labels readable.
+- [ ] Nothing else in the app looks different (customer tabs, venue details, login, signup).
 
-## 6. App: genres — one list, and strict on events
+## 6. App: quick regression pass (the v12 fixes, one glance each)
 
-- [x] Music tab → Genres: type "hou" → **House** itself is suggested (it never was). Same for
-      "rock" and "hip hop". Saving them is accepted.
-- [x ] Event form → Genres: the same suggestions. Add a made-up genre ("polka-step") and save:
-      refused by name ("Not genres Clubfindr knows: polka-step"), the event is not saved; remove
-      it and the save goes through. -  this needs a warning, and clear error message why
-- [x] Web `/bars` event form: the quick-pick grid no longer offers "Live Music" or "Acoustic", and
-      "Add another genre" suggests from the shared list.
+- [ ] QR share works (Share → share sheet with a PNG; Cancel closes the card).
+- [ ] Network banner: airplane mode on → Offline; off → gone.
+- [ ] Event form: Live music switch, weekly series listed as dates, "This date only" / "Every
+      date" on delete.
 
-## 7. App: recurring events as dates, live music, cancelling one date
+## 7. Data, after the next 02:00 run (server instance, not a device)
 
-- [x] Event form: the **Live music** switch ("A band or a live act, not only a DJ"). Save with it
-      on → the Events list shows a green **Live music** badge; editing keeps it on.
-- [x] "Live Music" as a **genre** is still refused — the switch is what says it now.
-- [x] Create a **weekly** event starting a week or two ago: the Events tab lists its **upcoming
-      dates** (several cards, each with its own date and the Weekly badge), up to two months
-      ahead, four dates per series.
-- [x] The form's recurrence note reads "Every date is listed and matched, for the next two
-      months".
-- [x] A one-off far in the future (next summer) is still listed.
-- [x ] Tilki → Bars on a date the weekly night falls on: the venue appears with that night's
-      genres; on the day after, it does not.
-- [x] Tilki → Bars: the **Live music only** chip filters to venues with a live night that day; off
-      again shows all. The order still follows your taste.
-- [x] Delete a card of the repeating night: it asks **"This date only"** or **"Every date"**.
-      This date only → that card goes, the other dates stay, and the venue does not show for that
-      night in Tilki. (There is no un-cancel button; re-add a single event if needed.)
-- [x] "Every date" removes the whole series.
-- [x] A one-off still deletes with the plain "Delete event?" question.
-- [x] Web `/bars`: deleting a repeating event asks the same two-step question.
+- [ ] `data_collection/logs/`: lines from the `lineUpFit` logger. Each is a Spotify match refused
+      because its genres share no top-level cluster with the rest of its line-up. Read them for a
+      week: a DJ sharing a name with a punk band is the case it exists for; a real eclectic act
+      refused is the case to report.
+- [ ] Events whose genre list contains `none`, `coco` or other names the web pickers do not
+      offer should become rarer as artists come round (the 14-day cooldown); no re-clean by hand
+      (owner's decision 2026-11-19).
+- [ ] The printed "Artist selection for <city>" summary still shows upcoming artists first
+      (KNOWN_ISSUES 92).
 
-## 8. App: venue account deletion — do this last
+## 8. App and web: venue account deletion — do this last
 
 **On a venue you can destroy** (register a fresh one in the app if needed).
 
-- [x] Venue tab → **Delete venue account** (below Log out): the first alert names the venue and
-      what goes; Cancel keeps everything.
-- [x ] Again → Continue → "Are you sure?" → **Delete for ever**: "Venue deleted", then the login
-      screen.
-- [x ] The venue login is refused afterwards, in the app and on the web.
-- [ ] Your customer check-ins at **other** venues are untouched.
-
-## 9. Carried over, still untested from versionCode 11
-
-- [ ] The four venue tabs on a **small phone**: all labels readable.
-- [ ] Nothing else in the app looks different (customer tabs, venue details, login, signup).
+- [ ] App: Venue tab → Delete venue account → Continue → Delete for ever → "Venue deleted", then
+      the login screen; the venue login is refused afterwards, in the app and on the web.
+- [ ] Web: `/bars` → Delete this venue (section 1's header check).
 
 ## Report back
 
 For anything that fails: the section, what you did, the message shown, and the phone (small or
-not, light or dark system mode).
+not, light or dark system mode). For section 1's two-device item, which device was logged out.

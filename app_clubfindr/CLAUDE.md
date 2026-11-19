@@ -137,7 +137,9 @@ request. It is not a JWT and is not refreshed: it expires on the server after 7 
     `setBarName`. The shared `ArtistPickerScreen` is the exception (the customer side has no
     venue provider)
   - genres are picked with `components/GenreChipsInput`, suggesting from
-    `utils/genreVocabulary` (the web dashboard's list): "Genres you play" and the event form
+    `utils/genreVocabulary` (the one genre list the server accepts): "Genres you play" and the
+    event form. A chip outside that list shows in amber with the reason (`isKnownGenre`,
+    `unknownGenres`), and the event form's Save waits until it is removed (KNOWN_ISSUES 91)
 - Modal stack for detail screens
 - One dark theme (`navigationTheme` in `theme.ts`) on `NavigationContainer`; take colours from
   `colors` there rather than writing literals
