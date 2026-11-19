@@ -1111,4 +1111,8 @@ here that needs the server is collected in ROADMAP, "Next server round".
     (the duplicates in the owner's list are that count showing through), so a lone artist's
     genres count less without a data change; (d) drop `none` and unknown tags in the cleaning
     pass. (a) and (d) fix the data for every reader including the app; (c) is the cheapest and
-    can go first. Not started.
+    can go first. _The card part is done 2026-11-19_: `calculateClusterSimilarity`
+    also returns `matchingClubGenres` (the club side's own genres that matched) and the `/clubs`
+    card shows those first and only, with the match as a percentage ("33% match · 1 of 3
+    genres") and a per-card "Show all N genres". The pipeline and weighting parts are to be
+    discussed at step 6 of the 2026-11-19 session (ROADMAP section 6).
