@@ -1,59 +1,80 @@
-<script>
+<script lang="ts">
+	// Every QR code in a venue's list is https://clubfindr.com/redirect?barId=…&qrId=… (KNOWN_ISSUES
+	// 84), so a phone's own camera lands here. With the app installed the deep link opens it; without
+	// it, the store. Until 2026-11-19 the store links were placeholders that disagreed with each
+	// other (KNOWN_ISSUES 88), and the fallback fired even when the app had opened.
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { APP_SCHEME, APP_STORE_URL, PLAY_STORE_URL } from '$lib/storeLinks';
+
+	let platform = $state<'android' | 'ios' | 'other'>('other');
 
 	onMount(() => {
-		// Parse URL parameters
-		const barId = page.url.searchParams.get('barId');
-		const qrId = page.url.searchParams.get('qrId');
-		const type = page.url.searchParams.get('type');
-		const barName = page.url.searchParams.get('barName') || '';
+		const ua = navigator.userAgent;
+		platform = /Android/i.test(ua) ? 'android' : /iPad|iPhone|iPod/.test(ua) ? 'ios' : 'other';
 
-		// Create the deep link URL
-		const deepLink = `clubfindr://checkin?barId=${barId}&qrId=${qrId}&type=${type}&barName=${encodeURIComponent(
-			barName
-		)}`;
+		const params = page.url.searchParams;
+		const deepLink = `${APP_SCHEME}://checkin?barId=${encodeURIComponent(
+			params.get('barId') ?? ''
+		)}&qrId=${encodeURIComponent(params.get('qrId') ?? '')}&type=${encodeURIComponent(
+			params.get('type') ?? ''
+		)}&barName=${encodeURIComponent(params.get('barName') ?? '')}`;
 
-		// Store the time when we start trying to open the app
-		const now = Date.now();
+		// If the app opens, this page goes to the background: then there is nothing to fall back
+		// to. The old check (`Date.now() - now < 3000` after 2000 ms) was always true.
+		let opened = false;
+		const markOpened = () => {
+			if (document.visibilityState === 'hidden') opened = true;
+		};
+		document.addEventListener('visibilitychange', markOpened);
+		window.addEventListener('pagehide', markOpened);
+		window.addEventListener('blur', markOpened);
 
-		// Try to open the app
 		window.location.href = deepLink;
 
-		// If we're still here after 2 seconds, redirect to the app store
-		setTimeout(function () {
-			// If the page is still visible after 2 seconds, the app probably isn't installed
-			if (Date.now() - now < 3000) {
-				// Check if iOS or Android
-				const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-				if (isIOS) {
-					window.location.href = 'https://apps.apple.com/app/clubfindr/idXXXXXXXXXX'; // Replace with your App Store URL
-				} else {
-					window.location.href = 'https://play.google.com/store/apps/details?id=com.clubfindr.app'; // Replace with your Play Store URL
-				}
+		// Only a phone whose store we can name is sent on by itself; everyone else keeps the badges
+		const storeUrl =
+			platform === 'android' ? PLAY_STORE_URL : platform === 'ios' ? APP_STORE_URL : null;
+		const timer = setTimeout(() => {
+			if (!opened && document.visibilityState === 'visible' && storeUrl) {
+				window.location.href = storeUrl;
 			}
 		}, 2000);
+
+		return () => {
+			clearTimeout(timer);
+			document.removeEventListener('visibilitychange', markOpened);
+			window.removeEventListener('pagehide', markOpened);
+			window.removeEventListener('blur', markOpened);
+		};
 	});
 </script>
 
 <svelte:head>
-	<title>Redirecting to Tilki</title>
+	<title>Opening Tilki</title>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="container">
 	<img src="/logo.png" alt="Clubfindr Logo" class="logo" />
-	<h1>Opening Clubfindr...</h1>
+	<h1>Opening Tilki…</h1>
 	<div class="loading"></div>
-	<p>If nothing happens, please download the app:</p>
+	<p>If nothing happens, the app is not installed yet.</p>
 	<div class="store-buttons">
-		<a href="https://apps.apple.com/app/tilki/idXXXXXXXXXX">
-			<img src="/app-store-badge.png" alt="App Store" height="40" />
+		<a href={PLAY_STORE_URL} data-testid="play-store-link">
+			<img src="/play-store-badge.png" alt="Get it on Google Play" height="40" />
 		</a>
-		<a href="https://play.google.com/store/apps/details?id=com.tikli.app">
-			<img src="/play-store-badge.png" alt="Play Store" height="40" />
-		</a>
+		{#if APP_STORE_URL}
+			<a href={APP_STORE_URL} data-testid="app-store-link">
+				<img src="/app-store-badge.png" alt="Download on the App Store" height="40" />
+			</a>
+		{/if}
 	</div>
+	{#if !APP_STORE_URL && platform === 'ios'}
+		<p class="note" data-testid="ios-note">
+			Tilki for iPhone is on its way to the App Store. Until then it is on Android.
+		</p>
+	{/if}
 </div>
 
 <style>
@@ -68,6 +89,7 @@
 		padding: 20px;
 		text-align: center;
 		background-color: #f5f5f5;
+		color: #1a1a1a;
 	}
 	.logo {
 		width: 100px;
@@ -94,5 +116,9 @@
 	.store-buttons {
 		display: flex;
 		gap: 10px;
+	}
+	.note {
+		margin-top: 1rem;
+		color: #555;
 	}
 </style>
