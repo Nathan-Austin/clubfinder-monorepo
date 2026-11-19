@@ -1049,3 +1049,26 @@ here that needs the server is collected in ROADMAP, "Next server round".
     logged and printed. To verify after the next 02:00 run (server instance): the printed
     "Artist selection for <city>" summary, and that London's unmatched upcoming artists drop from
     ~331 instead of 11 being checked.
+
+## Found during the device run (19 November 2026)
+
+93. **`/clubs` showed Berlin in the heading and Amsterdam's clubs on the cards** after the city was
+    changed from Amsterdam to Berlin on `/update-info` (DEVICE_CHECKLIST, versionCode 12 round,
+    section 1). Not the page: the heading and the cards come from one load and one `city`
+    (`routes/clubs/+page.server.ts` selects `WHERE city = $1`), and
+    `tests/users-home-city.spec.ts` ("the cards follow the heading") walks the owner's path on
+    the dev database and passes. So the rows themselves carry the wrong label: production
+    `clubfindr.events` rows with `city = 'berlin'` whose `club_address` is in Amsterdam. The one
+    way the fetcher produces that is a run whose city name and RA area code disagree
+    (`event_fetcher.py … berlin 29 nl` labels Amsterdam's listing "berlin"), and until
+    2026-11-19 the events upsert (`ON CONFLICT (event_id, event_date)`) never updated `city`, so
+    the nightly run could not repair it. _Hardened 2026-11-19_: `event_fetcher.py` refuses a
+    city/area/country triple that is not a line of `live_cities.txt` (`data_collection/live_cities.py`,
+    exit 2 before any request), `data_collection.py` reads the file through the same parser, and
+    the upsert sets `city = EXCLUDED.city`, so the next correct run relabels every event it still
+    lists. **To do on the server** (owner or server instance): confirm and measure with
+    `SELECT city, club_name, club_address, count(*) FROM clubfindr.events WHERE event_date >= CURRENT_DATE AND club_address NOT ILIKE '%' || city || '%' GROUP BY 1, 2, 3 ORDER BY 1, 2;`
+    (an address that does not name its own city; Berlin and Amsterdam addresses do), and check
+    `data_collection/logs/` for a hand run around 2026-11-18. Events the next 02:00 run no longer
+    lists (past, or removed from RA) keep the wrong label until they age out; delete them by hand
+    if the query shows any left after that run.

@@ -50,6 +50,13 @@ Also on the web, from the same run:
   genre list** below, KNOWN_ISSUES 91)
 - A venue password reset mail lists the personal account's link first; started from the venue
   login (`?from=bars`), put the venue link first or alone
+- **From the 2026-11-19 run (versionCode 12 checklist, section 1), hardened in the repo the
+  same day:** `/clubs` with Berlin in the heading and Amsterdam's clubs on the cards. Not the
+  page (the heading and cards share one city; `tests/users-home-city.spec.ts` walks the path
+  and passes) but mislabelled production rows, which only a fetcher run with a mismatched
+  city/area pair produces (KNOWN_ISSUES 93). The fetcher now refuses such a run, and the
+  upsert relabels events on the next correct run. **Left for the server:** the KNOWN_ISSUES 93
+  query, to confirm and to clear what the nightly run no longer lists
 
 **Data: no club events at all** (found 2026-11-18; **fixed the same day** in `1c98caa`). The
 event scrape had been disabled since Aug 2025, so the app's Clubs side and `/clubs` were empty.
