@@ -23,6 +23,7 @@ import EventWhenSection from '../components/eventForm/EventWhenSection';
 import EventRecurrenceSection from '../components/eventForm/EventRecurrenceSection';
 import { switchColours } from '../components/eventForm/formStyles';
 import { fromLocalIsoDate } from '../utils/localDate';
+import { genreVocabulary, unknownGenres } from '../utils/genreVocabulary';
 import { parseTimeString, toEventPayload, validateEventForm, type EventFormErrors } from '../utils/eventFormValues';
 import { colors } from '../theme';
 
@@ -79,6 +80,8 @@ const EventFormScreen = () => {
 
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState<EventFormErrors>({});
+    // Save waits while a genre the server would refuse is on the form; the chips say which
+    const hasUnknownGenres = unknownGenres(specialGenres, genreVocabulary()).length > 0;
 
     const values = {
         themeName,
@@ -241,7 +244,8 @@ const EventFormScreen = () => {
                         onPatternChange={setRecurrencePattern}
                     />
 
-                    {/* Genres: the shared vocabulary the venue's own genres use; any text is accepted */}
+                    {/* Genres: the one genre list the server accepts; a name outside it shows in
+                        amber and holds the save (KNOWN_ISSUES 91) */}
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>Music Genres for this Event</Text>
                         <GenreChipsInput
@@ -254,6 +258,9 @@ const EventFormScreen = () => {
                             emptyText="Pick the genres of this night. People are matched against them on the event's date."
                             testIDPrefix="event-genre"
                         />
+                        {errors.specialGenres ? (
+                            <Text style={styles.errorText} testID="event-genres-error">{errors.specialGenres}</Text>
+                        ) : null}
                     </View>
 
                     {/* Submit and Cancel Buttons */}
@@ -266,9 +273,10 @@ const EventFormScreen = () => {
                             <Text style={styles.cancelButtonText}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={styles.submitButton}
+                            style={[styles.submitButton, hasUnknownGenres && styles.submitButtonDisabled]}
                             onPress={handleSubmit}
-                            disabled={submitting}
+                            disabled={submitting || hasUnknownGenres}
+                            testID="event-submit"
                         >
                             {submitting ? (
                                 <ActivityIndicator color="#FFFFFF" size="small" />
@@ -380,6 +388,9 @@ const styles = StyleSheet.create({
         flex: 1,
         marginLeft: 10,
         alignItems: 'center',
+    },
+    submitButtonDisabled: {
+        opacity: 0.5,
     },
     submitButtonText: {
         color: colors.text,

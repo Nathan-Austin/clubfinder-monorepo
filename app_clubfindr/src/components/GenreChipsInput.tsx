@@ -3,12 +3,15 @@
  * (`utils/genreVocabulary`, the web dashboard's list). Used by the venue's "Genres you play"
  * (`VenueGenresEditor`, which saves each change) and the event form (which saves with the event).
  *
- * Any typed text can be added, as both endpoints accept it; the suggestions steer towards names
- * the matcher knows. A genre already chosen, in any case or spacing, is not added twice.
+ * Any typed text can be added, but the server accepts only the names in that list (event genres
+ * are strict since 2026-11-19, KNOWN_ISSUES 91), so a chip the server would refuse is shown in
+ * amber with the reason while it is still on the screen, instead of a refusal after Save
+ * (DEVICE_CHECKLIST 2026-11-19, section 6; owner's decision: inline). A genre already chosen,
+ * in any case or spacing, is not added twice.
  */
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { genreVocabulary, normalizeGenre, suggestGenres } from '../utils/genreVocabulary';
+import { genreVocabulary, isKnownGenre, normalizeGenre, suggestGenres, unknownGenres } from '../utils/genreVocabulary';
 import { colors } from '../theme';
 
 type Props = {
@@ -42,6 +45,8 @@ const GenreChipsInput = ({
     const atMax = max !== undefined && genres.length >= max;
     const canAdd = !busy && !atMax && input.trim().length > 0;
     const suggestions = atMax ? [] : suggestGenres(input, genres, vocabulary);
+    const unknown = unknownGenres(genres, vocabulary);
+    const typedUnknown = input.trim().length > 0 && !isKnownGenre(input, vocabulary);
 
     const add = async (genre: string) => {
         const wanted = genre.trim();
@@ -63,21 +68,38 @@ const GenreChipsInput = ({
                 ) : null
             ) : (
                 <View style={styles.chips}>
-                    {genres.map((genre) => (
-                        <View key={genre} style={styles.chip} testID={testIDPrefix}>
-                            <Text style={styles.chipText}>{genre}</Text>
-                            <TouchableOpacity
-                                onPress={() => onRemove(genre)}
-                                disabled={busy}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Remove ${genre}`}
-                                hitSlop={8}
+                    {genres.map((genre) => {
+                        const known = isKnownGenre(genre, vocabulary);
+                        return (
+                            <View
+                                key={genre}
+                                style={[styles.chip, !known && styles.chipUnknown]}
+                                testID={known ? testIDPrefix : `${testIDPrefix}-unknown`}
+                                accessibilityLabel={known ? genre : `${genre}, not a genre Clubfindr knows`}
                             >
-                                <Text style={styles.chipText}> ✕</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ))}
+                                <Text style={[styles.chipText, !known && styles.chipUnknownText]}>
+                                    {known ? genre : `${genre} ?`}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => onRemove(genre)}
+                                    disabled={busy}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Remove ${genre}`}
+                                    hitSlop={8}
+                                >
+                                    <Text style={[styles.chipText, !known && styles.chipUnknownText]}> ✕</Text>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    })}
                 </View>
+            )}
+            {unknown.length > 0 && (
+                <Text style={styles.unknownNote} testID={`${testIDPrefix}s-unknown-note`}>
+                    {unknown.length === 1
+                        ? `"${unknown[0]}" is not a genre Clubfindr knows, so it cannot be saved. Remove it, or pick a suggestion.`
+                        : `Not genres Clubfindr knows, so they cannot be saved: ${unknown.join(', ')}. Remove them, or pick suggestions.`}
+                </Text>
             )}
 
             <View style={styles.inputRow}>
@@ -108,6 +130,12 @@ const GenreChipsInput = ({
                     )}
                 </TouchableOpacity>
             </View>
+
+            {typedUnknown && suggestions.length === 0 && (
+                <Text style={styles.unknownNote} testID={`${testIDPrefix}-typed-unknown`}>
+                    No genre called "{input.trim()}" in Clubfindr's list. Try another spelling, or a wider name.
+                </Text>
+            )}
 
             {suggestions.length > 0 && (
                 <View style={styles.suggestions}>
@@ -157,6 +185,18 @@ const styles = StyleSheet.create({
     },
     chipText: {
         color: colors.onPrimary,
+    },
+    /* A genre the server would refuse: amber, dark text, a question mark */
+    chipUnknown: {
+        backgroundColor: colors.warning,
+    },
+    chipUnknownText: {
+        color: colors.textOnLight,
+    },
+    unknownNote: {
+        color: colors.warning,
+        fontSize: 13,
+        marginBottom: 8,
     },
     inputRow: {
         flexDirection: 'row',

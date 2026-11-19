@@ -65,3 +65,17 @@ it('takes no changes while a save is in flight', () => {
   fireEvent.press(screen.getByTestId('genre-add'));
   expect(onAdd).not.toHaveBeenCalled();
 });
+
+it('shows a genre outside the shared list in amber, with the reason', () => {
+  setup({ genres: ['house', 'polka-step'] });
+  expect(screen.getAllByTestId('genre')).toHaveLength(1);
+  expect(screen.getByTestId('genre-unknown')).toBeTruthy();
+  expect(screen.getByText('polka-step ?')).toBeTruthy();
+  expect(screen.getByTestId('genres-unknown-note').props.children).toContain('"polka-step"');
+});
+
+it('names every unknown genre when there are several', () => {
+  setup({ genres: ['polka-step', 'techno', 'zorbcore'] });
+  expect(screen.getAllByTestId('genre-unknown')).toHaveLength(2);
+  expect(screen.getByTestId('genres-unknown-note').props.children).toContain('polka-step, zorbcore');
+});

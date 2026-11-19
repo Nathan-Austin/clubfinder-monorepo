@@ -1,6 +1,13 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { MAX_VENUE_GENRES, genreVocabulary, normalizeGenre, suggestGenres } from '../genreVocabulary';
+import {
+  MAX_VENUE_GENRES,
+  genreVocabulary,
+  isKnownGenre,
+  normalizeGenre,
+  suggestGenres,
+  unknownGenres,
+} from '../genreVocabulary';
 
 const vocabulary = genreVocabulary();
 
@@ -69,5 +76,23 @@ describe('suggestGenres', () => {
 
   it('finds real genres in the shipped vocabulary', () => {
     expect(suggestGenres('techno', [], vocabulary).map(normalizeGenre)).toContain('techno');
+  });
+});
+
+describe('known genres', () => {
+  it('knows a listed genre in any case and spacing, and not an invented one', () => {
+    const vocabulary = genreVocabulary();
+    expect(isKnownGenre('Deep House', vocabulary)).toBe(true);
+    expect(isKnownGenre('  deep   house ', vocabulary)).toBe(true);
+    expect(isKnownGenre('polka-step', vocabulary)).toBe(false);
+    // Live music is an attribute of a night since 2026-11-19, not a genre
+    expect(isKnownGenre('Live Music', vocabulary)).toBe(false);
+  });
+
+  it('lists the chosen genres the server would refuse, in order', () => {
+    expect(unknownGenres(['techno', 'polka-step', 'House', 'zorbcore'], genreVocabulary())).toEqual([
+      'polka-step',
+      'zorbcore',
+    ]);
   });
 });

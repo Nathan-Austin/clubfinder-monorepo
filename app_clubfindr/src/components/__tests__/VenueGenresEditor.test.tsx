@@ -8,6 +8,7 @@ jest.mock('../../api/axiosClient', () => ({ __esModule: true, default: { get: je
 
 import axiosClient from '../../api/axiosClient';
 import VenueGenresEditor from '../VenueGenresEditor';
+import { genreVocabulary } from '../../utils/genreVocabulary';
 
 const get = axiosClient.get as jest.Mock;
 const put = axiosClient.put as jest.Mock;
@@ -102,10 +103,11 @@ it('removes a genre', async () => {
 });
 
 it('stops at 15 genres, as the server does', async () => {
-  const fifteen = Array.from({ length: 15 }, (_, i) => `genre ${i}`);
+  // Real names: a name outside the list is shown with an amber marker now
+  const fifteen = genreVocabulary().slice(0, 15);
   get.mockResolvedValue({ data: { genres: fifteen } });
   render(<VenueGenresEditor barId={BAR} />);
-  await screen.findByText('genre 0');
+  await screen.findByText(fifteen[0]);
   expect(screen.getByText('15 of 15')).toBeTruthy();
   expect(screen.getByTestId('venue-genre-input').props.editable).toBe(false);
   fireEvent.press(screen.getByTestId('venue-genre-add'));

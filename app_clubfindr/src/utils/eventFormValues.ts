@@ -3,6 +3,7 @@
  * app", step 9: the form split into sections). They were inline in EventFormScreen.
  */
 import { toLocalIsoDate } from './localDate';
+import { genreVocabulary, unknownGenres } from './genreVocabulary';
 
 export type EventFormValues = {
     themeName: string;
@@ -19,7 +20,7 @@ export type EventFormValues = {
     specialGenres: string[];
 };
 
-export type EventFormErrors = { themeName?: string; endTime?: string };
+export type EventFormErrors = { themeName?: string; endTime?: string; specialGenres?: string };
 
 /** The recurrence patterns the form offers */
 export const RECURRENCE_PATTERNS: { value: string; label: string }[] = [
@@ -50,6 +51,12 @@ const minutesOfDay = (date: Date) => date.getHours() * 60 + date.getMinutes();
 /** The form's errors; empty when it can be saved */
 export function validateEventForm(values: EventFormValues): EventFormErrors {
     const errors: EventFormErrors = {};
+    // The server refuses an event with a genre outside the one genre list (KNOWN_ISSUES 91);
+    // say so here, by name, rather than after the request
+    const unknown = unknownGenres(values.specialGenres, genreVocabulary());
+    if (unknown.length > 0) {
+        errors.specialGenres = `Not genres Clubfindr knows: ${unknown.join(', ')}. Remove them before saving.`;
+    }
     if (!values.themeName.trim()) {
         errors.themeName = 'Event theme/name is required';
     }

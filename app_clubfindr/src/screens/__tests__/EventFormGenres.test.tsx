@@ -16,7 +16,7 @@ const mockEvent = {
   end_time: null,
   recurring: false,
   recurrence_pattern: null,
-  special_genres: ['Live Music'],
+  special_genres: ['Deep House'],
 };
 
 jest.mock('@react-navigation/native', () => ({
@@ -46,7 +46,7 @@ const put = axiosClient.put as jest.Mock;
 
 it("keeps an event's existing genres and saves the ones added from the shared list", async () => {
   render(<EventFormScreen />);
-  expect(screen.getByText('Live Music')).toBeTruthy();
+  expect(screen.getByText('Deep House')).toBeTruthy();
   // The old fixed grid is gone: its "Acoustic" button is not on the screen
   expect(screen.queryByText('Acoustic')).toBeNull();
 
@@ -58,7 +58,7 @@ it("keeps an event's existing genres and saves the ones added from the shared li
   await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
   const [url, body] = put.mock.calls[0];
   expect(url).toBe('/api/mobile/bars/bar-1/events/ev-1');
-  expect(body.special_genres[0]).toBe('Live Music');
+  expect(body.special_genres[0]).toBe('Deep House');
   expect(body.special_genres).toHaveLength(2);
   expect(body.special_genres[1].toLowerCase()).toContain('techno');
 });
@@ -90,4 +90,33 @@ it('refuses to save without a name, and saves a recurring event with its pattern
     end_time: null,
   });
   alert.mockRestore();
+});
+
+// A genre outside the one genre list is shown in amber with the reason, and the save waits
+// until it is removed (DEVICE_CHECKLIST 2026-11-19, section 6; owner's decision: inline, not a
+// refusal after Save)
+it('marks a genre the server would refuse and holds the save until it is removed', async () => {
+  put.mockClear();
+  render(<EventFormScreen />);
+
+  fireEvent.changeText(screen.getByTestId('event-genre-input'), 'polka-step');
+  // Nothing in the list is called that: the field says so before anything is added
+  expect(screen.getByTestId('event-genre-typed-unknown')).toBeTruthy();
+  fireEvent.press(screen.getByTestId('event-genre-add'));
+
+  const unknownChip = await screen.findByTestId('event-genre-unknown');
+  expect(unknownChip).toBeTruthy();
+  expect(screen.getByTestId('event-genres-unknown-note').props.children).toContain(
+    '"polka-step" is not a genre Clubfindr knows'
+  );
+  expect(screen.getByTestId('event-submit').props.accessibilityState?.disabled).toBe(true);
+  fireEvent.press(screen.getByText('Update Event'));
+  expect(put).not.toHaveBeenCalled();
+
+  fireEvent.press(screen.getByLabelText('Remove polka-step'));
+  await waitFor(() => expect(screen.queryByTestId('event-genre-unknown')).toBeNull());
+  expect(screen.getByTestId('event-submit').props.accessibilityState?.disabled).toBe(false);
+  fireEvent.press(screen.getByText('Update Event'));
+  await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
+  expect(put.mock.calls[0][1].special_genres).toEqual(['Deep House']);
 });

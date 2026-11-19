@@ -25,6 +25,17 @@ export function normalizeGenre(genre: string): string {
   return genre.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+/** Whether the server would accept this genre: it is in the one genre list, in any case. */
+export function isKnownGenre(genre: string, vocabulary: readonly string[]): boolean {
+  const wanted = normalizeGenre(genre);
+  return vocabulary.some((name) => normalizeGenre(name) === wanted);
+}
+
+/** The chosen genres the server would refuse, in the order chosen (KNOWN_ISSUES 91). */
+export function unknownGenres(genres: readonly string[], vocabulary: readonly string[]): string[] {
+  return genres.filter((genre) => !isKnownGenre(genre, vocabulary));
+}
+
 /**
  * Up to `limit` suggestions for what has been typed, leaving out genres already chosen: names
  * that start with it first, then names that contain it, each in alphabetical order.
