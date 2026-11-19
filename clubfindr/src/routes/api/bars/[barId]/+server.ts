@@ -5,8 +5,7 @@ import type { RequestHandler } from './$types';
 import { validateBarUpdate } from '$lib/validators/barValidators';
 import { denyUnlessBarManager } from '$lib/server/barAuth';
 import { deleteVenue } from '$lib/server/deleteVenue';
-import { cookieManager } from '$lib/cookieManager';
-import { BAR_SESSION_COOKIE } from '$lib/taste/barSession';
+import { endWebLogin } from '$lib/server/webLogout';
 /**
  * GET handler to fetch bar details
  */
@@ -209,8 +208,11 @@ export const PATCH: RequestHandler = async ({ params, cookies, request }) => {
 
 /**
  * DELETE handler: the venue deletes its own account and everything it owns
- * ($lib/server/deleteVenue), from the dashboard's "Delete this venue" section. The venue
- * cookies are cleared afterwards; the bar_sessions rows are already gone with the venue.
+ * ($lib/server/deleteVenue), from the dashboard's "Delete this venue" section. The browser is
+ * logged out entirely afterwards (owner's decision 2026-11-19): the bar_sessions rows are
+ * already gone with the venue, and every login cookie goes, including a personal login made
+ * in the same browser, so the header does not keep offering "Log Out" for an account that no
+ * longer exists.
  */
 export const DELETE: RequestHandler = async ({ params, cookies, request }) => {
 	// Only the venue itself, by its session
@@ -223,10 +225,7 @@ export const DELETE: RequestHandler = async ({ params, cookies, request }) => {
 			return json({ message: 'Bar not found' }, { status: 404 });
 		}
 
-		cookieManager.delete(cookies, BAR_SESSION_COOKIE, { path: '/' });
-		for (const name of ['barId', 'barsName', 'bar_city']) {
-			cookies.delete(name, { path: '/' });
-		}
+		await endWebLogin(cookies);
 		return json({ message: 'The venue account has been deleted' });
 	} catch (error: unknown) {
 		console.error('Error deleting venue:', error);

@@ -1,4 +1,4 @@
-import { test, expect, mobileApi, bearer, acceptCookies } from './fixtures';
+import { test, expect, mobileApi, bearer, acceptCookies, testPassword } from './fixtures';
 import { registerVenue, removeVenue, type TestVenue } from './venue';
 import { devQuery } from './db';
 
@@ -100,17 +100,33 @@ test('deleting the venue removes everything it owns and ends its sessions', asyn
 	}
 });
 
-test('the web dashboard deletes the venue after its name is typed', async ({
+test('the web dashboard deletes the venue after its name is typed, and logs the browser out', async ({
 	page,
 	playwright,
 	baseURL
 }) => {
 	const api = await mobileApi(playwright, baseURL);
 	let venue: TestVenue | undefined;
+	// A personal login made earlier in the same browser, as on the 2026-11-19 device run: the
+	// header kept offering "Log Out" after the venue was deleted. Owner's decision: deleting the
+	// venue logs the browser out of everything
+	const personalEmail = `test-delete-web-person-${Date.now()}-${Math.floor(Math.random() * 1e6)}@clubfindr.test`;
 	try {
 		venue = await registerVenue(api, 'delete-web');
 		const named = await devQuery('SELECT name FROM clubfindr.bars WHERE id = $1', [venue.barId]);
 		const venueName = String(named[0].name);
+
+		const signedUp = await page.request.post('/login/users', {
+			data: {
+				provider: 'local',
+				isNewUser: true,
+				isMobileApp: false,
+				email: personalEmail,
+				password: testPassword(),
+				fullName: 'Venue Delete Person'
+			}
+		});
+		expect(signedUp.status(), await signedUp.text()).toBe(200);
 
 		await page.goto('/login/bars');
 		await acceptCookies(page);
@@ -131,11 +147,24 @@ test('the web dashboard deletes the venue after its name is typed', async ({
 		const gone = await devQuery('SELECT 1 FROM clubfindr.bars WHERE id = $1', [venue.barId]);
 		expect(gone.length).toBe(0);
 
+		// Logged out of everything: no login cookie is left (bar_email used to stay, which the
+		// header reads as a partner login, and the personal login stayed whole), and the header
+		// offers Login, not Log Out
+		const left = (await page.context().cookies())
+			.map((cookie) => cookie.name)
+			.filter((name) =>
+				['isLoggedIn', 'usersId', 'sessionId', 'bar_email', 'barId', 'barSession'].includes(name)
+			);
+		expect(left).toEqual([]);
+		await expect(page.locator('nav')).toContainText('Login');
+		await expect(page.locator('nav')).not.toContainText('Log Out');
+
 		// The venue session cookie went with the venue: the dashboard is closed now
 		await page.goto('/bars');
 		await page.waitForURL('**/login/bars');
 	} finally {
 		await removeVenue(venue);
+		await devQuery('DELETE FROM clubfindr.users WHERE general_email = $1', [personalEmail]);
 		await api.dispose();
 	}
 });
