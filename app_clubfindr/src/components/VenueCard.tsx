@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Venue } from '../services/discoveryService';
 import { colors } from '../theme';
+import { eventBadgeText, formatEventDate } from '../utils/venueEventDates';
+import { toLocalIsoDate } from '../utils/localDate';
 
 type VenueCardProps = {
     venue: Venue;
@@ -25,36 +27,8 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
         }
     };
 
-    // Format date for display
-    const formatDate = (dateStr: string): string => {
-        try {
-            // Ensure we handle ISO format properly by explicitly parsing
-            const [datePart] = dateStr.split('T');
-            const date = new Date(datePart);
-
-            // Check if date is valid
-            if (isNaN(date.getTime())) {
-                throw new Error('Invalid date');
-            }
-
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-
-            if (date.toDateString() === today.toDateString()) {
-                return 'Today';
-            } else if (date.toDateString() === tomorrow.toDateString()) {
-                return 'Tomorrow';
-            } else if (date.getTime() < today.getTime() + 7 * 24 * 60 * 60 * 1000) {
-                return date.toLocaleDateString('en-US', { weekday: 'long' });
-            } else {
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            }
-        } catch (e) {
-            console.warn('Date parsing error:', e);
-            return 'Date TBA';
-        }
-    };
+    // Dates as local calendar days (utils/venueEventDates, KNOWN_ISSUES 80)
+    const formatDate = (dateStr: string): string => formatEventDate(dateStr);
 
     // Format time for display
     const formatTime = (timeStr?: string): string => {
@@ -74,32 +48,7 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
         }
     };
 
-    // Get event badge text
-    const getEventBadgeText = (): string => {
-        if (!venue.events || venue.events.length === 0) return '';
-
-        const currentDate = new Date().toISOString().split('T')[0];
-
-        const todayEvents = venue.events.filter(event => {
-            const eventDate = event.event_date || currentDate;
-            const [datePart] = eventDate.split('T');
-            return new Date(datePart).toDateString() === new Date().toDateString();
-        });
-
-        if (todayEvents.length > 0) {
-            return `${todayEvents.length} Event${todayEvents.length > 1 ? 's' : ''} Today`;
-        } else {
-            const sortedEvents = [...venue.events].sort((a, b) => {
-                const dateA = a.event_date || currentDate;
-                const dateB = b.event_date || currentDate;
-                const [datePartA] = dateA.split('T');
-                const [datePartB] = dateB.split('T');
-                return new Date(datePartA).getTime() - new Date(datePartB).getTime();
-            });
-            const nextEventDate = sortedEvents[0].event_date || currentDate;
-            return `Next Event: ${formatDate(nextEventDate)}`;
-        }
-    };
+    const getEventBadgeText = (): string => eventBadgeText(venue.events);
 
     // Safely check if we have current track info
     const hasCurrentTrack = venue.currentTrack &&
@@ -192,7 +141,7 @@ const VenueCard = ({ venue, onPress }: VenueCardProps) => {
                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                         {venue.events.slice(0, 3).map((event) => {
                             // Use current date if event_date is invalid or missing
-                            const eventDate = event.event_date || new Date().toISOString().split('T')[0];
+                            const eventDate = event.event_date || toLocalIsoDate();
 
                             return (
                                 <View key={event.id} style={styles.eventCard}>
