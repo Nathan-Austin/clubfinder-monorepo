@@ -202,6 +202,43 @@ test('a venue resets its own password, and its old sessions end', async ({
 // The Android app sends Platform.Version, a number (the API level), and from 2026-11-14 the
 // validator refused it: every Android venue login answered 400. Builds up to versionCode 9 still
 // send a number; later ones send text.
+// A venue's address usually also has the personal account that registered it, so the reset
+// mail carries two links. Started from the venue login (the page's ?from=bars), the venue's
+// link comes first, since that is the login being reset (DEVICE_CHECKLIST 2026-11-18, web)
+test('a reset asked from the venue login puts the venue link first', async ({
+	playwright,
+	baseURL
+}) => {
+	const api = await mobileApi(playwright, baseURL);
+	let venue: TestVenue | undefined;
+	try {
+		venue = await registerVenue(api, 'reset-order');
+		const order = async (from?: string) => {
+			const startedAt = Date.now();
+			const requested = await api.post('/api/request-password-reset', {
+				data: from ? { email: venue!.email, from } : { email: venue!.email }
+			});
+			expect(requested.status()).toBe(200);
+			const mail = await waitForMail(
+				(m) =>
+					m.to === venue!.email && Date.parse(m.at) >= startedAt && /password-reset\//.test(m.text)
+			);
+			const text = mail?.text ?? '';
+			expect(text).toContain('Your personal account');
+			expect(text).toContain('The venue login of');
+			return text.indexOf('The venue login of') < text.indexOf('Your personal account')
+				? 'venue first'
+				: 'personal first';
+		};
+		expect(await order()).toBe('personal first');
+		expect(await order('bars')).toBe('venue first');
+		expect(await order('users')).toBe('personal first');
+	} finally {
+		await removeVenue(venue);
+		await api.dispose();
+	}
+});
+
 test('the app venue login accepts the platform version as a number or as text', async ({
 	playwright,
 	baseURL

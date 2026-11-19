@@ -10,9 +10,14 @@ export const POST: RequestHandler = async ({ request, url }) => {
 	// Checked before any query: a body that was not JSON threw here, outside the try (500), and a
 	// missing e-mail was looked up as NULL and answered success (ROADMAP section 4). A malformed
 	// address says nothing about which accounts exist, so refusing it leaks nothing.
-	const checked = emailCheck((await readJsonObject(request))?.email);
+	const body = await readJsonObject(request);
+	const checked = emailCheck(body?.email);
 	if (!checked.ok) return json({ success: false, message: SAY.email }, { status: 400 });
 	const email = checked.value;
+	// Started from the venue login (/login/bars, the app's venue login: ?from=bars on the page):
+	// the venue's link goes first in the mail, since that is the login being reset. Anything
+	// else, or nothing, keeps the personal account first.
+	const fromVenueLogin = body?.from === 'bars';
 
 	try {
 		// A person's account (users) and a venue's own login (bars.password_hash) can share an
@@ -59,6 +64,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		if (links.length === 0) {
 			return json({ success: true });
 		}
+		if (fromVenueLogin) links.reverse();
 
 		// The site the request came from (ORIGIN in production), so the token matches the deployment
 		const linkText = links

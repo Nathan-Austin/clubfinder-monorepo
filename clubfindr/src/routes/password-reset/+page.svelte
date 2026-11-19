@@ -30,7 +30,8 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ email })
+				// Where the person came from decides which link the mail puts first
+				body: JSON.stringify({ email, from: page.url.searchParams.get('from') ?? undefined })
 			});
 
 			const result = await response.json();
