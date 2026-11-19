@@ -658,6 +658,12 @@ the in-app account deletion Apple requires exists (`DeleteAccountScreen`).
 - [ ] Retry with backoff and checkpointing so a failed run can resume
 - [ ] Move hardcoded paths and cities into configuration
 - [ ] Remove `oldScripts/` and other unused scripts
+- [ ] **Odd-ball genres on scraped events** (KNOWN_ISSUES 94, owner 2026-11-19): a techno night
+      listing `hardcore punk` and `screamo` because one line-up name matched the wrong Spotify
+      artist, and the night then reaches punk fans. Verify the Spotify match against the rest of
+      the line-up before taking its genres, drop `none` and unknown tags, and add a per-event
+      outlier pass; on the web, weigh event genres by how many artists carry them, and show the
+      genres that actually matched instead of the whole list under "Matching Genres"
 - [ ] Clear the `bandit` findings in `data_collection` (KNOWN_ISSUES 46): timeouts on every
       `requests` call first (a hung scrape holds the run lock), `# nosec` with a reason on the
       false-positive B608s, then make the CI security scan a failing step

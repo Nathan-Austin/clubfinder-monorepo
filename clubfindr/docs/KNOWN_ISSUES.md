@@ -1071,4 +1071,44 @@ here that needs the server is collected in ROADMAP, "Next server round".
     (an address that does not name its own city; Berlin and Amsterdam addresses do), and check
     `data_collection/logs/` for a hand run around 2026-11-18. Events the next 02:00 run no longer
     lists (past, or removed from RA) keep the wrong label until they age out; delete them by hand
-    if the query shows any left after that run.
+    if the query shows any left after that run. _Checked on production by the owner, 2026-11-19:_
+    **no Amsterdam venue is stored under Berlin.** The query returned only venues whose address
+    does not name the city, one Uppsala venue under Stockholm and one Guadalajara venue under
+    Madrid (both plausible for RA's areas), and some TBA or garbled rows. So the data is not the
+    cause either, and what was seen is **not reproduced**: the page and the rows both say one
+    city. The likeliest remainder is a stale page (a `/clubs` tab or a back-navigation showing
+    the Amsterdam search from before the change, with the heading re-rendered from the new
+    cookie is _not_ possible, so more likely the whole page was the older one). The fetcher
+    guard and the relabelling upsert stay as preventive hardening. If it shows again: note the
+    exact navigation (which link or button led to `/clubs`), the date shown, and one club name
+    from the cards, so the row can be found.
+
+94. **An event's genre list can carry a few genres from another world, and then it matches
+    people who want that world.** Seen 2026-11-19 by the owner: a profile built from punk bands
+    (Pennywise, NOFX; new wave, post-punk, hardcore punk and their neighbours) got two `/clubs`
+    results, one fitting and one techno/house night whose twenty-odd genres included `hardcore
+    punk`, `post-hardcore`, `screamo` and `mathcore` beside `german hip hop`, `german indie pop`,
+    `coco` and `none`. Causes, in the pipeline: a scraped event's `event_genres` is the union of
+    every line-up artist's genres (`spotipy_search.update_event_genres`: `event_artists` →
+    `artists.genres`, replacing RA's own tags), and an artist's genres come from the **top
+    result of a Spotify name search** (`sp.search(name, type="artist")`, first item), so a DJ
+    who shares a name with a hardcore band imports that band's genres into every night they
+    play (KNOWN_ISSUES 19 is the same name-only matching on the taste side). `none` and `coco`
+    show that the cleaning pass lets through tags the clusters do not know. On the matching
+    side the event is an unweighted set, so one artist's four odd genres weigh as much as the
+    night's twenty; the similarity stays above zero, and `MIN_SIMILARITY` keeps anything above
+    zero (ROADMAP section 2), so the night is listed. Also found on the way: the card's
+    "Matching Genres" heading lists the event's **whole** genre list (`result.genres`), not the
+    genres that matched (`matchingGenres`, which the matcher already returns and the page
+    ignores), so the person cannot see why the night was offered (personas.md, rule 1).
+    **Owner's intent (2026-11-19): look into removing odd-ball genres before they reach the
+    event data** when an event has a clear trend and a couple of outliers. Options, for the
+    ROADMAP item (section 6): (a) at the Spotify step, verify the matched artist against the
+    event's other artists (same top-level cluster family, or an exact name match plus RA's own
+    genres) before taking its genres; (b) a per-event outlier pass after the union, dropping
+    genres whose top-level cluster holds a small share of the event's genres and comes from a
+    single artist; (c) at the matcher, weigh each event genre by how many artists carry it
+    (the duplicates in the owner's list are that count showing through), so a lone artist's
+    genres count less without a data change; (d) drop `none` and unknown tags in the cleaning
+    pass. (a) and (d) fix the data for every reader including the app; (c) is the cheapest and
+    can go first. Not started.
