@@ -1120,8 +1120,18 @@ here that needs the server is collected in ROADMAP, "Next server round".
     can go first. _The card part is done 2026-11-19_: `calculateClusterSimilarity`
     also returns `matchingClubGenres` (the club side's own genres that matched) and the `/clubs`
     card shows those first and only, with the match as a percentage ("33% match · 1 of 3
-    genres") and a per-card "Show all N genres". The pipeline and weighting parts are to be
-    discussed at step 6 of the 2026-11-19 session (ROADMAP section 6).
+    genres") and a per-card "Show all N genres". _Options 2 and 3 done 2026-11-19 (owner's
+    decision; 1 and 4 not taken):_ `pnpm convert-genres` writes `data_collection/known_genres.json`
+    (every genre the matcher places, with its top-level cluster, held to `findClusters` by
+    `knownGenres.test.ts`); `data_collection/known_genres.py` keeps only those names on artists
+    and events (the Spotify and SoundCloud steps and the event update; the 6,428-entry CSV and
+    its substring matching are out of the path), and a Spotify match whose genres share no
+    top-level cluster with the rest of the line-up (the other artists' genres and the events'
+    tags) is taken for the wrong artist: nothing of it is stored, the artist's earlier genres
+    and URI are dropped and its events rebuilt, and the refusal is logged (`lineUpFit`). **To
+    watch after the next runs (server instance):** the `lineUpFit` lines for a week, for a real
+    eclectic act refused; and that polluted events clear only as their artists come round again
+    (the 14-day cooldown), unless a one-off re-clean is run by hand.
 
 95. _Fixed 2026-11-19 (owner's decision)._ **An account had one session at a time.**
     `user_sessions` carried `UNIQUE (user_id)` and every login upserted on it, so logging in on

@@ -676,14 +676,15 @@ the in-app account deletion Apple requires exists (`DeleteAccountScreen`).
 - [ ] Retry with backoff and checkpointing so a failed run can resume
 - [ ] Move hardcoded paths and cities into configuration
 - [ ] Remove `oldScripts/` and other unused scripts
-- [ ] **Odd-ball genres on scraped events** (KNOWN_ISSUES 94, owner 2026-11-19): a techno night
-      listing `hardcore punk` and `screamo` because one line-up name matched the wrong Spotify
-      artist, and the night then reaches punk fans. Verify the Spotify match against the rest of
-      the line-up before taking its genres, drop `none` and unknown tags, and add a per-event
-      outlier pass; on the web, weigh event genres by how many artists carry them. **Owner,
-      2026-11-19: discuss the matcher-side weighting and the scrape changes at step 6 of the
-      session; do not let it drop.** The card label (the genres that matched, the match as a
-      percentage, the whole list on request) is done with the 2026-11-19 web fixes
+- [x] **Odd-ball genres on scraped events** (KNOWN_ISSUES 94), done 2026-11-19 as the owner
+      decided at step 6: only genres the matcher knows reach artists and events
+      (`data_collection/known_genres.json`, written by `pnpm convert-genres`), and a Spotify
+      match that shares no top-level cluster with the rest of its line-up is dropped as the
+      wrong artist, logged under `lineUpFit`. Not taken: the matcher-side weighting and the
+      per-event outlier pass (wait for rooms on events). The card shows the genres that
+      matched since the same day. Left: read the `lineUpFit` log for a week; a one-off
+      re-clean of stored artist genres is a hand job if the owner wants the old pollution gone
+      before the cooldown brings each artist round
 - [ ] Clear the `bandit` findings in `data_collection` (KNOWN_ISSUES 46): timeouts on every
       `requests` call first (a hung scrape holds the run lock), `# nosec` with a reason on the
       false-positive B608s, then make the CI security scan a failing step
