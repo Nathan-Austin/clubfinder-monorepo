@@ -3,7 +3,8 @@
 Planned work for the Clubfinder monorepo. Detailed findings live in
 [`docs/analysis/`](docs/analysis/README.md) and
 [`clubfindr/docs/KNOWN_ISSUES.md`](clubfindr/docs/KNOWN_ISSUES.md); this file is the
-ordered list of what I intend to do next.
+ordered list of what I intend to do next. Who the work is for, and the rules each change
+should hold to: [`clubfindr/docs/personas.md`](clubfindr/docs/personas.md) (2026-11-19).
 
 ## Tonight's device run (2026-11-17, versionCode 11)
 
