@@ -60,6 +60,11 @@ test('the saved city drives the page and the search, and survives a reload', asy
 		// Reload the profile page: still Amsterdam (from the account, not a cookie)
 		await page.goto('/users-home');
 		await expect(page.getByTestId('current-city')).toHaveText('Amsterdam');
+
+		// The same block searches bars too (owner 2026-11-19: the page used to reach /clubs only)
+		await page.getByTestId('find-bars').click();
+		await page.waitForURL('**/barfindr');
+		expect(await cityCookie(page)).toBe('amsterdam');
 	} finally {
 		await removeUser(email);
 	}

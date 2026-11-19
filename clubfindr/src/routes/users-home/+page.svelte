@@ -112,10 +112,11 @@
 		}
 	}
 
-	// The search this page is for: date + city + taste profile -> /clubs. The city posted is
-	// exactly the one shown (the account's, or the proposed one), so /storestate can no longer
-	// overwrite a saved city with a location guess.
-	async function findEvents() {
+	// The searches this page is for: date + city + taste profile -> /clubs (club nights) or
+	// /barfindr (bars and their nights; owner 2026-11-19, the page used to reach /clubs only).
+	// The city posted is exactly the one shown (the account's, or the proposed one), so
+	// /storestate can no longer overwrite a saved city with a location guess.
+	async function findEvents(target: 'clubs' | 'bars' = 'clubs') {
 		const slug = citySlug ?? findLiveCity(city1)?.slug;
 		if (!slug) {
 			isCitySelectionInvalid = true;
@@ -137,7 +138,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include'
 			});
-			window.location.href = '/clubs';
+			window.location.href = target === 'bars' ? '/barfindr' : '/clubs';
 		} catch (error) {
 			console.error('Could not start the search:', error);
 		}
@@ -627,7 +628,7 @@
 <!-- Date and Location Section -->
 <div class="date-location-section">
 	<div class="date-picker-container">
-		<h3>Choose Date for Events</h3>
+		<h3>Choose a date</h3>
 		<DatePicker bind:value={formattedDate} />
 		<p class="selected-date">
 			{new Intl.DateTimeFormat('en-GB', {
@@ -701,12 +702,25 @@
 	</div>
 
 	<div class="find-events-container">
-		<button class="button find-events-btn" data-testid="find-events" onclick={findEvents}>
-			Find events
-		</button>
+		<div class="find-buttons">
+			<button
+				class="button find-events-btn"
+				data-testid="find-events"
+				onclick={() => findEvents('clubs')}
+			>
+				Find clubs
+			</button>
+			<button
+				class="button find-events-btn"
+				data-testid="find-bars"
+				onclick={() => findEvents('bars')}
+			>
+				Find bars
+			</button>
+		</div>
 		<p class="city-hint">
-			Clubs matching your taste, {#if citySlug}in {savedCityName}{:else}once a city is chosen{/if}
-			on the chosen date.
+			Club nights and bars matching your taste, {#if citySlug}in {savedCityName}{:else}once a city
+				is chosen{/if} on the chosen date.
 		</p>
 	</div>
 </div>
@@ -953,6 +967,13 @@
 		flex-basis: 100%;
 		text-align: center;
 		margin-top: 1rem;
+	}
+
+	.find-buttons {
+		display: flex;
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 1rem;
 	}
 
 	.find-events-btn {
