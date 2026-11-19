@@ -102,3 +102,86 @@ test('an account without a city picks one, and Change City saves to the account'
 		await removeUser(email);
 	}
 });
+
+// The 2026-11-19 device run reported /clubs with "Berlin" in the heading and Amsterdam's clubs
+// on the cards after the city had been changed from Amsterdam to Berlin on /update-info. The
+// heading and the cards come from one load and one city, so this walks the owner's exact path
+// and holds every card to the heading's city, both before and after the change.
+test('changing the city on /update-info moves the search: the cards follow the heading', async ({
+	page,
+	baseURL
+}) => {
+	const email = unique();
+	try {
+		await signUp(page, email);
+		const saved = await page.request.put('/api/account/city', { data: { city: 'Amsterdam' } });
+		expect(saved.status(), await saved.text()).toBe(200);
+
+		// A night with club events in both cities (the seed's relative nights), and what each
+		// city has on that night, straight from the database
+		const dates = await devQuery<{ event_date: string }>(
+			`SELECT event_date::text AS event_date FROM clubfindr.events
+			 WHERE city IN ('amsterdam', 'berlin') AND event_date >= CURRENT_DATE
+			 GROUP BY event_date HAVING count(DISTINCT city) = 2
+			 ORDER BY event_date LIMIT 1`
+		);
+		expect(dates, 'the seed has a night with events in both cities').toHaveLength(1);
+		const date = dates[0].event_date;
+		const clubsIn = async (city: string) =>
+			(
+				await devQuery<{ club_name: string }>(
+					'SELECT DISTINCT club_name FROM clubfindr.events WHERE city = $1 AND event_date = $2',
+					[city, date]
+				)
+			).map((row) => row.club_name);
+		const amsterdamClubs = await clubsIn('amsterdam');
+		const berlinClubs = await clubsIn('berlin');
+
+		// An explicit genre pick wide enough to reach every seeded night, so the city alone
+		// decides which cards show
+		await page.context().addCookies([
+			{
+				name: 'selected-genres',
+				value: 'techno,house,uk garage,dubstep,ambient,post-punk,reggaeton',
+				url: baseURL ?? 'http://localhost:4173'
+			}
+		]);
+		const cardClubs = () => page.locator('.club-value span').allTextContents();
+
+		await page.goto('/users-home');
+		await acceptCookies(page);
+		await expect(page.getByTestId('current-city')).toHaveText('Amsterdam');
+		await page.getByTestId('find-events').click();
+		await page.waitForURL('**/clubs');
+		// "Change Date" to the night: the city stays what the search posted
+		await page.goto(`/clubs?date=${date}`);
+		await expect(page.locator('h1')).toContainText('Amsterdam');
+		const amsterdamCards = await cardClubs();
+		expect(amsterdamCards.length).toBeGreaterThan(0);
+		for (const club of amsterdamCards) expect(amsterdamClubs).toContain(club);
+
+		// The owner's path: change the city on the profile page, then search again from the
+		// user home
+		await page.goto('/update-info');
+		await acceptCookies(page);
+		const picker = page.getByTestId('city-picker');
+		await picker.locator('select').selectOption('berlin');
+		await picker.getByRole('button', { name: 'Save city' }).click();
+		await expect(picker.getByRole('status')).toContainText('Your city is now Berlin');
+
+		await page.goto('/users-home');
+		await expect(page.getByTestId('current-city')).toHaveText('Berlin');
+		await page.getByTestId('find-events').click();
+		await page.waitForURL('**/clubs');
+		await page.goto(`/clubs?date=${date}`);
+		await expect(page.locator('h1')).toContainText('Berlin');
+		const berlinCards = await cardClubs();
+		expect(berlinCards.length).toBeGreaterThan(0);
+		for (const club of berlinCards) {
+			expect(berlinClubs).toContain(club);
+			expect(amsterdamClubs).not.toContain(club);
+		}
+	} finally {
+		await removeUser(email);
+	}
+});
