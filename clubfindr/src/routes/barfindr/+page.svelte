@@ -703,11 +703,15 @@
 		background-color: #18a64b;
 	}
 
+	/* Off: dark text on white (green text on the header's light blue could not be read,
+	   DEVICE_CHECKLIST 2026-11-19); on: white on green, like the buttons beside it */
 	.live-filter {
 		display: inline-flex;
 		align-items: center;
-		border: 1px solid #1db954;
-		color: #1db954;
+		border: 2px solid #1db954;
+		background-color: white;
+		color: #1a1a1a;
+		font-weight: 600;
 		border-radius: 20px;
 		padding: 0.35rem 1rem;
 		font-size: 0.9rem;
