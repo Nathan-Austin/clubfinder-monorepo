@@ -4,12 +4,14 @@ import { PLAY_STORE_URL } from '../src/lib/storeLinks';
 // /redirect is where a phone's own camera lands from a venue's QR code (KNOWN_ISSUES 84). Its
 // store links were placeholders that disagreed with each other, and its fallback fired even when
 // the app had opened (KNOWN_ISSUES 88). The deep link itself cannot open anything in a test
-// browser, so the page stays visible and the fallback is what is checked.
+// browser, so the page stays visible and the fallback is what is checked. The page's own
+// navigation to clubfindr:// aborts in Chromium, which can detach a plain page.goto or a
+// waitForURL under load: the tests wait for the page to commit and for the Play request itself.
 
 const CODE = '/redirect?barId=00000000-0000-4000-8000-0000000000b1&qrId=7&type=checkin';
 
 test('names the real app: one Play link, no placeholder App Store id', async ({ page }) => {
-	await page.goto(CODE);
+	await page.goto(CODE, { waitUntil: 'commit' });
 	await expect(page.locator('h1')).toContainText('Opening Tilki');
 	await expect(page.getByTestId('play-store-link')).toHaveAttribute('href', PLAY_STORE_URL);
 	expect(PLAY_STORE_URL).toContain('id=com.clubfindr.mobile');
@@ -19,7 +21,7 @@ test('names the real app: one Play link, no placeholder App Store id', async ({ 
 });
 
 test('a desktop browser is not sent to a store it cannot use', async ({ page }) => {
-	await page.goto(CODE);
+	await page.goto(CODE, { waitUntil: 'commit' });
 	await page.waitForTimeout(2600);
 	expect(new URL(page.url()).pathname).toBe('/redirect');
 });
@@ -35,9 +37,12 @@ test.describe('on an Android phone', () => {
 		await page.route('https://play.google.com/**', (route) =>
 			route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Play</title>' })
 		);
-		await page.goto(CODE);
-		await page.waitForURL((url) => url.hostname === 'play.google.com', { timeout: 5000 });
-		expect(page.url()).toBe(PLAY_STORE_URL);
+		const playRequest = page.waitForRequest(
+			(request) => request.url().startsWith('https://play.google.com/'),
+			{ timeout: 10000 }
+		);
+		await page.goto(CODE, { waitUntil: 'commit' });
+		expect((await playRequest).url()).toBe(PLAY_STORE_URL);
 	});
 });
 
@@ -48,7 +53,7 @@ test.describe('on an iPhone', () => {
 	});
 
 	test('stays put with a note until the app has an App Store record', async ({ page }) => {
-		await page.goto(CODE);
+		await page.goto(CODE, { waitUntil: 'commit' });
 		await expect(page.getByTestId('ios-note')).toBeVisible();
 		await page.waitForTimeout(2600);
 		expect(new URL(page.url()).pathname).toBe('/redirect');
