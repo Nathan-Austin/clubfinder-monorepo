@@ -55,8 +55,12 @@ Also on the web, from the same run:
   page (the heading and cards share one city; `tests/users-home-city.spec.ts` walks the path
   and passes) but mislabelled production rows, which only a fetcher run with a mismatched
   city/area pair produces (KNOWN_ISSUES 93). The fetcher now refuses such a run, and the
-  upsert relabels events on the next correct run. **Left for the server:** the KNOWN_ISSUES 93
-  query, to confirm and to clear what the nightly run no longer lists
+  upsert relabels events on the next correct run. The owner ran the query on production the
+  same day: no mislabelled rows, so the report is not reproduced (KNOWN_ISSUES 93)
+- **From the same run, fixed in the repo 2026-11-19:** the header kept offering "Log Out" after
+  "Delete this venue" on `/bars` (the DELETE left `bar_email`, and a personal login made in the
+  same browser). Owner's decision: a full logout. `$lib/server/webLogout` ends every web login
+  and is shared with the header's `/api/logout`; `tests/venue-delete.spec.ts` covers it
 
 **Data: no club events at all** (found 2026-11-18; **fixed the same day** in `1c98caa`). The
 event scrape had been disabled since Aug 2025, so the app's Clubs side and `/clubs` were empty.
