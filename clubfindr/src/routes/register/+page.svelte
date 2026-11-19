@@ -458,12 +458,21 @@
 			</label>
 		</div>
 
-		<div class="form-group checkbox-container">
-			<label for="smokingAllowed" class="checkbox-label">
-				<input type="checkbox" id="smokingAllowed" bind:checked={smokingAllowed} />
-				Smoking Allowed Inside?
-			</label>
-		</div>
+		<!-- A fact about the venue, asked as a question with two answers rather than a box to
+		     tick (DEVICE_CHECKLIST 2026-11-19); still a boolean on the wire -->
+		<fieldset class="form-group yes-no-group">
+			<legend>Smoking allowed inside?</legend>
+			<div class="yes-no-options">
+				<label class="checkbox-label">
+					<input type="radio" name="smokingAllowed" value={true} bind:group={smokingAllowed} />
+					Yes
+				</label>
+				<label class="checkbox-label">
+					<input type="radio" name="smokingAllowed" value={false} bind:group={smokingAllowed} />
+					No
+				</label>
+			</div>
+		</fieldset>
 
 		<div class="form-group">
 			<label for="barTypes">Bar Type (Select up to 3):</label>
@@ -660,8 +669,24 @@
 		display: none;
 	}
 
-	.checkbox-label input[type='checkbox'] {
+	.checkbox-label input[type='checkbox'],
+	.checkbox-label input[type='radio'] {
 		width: auto;
+	}
+
+	.yes-no-group {
+		border: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.yes-no-group legend {
+		margin-bottom: 0.5rem;
+	}
+
+	.yes-no-options {
+		display: flex;
+		gap: 1.5rem;
 	}
 
 	.submit-button {
