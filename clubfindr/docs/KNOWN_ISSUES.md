@@ -1122,3 +1122,14 @@ here that needs the server is collected in ROADMAP, "Next server round".
     card shows those first and only, with the match as a percentage ("33% match · 1 of 3
     genres") and a per-card "Show all N genres". The pipeline and weighting parts are to be
     discussed at step 6 of the 2026-11-19 session (ROADMAP section 6).
+
+95. _Fixed 2026-11-19 (owner's decision)._ **An account had one session at a time.**
+    `user_sessions` carried `UNIQUE (user_id)` and every login upserted on it, so logging in on
+    the website logged the phone out and the other way round (found while testing the password
+    reset: a web login and an app login could not both be alive). The constraint is gone
+    (`migrations/20261119_user_sessions_many_per_user.sql`, applied by the deploy; `session_id`
+    is unique and `user_id` indexed instead), `$lib/server/userSessions.openUserSession` is the
+    one way a login opens a session (a plain insert that also drops the account's rows unused
+    for seven days), and the promoter dashboard login no longer has to reuse the app's session
+    to keep it alive. Logout ends the one session, a password reset and an account deletion end
+    them all. `tests/password-reset.spec.ts` holds a web and an app session at once.

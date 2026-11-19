@@ -140,7 +140,9 @@ Each is a server change with its e2e run under the lease.
 
 Still open from earlier: the SoundCloud and Tidal decision and their callback logging (78), and
 `SMTP_TLS_VERIFY` in production (15). The personal-account password reset ending the user's
-session (KNOWN_ISSUES 80) was done 2026-11-19.
+sessions (KNOWN_ISSUES 80) was done 2026-11-19, and on the way an account gained one session per
+device instead of one in all (95, migration `20261119_user_sessions_many_per_user.sql`, goes
+with the next deploy).
 
 ## Left on the app side (next app round)
 
