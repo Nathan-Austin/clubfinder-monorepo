@@ -1,5 +1,5 @@
 import axiosClient from '../api/axiosClient';
-import type { ApiResult, ApiResultWithData } from '../types/api';
+import { errorMessage, type ApiResult, type ApiResultWithData } from '../types/api';
 
 /** These three return the whole response, so callers read `response.data` */
 type ApiResponse = { data: ApiResult };
@@ -52,9 +52,12 @@ export const verifyEmailWithCode = async (email: string, confirmationCode: strin
         }
     } catch (error) {
         console.error('Failed to verify email:', error);
+        // The server's own words ("Invalid confirmation code", "Confirmation code has expired",
+        // the five-attempts message): the HTTP client's error says only "HTTP error 400", which
+        // is what the screen showed until 2026-11-19 (DEVICE_CHECKLIST, section 5)
         return {
             success: false,
-            message: error instanceof Error ? error.message : 'Failed to verify email',
+            message: errorMessage(error, 'Could not verify the code. Please try again.'),
             data: {}
         };
     }
