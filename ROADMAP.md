@@ -138,9 +138,9 @@ Each is a server change with its e2e run under the lease.
 5. **Real venue insights** in place of the removed "Genre Matches" tile (always 0, no data behind
    it): check-ins per night, matched visitors, once there is data to count
 
-Still open from earlier: a personal-account password reset that ends that user's sessions
-(KNOWN_ISSUES 80), the SoundCloud and Tidal decision and their callback logging (78), and
-`SMTP_TLS_VERIFY` in production (15).
+Still open from earlier: the SoundCloud and Tidal decision and their callback logging (78), and
+`SMTP_TLS_VERIFY` in production (15). The personal-account password reset ending the user's
+session (KNOWN_ISSUES 80) was done 2026-11-19.
 
 ## Left on the app side (next app round)
 

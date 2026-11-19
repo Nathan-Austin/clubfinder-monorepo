@@ -894,8 +894,9 @@ What each fix was, briefly; the commits have the detail. Device checks for all o
       run in a west-of-UTC zone too.
     - _Done 2026-11-16 (`708e6a7`):_ `BarRegistrationScreen` hard-coded its own 8 cities (with
       Rome and New York, which are not scraped); it uses `constants/cities.ts` now.
-    - A personal-account password reset does not end that user's sessions (a venue reset does,
-      since `7c05c8d`).
+    - _Done 2026-11-19:_ a personal-account password reset did not end that user's session (a
+      venue reset has since `7c05c8d`); it does now, in one transaction, evicting the hooks
+      cache too (`tests/password-reset.spec.ts`).
     - The axios adapter turns any successful body with an `error` key into a thrown error, and
       reports every success as status 200.
     - _Done 2026-11-16 (`955916c`):_ TilkiScreen treated a malformed answer as "nothing found",
